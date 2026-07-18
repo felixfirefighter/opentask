@@ -4,14 +4,27 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "OpenTask visual proof",
-  description: "A fixture-driven visual proof for an open-source personal planning workspace.",
+  title: {
+    default: "OpenTask",
+    template: "%s · OpenTask",
+  },
+  description: "An open-source personal planning workspace for tasks, routines, focus, and reviewable AI.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          data-public-theme-bootstrap=""
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: publicThemeBootstrap }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
 }
+
+const publicThemeBootstrap =
+  '(()=>{const r=document.documentElement;let p="system";try{const s=localStorage.getItem("opentask-theme-preference");if(s==="light"||s==="dark"||s==="system")p=s}catch{}r.dataset.themePreference=p;r.dataset.theme=p==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p})()';

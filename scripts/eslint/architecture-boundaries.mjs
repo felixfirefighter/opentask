@@ -6,6 +6,14 @@ const presentationEntry = {
   element: { types: "module-layer", captured: { layer: "presentation" } },
   file: { categories: "module-presentation-entry" },
 };
+const moduleSchemaEntry = {
+  element: { types: "module-layer", captured: { layer: "infrastructure" } },
+  file: { categories: "module-schema-entry" },
+};
+const schemaComposition = {
+  element: { types: "shared", captured: { surface: "db" } },
+  file: { categories: "schema-composition" },
+};
 
 export const architectureBoundaries = createConfig({
   files: ["app/**/*.{ts,tsx}", "modules/**/*.{ts,tsx}", "shared/**/*.{ts,tsx}", "worker/**/*.{ts,tsx}"],
@@ -16,6 +24,8 @@ export const architectureBoundaries = createConfig({
     "boundaries/dependency-nodes": ["import", "export", "dynamic-import", "require"],
     "boundaries/files": [
       { category: "module-presentation-entry", pattern: "modules/*/presentation/index.ts" },
+      { category: "module-schema-entry", pattern: "modules/*/infrastructure/schema.ts" },
+      { category: "schema-composition", pattern: "shared/db/schema.ts" },
     ],
     "boundaries/elements": [
       {
@@ -48,6 +58,10 @@ export const architectureBoundaries = createConfig({
         checkUnknownLocals: true,
         message: "This dependency is outside the approved module and shared-surface direction.",
         policies: [
+          {
+            from: schemaComposition,
+            allow: { to: moduleSchemaEntry },
+          },
           {
             from: { element: { types: "app" } },
             allow: {
@@ -151,7 +165,7 @@ export const architectureBoundaries = createConfig({
                   element: {
                     types: "shared",
                     captured: {
-                      surface: ["config", "db", "logging", "http", "time", "validation"],
+                      surface: ["auth", "config", "db", "logging", "http", "time", "validation"],
                     },
                   },
                 },
@@ -174,9 +188,11 @@ export const architectureBoundaries = createConfig({
           {
             from: { element: { types: "shared", captured: { surface: "db" } } },
             allow: {
-              to: {
-                element: { types: "shared", captured: { surface: ["config", "logging"] } },
-              },
+              to: [
+                {
+                  element: { types: "shared", captured: { surface: ["config", "logging"] } },
+                },
+              ],
             },
           },
           {
@@ -185,6 +201,12 @@ export const architectureBoundaries = createConfig({
               to: {
                 element: { types: "shared", captured: { surface: ["config", "db", "logging"] } },
               },
+            },
+          },
+          {
+            from: { element: { types: "shared", captured: { surface: "http" } } },
+            allow: {
+              to: { element: { types: "shared", captured: { surface: "logging" } } },
             },
           },
           {

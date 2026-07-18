@@ -48,7 +48,8 @@ The small amount of dependency injection needed is explicit function parameters/
 
 ## Request and mutation flow
 
-1. Route handler obtains the authenticated session from `shared/auth`.
+1. Route handler obtains an authoritative session through the identity module's public application
+   surface; the returned actor/session contract is provider-neutral and owned by `shared/auth`.
 2. Zod parses path/query/body data; client ownership claims are discarded.
 3. Application use case loads authorized records through its repository.
 4. Domain policy evaluates the mutation.

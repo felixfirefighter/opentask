@@ -18,13 +18,20 @@ Product fields and domain permissions do not belong in Better Auth tables.
 
 ## Public use cases and contracts
 
-- `bootstrapAccount(userId, transaction)` creates preferences and calls the tasks Inbox-bootstrap port in the same transaction.
+- `bootstrapAccount(userId)` opens one transaction, creates preferences, and calls the tasks
+  Inbox-bootstrap port inside it. The private application factory may reuse an existing transaction
+  when Better Auth creates an account.
 - `getUserPreferences(actor)` returns the canonical, schema-versioned preferences DTO.
 - `updateUserPreferences(actor, expectedVersion, patch)` validates and updates preferences once.
-- `enterDemo()` creates or resets an isolated demo identity and delegates domain seeding through `DemoDatasetSeeder`.
+- `enterDemo(headers)` creates or resets an isolated demo identity after the route has validated the
+  request, then delegates domain seeding through `DemoDatasetSeeder`.
+- `getIdentityRequestSecurity()` exposes the configured trusted browser origin without leaking
+  provider configuration or secrets.
 - Public contracts: `AuthenticatedActor`, `UserPreferences`, `UserPreferencesPatch`, `InboxBootstrapPort`, and `DemoDatasetSeeder`.
 
-Request/session extraction is exposed through `shared/auth`; it must not expose Better Auth row or token types.
+Request/session extraction is exposed through the identity module's root application surface and
+returns the provider-neutral contract from `shared/auth`; it must not expose Better Auth row or token
+types.
 
 ## Invariants
 
@@ -34,6 +41,9 @@ Request/session extraction is exposed through `shared/auth`; it must not expose 
 - An accepted preference mutation checks ownership and `version`, then increments `version` exactly once.
 - An unauthenticated actor cannot read or mutate domain data.
 - Demo data is owned by its isolated demo user and reset cannot touch any other user.
+- Auth and demo abuse controls derive the client address from the same `X-Real-IP` policy. Production
+  ingress must overwrite that header and prevent direct origin access; an unresolved address uses a
+  shared fallback bucket.
 
 ## Dependencies
 
@@ -54,4 +64,3 @@ Request/session extraction is exposed through `shared/auth`; it must not expose 
 - Preference schema, IANA timezone, optimistic-conflict, and cross-user denial tests.
 - Better Auth rate-limit and secure-cookie production-configuration tests.
 - Demo creation/reset isolation and idempotent seed tests.
-

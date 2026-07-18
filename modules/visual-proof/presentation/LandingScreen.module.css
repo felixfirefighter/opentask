@@ -24,11 +24,13 @@
   gap: 10px;
 }
 
-.fixtureNote {
-  padding-right: 8px;
+.signInLink {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  padding: 0 var(--space-2);
   color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--type-label-weight);
 }
 
 .hero {
@@ -66,6 +68,24 @@
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 30px;
+}
+
+.heroActions > div {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.heroActions :global(.demo-entry-action) {
+  min-width: 0;
+}
+
+.heroActions :global(.demo-entry-status) {
+  max-width: 34ch;
+  min-height: var(--type-compact-line);
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
 }
 
 .trustLine {
@@ -183,9 +203,12 @@
     height: 64px;
   }
 
-  .fixtureNote,
-  .headerNav :global(.secondary-button) {
-    display: none;
+  .headerNav {
+    gap: var(--space-2);
+  }
+
+  .signInLink {
+    min-height: var(--control-target-touch);
   }
 
   .hero {
@@ -212,6 +235,11 @@
   }
 
   .heroActions a {
+    width: 100%;
+  }
+
+  .heroActions > div,
+  .heroActions > div button {
     width: 100%;
   }
 

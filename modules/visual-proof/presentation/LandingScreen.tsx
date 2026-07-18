@@ -1,12 +1,13 @@
-import { ArrowRight, CalendarDays, Check, Clock3, GitBranch, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, Clock3, Scale, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { BrandMark, Button, ThemeToggle } from "@/shared/presentation";
 
 import previewStyles from "./LandingPreview.module.css";
 import styles from "./LandingScreen.module.css";
 
-export function LandingScreen() {
+export function LandingScreen({ signedIn, demoAction }: { signedIn: boolean; demoAction: ReactNode }) {
   return (
     <div className={styles.page}>
       <a className="skip-link" href="#main-content">
@@ -15,11 +16,21 @@ export function LandingScreen() {
       <header className={styles.header}>
         <BrandMark />
         <nav className={styles.headerNav} aria-label="Public navigation">
-          <span className={styles.fixtureNote}>Visual proof</span>
           <ThemeToggle />
-          <Button asChild variant="secondary">
-            <Link href="/today">Open demo</Link>
-          </Button>
+          {signedIn ? (
+            <Button asChild>
+              <Link href="/inbox">Open app</Link>
+            </Button>
+          ) : (
+            <>
+              <Link className={styles.signInLink} href="/sign-in">
+                Sign in
+              </Link>
+              <Button asChild>
+                <Link href="/sign-up">Create account</Link>
+              </Button>
+            </>
+          )}
         </nav>
       </header>
 
@@ -35,14 +46,22 @@ export function LandingScreen() {
               features behind a premium tier.
             </p>
             <div className={styles.heroActions}>
-              <Button asChild>
-                <Link href="/today">
-                  Try the visual demo <ArrowRight size={17} />
-                </Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link href="/plan">Review an AI plan</Link>
-              </Button>
+              {signedIn ? (
+                <Button asChild>
+                  <Link href="/inbox">
+                    Open your Inbox <ArrowRight size={17} aria-hidden="true" />
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  <Button asChild>
+                    <Link href="/sign-up">
+                      Create account <ArrowRight size={17} aria-hidden="true" />
+                    </Link>
+                  </Button>
+                  {demoAction}
+                </>
+              )}
             </div>
             <p className={styles.trustLine}>
               <ShieldCheck size={16} /> Manual workflows always work without an AI key.
@@ -82,7 +101,7 @@ export function LandingScreen() {
         <BrandMark />
         <p>Independent, self-hostable, and designed without copied competitor assets or trade dress.</p>
         <span className={styles.footerLink}>
-          <GitBranch size={16} /> Source at release
+          <Scale size={16} aria-hidden="true" /> AGPL-3.0-or-later
         </span>
       </footer>
     </div>
@@ -93,9 +112,10 @@ function ProductComposition() {
   return (
     <div
       className={previewStyles.composition}
-      aria-label="Preview of Today and a reviewable planning proposal"
+      role="img"
+      aria-label="OpenTask preview showing a Today list beside three reviewable planning changes"
     >
-      <div className={previewStyles.previewWindow}>
+      <div className={previewStyles.previewWindow} aria-hidden="true">
         <div className={previewStyles.previewChrome}>
           <span />
           <span />
@@ -126,7 +146,7 @@ function ProductComposition() {
         </div>
       </div>
 
-      <div className={previewStyles.proposalFloat}>
+      <div className={previewStyles.proposalFloat} aria-hidden="true">
         <div className={previewStyles.proposalIcon}>
           <Sparkles size={16} />
         </div>

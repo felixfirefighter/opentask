@@ -1,0 +1,178 @@
+.screen {
+  width: 100%;
+  min-height: 100%;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+.workSurface {
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
+.header {
+  padding: 0 var(--space-1) var(--space-6);
+}
+
+.title {
+  width: fit-content;
+  margin: 0;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+}
+
+.statePanel {
+  display: flex;
+  min-height: 360px;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.stateMessage {
+  width: min(100%, 440px);
+  text-align: center;
+}
+
+.stateMessage h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.stateMessage p {
+  max-width: 52ch;
+  margin: var(--space-2) auto 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-body-line);
+}
+
+.retryButton {
+  min-height: var(--control-target-desktop);
+  margin-top: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.retryButton:hover {
+  background: var(--surface-hover);
+}
+
+.loadingPanel {
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-direction: column;
+}
+
+.loadingLabel {
+  margin: 0 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-compact-weight);
+  line-height: var(--type-compact-line);
+}
+
+.skeletonList {
+  overflow: hidden;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.skeletonRow {
+  display: grid;
+  min-height: var(--task-row-standard-height);
+  align-items: center;
+  padding: 0 var(--space-3);
+  border-bottom: var(--border-default) solid var(--border);
+  column-gap: var(--space-3);
+  grid-template-columns: var(--control-target-desktop) minmax(0, 1fr);
+}
+
+.skeletonRow:last-child {
+  border-bottom: 0;
+}
+
+.skeletonStatus {
+  width: var(--task-status-indicator-size);
+  height: var(--task-status-indicator-size);
+  justify-self: center;
+  border: var(--border-default) solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-subtle);
+}
+
+.skeletonCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeletonTitle,
+.skeletonMeta {
+  display: block;
+  height: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.skeletonTitle {
+  width: 62%;
+}
+
+.skeletonMeta {
+  width: 34%;
+  height: var(--space-2);
+}
+
+@media (any-pointer: coarse) {
+  .retryButton {
+    min-height: var(--control-target-touch);
+  }
+}
+
+@media (max-width: 767px) {
+  .screen {
+    padding: var(--space-5) var(--space-4) var(--space-10);
+  }
+
+  .header {
+    padding-bottom: var(--space-5);
+  }
+
+  .statePanel {
+    min-height: 280px;
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .skeletonRow {
+    min-height: var(--task-row-touch-height);
+    padding: 0 var(--space-2);
+    grid-template-columns: var(--control-target-touch) minmax(0, 1fr);
+  }
+
+  .skeletonTitle {
+    width: 76%;
+  }
+
+  .skeletonMeta {
+    width: 48%;
+  }
+}

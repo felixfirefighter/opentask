@@ -1,6 +1,16 @@
 export function createPolicyControlProbes(probeModule) {
   return [
     {
+      filePath: "shared/db/schema.ts",
+      source: 'import "../../modules/identity/infrastructure/schema.ts";\n',
+      expected: {},
+    },
+    {
+      filePath: "shared/db/__schema_deep_import_probe__.ts",
+      source: 'import "../../modules/identity/infrastructure/schema.ts";\n',
+      expected: { "boundaries/dependencies": 1 },
+    },
+    {
       filePath: `modules/${probeModule}/application/database-use-control.ts`,
       source:
         'import { getDatabasePool } from "../../../shared/db/client.ts";\nexport function hasDatabasePort() { return Boolean(getDatabasePool); }\n',

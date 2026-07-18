@@ -6,10 +6,13 @@ const allowedLicenses = new Set([
   "BSD-2-Clause",
   "BSD-3-Clause",
   "CC-BY-4.0",
+  "CC0-1.0",
   "ISC",
   "LGPL-3.0-or-later",
   "MIT",
+  "MIT-0",
   "MPL-2.0",
+  "BlueOak-1.0.0",
   "(MIT OR CC0-1.0)",
 ]);
 

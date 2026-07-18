@@ -1,0 +1,275 @@
+.shell {
+  display: grid;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: 52px 248px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--canvas);
+  color: var(--text);
+}
+
+.rail {
+  position: relative;
+  z-index: var(--z-popover);
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  border-right: var(--border-default) solid var(--border);
+  background: var(--surface-subtle);
+  grid-column: 1;
+  grid-row: 1 / -1;
+}
+
+.railBrand,
+.railLink {
+  display: inline-flex;
+  width: 40px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-card);
+}
+
+.railBrand {
+  margin-top: var(--space-2);
+}
+
+.railLinks {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+}
+
+.railLink {
+  color: var(--text-muted);
+}
+
+.railLink:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.railLink[aria-current="page"] {
+  background: var(--surface-selected);
+  color: var(--brand);
+}
+
+.railAccount {
+  padding-bottom: var(--space-3);
+}
+
+.contextSidebar {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  border-right: var(--border-default) solid var(--border);
+  background: var(--surface);
+  grid-column: 2;
+  grid-row: 1 / -1;
+  overflow-y: auto;
+}
+
+.contextHeader {
+  min-width: 0;
+  padding: var(--space-5) var(--space-5) var(--space-3);
+}
+
+.contextHeader p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.08em;
+  line-height: var(--type-label-line);
+  text-transform: uppercase;
+}
+
+.contextHeader strong {
+  display: block;
+  margin-top: var(--space-1);
+  overflow: hidden;
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contextLinks {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-3);
+}
+
+.contextLink {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  font-size: var(--type-row-size);
+  line-height: var(--type-row-line);
+}
+
+.contextLink:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.contextLink[aria-current="page"] {
+  background: var(--surface-selected);
+  color: var(--text);
+  font-weight: var(--type-label-weight);
+}
+
+.topBar,
+.mobileNavigation {
+  display: none;
+}
+
+.main {
+  min-width: 0;
+  min-height: 0;
+  background: var(--canvas);
+  grid-column: 3;
+  grid-row: 2;
+  overflow: auto;
+  overscroll-behavior-y: contain;
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .shell {
+    grid-template-columns: 52px 240px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 52px auto minmax(0, 1fr);
+  }
+
+  .rail,
+  .contextSidebar {
+    display: none;
+  }
+
+  .topBar {
+    position: relative;
+    z-index: var(--z-sticky);
+    display: flex;
+    min-width: 0;
+    height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 0 max(var(--space-4), env(safe-area-inset-right)) 0
+      max(var(--space-4), env(safe-area-inset-left));
+    border-bottom: var(--border-default) solid var(--border);
+    background: var(--surface);
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .topBarIdentity {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-3);
+    border-radius: var(--radius-control);
+  }
+
+  .topBarIdentity strong {
+    overflow: hidden;
+    font-size: var(--type-row-size);
+    font-weight: var(--type-label-weight);
+    line-height: var(--type-row-line);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .main {
+    grid-column: 1;
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 767px) {
+  .shell {
+    grid-template-rows: 52px auto minmax(0, 1fr) calc(64px + env(safe-area-inset-bottom));
+  }
+
+  .mobileNavigation {
+    z-index: var(--z-sticky);
+    display: grid;
+    min-width: 0;
+    min-height: calc(64px + env(safe-area-inset-bottom));
+    padding: var(--space-1) max(var(--space-1), env(safe-area-inset-right)) env(safe-area-inset-bottom)
+      max(var(--space-1), env(safe-area-inset-left));
+    border-top: var(--border-default) solid var(--border);
+    background: var(--surface);
+    grid-column: 1;
+    grid-row: 4;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mobileDestination {
+    display: flex;
+    min-width: 0;
+    min-height: 60px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 2px;
+    border-radius: var(--radius-control);
+    color: var(--text-muted);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-weight);
+    line-height: var(--type-label-line);
+  }
+
+  .mobileDestination:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+
+  .mobileDestination[aria-current="page"] {
+    background: var(--surface-selected);
+    color: var(--text-selected);
+  }
+}
+
+@media (any-pointer: coarse) {
+  .railBrand,
+  .railLink,
+  .contextLink,
+  .topBarIdentity {
+    min-height: var(--control-target-touch);
+  }
+
+  .railBrand,
+  .railLink {
+    width: var(--control-target-touch);
+  }
+}
+
+:global(:root[data-reduced-motion="true"]) .shell,
+:global(:root[data-reduced-motion="true"]) .shell *,
+:global(:root[data-reduced-motion="true"]) .shell *::before,
+:global(:root[data-reduced-motion="true"]) .shell *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}

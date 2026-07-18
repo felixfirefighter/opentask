@@ -17,6 +17,7 @@ This file owns token meaning and approved values. `shared/design/tokens.css` is 
 | `text` | `#22221F` | `#F6F6F3` | Primary text |
 | `text-muted` | `#676762` | `#B2B2AA` | Secondary text that must remain readable |
 | `text-disabled` | `#92928A` | `#76766F` | Disabled control text only |
+| `text-selected` | `#AD263F` | `#FF6B7E` | Text label on `surface-selected` |
 | `brand` | `#D63C55` | `#FF6B7E` | Decorative brand mark and non-text emphasis |
 | `action` | `#C9304D` | `#C9304D` | Filled primary controls with `text-on-action` |
 | `action-hover` | `#AD263F` | `#AD263F` | Filled primary control hover/pressed |

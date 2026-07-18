@@ -72,14 +72,26 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 |---|---|---|---|---|---|
 | `eslint-plugin-boundaries` 7.0.2 | Resolve relative, alias, export, and dynamic imports before enforcing module/layer direction; core ESLint path patterns cannot do this reliably. | Development-only lint work; no application bundle or service. | MIT | Current v7 line, ESLint 9 compatible, with an active upstream release history. | `eslint.config.mjs` and `scripts/eslint/architecture-boundaries.mjs` |
 | `next-devtools-mcp` 0.4.0 | Let future Codex tasks inspect the live Next.js route/build/runtime state through the framework-supported MCP bridge. | Development-only stdio process; optional and not required for app boot. | MIT | Exact package recommended by the official Next.js 16 MCP guide and pinned in the lockfile. | `.codex/config.toml`; no product adapter |
+| `better-auth` + `@better-auth/drizzle-adapter` 1.6.23 | Provide the approved email/password session implementation and direct Drizzle/PostgreSQL adapter instead of maintaining credential storage, cookie rotation, and session expiry in product code. | Two pinned server dependencies; the minimal server entry excludes unused auth plugins and there is no browser SDK. | MIT | Current stable release when WP01 began, with official Next.js, Drizzle, security, migration, and rate-limit documentation. | `modules/identity/infrastructure/authentication-gateway.ts` |
 
 ### Direct runtime license baseline
 
 `pnpm check:licenses` is authoritative for the resolved production tree. The direct-package baseline is:
 
-- MIT: `@radix-ui/react-slot`, `clsx`, Next.js, `pg`, pg-boss, Pino, React, React DOM, `tailwind-merge`, and Zod.
+- MIT: `@better-auth/drizzle-adapter`, `@radix-ui/react-slot`, Better Auth, `clsx`, Next.js, `pg`, pg-boss, Pino, React, React DOM, `tailwind-merge`, and Zod.
 - Apache-2.0: class-variance-authority and Drizzle ORM.
 - ISC: Lucide React.
+
+The production-tree license gate also permits reviewed permissive transitive families: MIT-0
+(`@csstools` helpers), BlueOak-1.0.0 (`lru-cache` 11; its notice must remain with distributed
+copies), and CC0-1.0 (`mdn-data`). These are compatible with the repository's AGPL distribution;
+new license identifiers still fail the allowlist until reviewed.
+
+The current production audit reports one moderate advisory in `esbuild` 0.18.20, reached only
+through Better Auth's Drizzle Kit tooling branch. The affected capability is an opt-in esbuild
+development server; OpenTask's production web, migration, and worker commands do not import or
+start it. There is no high/critical advisory and this moderate finding is not applicable to the
+deployed runtime path. Re-evaluate it whenever Better Auth or its dependency graph changes.
 
 ## API style
 

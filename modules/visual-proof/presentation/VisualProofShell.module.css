@@ -331,7 +331,7 @@
   }
 
   .mobileLink[aria-current="page"] {
-    color: var(--brand);
+    color: var(--text-selected);
   }
 
   .moreMenu summary::-webkit-details-marker {

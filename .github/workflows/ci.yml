@@ -30,6 +30,8 @@ jobs:
       CI: true
       DATABASE_URL: postgresql://opentask:opentask-local@127.0.0.1:5432/opentask
       TEST_DATABASE_URL: postgresql://opentask:opentask-local@127.0.0.1:5432/opentask
+      BETTER_AUTH_SECRET: ci-only-opentask-secret-32-characters-minimum
+      BETTER_AUTH_URL: http://127.0.0.1:3107
       NEXT_TELEMETRY_DISABLED: 1
       TZ: UTC
     steps:

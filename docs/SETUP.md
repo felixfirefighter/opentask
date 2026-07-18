@@ -28,6 +28,12 @@ pnpm dev
 
 The app runs at `http://127.0.0.1:3000`. Start the background process separately with `pnpm worker`; WP00 intentionally registers zero jobs. Stop local PostgreSQL with `pnpm db:down`.
 
+`BETTER_AUTH_URL` is the exact browser-facing origin, not an internal service URL. OpenTask uses
+only a trusted proxy's overwritten `X-Real-IP` header for authentication and demo abuse-control
+buckets. Before exposing the service to a network, route all traffic through one ingress that
+overwrites that header and block direct access to the application origin. See `SECURITY.md` for the
+operational trust boundary. The checked-in Compose port is loopback-only for this reason.
+
 `.env.local` is ignored by Git. `.env.example` contains local placeholders only. Provider keys are optional and must never use the `NEXT_PUBLIC_` prefix.
 
 ## Health checks
@@ -42,7 +48,7 @@ The app runs at `http://127.0.0.1:3000`. Start the background process separately
 docker compose up --build
 ```
 
-Compose starts PostgreSQL 17, applies committed migrations before the web process, and starts the separate worker from the same image. The web app is exposed on port 3000 and PostgreSQL on local port 54329. `docker compose down` preserves the named database volume; remove it only when you explicitly intend to discard local data.
+Compose starts PostgreSQL 17, applies committed migrations before the web process, and starts the separate worker from the same image. The web app is exposed on loopback port 3000 and PostgreSQL on loopback port 54329. `docker compose down` preserves the named database volume; remove it only when you explicitly intend to discard local data.
 
 To reproduce the CI production topology audit with an isolated fresh database volume, first stop anything using ports 3000 or 54329, then run:
 

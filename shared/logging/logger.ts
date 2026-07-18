@@ -6,10 +6,12 @@ const errorNamePattern = /^[A-Za-z_$][A-Za-z0-9_$.-]{0,127}$/;
 const logLevels = new Set(["fatal", "error", "warn", "info", "debug", "trace", "silent"]);
 
 const events = {
+  ACCOUNT_BOOTSTRAP_FAILED: { level: "error", message: "account bootstrap failed" },
   DATABASE_POOL_ERROR: { level: "error", message: "database pool error" },
   MIGRATIONS_APPLIED: { level: "info", message: "database migrations applied" },
   MIGRATIONS_FAILED: { level: "error", message: "database migration failed" },
   READINESS_FAILED: { level: "warn", message: "readiness check failed" },
+  REQUEST_FAILED: { level: "error", message: "request failed" },
   SEED_COMPLETE: { level: "info", message: "bootstrap seed complete" },
   SEED_FAILED: { level: "error", message: "bootstrap seed failed" },
   WORKER_QUEUE_ERROR: { level: "error", message: "worker queue error" },

@@ -1,0 +1,1 @@
+DROP INDEX "rate_limit_key_idx";

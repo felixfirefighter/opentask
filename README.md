@@ -20,7 +20,10 @@ pnpm dev
 
 Run the zero-job worker in a second terminal with `pnpm worker`. Install the Playwright browser once with `pnpm exec playwright install chromium`, then use `pnpm verify` for the complete local gate. See [docs/SETUP.md](docs/SETUP.md) for the reproducible setup, Docker path, health checks, and command contracts.
 
-## Visual proof routes
+## Development-only visual proof routes
+
+The pre-implementation proof remains available under `pnpm dev` while real product slices replace it. Except for
+the real landing route, these fixture routes return not found from a production build and are never product data.
 
 - `/` — landing and product composition
 - `/today` — daily task and habit workspace

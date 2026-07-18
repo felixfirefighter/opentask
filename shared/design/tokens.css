@@ -11,6 +11,7 @@
   --text: #22221f;
   --text-muted: #676762;
   --text-disabled: #92928a;
+  --text-selected: #ad263f;
   --brand: #d63c55;
   --action: #c9304d;
   --action-hover: #ad263f;
@@ -111,6 +112,7 @@
   --text: #f6f6f3;
   --text-muted: #b2b2aa;
   --text-disabled: #76766f;
+  --text-selected: #ff6b7e;
   --brand: #ff6b7e;
   --focus-ring: #75a7ff;
   --success: #55c993;

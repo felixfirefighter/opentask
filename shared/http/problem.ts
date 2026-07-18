@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+
+import { ApplicationError } from "./application-error";
+import { logger } from "../logging/logger";
 
 export const problemCodes = [
   "UNAUTHENTICATED",
@@ -61,8 +65,36 @@ export function problemResponse(problem: ProblemDetails) {
   return NextResponse.json(problem, {
     status: problem.status,
     headers: {
+      "cache-control": "no-store",
       "content-type": "application/problem+json",
       "x-correlation-id": problem.correlationId,
     },
   });
+}
+
+export function problemResponseFromError(error: unknown) {
+  if (error instanceof ApplicationError) {
+    return problemResponse(createProblem(error.code, error.message));
+  }
+  if (hasProblemCode(error, "UNAUTHENTICATED")) {
+    return problemResponse(createProblem("UNAUTHENTICATED", "Sign in to continue."));
+  }
+  if (error instanceof ZodError || error instanceof SyntaxError) {
+    return problemResponse(createProblem("VALIDATION_FAILED", "Review the submitted values and try again."));
+  }
+  const problem = createProblem("INTERNAL", "The request could not be completed. Try again safely.");
+  logger.event("REQUEST_FAILED", {
+    correlationId: problem.correlationId,
+    errorName: error instanceof Error ? error.name : "UnknownError",
+  });
+  return problemResponse(problem);
+}
+
+function hasProblemCode(error: unknown, code: ProblemCode): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === code
+  );
 }

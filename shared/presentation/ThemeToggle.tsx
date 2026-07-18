@@ -9,6 +9,12 @@ export function ThemeToggle() {
   function toggleTheme() {
     const nextDark = !dark;
     document.documentElement.dataset.theme = nextDark ? "dark" : "light";
+    document.documentElement.dataset.themePreference = nextDark ? "dark" : "light";
+    try {
+      localStorage.setItem("opentask-theme-preference", nextDark ? "dark" : "light");
+    } catch {
+      // The in-memory theme still works when browser storage is unavailable.
+    }
     window.dispatchEvent(new Event("opentask-theme-change"));
   }
 

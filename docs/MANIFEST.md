@@ -61,14 +61,17 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 
 - `shared/presentation`: shadcn primitives, generic layout primitives, generic hooks.
 - `shared/design`: tokens and theme plumbing.
-- `shared/auth`: request/session context; no feature authorization policies.
-- `shared/db`: connection, transaction type, schema aggregation only.
+- `shared/auth`: provider-neutral actor/session contracts and authentication errors; no provider
+  implementation or feature authorization policies.
+- `shared/db`: connection, transaction type, schema aggregation, and generic entity-ID generation
+  only.
 - `shared/logging`: structured logger and redaction.
 - `shared/config`: server/worker environment validation; no feature settings.
 - `shared/health`: liveness/readiness policies; no feature status aggregation.
-- `shared/http`: stable transport error envelopes; no feature DTOs.
-- `shared/time`: Temporal setup and generic instant/local-date conversions.
-- `shared/validation`: generic pagination/ID schemas only.
+- `shared/http`: stable transport error envelopes and generic request-boundary primitives; no
+  feature DTOs.
+- `shared/time`: generic clocks, Temporal setup, and generic instant/local-date conversions.
+- `shared/validation`: generic pagination, ID, and canonical IANA timezone schemas only.
 
 Anything else requires updating this manifest with a concrete reason.
 

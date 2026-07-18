@@ -168,6 +168,36 @@ button {
   font-weight: var(--type-label-weight);
 }
 
+.workspace-route-state {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--canvas);
+  text-align: center;
+}
+
+.workspace-route-state > div {
+  width: min(100%, 440px);
+  padding: var(--space-8);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+}
+
+.workspace-route-state h1 {
+  margin: var(--space-2) 0;
+  font-size: var(--type-page-title-size);
+  line-height: var(--type-page-title-line);
+}
+
+.workspace-route-state p:not(.eyebrow) {
+  margin: 0 0 var(--space-5);
+  color: var(--text-muted);
+}
+
 @media (max-width: 767px) {
   .primary-button,
   .secondary-button,
