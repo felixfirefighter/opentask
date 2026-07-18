@@ -1,0 +1,69 @@
+name: opentask
+
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: opentask
+      POSTGRES_PASSWORD: opentask-local
+      POSTGRES_USER: opentask
+    ports:
+      - "54329:5432"
+    volumes:
+      - opentask_postgres:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-database.sh:/docker-entrypoint-initdb.d/10-test-database.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opentask -d opentask"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      target: runner
+    command:
+      [
+        "sh",
+        "-c",
+        "node --experimental-strip-types scripts/migrate.ts && node node_modules/next/dist/bin/next start",
+      ]
+    environment:
+      DATABASE_URL: postgresql://opentask:opentask-local@postgres:5432/opentask
+      LOG_LEVEL: info
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: runner
+    command: ["node", "--experimental-strip-types", "worker/index.ts"]
+    environment:
+      DATABASE_URL: postgresql://opentask:opentask-local@postgres:5432/opentask
+      LOG_LEVEL: info
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  opentask_postgres:

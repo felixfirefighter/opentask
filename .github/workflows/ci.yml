@@ -1,0 +1,60 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: opentask
+          POSTGRES_PASSWORD: opentask-local
+          POSTGRES_USER: opentask
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U opentask -d opentask"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      CI: true
+      DATABASE_URL: postgresql://opentask:opentask-local@127.0.0.1:5432/opentask
+      TEST_DATABASE_URL: postgresql://opentask:opentask-local@127.0.0.1:5432/opentask
+      NEXT_TELEMETRY_DISABLED: 1
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+      - name: Enable pinned pnpm
+        run: corepack enable && corepack prepare pnpm@11.14.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run the canonical verification gate
+        run: pnpm verify
+      - name: Validate Compose
+        run: docker compose config --quiet
+      - name: Build the production image
+        run: docker build --target runner --tag opentask:ci .
+      - name: Upload browser diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore

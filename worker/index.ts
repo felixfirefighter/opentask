@@ -1,0 +1,21 @@
+import { startWorker } from "./runtime.ts";
+
+const checkOnly = process.argv.includes("--check");
+const worker = await startWorker();
+
+if (checkOnly) {
+  await worker.stop();
+} else {
+  await new Promise<void>((resolve, reject) => {
+    let stopping = false;
+
+    const stop = () => {
+      if (stopping) return;
+      stopping = true;
+      void worker.stop().then(resolve, reject);
+    };
+
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+  });
+}

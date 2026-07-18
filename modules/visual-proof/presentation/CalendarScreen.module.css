@@ -1,0 +1,391 @@
+.page {
+  min-height: 100%;
+  padding: 30px 32px 40px;
+}
+.header,
+.toolbar,
+.rangeControls,
+.viewControl {
+  display: flex;
+  align-items: center;
+}
+.header {
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.header h1 {
+  margin: 3px 0 0;
+  font-size: 26px;
+  line-height: 34px;
+  letter-spacing: -0.025em;
+}
+.toolbar {
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 14px;
+}
+.rangeControls {
+  gap: 5px;
+}
+.rangeLabel {
+  min-width: 190px;
+  margin-left: 10px;
+  font-size: 16px;
+}
+.viewControl {
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-subtle);
+}
+.viewControl button {
+  min-height: 30px;
+  padding: 5px 11px;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+.viewControl button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-overlay);
+}
+.calendarCard,
+.agenda {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-overlay);
+  background: var(--surface);
+}
+.weekdayRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  min-height: 36px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+.weekdayRow span {
+  padding: 0 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.dayCell {
+  min-width: 0;
+  min-height: 108px;
+  padding: 8px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.dayCell:nth-child(7n) {
+  border-right: 0;
+}
+.dayCell:nth-last-child(-n + 7) {
+  border-bottom: 0;
+}
+.dayCell[data-outside] {
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+.dayNumber {
+  display: inline-flex;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 5px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dayNumber[data-today] {
+  background: var(--action);
+  color: var(--text-on-action);
+  font-weight: 750;
+}
+.monthEvent,
+.gridEvent {
+  display: flex;
+  min-width: 0;
+  border-radius: var(--radius-control);
+  background: var(--category-slate-bg);
+  color: var(--category-slate-fg);
+}
+.monthEvent {
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0;
+  padding: 4px 6px;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.monthEvent span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.monthEvent[data-accent="coral"],
+.gridEvent[data-accent="coral"] {
+  background: var(--category-coral-bg);
+  color: var(--category-coral-fg);
+}
+.monthEvent[data-accent="amber"],
+.gridEvent[data-accent="amber"] {
+  background: var(--category-amber-bg);
+  color: var(--category-amber-fg);
+}
+.monthEvent[data-accent="mint"],
+.gridEvent[data-accent="mint"] {
+  background: var(--category-mint-bg);
+  color: var(--category-mint-fg);
+}
+.monthEvent[data-accent="sky"],
+.gridEvent[data-accent="sky"] {
+  background: var(--category-sky-bg);
+  color: var(--category-sky-fg);
+}
+.monthEvent[data-accent="violet"],
+.gridEvent[data-accent="violet"] {
+  background: var(--category-violet-bg);
+  color: var(--category-violet-fg);
+}
+.timeHeader {
+  display: grid;
+  grid-template-columns: 64px repeat(var(--days), minmax(120px, 1fr));
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+.timeHeader div {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-left: 1px solid var(--border);
+}
+.timeHeader span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.timeHeader strong {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
+}
+.timeGrid {
+  display: grid;
+  grid-template-columns: 64px repeat(var(--days), minmax(120px, 1fr));
+  min-height: 540px;
+}
+.timeLabels {
+  display: grid;
+  grid-template-rows: repeat(5, 1fr);
+  padding-top: 8px;
+}
+.timeLabels span {
+  padding-right: 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: right;
+}
+.timeColumn {
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(5, 1fr);
+  gap: 1px;
+  padding: 8px;
+  border-left: 1px solid var(--border);
+  background: repeating-linear-gradient(to bottom, transparent 0, transparent 106px, var(--border) 107px);
+}
+.gridEvent {
+  min-height: 70px;
+  align-self: start;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px;
+}
+.gridEvent strong {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+}
+.gridEvent span {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.gridEvent:nth-child(2) {
+  margin-top: 90px;
+}
+.agendaDay {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  padding: 0 18px;
+}
+.agendaDay + .agendaDay {
+  border-top: 1px solid var(--border);
+}
+.agendaDay > header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 18px 20px 0;
+  color: var(--text-muted);
+}
+.agendaDay > header span {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.agendaDay > header strong {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.agendaEvents {
+  padding: 12px 0;
+}
+.agendaEvent {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 62px;
+  padding: 9px 12px;
+  border-left: 3px solid var(--category-slate-fg);
+  border-radius: var(--radius-control);
+}
+.agendaEvent:hover {
+  background: var(--surface-hover);
+}
+.agendaEvent[data-accent="coral"] {
+  border-left-color: var(--category-coral-fg);
+}
+.agendaEvent[data-accent="amber"] {
+  border-left-color: var(--category-amber-fg);
+}
+.agendaEvent[data-accent="mint"] {
+  border-left-color: var(--category-mint-fg);
+}
+.agendaEvent[data-accent="sky"] {
+  border-left-color: var(--category-sky-fg);
+}
+.agendaEvent[data-accent="violet"] {
+  border-left-color: var(--category-violet-fg);
+}
+.agendaEvent time {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.agendaEvent > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.agendaEvent strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agendaEvent small {
+  color: var(--text-muted);
+}
+
+@media (max-width: 1023px) {
+  .page {
+    padding: 26px 24px 40px;
+  }
+  .dayCell {
+    min-height: 96px;
+  }
+}
+@media (max-width: 767px) {
+  .page {
+    padding: 20px 16px 104px;
+  }
+  .header {
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .header h1 {
+    font-size: 24px;
+  }
+  .header :global(.primary-button) {
+    flex: 0 0 auto;
+    padding-inline: 12px;
+    white-space: nowrap;
+  }
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .rangeControls {
+    display: grid;
+    grid-template-columns: 44px auto 44px 1fr;
+  }
+  .rangeLabel {
+    min-width: 0;
+    margin-left: 4px;
+    align-self: center;
+    font-size: 14px;
+    text-align: right;
+  }
+  .viewControl {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .viewControl button {
+    min-height: 38px;
+    padding-inline: 5px;
+  }
+  .calendarCard {
+    overflow-x: auto;
+  }
+  .weekdayRow,
+  .monthGrid {
+    min-width: 680px;
+  }
+  .agendaDay {
+    grid-template-columns: 54px 1fr;
+    padding: 0 10px;
+  }
+  .agendaDay > header {
+    padding-right: 10px;
+  }
+  .agendaEvent {
+    grid-template-columns: 51px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding-inline: 8px;
+  }
+  .agendaEvent small {
+    white-space: nowrap;
+  }
+  .timeHeader,
+  .timeGrid {
+    min-width: 680px;
+  }
+}

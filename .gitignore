@@ -1,0 +1,11 @@
+node_modules/
+.pnpm-store/
+.next/
+coverage/
+playwright-report/
+test-results/
+artifacts/visual-proof/**/*.png
+*.tsbuildinfo
+.DS_Store
+.env*
+!.env.example

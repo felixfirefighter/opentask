@@ -1,0 +1,149 @@
+.proposalCard {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 9px;
+  padding: 17px 0;
+}
+.proposalCard + .proposalCard {
+  border-top: 1px solid var(--border);
+}
+.proposalCard[data-disabled] .proposalTitle h3 {
+  color: var(--text-muted);
+}
+.selector {
+  position: relative;
+  display: flex;
+  width: 28px;
+  height: 34px;
+  align-items: center;
+  cursor: pointer;
+}
+.selector input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.selector > span:first-of-type {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+.selector input:checked + span {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--text-on-action);
+}
+.selector input:focus-visible + span {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.selector input:disabled + span {
+  background: var(--surface-subtle);
+  cursor: not-allowed;
+}
+.proposalTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.proposalTitle h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+}
+.kind {
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--category-sky-bg);
+  color: var(--category-sky-fg);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.kind[data-kind="create"] {
+  background: var(--category-mint-bg);
+  color: var(--category-mint-fg);
+}
+.kind[data-kind="update"] {
+  background: var(--category-amber-bg);
+  color: var(--category-amber-fg);
+}
+.kind[data-kind="defer"] {
+  background: var(--category-slate-bg);
+  color: var(--category-slate-fg);
+}
+.diff {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.diff > div {
+  min-height: 54px;
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+.diff span {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.diff p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+.diff > svg {
+  color: var(--text-muted);
+}
+.rationale {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.rationale svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--category-violet-fg);
+}
+.rationale strong {
+  color: var(--text);
+}
+
+@media (max-width: 767px) {
+  .proposalCard {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+  .proposalTitle {
+    flex-wrap: wrap;
+  }
+  .proposalTitle h3 {
+    order: 2;
+    flex-basis: calc(100% - 40px);
+  }
+  .proposalTitle :global(.icon-button) {
+    position: absolute;
+    right: 27px;
+  }
+  .diff {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  .diff > svg {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+}
