@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createProblem, problemCodes } from "./problem";
+import { ApplicationError } from "./application-error";
+import { createProblem, problemCodes, problemResponseFromError } from "./problem";
 
 describe("problem details", () => {
   it("freezes every stable application error code into the same envelope", () => {
@@ -31,5 +32,17 @@ describe("problem details", () => {
     expect(response.status).toBe(404);
     expect(response.headers.get("content-type")).toBe("application/problem+json");
     expect(response.headers.get("x-correlation-id")).toBe("correlation-3");
+  });
+
+  it("exposes only a safe current version for an optimistic conflict", async () => {
+    const response = problemResponseFromError(
+      new ApplicationError("CONFLICT", "The record changed elsewhere.", { currentVersion: 7 }),
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({ code: "CONFLICT", currentVersion: 7 });
+    expect(() => new ApplicationError("CONFLICT", "Invalid metadata", { currentVersion: 0 })).toThrow(
+      RangeError,
+    );
   });
 });

@@ -7,7 +7,9 @@ Read this document before any schema change. It defines semantic ownership and p
 1. PostgreSQL and committed SQL migrations are the source of persisted truth.
 2. Views such as Today, Calendar, Matrix, and Agenda are queries over canonical rows, never duplicate task tables.
 3. Every user-owned aggregate is scoped by `user_id` in its repository query and protected by application authorization tests.
-4. UUIDv4 IDs are generated client/server-side with `crypto.randomUUID()` where retry idempotency matters.
+4. UUIDv4 IDs are generated client/server-side with `crypto.randomUUID()` where retry idempotency
+   matters. A client-generated user-owned aggregate ID is identified by `(user_id, id)`, never by
+   `id` alone; another user's use of the same UUID cannot conflict with or reveal the first row.
 5. User-facing aggregates carry `version`, `created_at`, and `updated_at`. An accepted mutation increments `version` exactly once.
 6. Soft deletion exists only where Trash/undo is part of behavior; it is not added reflexively to joins or immutable events.
 7. All instants are `timestamptz`; all-day and habit calendar days are PostgreSQL `date`; timezones are IANA names.
@@ -71,7 +73,39 @@ Use these names. Do not introduce synonyms.
 
 If later requirements genuinely need different meanings, update the vocabulary with explicit definitions rather than overloading a name.
 
+## WP02 scalar and ordering bounds
+
+These limits are shared by PostgreSQL checks and strict application schemas:
+
+- folder, list, section, and tag names: 1–120 characters after ECMAScript `String.trim`;
+- task and checklist titles: 1–500 characters after ECMAScript `String.trim`;
+- task Markdown descriptions: at most 20,000 characters;
+- fractional ranks: 1–128 characters, generated only by the tasks application service;
+- optimistic versions: positive PostgreSQL integers up to 2,147,483,647;
+- task/list/tag color tokens: `coral`, `amber`, `mint`, `sky`, `violet`, or `slate`.
+
+Required names, titles, and ranks cannot retain an ECMAScript `String.trim` character at either
+boundary; PostgreSQL checks use that explicit character set rather than its narrower one-argument
+`btrim` default. All user-authored text must be well-formed Unicode and must not contain U+0000. The
+shared request schemas and task-domain normalization enforce this so PostgreSQL stores and replays
+text losslessly.
+
+Create idempotency uses the actor-scoped `(user_id, id)` pair containing the client-generated UUIDv4
+aggregate `id`; there is no parallel idempotency table or response document. An ID remains reserved
+for that user while its row exists, including soft-deleted rows. Hard-deleting a section or checklist
+item releases its ID for that user because those nested resources have no restore contract.
+Fractional ranks are scoped as documented by the tasks module, use `(rank, id)` as their
+deterministic order, and may be rewritten only by its bounded rebalance transaction. Every persisted
+`rank` column uses PostgreSQL's explicit `"C"` collation so database comparisons, ordering indexes,
+cursors, and the JavaScript fractional-key service share the same bytewise lexical order on every
+deployment.
+
 ## Table catalog and ownership
+
+The WP02 client-ID aggregates `list_folders`, `task_lists`, `list_sections`, `tasks`,
+`checklist_items`, and `tags` use tenant-leading composite primary keys `(user_id, id)`. Their owning
+foreign keys also begin with `user_id`; UUID equality never supplies authorization or global
+uniqueness.
 
 ### Better Auth managed tables
 
@@ -123,7 +157,9 @@ Stable task identity/state only:
 Constraints/policies:
 
 - nonblank bounded title;
-- parent task belongs to same user and list;
+- parent task belongs to the same user and list, enforced by a composite foreign key that is
+  deferred until transaction commit so an atomic root-tree list move can update the root before its
+  direct children;
 - active release permits one exposed subtask level; domain policy rejects deeper creation even though the self-FK can support later depth;
 - section belongs to the same list;
 - status is the only current-state representation;
@@ -133,9 +169,9 @@ Do not add schedule, reminder, recurrence, tag arrays, checklist JSON, focus tot
 
 ### `task_schedules` — tasks
 
-One optional row per scheduled task:
+One optional row per scheduled task; its owning foreign key is tenant-leading:
 
-- `task_id` PK, `user_id`, `kind`: `all_day` or `timed`
+- `user_id`, `task_id` composite PK/FK, `kind`: `all_day` or `timed`
 - all-day: `start_date`, `end_date` inclusive/exclusive contract documented in task module
 - timed: `start_at`, `end_at`, `timezone`
 - `created_at`, `updated_at`
@@ -144,9 +180,9 @@ Check constraints require exactly the fields for `kind`, `end >= start`, and no 
 
 ### `task_recurrences` — tasks
 
-One optional row per recurring task:
+One optional row per recurring task; its owning foreign key is tenant-leading:
 
-- `task_id` PK, `user_id`
+- `user_id`, `task_id` composite PK/FK
 - `rrule` text, `timezone`, `generation_mode`
 - `generation_mode` is fixed to `schedule` in active scope; completion-relative mode is reserved in domain vocabulary but not accepted by API
 - `created_at`, `updated_at`
@@ -160,7 +196,9 @@ Append-only effective state for a recurring occurrence:
 - `id`, `user_id`, `task_id`, `occurrence_key`
 - `state`: `completed`, `skipped`, `open`
 - `effective_at`, `created_at`
-- unique effective row per task/occurrence; an undo updates/replaces through one application policy rather than creating conflicting states
+- unique effective row by `(user_id, task_id, occurrence_key)`; its owning task foreign key is
+  tenant-leading, and an undo updates/replaces through one application policy rather than creating
+  conflicting states
 
 `occurrence_key` is derived deterministically from the series timezone/local occurrence, not a display string. Past events remain when a series rule changes.
 
@@ -177,11 +215,13 @@ Checklist items are not tasks and do not receive task schedules/tags in active s
 
 `task_tags`: `user_id`, `task_id`, `tag_id`, composite PK. No timestamps/version unless a real behavior later needs them.
 
-Normalize tag name for uniqueness per user; preserve the display spelling in one canonical field.
+Normalize tag names with `lower(normalize(name, NFKC))` for active uniqueness per user; preserve the
+display spelling in the canonical `name` field.
 
 ### `task_reminders` — notifications
 
-Active release permits zero or one row per task through a unique `task_id` constraint:
+Active release permits zero or one row per task through a unique `(user_id, task_id)` constraint and
+a tenant-leading owning foreign key:
 
 - `id`, `user_id`, `task_id`, `kind`: `absolute` or `relative_start`
 - `remind_at` for absolute, or `offset_minutes` for relative
@@ -258,7 +298,8 @@ Do not persist the raw brain dump by default. The proposal contains only the rev
 
 At minimum, migration review checks:
 
-- user/active/rank indexes for folders, lists, sections, tasks;
+- user/active/rank indexes for folders, lists, sections, and task roots, plus active subtasks by
+  `(user_id, list_id, parent_task_id, rank, id)`;
 - tasks by `(user_id, status, status_changed_at)`;
 - schedules by `(user_id, start_at/end_at)` and `(user_id, start_date/end_date)`;
 - GIN/trigram indexes for scoped task search after measuring query form;

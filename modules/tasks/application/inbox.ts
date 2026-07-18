@@ -3,6 +3,7 @@ import type { DatabaseExecutor } from "@/shared/db/client";
 import { createEntityId } from "@/shared/db/ids";
 import { systemClock, type Clock } from "@/shared/time/clock";
 
+import { assertTaskListCreationAllowed } from "../domain/inbox-policy";
 import { createTaskListRepository, type TaskListRepository } from "../infrastructure/task-list-repository";
 
 export type InboxSummary = Readonly<{
@@ -47,6 +48,7 @@ async function ensureInbox(
   const existing = await repository.findInbox(userId, executor);
   if (existing) return mapInbox(existing);
 
+  assertTaskListCreationAllowed("inbox", "account-bootstrap");
   await repository.insertInbox(
     {
       id: createEntityId(),

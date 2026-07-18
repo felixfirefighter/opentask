@@ -50,6 +50,16 @@ describe("trusted JSON mutation boundary", () => {
     });
   });
 
+  it.each([
+    '{"expectedVersion":1,"__proto__":{"polluted":true}}',
+    '{"expectedVersion":1,"patch":{"title":"Safe","__proto__":{"polluted":true}}}',
+  ])("rejects unsafe JSON property names at every depth", async (body) => {
+    await expect(readBoundedJson(mutationRequest(body, { origin }), 256)).rejects.toMatchObject({
+      code: "VALIDATION_FAILED",
+    });
+    expect(Object.prototype).not.toHaveProperty("polluted");
+  });
+
   it.each([undefined, "1"])(
     "cancels an incrementally read body at the limit when content-length is %s",
     async (contentLength) => {

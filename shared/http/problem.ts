@@ -42,12 +42,14 @@ export type ProblemDetails = {
   code: ProblemCode;
   detail: string;
   correlationId: string;
+  currentVersion?: number;
 };
 
 export function createProblem(
   code: ProblemCode,
   detail: string,
   correlationId: string = randomUUID(),
+  currentVersion?: number,
 ): ProblemDetails {
   const definition = definitions[code];
 
@@ -58,6 +60,7 @@ export function createProblem(
     code,
     detail,
     correlationId,
+    ...(currentVersion === undefined ? {} : { currentVersion }),
   };
 }
 
@@ -74,7 +77,7 @@ export function problemResponse(problem: ProblemDetails) {
 
 export function problemResponseFromError(error: unknown) {
   if (error instanceof ApplicationError) {
-    return problemResponse(createProblem(error.code, error.message));
+    return problemResponse(createProblem(error.code, error.message, undefined, error.currentVersion));
   }
   if (hasProblemCode(error, "UNAUTHENTICATED")) {
     return problemResponse(createProblem("UNAUTHENTICATED", "Sign in to continue."));

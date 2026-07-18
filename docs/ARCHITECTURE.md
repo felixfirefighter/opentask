@@ -162,6 +162,8 @@ Application errors map to stable codes: `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOU
 
 - User-facing messages are helpful but do not leak SQL/provider details.
 - Unexpected errors carry a correlation ID.
+- A stale-version `CONFLICT` may include only the safe current row version as response metadata;
+  conflicts never expose another user's record or content.
 - Optimistic UI rolls back on failure and offers retry.
 - Provider failures do not corrupt domain transactions.
 

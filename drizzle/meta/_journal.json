@@ -29,6 +29,41 @@
       "when": 1784399968294,
       "tag": "0003_remove_redundant_rate_limit_index",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784403381581,
+      "tag": "0004_wp02-task-core",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784403531005,
+      "tag": "0005_wp02-task-search",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784406941738,
+      "tag": "0006_wp02-invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784410136865,
+      "tag": "0007_wp02-trim-subtask-index",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784411108986,
+      "tag": "0008_wp02-actor-scoped-identities",
+      "breakpoints": true
     }
   ]
 }

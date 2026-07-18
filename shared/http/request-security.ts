@@ -34,10 +34,15 @@ export async function readBoundedJson(request: Request, maxBytes: number): Promi
 
   const body = await readBoundedBody(request, maxBytes);
   try {
-    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body)) as unknown;
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body), rejectUnsafeJsonKey) as unknown;
   } catch {
     throw validationFailure();
   }
+}
+
+function rejectUnsafeJsonKey(key: string, value: unknown): unknown {
+  if (key === "__proto__") throw validationFailure();
+  return value;
 }
 
 async function readBoundedBody(request: Request, maxBytes: number): Promise<Uint8Array> {
