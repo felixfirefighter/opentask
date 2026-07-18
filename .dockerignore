@@ -1,13 +1,13 @@
 .git
 .github
 .next
+next-env.d.ts
 artifacts
 coverage
 node_modules
 playwright-report
 test-results
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example
 Dockerfile*
 README.md

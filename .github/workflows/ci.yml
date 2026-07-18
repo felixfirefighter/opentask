@@ -48,7 +48,21 @@ jobs:
       - name: Validate Compose
         run: docker compose config --quiet
       - name: Build the production image
-        run: docker build --target runner --tag opentask:ci .
+        run: docker build --target runner --tag opentask:local .
+      - name: Boot the production topology
+        run: docker compose up --detach --no-build --wait
+      - name: Verify the production topology
+        run: pnpm test:production
+      - name: Stop the production topology
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+      - name: Upload visual proof evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-proof-${{ github.sha }}
+          path: artifacts/visual-proof/**/*.png
+          if-no-files-found: error
       - name: Upload browser diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4

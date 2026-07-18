@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "paths": {},
+    "plugins": [],
+    "types": ["node"],
+    "verbatimModuleSyntax": true
+  },
+  "include": ["scripts/migrate.ts", "scripts/seed.ts", "worker/index.ts"]
+}

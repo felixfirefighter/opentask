@@ -2,8 +2,8 @@ import { Bell, CalendarClock, Repeat2 } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
-import { calendarEvents } from "../fixtures";
 import styles from "./CalendarScreen.module.css";
+import { calendarEvents } from "./fixtures";
 
 export type CalendarView = "Month" | "Week" | "Day" | "Agenda";
 

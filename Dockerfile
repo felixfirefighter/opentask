@@ -29,6 +29,7 @@ COPY --from=runtime-dependencies --chown=opentask:nodejs /app/node_modules ./nod
 COPY --from=builder --chown=opentask:nodejs /app/.next ./.next
 COPY --from=builder --chown=opentask:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=opentask:nodejs /app/next.config.ts ./next.config.ts
+COPY --from=builder --chown=opentask:nodejs /app/public ./public
 COPY --from=builder --chown=opentask:nodejs /app/drizzle ./drizzle
 COPY --from=builder --chown=opentask:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=opentask:nodejs /app/shared ./shared

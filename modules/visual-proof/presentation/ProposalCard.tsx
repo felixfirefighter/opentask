@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowRight, Check, Pencil, Sparkles } from "lucide-react";
 
-import type { ProposalAction } from "../fixtures";
+import type { ProposalAction } from "./fixtures";
 import styles from "./ProposalCard.module.css";
 
 export function ProposalCard({

@@ -17,7 +17,12 @@ const pool = new Pool({
 
 try {
   await migrate(drizzle(pool), { migrationsFolder: resolve(process.cwd(), "drizzle") });
-  logger.info({ code: "MIGRATIONS_APPLIED" }, "database migrations applied");
+  logger.event("MIGRATIONS_APPLIED");
+} catch (error) {
+  logger.event("MIGRATIONS_FAILED", {
+    errorName: error instanceof Error ? error.name : "UnknownError",
+  });
+  process.exitCode = 1;
 } finally {
   await pool.end();
 }

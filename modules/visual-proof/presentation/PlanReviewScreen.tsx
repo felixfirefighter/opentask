@@ -4,11 +4,10 @@ import { ArrowLeft, CalendarDays, Check, Clock3, Info, Sparkles } from "lucide-r
 import Link from "next/link";
 import { useState } from "react";
 
-import { AppShell } from "@/shared/presentation/AppShell";
-
-import { proposalActions } from "../fixtures";
+import { proposalActions } from "./fixtures";
 import { ProposalCard } from "./ProposalCard";
 import styles from "./PlanReviewScreen.module.css";
+import { VisualProofShell } from "./VisualProofShell";
 
 export function PlanReviewScreen() {
   const [selected, setSelected] = useState(
@@ -26,7 +25,7 @@ export function PlanReviewScreen() {
   }
 
   return (
-    <AppShell active="plan">
+    <VisualProofShell active="plan">
       <div className={styles.page}>
         <header className={styles.header}>
           <div>
@@ -128,7 +127,7 @@ export function PlanReviewScreen() {
           Apply {selectedCount} {selectedCount === 1 ? "change" : "changes"}
         </button>
       </div>
-    </AppShell>
+    </VisualProofShell>
   );
 }
 

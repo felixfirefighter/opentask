@@ -14,12 +14,11 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { BrandMark } from "./BrandMark";
-import styles from "./AppShell.module.css";
-import { ThemeToggle } from "./ThemeToggle";
+import { BrandMark, ThemeToggle } from "@/shared/presentation";
 
-type ActiveDestination = "today" | "tasks" | "calendar" | "plan";
+import styles from "./VisualProofShell.module.css";
 
+export type ActiveDestination = "today" | "tasks" | "calendar" | "plan";
 const moduleLinks = [
   { key: "today", href: "/today", label: "Today", icon: CircleDot },
   { key: "tasks", href: "/tasks/demo", label: "Tasks", icon: CheckSquare2 },
@@ -33,22 +32,9 @@ const mobileTitles: Record<ActiveDestination, string> = {
   calendar: "Calendar",
   plan: "Plan",
 };
-
-export function AppShell({
-  active,
-  children,
-  inspector,
-}: {
-  active: ActiveDestination;
-  children: ReactNode;
-  inspector?: ReactNode;
-}) {
+export function VisualProofNavigation({ active }: { active: ActiveDestination }) {
   return (
-    <div className={`${styles.shell} ${inspector ? styles.withInspector : ""}`}>
-      <a className="skip-link" href="#main-content">
-        Skip to main content
-      </a>
-
+    <>
       <nav className={styles.rail} aria-label="Product modules">
         <Link className={styles.railBrand} href="/" aria-label="OpenTask home">
           <BrandMark compact />
@@ -136,16 +122,6 @@ export function AppShell({
         </div>
       </header>
 
-      <main id="main-content" className={styles.main}>
-        {children}
-      </main>
-
-      {inspector && (
-        <aside className={styles.inspector} aria-label="Task details">
-          {inspector}
-        </aside>
-      )}
-
       <nav className={styles.mobileNav} aria-label="Product modules">
         <MobileLink href="/today" label="Today" active={active === "today"} icon={<CircleDot size={20} />} />
         <MobileLink
@@ -173,7 +149,7 @@ export function AppShell({
           </div>
         </details>
       </nav>
-    </div>
+    </>
   );
 }
 

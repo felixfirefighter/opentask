@@ -28,7 +28,8 @@ modules/tasks/
   application/      use cases, DTOs, authorization, transactions
   infrastructure/   Drizzle schema/repositories, provider adapters
   presentation/     feature components, hooks, query keys
-  index.ts          deliberately small public API
+    index.ts        public UI entry used by Next route composition
+  index.ts          public application service API
 ```
 
 Create only the layer directories a module needs. No layer may become a generic dumping ground.
@@ -40,6 +41,8 @@ Create only the layer directories a module needs. No layer may become a generic 
 - Domain depends only on TypeScript and other pure domain code inside the same module.
 - Infrastructure can translate between external rows/payloads and application/domain contracts.
 - Cross-module application coordination calls public module services; it never reaches into another module's repository.
+- A root module `index.ts` may export application contracts only. It cannot re-export domain, presentation, or infrastructure code.
+- Next route composition may import a module's exact `presentation/index.ts`; individual presentation files remain private to the module.
 
 The small amount of dependency injection needed is explicit function parameters/factories. Do not add a DI container.
 

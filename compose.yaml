@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: opentask-local
       POSTGRES_USER: opentask
     ports:
-      - "54329:5432"
+      - "127.0.0.1:54329:5432"
     volumes:
       - opentask_postgres:/var/lib/postgresql/data
       - ./docker/postgres/init-test-database.sh:/docker-entrypoint-initdb.d/10-test-database.sh:ro
@@ -20,6 +20,7 @@ services:
     restart: unless-stopped
 
   web:
+    image: opentask:local
     build:
       context: .
       target: runner
@@ -27,7 +28,7 @@ services:
       [
         "sh",
         "-c",
-        "node --experimental-strip-types scripts/migrate.ts && node node_modules/next/dist/bin/next start",
+        "node --experimental-strip-types scripts/migrate.ts && exec node node_modules/next/dist/bin/next start",
       ]
     environment:
       DATABASE_URL: postgresql://opentask:opentask-local@postgres:5432/opentask
@@ -52,9 +53,7 @@ services:
     restart: unless-stopped
 
   worker:
-    build:
-      context: .
-      target: runner
+    image: opentask:local
     command: ["node", "--experimental-strip-types", "worker/index.ts"]
     environment:
       DATABASE_URL: postgresql://opentask:opentask-local@postgres:5432/opentask

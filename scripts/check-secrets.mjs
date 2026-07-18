@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
-const gitFiles = spawnSync("git", ["ls-files", "-z"], { encoding: "utf8" });
+const gitFiles = spawnSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
+  encoding: "utf8",
+});
 const fileResult =
   gitFiles.status === 0 && gitFiles.stdout
     ? gitFiles
-    : spawnSync("rg", ["--files", "-0"], { encoding: "utf8" });
+    : spawnSync("rg", ["--files", "--hidden", "-g", "!.git/**", "-0"], { encoding: "utf8" });
 
 if (fileResult.status !== 0 || !fileResult.stdout) {
   process.stderr.write("Could not enumerate repository files for the secret scan.\n");
@@ -43,5 +45,5 @@ if (findings.length) {
   process.stderr.write(`Potential secret material found in:\n${findings.join("\n")}\n`);
   process.exitCode = 1;
 } else {
-  process.stdout.write(`Secret scan clean (${files.length} tracked repository files).\n`);
+  process.stdout.write(`Secret scan clean (${files.length} repository files).\n`);
 }

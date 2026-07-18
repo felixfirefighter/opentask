@@ -42,7 +42,7 @@ docs/                    Product and engineering contracts
 tests/                   Cross-module integration and E2E support
 ```
 
-Each module may contain `presentation`, `application`, `domain`, and `infrastructure` directories only when that layer is needed. Each module exposes cross-module contracts through `modules/<name>/index.ts`.
+Each module may contain `presentation`, `application`, `domain`, and `infrastructure` directories only when that layer is needed. A module exposes application service contracts through `modules/<name>/index.ts`; that root cannot export domain, presentation, or infrastructure code. Next route composition uses the exact `modules/<name>/presentation/index.ts` UI entry.
 
 ## Module ownership
 
@@ -92,10 +92,11 @@ The bootstrap work package must create these stable commands; later agents use t
 | `pnpm test:db` | database integration tests |
 | `pnpm test:e2e` | Playwright golden paths |
 | `pnpm test:a11y` | automated accessibility checks |
+| `pnpm test:production` | already-started production Compose health/process/signal smoke |
 | `pnpm verify:design` | design literal and browser-computed component contracts |
 | `pnpm build` | production build |
 | `pnpm verify` | full required local gate |
-| `pnpm check:secrets` | tracked-file secret-pattern scan |
+| `pnpm check:secrets` | tracked and non-ignored repository-file secret-pattern scan |
 | `pnpm check:licenses` | reviewed production dependency-license inventory |
 
 ## Documentation maintenance

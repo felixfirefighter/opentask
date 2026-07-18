@@ -18,17 +18,16 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
-import { AppShell } from "@/shared/presentation/AppShell";
-import { TaskRow } from "@/shared/presentation/TaskRow";
-
-import { anytimeTasks, timedTasks } from "../fixtures";
+import { anytimeTasks, timedTasks } from "./fixtures";
+import { TaskRow } from "./TaskRow";
 import styles from "./TaskDetailScreen.module.css";
+import { VisualProofShell } from "./VisualProofShell";
 
 export function TaskDetailScreen() {
   return (
-    <AppShell active="tasks" inspector={<TaskDetailPanel />}>
+    <VisualProofShell active="tasks" inspector={<TaskDetailPanel />}>
       <TaskContext />
-    </AppShell>
+    </VisualProofShell>
   );
 }
 

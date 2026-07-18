@@ -47,7 +47,7 @@ Forbidden without a documented exception:
 - deep import into another module
 - database access from `app/*` or a React component
 
-Cross-module imports must use the target module's public `index.ts`. Shared code is limited to generic UI primitives, design tokens, auth/request context, database connection, logging, and truly generic utilities. Feature widgets and business rules never move to shared code merely because two files use them.
+Cross-module service imports must use the target module's root `index.ts`, which may export application contracts only. Next route composition imports feature UI through the exact `modules/<name>/presentation/index.ts` entry; other presentation files remain private. Shared code is limited to generic UI primitives, design tokens, auth/request context, database connection, logging, and truly generic utilities. Feature widgets and business rules never move to shared code merely because two files use them.
 
 ## File and API size
 

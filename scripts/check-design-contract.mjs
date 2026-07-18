@@ -150,7 +150,8 @@ for (const file of sourceFiles) {
   }
 }
 
-const taskRowSource = await readRelative("shared/presentation/TaskRow.module.css");
+const taskRowPath = "modules/visual-proof/presentation/TaskRow.module.css";
+const taskRowSource = await readRelative(taskRowPath);
 for (const match of taskRowSource.matchAll(
   /(?:^|[;{])\s*(gap|column-gap|row-gap|margin(?:-[\w-]+)?|padding(?:-[\w-]+)?|width|height|min-height|border-bottom|grid-template-columns)\s*:\s*([^;}]+)(?:;|(?=\s*}))/gm,
 )) {
@@ -158,11 +159,11 @@ for (const match of taskRowSource.matchAll(
   const normalizedValue = value?.trim();
   if (/\d*\.?\d+(?:px|rem|em|vw|vh|vmin|vmax)\b/.test(normalizedValue ?? "")) {
     failures.push(
-      `shared/presentation/TaskRow.module.css:${lineNumber(taskRowSource, match.index)}: ${property} contains a raw length`,
+      `${taskRowPath}:${lineNumber(taskRowSource, match.index)}: ${property} contains a raw length`,
     );
   } else if (normalizedValue !== "0" && !normalizedValue?.includes("var(--")) {
     failures.push(
-      `shared/presentation/TaskRow.module.css:${lineNumber(taskRowSource, match.index)}: ${property} must consume a design token`,
+      `${taskRowPath}:${lineNumber(taskRowSource, match.index)}: ${property} must consume a design token`,
     );
   }
 }
@@ -203,9 +204,7 @@ for (const [selector, property, expectedValue] of requiredTaskRowDeclarations) {
     (rule) => rule.selector === selector && rule.declarations.get(property) === expectedValue,
   );
   if (!matchesContract) {
-    failures.push(
-      `shared/presentation/TaskRow.module.css: ${selector} must set ${property}: ${expectedValue}`,
-    );
+    failures.push(`${taskRowPath}: ${selector} must set ${property}: ${expectedValue}`);
   }
 }
 

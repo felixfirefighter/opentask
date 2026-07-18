@@ -4,11 +4,10 @@ import { CalendarDays, ChevronRight, Clock3, Plus, Sparkles, Sunrise } from "luc
 import Link from "next/link";
 import { useState } from "react";
 
-import { AppShell } from "@/shared/presentation/AppShell";
-import { TaskRow } from "@/shared/presentation/TaskRow";
-
-import { anytimeTasks, habits, overdueTasks, timedTasks, type FixtureTask } from "../fixtures";
+import { anytimeTasks, habits, overdueTasks, timedTasks, type FixtureTask } from "./fixtures";
+import { TaskRow } from "./TaskRow";
 import styles from "./TodayScreen.module.css";
+import { VisualProofShell } from "./VisualProofShell";
 
 export function TodayScreen() {
   const [completed, setCompleted] = useState<Set<string>>(new Set());
@@ -23,7 +22,7 @@ export function TodayScreen() {
   }
 
   return (
-    <AppShell active="today">
+    <VisualProofShell active="today">
       <div className={styles.page}>
         <header className={styles.header}>
           <div>
@@ -116,7 +115,7 @@ export function TodayScreen() {
           </section>
         </div>
       </div>
-    </AppShell>
+    </VisualProofShell>
   );
 }
 

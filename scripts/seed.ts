@@ -13,7 +13,12 @@ const pool = new Pool({
 
 try {
   await pool.query("select 1");
-  logger.info({ code: "SEED_COMPLETE", recordsWritten: 0 }, "bootstrap seed complete");
+  logger.event("SEED_COMPLETE", { recordsWritten: 0 });
+} catch (error) {
+  logger.event("SEED_FAILED", {
+    errorName: error instanceof Error ? error.name : "UnknownError",
+  });
+  process.exitCode = 1;
 } finally {
   await pool.end();
 }

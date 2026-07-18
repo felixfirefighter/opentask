@@ -66,6 +66,21 @@ Better Auth documents current Next.js integration and PostgreSQL/Drizzle support
 
 Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date library, or a second component system.
 
+### Bootstrap dependency decisions
+
+| Dependency | Uncovered capability | Cost | License | Maintenance signal | Owner |
+|---|---|---|---|---|---|
+| `eslint-plugin-boundaries` 7.0.2 | Resolve relative, alias, export, and dynamic imports before enforcing module/layer direction; core ESLint path patterns cannot do this reliably. | Development-only lint work; no application bundle or service. | MIT | Current v7 line, ESLint 9 compatible, with an active upstream release history. | `eslint.config.mjs` and `scripts/eslint/architecture-boundaries.mjs` |
+| `next-devtools-mcp` 0.4.0 | Let future Codex tasks inspect the live Next.js route/build/runtime state through the framework-supported MCP bridge. | Development-only stdio process; optional and not required for app boot. | MIT | Exact package recommended by the official Next.js 16 MCP guide and pinned in the lockfile. | `.codex/config.toml`; no product adapter |
+
+### Direct runtime license baseline
+
+`pnpm check:licenses` is authoritative for the resolved production tree. The direct-package baseline is:
+
+- MIT: `@radix-ui/react-slot`, `clsx`, Next.js, `pg`, pg-boss, Pino, React, React DOM, `tailwind-merge`, and Zod.
+- Apache-2.0: class-variance-authority and Drizzle ORM.
+- ISC: Lucide React.
+
 ## API style
 
 - Versioned internal JSON endpoints under `/api/v1` for domain reads/mutations; Better Auth owns `/api/auth/*`.

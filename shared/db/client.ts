@@ -16,7 +16,7 @@ export function getDatabasePool(): Pool {
       application_name: "opentask-web",
     });
     pool.on("error", (error) => {
-      logger.error({ code: "DATABASE_POOL_ERROR", errorName: error.name }, "database pool error");
+      logger.event("DATABASE_POOL_ERROR", { errorName: error.name });
     });
   }
 

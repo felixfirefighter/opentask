@@ -158,7 +158,7 @@ Failure condition: unapproved feature, missing acceptance mapping, or misleading
 - Confirm domain code imports no React, Next, Drizzle, queue, or provider package.
 - Inspect files above the preferred limits in `AGENTS.md`; split by responsibility or document the focused exception.
 - Search for catch-alls such as generic `utils`, `helpers`, `service`, shared feature widgets, duplicate DTOs, or parallel state stores.
-- Confirm each cross-module import uses the owning module's public surface.
+- Confirm each cross-module service import uses the owning module's root application surface, each route-level UI import uses its exact presentation index, and neither public surface leaks a forbidden layer transitively.
 
 Failure condition: bypassed layer, ambiguous ownership, duplicated domain rule, or unjustified oversized catch-all.
 

@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { assertDatabaseReady, warn } = vi.hoisted(() => ({
+const { assertDatabaseReady, event } = vi.hoisted(() => ({
   assertDatabaseReady: vi.fn(),
-  warn: vi.fn(),
+  event: vi.fn(),
 }));
 
 vi.mock("@/shared/health/database-readiness", () => ({ assertDatabaseReady }));
-vi.mock("@/shared/logging/logger", () => ({ logger: { warn } }));
+vi.mock("@/shared/logging/logger", () => ({ logger: { event } }));
 
 import { GET } from "./route";
 
 describe("readiness route", () => {
   beforeEach(() => {
     assertDatabaseReady.mockReset();
-    warn.mockReset();
+    event.mockReset();
   });
 
   it("returns ready after the database compatibility check", async () => {
@@ -40,9 +40,9 @@ describe("readiness route", () => {
       detail: "Database readiness check failed.",
     });
     expect(serialized).not.toContain(secret);
-    expect(warn).toHaveBeenCalledWith(
+    expect(event).toHaveBeenCalledWith(
+      "READINESS_FAILED",
       expect.objectContaining({ correlationId: body.correlationId, errorName: "Error" }),
-      "readiness check failed",
     );
   });
 });

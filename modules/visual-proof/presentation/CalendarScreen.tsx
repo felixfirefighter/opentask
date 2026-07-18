@@ -3,10 +3,9 @@
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 
-import { AppShell } from "@/shared/presentation/AppShell";
-
 import { CalendarViews, type CalendarView } from "./CalendarViews";
 import styles from "./CalendarScreen.module.css";
+import { VisualProofShell } from "./VisualProofShell";
 
 const views: CalendarView[] = ["Month", "Week", "Day", "Agenda"];
 
@@ -33,7 +32,7 @@ export function CalendarScreen() {
   }
 
   return (
-    <AppShell active="calendar">
+    <VisualProofShell active="calendar">
       <div className={styles.page}>
         <header className={styles.header}>
           <div>
@@ -83,7 +82,7 @@ export function CalendarScreen() {
         </p>
         <CalendarViews view={view} />
       </div>
-    </AppShell>
+    </VisualProofShell>
   );
 }
 

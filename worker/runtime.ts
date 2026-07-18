@@ -11,19 +11,16 @@ export async function startWorker() {
   const boss = new PgBoss(environment.DATABASE_URL);
 
   boss.on("error", (error) => {
-    logger.error({ code: "WORKER_QUEUE_ERROR", errorName: error.name }, "worker queue error");
+    logger.event("WORKER_QUEUE_ERROR", { errorName: error.name });
   });
 
   await boss.start();
-  logger.info(
-    { code: "WORKER_READY", registeredJobCount: registeredJobs.length },
-    "worker started with registered jobs",
-  );
+  logger.event("WORKER_READY", { registeredJobCount: registeredJobs.length });
 
   return {
     async stop() {
       await boss.stop({ graceful: true, timeout: 10_000 });
-      logger.info({ code: "WORKER_STOPPED" }, "worker stopped");
+      logger.event("WORKER_STOPPED");
     },
   };
 }

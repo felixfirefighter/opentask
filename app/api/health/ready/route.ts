@@ -22,14 +22,10 @@ export async function GET() {
     );
   } catch (error) {
     const correlationId = randomUUID();
-    logger.warn(
-      {
-        code: "READINESS_FAILED",
-        correlationId,
-        errorName: error instanceof Error ? error.name : "UnknownError",
-      },
-      "readiness check failed",
-    );
+    logger.event("READINESS_FAILED", {
+      correlationId,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     return problemResponse(
       createProblem("PROVIDER_UNAVAILABLE", "Database readiness check failed.", correlationId),
     );
