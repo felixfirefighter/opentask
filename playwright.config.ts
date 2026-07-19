@@ -4,6 +4,7 @@ import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 const plannerFixtureMode = process.env.PLAYWRIGHT_PLANNER_FIXTURE === "1";
+const releaseServerMode = process.env.PLAYWRIGHT_SERVER_MODE === "production";
 const outputDir = process.env.PLAYWRIGHT_OUTPUT_DIR ?? path.join(tmpdir(), "opentask-playwright-results");
 
 export default defineConfig({
@@ -20,7 +21,9 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "pnpm exec next dev --webpack --port 3107",
+    command: releaseServerMode
+      ? "pnpm exec next start --port 3107"
+      : "pnpm exec next dev --webpack --port 3107",
     env: {
       BETTER_AUTH_SECRET: "opentask-playwright-only-auth-secret-000000000000000000",
       BETTER_AUTH_URL: "http://127.0.0.1:3107",
