@@ -4,9 +4,9 @@ allowBuilds:
   unrs-resolver: true
 
 minimumReleaseAgeExclude:
-  - '@full-ui/headless-calendar@7.0.1'
-  - '@fullcalendar/core@7.0.1'
-  - '@fullcalendar/react@7.0.1'
+  - "@full-ui/headless-calendar@7.0.1"
+  - "@fullcalendar/core@7.0.1"
+  - "@fullcalendar/react@7.0.1"
 
 overrides:
   postcss: 8.5.19
