@@ -16,30 +16,54 @@ export type AuthenticatedShellProps = Readonly<{
   theme: ThemePreference;
   reducedMotion: boolean;
   currentDestination: AuthenticatedDestination;
+  destinationTitle?: string | undefined;
+  contextNavigation?: ReactNode;
+  compactNavigation?: ReactNode;
+  topBarActions?: ReactNode;
+  mobileNavigation?: ReactNode;
   children: ReactNode;
 }>;
 
 export function AuthenticatedShell({
   children,
+  compactNavigation,
+  contextNavigation,
   currentDestination,
+  destinationTitle,
   identity,
+  mobileNavigation,
   reducedMotion,
   theme,
+  topBarActions,
 }: AuthenticatedShellProps) {
+  const showMobileNavigation = mobileNavigation !== null;
+
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-mobile-navigation={showMobileNavigation}>
       <ThemePreferenceSync theme={theme} reducedMotion={reducedMotion} />
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
 
-      <AuthenticatedNavigation currentDestination={currentDestination} identity={identity} />
+      <AuthenticatedNavigation
+        compactNavigation={compactNavigation}
+        contextNavigation={contextNavigation}
+        currentDestination={currentDestination}
+        destinationTitle={destinationTitle}
+        identity={identity}
+        topBarActions={topBarActions}
+      />
       <OfflineBanner />
 
       <main id="main-content" className={styles.main} tabIndex={-1}>
         {children}
       </main>
-      <AuthenticatedMobileNavigation currentDestination={currentDestination} />
+      {showMobileNavigation &&
+        (mobileNavigation === undefined ? (
+          <AuthenticatedMobileNavigation currentDestination={currentDestination} />
+        ) : (
+          mobileNavigation
+        ))}
     </div>
   );
 }

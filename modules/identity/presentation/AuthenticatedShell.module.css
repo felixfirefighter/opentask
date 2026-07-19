@@ -110,6 +110,11 @@
   padding: 0 var(--space-3);
 }
 
+.contextSidebar > nav,
+.contextSidebar > [data-context-navigation] {
+  min-width: 0;
+}
+
 .contextLink {
   display: flex;
   min-height: 40px;
@@ -190,6 +195,22 @@
     border-radius: var(--radius-control);
   }
 
+  .topBarStart,
+  .topBarActions {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .topBarStart {
+    flex: 1;
+  }
+
+  .topBarActions {
+    flex: none;
+  }
+
   .topBarIdentity strong {
     overflow: hidden;
     font-size: var(--type-row-size);
@@ -222,6 +243,10 @@
     grid-column: 1;
     grid-row: 4;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shell[data-mobile-navigation="false"] {
+    grid-template-rows: 52px auto minmax(0, 1fr);
   }
 
   .mobileDestination {

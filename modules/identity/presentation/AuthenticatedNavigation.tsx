@@ -1,5 +1,6 @@
-import { Inbox, Settings } from "lucide-react";
+import { ListTodo, Settings } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { SessionIdentity } from "@/modules/identity";
 import { BrandMark } from "@/shared/presentation";
@@ -7,21 +8,30 @@ import { BrandMark } from "@/shared/presentation";
 import { AccountMenu } from "./AccountMenu";
 import styles from "./AuthenticatedShell.module.css";
 
-export type AuthenticatedDestination = "inbox" | "settings";
+export type AuthenticatedDestination = "tasks" | "settings";
 
 const destinationDetails = {
-  inbox: { title: "Inbox", eyebrow: "Workspace", icon: Inbox, href: "/inbox" },
+  tasks: { title: "Tasks", eyebrow: "Workspace", icon: ListTodo, href: "/inbox" },
   settings: { title: "Settings", eyebrow: "Account", icon: Settings, href: "/settings" },
 } as const;
 
 export function AuthenticatedNavigation({
   currentDestination,
+  destinationTitle,
+  compactNavigation,
+  contextNavigation,
   identity,
+  topBarActions,
 }: {
   currentDestination: AuthenticatedDestination;
+  destinationTitle?: string | undefined;
+  compactNavigation?: ReactNode;
+  contextNavigation?: ReactNode;
   identity: SessionIdentity;
+  topBarActions?: ReactNode;
 }) {
-  const current = destinationDetails[currentDestination];
+  const details = destinationDetails[currentDestination];
+  const current = { ...details, title: destinationTitle ?? details.title };
 
   return (
     <>
@@ -33,11 +43,11 @@ export function AuthenticatedNavigation({
           <Link
             className={styles.railLink}
             href="/inbox"
-            aria-label="Inbox"
-            aria-current={currentDestination === "inbox" ? "page" : undefined}
-            title="Inbox"
+            aria-label="Tasks"
+            aria-current={currentDestination === "tasks" ? "page" : undefined}
+            title="Tasks"
           >
-            <Inbox size={19} aria-hidden="true" />
+            <ListTodo size={19} aria-hidden="true" />
           </Link>
         </div>
         <div className={styles.railAccount}>
@@ -54,24 +64,36 @@ export function AuthenticatedNavigation({
           <p>{current.eyebrow}</p>
           <strong>{current.title}</strong>
         </header>
-        <nav className={styles.contextLinks} aria-label={`${current.title} destinations`}>
-          <Link className={styles.contextLink} href={current.href} aria-current="page">
-            <current.icon size={18} aria-hidden="true" />
-            <span>{current.title}</span>
-          </Link>
-        </nav>
+        {contextNavigation ?? (
+          <nav className={styles.contextLinks} aria-label={`${current.title} destinations`}>
+            <Link className={styles.contextLink} href={current.href} aria-current="page">
+              <current.icon size={18} aria-hidden="true" />
+              <span>{current.title}</span>
+            </Link>
+          </nav>
+        )}
       </aside>
 
       <header className={styles.topBar}>
-        <Link className={styles.topBarIdentity} href="/inbox" aria-label="OpenTask inbox">
-          <BrandMark compact />
-          <strong>{current.title}</strong>
-        </Link>
-        <AccountMenu
-          identity={identity}
-          placement="header"
-          settingsCurrent={currentDestination === "settings"}
-        />
+        <div className={styles.topBarStart}>
+          {compactNavigation}
+          <Link
+            className={styles.topBarIdentity}
+            href={current.href}
+            aria-label={`OpenTask ${current.title}`}
+          >
+            <BrandMark compact />
+            <strong>{current.title}</strong>
+          </Link>
+        </div>
+        <div className={styles.topBarActions}>
+          {topBarActions}
+          <AccountMenu
+            identity={identity}
+            placement="header"
+            settingsCurrent={currentDestination === "settings"}
+          />
+        </div>
       </header>
     </>
   );
@@ -86,9 +108,9 @@ export function AuthenticatedMobileNavigation({
     <nav className={styles.mobileNavigation} aria-label="Mobile navigation">
       <MobileDestination
         href="/inbox"
-        label="Inbox"
-        current={currentDestination === "inbox"}
-        icon={<Inbox size={20} aria-hidden="true" />}
+        label="Tasks"
+        current={currentDestination === "tasks"}
+        icon={<ListTodo size={20} aria-hidden="true" />}
       />
       <MobileDestination
         href="/settings"

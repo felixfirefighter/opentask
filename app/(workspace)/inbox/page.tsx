@@ -18,7 +18,8 @@ export default async function InboxPage() {
       identity={workspace.identity}
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
-      currentDestination="inbox"
+      currentDestination="tasks"
+      destinationTitle="Inbox"
     >
       <InboxScreen summary={inbox} />
     </AuthenticatedShell>

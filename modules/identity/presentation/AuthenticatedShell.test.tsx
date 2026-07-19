@@ -96,13 +96,14 @@ describe("AuthenticatedShell", () => {
   });
 });
 
-function renderShell(currentDestination: "inbox" | "settings" = "inbox") {
+function renderShell(currentDestination: "tasks" | "settings" = "tasks") {
   return render(
     <AuthenticatedShell
       identity={identity}
       theme="light"
       reducedMotion={false}
       currentDestination={currentDestination}
+      destinationTitle={currentDestination === "tasks" ? "Inbox" : undefined}
     >
       <h1>Release workspace</h1>
     </AuthenticatedShell>,

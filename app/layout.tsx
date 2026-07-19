@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { AppClientProviders } from "@/shared/presentation";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +23,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           dangerouslySetInnerHTML={{ __html: publicThemeBootstrap }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <AppClientProviders>{children}</AppClientProviders>
+      </body>
     </html>
   );
 }

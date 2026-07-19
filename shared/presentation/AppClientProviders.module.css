@@ -1,0 +1,59 @@
+.toast {
+  border: var(--border-default) solid var(--border-strong) !important;
+  border-radius: var(--radius-overlay) !important;
+  background: var(--surface-elevated) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow-overlay) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.title {
+  color: var(--text) !important;
+  font-size: var(--type-row-size) !important;
+  font-weight: var(--type-label-weight) !important;
+  line-height: var(--type-row-line) !important;
+}
+
+.description {
+  color: var(--text-muted) !important;
+  font-size: var(--type-compact-size) !important;
+  line-height: var(--type-compact-line) !important;
+}
+
+.action,
+.cancel,
+.close {
+  min-height: var(--control-target-desktop) !important;
+  border-radius: var(--radius-control) !important;
+  font-size: var(--type-label-size) !important;
+  font-weight: var(--type-label-weight) !important;
+  line-height: var(--type-label-line) !important;
+}
+
+.action {
+  background: var(--action) !important;
+  color: var(--text-on-action) !important;
+}
+
+.cancel,
+.close {
+  border: var(--border-default) solid var(--border-strong) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+.error {
+  border-color: var(--danger) !important;
+}
+
+.success {
+  border-color: var(--success) !important;
+}
+
+@media (any-pointer: coarse) {
+  .action,
+  .cancel,
+  .close {
+    min-height: var(--control-target-touch) !important;
+  }
+}
