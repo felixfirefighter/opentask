@@ -27,6 +27,10 @@ const planningRoutes = [
   { path: "/matrix", heading: "Priority matrix" },
 ] as const;
 
+test.beforeEach(async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+});
+
 test("public landing and authentication routes pass the serious accessibility gate", async ({ page }) => {
   for (const route of publicRoutes) await auditRoute(page, route);
 });
@@ -100,7 +104,7 @@ async function auditCommandPalette(page: Page) {
   const palette = page.getByRole("dialog", { name: "Search tasks and commands" });
   await expect(palette).toBeVisible();
   await expect(palette.getByRole("option", { name: /Inbox/u })).toBeVisible();
-  await expectNoSevereViolations(page);
+  await expectNoSevereViolations(page, '[role="dialog"]');
   await page.keyboard.press("Escape");
   await expect(palette).toBeHidden();
 }
@@ -118,11 +122,16 @@ async function auditCalendar(page: Page) {
     await expectNoSevereViolations(page);
   }
 
-  await taskSelector.selectOption(demo.scheduledTaskId);
+  const firstAvailableTask = taskSelector.locator('option:not([value=""])').first();
+  await expect(firstAvailableTask).toBeAttached();
+  const firstAvailableTaskId = await firstAvailableTask.getAttribute("value");
+  expect(firstAvailableTaskId).toBeTruthy();
+  if (!firstAvailableTaskId) throw new Error("The visible calendar range has no schedulable task.");
+  await taskSelector.selectOption(firstAvailableTaskId);
   await page.getByRole("button", { name: "Edit schedule", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Edit schedule" });
   await expect(dialog).toBeVisible();
-  await expectNoSevereViolations(page);
+  await expectNoSevereViolations(page, '[role="dialog"]');
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
 }
@@ -136,7 +145,10 @@ async function auditSeededTaskDetails(page: Page) {
         : page.getByRole("dialog", { name: "Task details" });
     await expect(inspector).toBeVisible();
     await expect(inspector.getByLabel("Task title", { exact: true })).toHaveValue(demo.scheduledTaskTitle);
-    await expectNoSevereViolations(page);
+    await expectNoSevereViolations(
+      page,
+      (page.viewportSize()?.width ?? 0) >= 1280 ? undefined : '[role="dialog"]',
+    );
   }
 
   await page.goto(`/tasks/${demo.scheduledTaskId}`);
@@ -147,7 +159,7 @@ async function auditSeededTaskDetails(page: Page) {
   const actions = page.getByRole("button", { name: `More actions for ${demo.scheduledTaskTitle}` });
   await actions.click();
   await expect(page.getByRole("menu")).toBeVisible();
-  await expectNoSevereViolations(page);
+  await expectNoSevereViolations(page, '[role="menu"]');
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "Edit schedule", exact: true }).click();
@@ -178,8 +190,12 @@ async function auditOfflineWorkspace(context: BrowserContext, page: Page) {
   await expect(banner).toBeHidden();
 }
 
-async function expectNoSevereViolations(page: Page) {
-  const results = await new AxeBuilder({ page }).analyze();
+async function expectNoSevereViolations(page: Page, activeOverlay?: string) {
+  const builder = new AxeBuilder({ page });
+  // Radix overlays intentionally aria-hide their inert, focus-trapped background. Axe audits the active
+  // accessible subtree here; keyboard tests separately own focus containment, so this is not a rule waiver.
+  if (activeOverlay) builder.include(activeOverlay);
+  const results = await builder.analyze();
   const severeViolations = results.violations.filter(
     (violation) => violation.impact === "serious" || violation.impact === "critical",
   );
