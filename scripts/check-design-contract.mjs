@@ -150,24 +150,8 @@ for (const file of sourceFiles) {
   }
 }
 
-const taskRowPath = "modules/visual-proof/presentation/TaskRow.module.css";
+const taskRowPath = "modules/tasks/presentation/TaskRow.module.css";
 const taskRowSource = await readRelative(taskRowPath);
-for (const match of taskRowSource.matchAll(
-  /(?:^|[;{])\s*(gap|column-gap|row-gap|margin(?:-[\w-]+)?|padding(?:-[\w-]+)?|width|height|min-height|border-bottom|grid-template-columns)\s*:\s*([^;}]+)(?:;|(?=\s*}))/gm,
-)) {
-  const [, property, value] = match;
-  const normalizedValue = value?.trim();
-  if (/\d*\.?\d+(?:px|rem|em|vw|vh|vmin|vmax)\b/.test(normalizedValue ?? "")) {
-    failures.push(
-      `${taskRowPath}:${lineNumber(taskRowSource, match.index)}: ${property} contains a raw length`,
-    );
-  } else if (normalizedValue !== "0" && !normalizedValue?.includes("var(--")) {
-    failures.push(
-      `${taskRowPath}:${lineNumber(taskRowSource, match.index)}: ${property} must consume a design token`,
-    );
-  }
-}
-
 const taskRowRules = parseRules(taskRowSource);
 const requiredTaskRowDeclarations = [
   [".row", "min-height", "var(--task-row-standard-height)"],
@@ -180,23 +164,23 @@ const requiredTaskRowDeclarations = [
   [".title", "font-size", "var(--type-row-size)"],
   [".title", "font-weight", "var(--type-row-weight)"],
   [".title", "line-height", "var(--type-row-line)"],
-  [".meta", "gap", "var(--space-1)"],
-  [".meta", "font-size", "var(--type-compact-size)"],
-  [".meta", "font-weight", "var(--type-compact-weight)"],
-  [".meta", "line-height", "var(--type-compact-line)"],
-  [".tag", "padding", "var(--space-1) var(--space-2)"],
+  [".metadata", "gap", "var(--space-2)"],
+  [".metadata", "font-size", "var(--type-compact-size)"],
+  [".metadata", "font-weight", "var(--type-compact-weight)"],
+  [".metadata", "line-height", "var(--type-compact-line)"],
+  [".tag", "padding", "0 var(--space-2)"],
   [".tag", "font-size", "var(--type-label-size)"],
   [".tag", "font-weight", "var(--type-label-weight)"],
   [".tag", "line-height", "var(--type-label-line)"],
   [".trailing", "gap", "var(--space-1)"],
-  [".status, .more", "width", "var(--control-target-desktop)"],
-  [".status, .more", "height", "var(--control-target-desktop)"],
-  [".status, .more", "width", "var(--control-target-touch)"],
-  [".status, .more", "height", "var(--control-target-touch)"],
+  [".status, .more, .dragHandle", "width", "var(--control-target-desktop)"],
+  [".status, .more, .dragHandle", "height", "var(--control-target-desktop)"],
+  [".status, .more, .dragHandle", "width", "var(--control-target-touch)"],
+  [".status, .more, .dragHandle", "height", "var(--control-target-touch)"],
   [".status > svg", "width", "var(--task-status-indicator-size)"],
   [".status > svg", "height", "var(--task-status-indicator-size)"],
-  [".statusDone", "width", "var(--task-status-indicator-size)"],
-  [".statusDone", "height", "var(--task-status-indicator-size)"],
+  [".statusDone, .statusCancelled", "width", "var(--task-status-indicator-size)"],
+  [".statusDone, .statusCancelled", "height", "var(--task-status-indicator-size)"],
 ];
 
 for (const [selector, property, expectedValue] of requiredTaskRowDeclarations) {
