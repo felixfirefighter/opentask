@@ -2,20 +2,20 @@ import type { Metadata } from "next";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
 import { getPlanningProjectionApplication } from "@/modules/planning";
-import { TodayRouteScreen } from "@/modules/planning/presentation";
+import { MatrixRouteScreen } from "@/modules/planning/presentation";
 import { getInbox } from "@/modules/tasks";
 import { TaskCommandPalette, TaskNavigation } from "@/modules/tasks/presentation";
 
 import { loadWorkspace } from "../(workspace)/_load-workspace";
 
-export const metadata: Metadata = { title: "Today" };
+export const metadata: Metadata = { title: "Priority matrix" };
 export const dynamic = "force-dynamic";
 
-export default async function TodayPage() {
-  const workspace = await loadWorkspace("/today");
+export default async function MatrixPage() {
+  const workspace = await loadWorkspace("/matrix");
   const [inbox, projection] = await Promise.all([
     getInbox(workspace.identity.actor),
-    getPlanningProjectionApplication().getToday(workspace.identity.actor, { limit: 250 }),
+    getPlanningProjectionApplication().getEisenhower(workspace.identity.actor, { limit: 500 }),
   ]);
 
   return (
@@ -23,14 +23,14 @@ export default async function TodayPage() {
       identity={workspace.identity}
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
-      currentDestination="today"
-      topBarActions={<TaskCommandPalette inbox={inbox} currentListId={inbox.id} />}
-      contextNavigation={<TaskNavigation current="today" inboxId={inbox.id} />}
-      compactNavigation={<TaskNavigation current="today" inboxId={inbox.id} variant="compact" />}
+      currentDestination="tasks"
+      destinationTitle="Priority matrix"
+      topBarActions={<TaskCommandPalette inbox={inbox} />}
+      contextNavigation={<TaskNavigation current="matrix" inboxId={inbox.id} />}
+      compactNavigation={<TaskNavigation current="matrix" inboxId={inbox.id} variant="compact" />}
     >
-      <TodayRouteScreen
+      <MatrixRouteScreen
         projection={projection}
-        inboxId={inbox.id}
         hourCycle={workspace.preferences.hourCycle === "h12" ? "12" : "24"}
       />
     </AuthenticatedShell>

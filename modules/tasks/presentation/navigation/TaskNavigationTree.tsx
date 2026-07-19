@@ -1,7 +1,16 @@
 "use client";
 
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CheckCircle2, ChevronDown, ChevronRight, Folder, Inbox } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  Grid2x2,
+  Inbox,
+  Sun,
+} from "lucide-react";
 import { useState } from "react";
 
 import type { FolderDto, Placement, RegularListDto } from "../../application/contracts";
@@ -11,7 +20,8 @@ import { folderSortId } from "./navigation-sort-policy";
 import { SortableFolder } from "./TaskNavigationSortables";
 import styles from "../TaskNavigation.module.css";
 
-export type TaskNavigationCurrent = "inbox" | "completed" | Readonly<{ listId: string }>;
+export type TaskNavigationCurrent =
+  "inbox" | "today" | "upcoming" | "matrix" | "completed" | Readonly<{ listId: string }>;
 
 export function TaskNavigationTree({
   current,
@@ -67,6 +77,30 @@ export function TaskNavigationTree({
           onNavigate={onNavigate}
         >
           Inbox
+        </DestinationLink>
+        <DestinationLink
+          current={current === "today"}
+          href="/today"
+          icon={<Sun size={17} />}
+          onNavigate={onNavigate}
+        >
+          Today
+        </DestinationLink>
+        <DestinationLink
+          current={current === "upcoming"}
+          href="/upcoming"
+          icon={<CalendarDays size={17} />}
+          onNavigate={onNavigate}
+        >
+          Upcoming
+        </DestinationLink>
+        <DestinationLink
+          current={current === "matrix"}
+          href="/matrix"
+          icon={<Grid2x2 size={17} />}
+          onNavigate={onNavigate}
+        >
+          Priority matrix
         </DestinationLink>
         <DestinationLink
           current={current === "completed"}

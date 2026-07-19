@@ -39,8 +39,10 @@ describe("AuthenticatedShell", () => {
     expect(precedes(context, main)).toBe(true);
     expect(precedes(topBar!, main)).toBe(true);
     expect(precedes(main, mobile)).toBe(true);
-    expect(screen.queryByRole("link", { name: "Today" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Calendar" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Today" })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "Calendar" })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "Plan" })).toHaveLength(2);
+    expect(screen.queryByRole("link", { name: /habit|focus|reminder/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/fixture/i)).not.toBeInTheDocument();
   });
 

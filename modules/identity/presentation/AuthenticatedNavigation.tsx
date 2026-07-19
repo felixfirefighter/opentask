@@ -1,4 +1,4 @@
-import { ListTodo, Settings } from "lucide-react";
+import { CalendarDays, ListTodo, Settings, Sparkles, Sun } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -7,13 +7,19 @@ import { BrandMark } from "@/shared/presentation";
 
 import { AccountMenu } from "./AccountMenu";
 import styles from "./AuthenticatedShell.module.css";
+import { MobileMoreMenu } from "./MobileMoreMenu";
 
-export type AuthenticatedDestination = "tasks" | "settings";
+export type AuthenticatedDestination = "today" | "tasks" | "calendar" | "plan" | "settings";
 
 const destinationDetails = {
+  today: { title: "Today", eyebrow: "Now", icon: Sun, href: "/today" },
   tasks: { title: "Tasks", eyebrow: "Workspace", icon: ListTodo, href: "/inbox" },
+  calendar: { title: "Calendar", eyebrow: "Planning", icon: CalendarDays, href: "/calendar" },
+  plan: { title: "Plan", eyebrow: "Assistant", icon: Sparkles, href: "/plan" },
   settings: { title: "Settings", eyebrow: "Account", icon: Settings, href: "/settings" },
 } as const;
+
+const railDestinations = ["today", "tasks", "calendar", "plan"] as const;
 
 export function AuthenticatedNavigation({
   currentDestination,
@@ -40,15 +46,21 @@ export function AuthenticatedNavigation({
           <BrandMark compact />
         </Link>
         <div className={styles.railLinks}>
-          <Link
-            className={styles.railLink}
-            href="/inbox"
-            aria-label="Tasks"
-            aria-current={currentDestination === "tasks" ? "page" : undefined}
-            title="Tasks"
-          >
-            <ListTodo size={19} aria-hidden="true" />
-          </Link>
+          {railDestinations.map((destination) => {
+            const item = destinationDetails[destination];
+            return (
+              <Link
+                className={styles.railLink}
+                href={item.href}
+                aria-label={item.title}
+                aria-current={currentDestination === destination ? "page" : undefined}
+                title={item.title}
+                key={destination}
+              >
+                <item.icon size={19} aria-hidden="true" />
+              </Link>
+            );
+          })}
         </div>
         <div className={styles.railAccount}>
           <AccountMenu
@@ -113,17 +125,30 @@ export function AuthenticatedMobileNavigation({
   return (
     <nav className={styles.mobileNavigation} aria-label="Mobile navigation">
       <MobileDestination
+        href="/today"
+        label="Today"
+        current={currentDestination === "today"}
+        icon={<Sun size={20} aria-hidden="true" />}
+      />
+      <MobileDestination
         href="/inbox"
         label="Tasks"
         current={currentDestination === "tasks"}
         icon={<ListTodo size={20} aria-hidden="true" />}
       />
       <MobileDestination
-        href="/settings"
-        label="Settings"
-        current={currentDestination === "settings"}
-        icon={<Settings size={20} aria-hidden="true" />}
+        href="/calendar"
+        label="Calendar"
+        current={currentDestination === "calendar"}
+        icon={<CalendarDays size={20} aria-hidden="true" />}
       />
+      <MobileDestination
+        href="/plan"
+        label="Plan"
+        current={currentDestination === "plan"}
+        icon={<Sparkles size={20} aria-hidden="true" />}
+      />
+      <MobileMoreMenu current={currentDestination === "settings"} />
     </nav>
   );
 }

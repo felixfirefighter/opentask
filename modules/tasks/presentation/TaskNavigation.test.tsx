@@ -51,7 +51,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("TaskNavigation", () => {
-  it("renders only approved WP03 destinations and groups regular lists under folders", () => {
+  it("renders the deadline-safe planning destinations and groups regular lists under folders", () => {
     render(<TaskNavigation current={{ listId: LIST_ID }} inboxId={INBOX_ID} />);
 
     const navigation = screen.getByRole("navigation", { name: "Task destinations" });
@@ -64,8 +64,9 @@ describe("TaskNavigation", () => {
       "aria-expanded",
       "true",
     );
-    expect(screen.queryByRole("link", { name: "Today" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Upcoming" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Today" })).toHaveAttribute("href", "/today");
+    expect(screen.getByRole("link", { name: "Upcoming" })).toHaveAttribute("href", "/upcoming");
+    expect(screen.getByRole("link", { name: "Priority matrix" })).toHaveAttribute("href", "/matrix");
     expect(screen.queryByRole("button", { name: /actions for.*Inbox/i })).not.toBeInTheDocument();
   });
 
