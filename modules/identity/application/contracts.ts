@@ -1,6 +1,6 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import type { SessionIdentity as AuthSessionIdentity } from "@/shared/auth/actor";
-import type { DatabaseExecutor } from "@/shared/db/client";
+import type { DatabaseExecutor, DatabaseTransaction } from "@/shared/db/client";
 
 import type { InboxSummary } from "@/modules/tasks";
 
@@ -9,7 +9,7 @@ export type InboxBootstrapPort = {
 };
 
 export type DemoDatasetSeeder = {
-  reset(userId: string): Promise<void>;
+  reset(userId: string, existingTransaction?: DatabaseTransaction): Promise<void>;
 };
 
 export type DemoEntryResult = Readonly<{

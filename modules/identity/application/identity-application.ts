@@ -116,18 +116,29 @@ export function createIdentityApplication({
     const current = await authentication.findSession(headers);
     if (current && isDemoAccountEmail(current.email)) {
       await bootstrapAccount(current.actor.userId);
-      await demoSeeder.reset(current.actor.userId);
+      await resetDemoWorkspace(current.actor.userId);
       return { actor: current.actor, mode: "reset", setCookieHeaders: [] };
     }
 
     const created = await authentication.createDemoAccount(headers);
     await bootstrapAccount(created.identity.actor.userId);
-    await demoSeeder.reset(created.identity.actor.userId);
+    await resetDemoWorkspace(created.identity.actor.userId);
     return {
       actor: created.identity.actor,
       mode: "created",
       setCookieHeaders: created.setCookieHeaders,
     };
+  }
+
+  async function resetDemoWorkspace(userId: string): Promise<void> {
+    await database.transaction(async (transaction) => {
+      const resetPreferences = await preferencesRepository.resetToDefaults(transaction, userId, {
+        schemaVersion: preferenceSchemaVersion,
+        preferences: defaultPreferenceDocument,
+      });
+      if (!resetPreferences) throw new Error("Demo reset requires canonical user preferences.");
+      await demoSeeder.reset(userId, transaction);
+    });
   }
 
   return {
@@ -145,16 +156,19 @@ export function createIdentityApplication({
 function createDefaultDemoSeeder(database: Database, clock: Clock): DemoDatasetSeeder {
   const tasks = createDemoDatasetSeeder({ database, clock });
   return {
-    async reset(userId: string): Promise<void> {
+    async reset(userId: string, existingTransaction?: DatabaseTransaction): Promise<void> {
       // Load the optional assistant reset adapter only when demo entry runs. A static
       // identity -> assistant import would close the assistant -> planning -> identity
       // runtime cycle and prevent ordinary manual planning routes from starting.
       const { createDemoProposalResetter } = await import("@/modules/assistant");
       const proposals = createDemoProposalResetter({ database });
-      await database.transaction(async (transaction) => {
+      const reset = async (transaction: DatabaseTransaction) => {
         await proposals.reset(userId, transaction);
         await tasks.reset(userId, transaction);
-      });
+      };
+
+      if (existingTransaction) await reset(existingTransaction);
+      else await database.transaction(reset);
     },
   };
 }

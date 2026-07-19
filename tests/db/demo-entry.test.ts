@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { DemoDatasetSeeder } from "../../modules/identity/application/contracts.ts";
 import { createIdentityApplication } from "../../modules/identity/application/identity-application.ts";
+import { defaultPreferenceDocument } from "../../modules/identity/application/preferences-contract.ts";
 import { createDemoEntryLimiter } from "../../modules/identity/infrastructure/demo-entry-limiter.ts";
 import { getTestDatabaseUrl } from "../../shared/config/environment.ts";
 import { schema } from "../../shared/db/schema.ts";
@@ -95,7 +96,7 @@ describe("isolated demo entry", () => {
     }
   });
 
-  it("creates a session-backed visitor and seeds the real task dataset through the route", async () => {
+  it("resets canonical preferences and owned demo data without changing another visitor", async () => {
     const { POST } = await import("../../app/api/v1/demo/route.ts");
     const response = await POST(demoMutationRequest({ clientAddress: "203.0.113.91" }));
 
@@ -104,11 +105,12 @@ describe("isolated demo entry", () => {
     const cookie = cookiesFromSetCookie(response.headers.getSetCookie());
     expect(cookie).not.toBe("");
 
-    const identity = await createIdentityApplication({
+    const application = createIdentityApplication({
       database,
       clock,
       authRuntime,
-    }).getOptionalSessionIdentity(new Headers({ cookie }));
+    });
+    const identity = await application.getOptionalSessionIdentity(new Headers({ cookie }));
     expect(identity?.email).toMatch(/^demo-.*@demo\.opentask\.invalid$/);
     const taskRows = await database
       .select({ title: schema.tasks.title })
@@ -120,11 +122,49 @@ describe("isolated demo entry", () => {
 
     const otherResponse = await POST(demoMutationRequest({ clientAddress: "203.0.113.92" }));
     const otherCookie = cookiesFromSetCookie(otherResponse.headers.getSetCookie());
-    const otherIdentity = await createIdentityApplication({
-      database,
-      clock,
-      authRuntime,
-    }).getOptionalSessionIdentity(new Headers({ cookie: otherCookie }));
+    const otherIdentity = await application.getOptionalSessionIdentity(new Headers({ cookie: otherCookie }));
+    const currentPreferences = await application.getUserPreferences(identity!.actor);
+    const otherCurrentPreferences = await application.getUserPreferences(otherIdentity!.actor);
+    const changedPreferences = await application.updateUserPreferences(
+      identity!.actor,
+      currentPreferences.version,
+      {
+        timezone: "Asia/Singapore",
+        weekStart: 0,
+        hourCycle: "h23",
+        theme: "dark",
+        reducedMotion: true,
+      },
+    );
+    const otherChangedPreferences = await application.updateUserPreferences(
+      otherIdentity!.actor,
+      otherCurrentPreferences.version,
+      {
+        timezone: "Europe/London",
+        weekStart: 6,
+        hourCycle: "h23",
+        theme: "light",
+        reducedMotion: true,
+      },
+    );
+    await database
+      .update(schema.tasks)
+      .set({ title: "Visitor-owned demo edit" })
+      .where(
+        and(
+          eq(schema.tasks.userId, identity!.actor.userId),
+          eq(schema.tasks.title, "Record the two-minute demo"),
+        ),
+      );
+    await database
+      .update(schema.tasks)
+      .set({ title: "Friend-owned demo edit" })
+      .where(
+        and(
+          eq(schema.tasks.userId, otherIdentity!.actor.userId),
+          eq(schema.tasks.title, "Record the two-minute demo"),
+        ),
+      );
     await insertPendingProposal(identity!.actor.userId);
     await insertPendingProposal(otherIdentity!.actor.userId);
 
@@ -135,18 +175,49 @@ describe("isolated demo entry", () => {
       .select({ userId: schema.plannerProposals.userId })
       .from(schema.plannerProposals);
     expect(proposals).toEqual([{ userId: otherIdentity!.actor.userId }]);
+    expect(await application.getUserPreferences(identity!.actor)).toEqual({
+      schemaVersion: 1,
+      version: changedPreferences.version + 1,
+      ...defaultPreferenceDocument,
+    });
+    expect(await application.getUserPreferences(otherIdentity!.actor)).toEqual(otherChangedPreferences);
+    expect(
+      await database
+        .select({ title: schema.tasks.title })
+        .from(schema.tasks)
+        .where(eq(schema.tasks.userId, identity!.actor.userId)),
+    ).toContainEqual({ title: "Record the two-minute demo" });
+    expect(
+      await database
+        .select({ title: schema.tasks.title })
+        .from(schema.tasks)
+        .where(eq(schema.tasks.userId, otherIdentity!.actor.userId)),
+    ).toContainEqual({ title: "Friend-owned demo edit" });
   });
 
-  it("rolls task data and planner proposals back together when reset cannot finish", async () => {
+  it("rolls preferences, planner proposals, and task data back together when reset cannot finish", async () => {
     const { POST } = await import("../../app/api/v1/demo/route.ts");
     const created = await POST(demoMutationRequest({ clientAddress: "203.0.113.93" }));
     const cookie = cookiesFromSetCookie(created.headers.getSetCookie());
-    const identity = await createIdentityApplication({
+    const application = createIdentityApplication({
       database,
       clock,
       authRuntime,
-    }).getOptionalSessionIdentity(new Headers({ cookie }));
+    });
+    const identity = await application.getOptionalSessionIdentity(new Headers({ cookie }));
     const userId = identity!.actor.userId;
+    const currentPreferences = await application.getUserPreferences(identity!.actor);
+    const changedPreferences = await application.updateUserPreferences(
+      identity!.actor,
+      currentPreferences.version,
+      {
+        timezone: "Asia/Singapore",
+        weekStart: 0,
+        hourCycle: "h23",
+        theme: "dark",
+        reducedMotion: true,
+      },
+    );
     await insertPendingProposal(userId);
     await database
       .update(schema.tasks)
@@ -176,6 +247,7 @@ describe("isolated demo entry", () => {
           .from(schema.tasks)
           .where(eq(schema.tasks.userId, userId)),
       ).toContainEqual({ title: "Keep the previous demo after failure" });
+      expect(await application.getUserPreferences(identity!.actor)).toEqual(changedPreferences);
     } finally {
       await database.execute(sql`alter table tasks drop constraint demo_entry_forced_failure`);
     }

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import type { DatabaseExecutor } from "@/shared/db/client";
 import { schema } from "@/shared/db/schema";
@@ -63,6 +63,27 @@ export function createPreferencesRepository(clock: Clock) {
         .where(
           and(eq(schema.userPreferences.userId, userId), eq(schema.userPreferences.version, expectedVersion)),
         )
+        .returning();
+
+      return row
+        ? { schemaVersion: row.schemaVersion, preferences: row.preferences, version: row.version }
+        : null;
+    },
+
+    async resetToDefaults(
+      executor: DatabaseExecutor,
+      userId: string,
+      defaults: { schemaVersion: number; preferences: unknown },
+    ): Promise<StoredPreferences | null> {
+      const [row] = await executor
+        .update(schema.userPreferences)
+        .set({
+          preferences: defaults.preferences,
+          schemaVersion: defaults.schemaVersion,
+          version: sql`${schema.userPreferences.version} + 1`,
+          updatedAt: clock.now(),
+        })
+        .where(eq(schema.userPreferences.userId, userId))
         .returning();
 
       return row

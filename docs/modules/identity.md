@@ -24,7 +24,9 @@ Product fields and domain permissions do not belong in Better Auth tables.
 - `getUserPreferences(actor)` returns the canonical, schema-versioned preferences DTO.
 - `updateUserPreferences(actor, expectedVersion, patch)` validates and updates preferences once.
 - `enterDemo(headers)` creates or resets an isolated demo identity after the route has validated the
-  request, then delegates domain seeding through `DemoDatasetSeeder`.
+  request, then restores canonical preferences and delegates domain seeding through
+  `DemoDatasetSeeder` in one transaction. The seeder accepts that transaction; the default adapter
+  resets planner proposals and the task dataset without opening a nested transaction.
 - `getIdentityRequestSecurity()` exposes the configured trusted browser origin without leaking
   provider configuration or secrets.
 - Public contracts: `AuthenticatedActor`, `UserPreferences`, `UserPreferencesPatch`, `InboxBootstrapPort`, and `DemoDatasetSeeder`.
@@ -39,8 +41,11 @@ types.
 - Inbox and preferences creation either both commit or both roll back.
 - Timezone is a valid IANA name; week start, hour cycle, theme, and reduced-motion values are closed enums/booleans from the canonical Zod schema.
 - An accepted preference mutation checks ownership and `version`, then increments `version` exactly once.
+- A demo reset restores `defaultPreferenceDocument` and increments the current preference version
+  exactly once; it never rewinds or bypasses optimistic version history.
 - An unauthenticated actor cannot read or mutate domain data.
 - Demo data is owned by its isolated demo user and reset cannot touch any other user.
+- Demo preference, planner-proposal, and task-dataset resets commit or roll back together.
 - Auth and demo abuse controls derive the client address from the same `X-Real-IP` policy. Production
   ingress must overwrite that header and prevent direct origin access; an unresolved address uses a
   shared fallback bucket.
