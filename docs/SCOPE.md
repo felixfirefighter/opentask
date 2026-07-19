@@ -2,9 +2,9 @@
 
 Research breadth and implementation scope are intentionally different. `docs/research/TICKTICK_FEATURES.md` catalogs the competitor surface; this document is the only authority for what the active goal builds.
 
-## Active release: Hackathon Release
+## Active release: Deadline-safe Hackathon Core
 
-The release is complete only when every committed capability below meets its acceptance criteria and the gates in `docs/QUALITY.md` pass. There are no hidden “nice-to-haves” inside the active goal.
+The active release is deliberately centered on one complete judging story: capture and organize tasks, plan them across time, use GPT-5.6 to produce a reviewable schedule proposal, export the data, and run the product reproducibly. It is complete only when every capability below meets its acceptance criteria and the gates in `docs/QUALITY.md` pass.
 
 ### 1. Identity and first run
 
@@ -17,7 +17,7 @@ The release is complete only when every committed capability below meets its acc
 Acceptance:
 
 - An unauthenticated request cannot read or mutate domain data.
-- Two test users cannot access each other's lists, tasks, habits, focus sessions, planner runs, or export.
+- Two test users cannot access each other's lists, tasks, planner runs, or export.
 - First run lands in a usable Inbox with no manual setup.
 
 ### 2. Task and organization core
@@ -25,8 +25,6 @@ Acceptance:
 - Folder and regular-list CRUD with soft delete and immediate Undo/restore; section CRUD with deletion only when empty; and an immutable personal Inbox. There is no general Trash screen in this release.
 - Task CRUD with title, Markdown description, four priorities, status (`open`, `completed`, `cancelled`/won't-do), tags, list/section, one level of full-feature subtasks, and lightweight checklist items.
 - All-day date or timed start/end schedule with explicit IANA timezone semantics.
-- Recurrence presets: daily, weekdays, weekly on selected days, monthly by day-of-month. Series editing and completing/skipping the current occurrence are supported; arbitrary RRULE editing and completion-relative recurrence are not.
-- One browser-push reminder per task, either absolute or relative to its scheduled start. The UI degrades clearly when push permission or worker configuration is unavailable.
 - Quick add with English natural-language date/time recognition from `chrono-node`; recognized values remain visible and editable before save.
 - Complete, undo completion, cancel, restore, move, and manual reorder.
 - Search across task title/description and tag name, scoped to the user.
@@ -36,8 +34,7 @@ Acceptance:
 Acceptance:
 
 - All task mutations validate ownership and optimistic version on the server.
-- Local-day smart views and recurrence behave across a documented DST boundary test.
-- Completing one recurring occurrence does not complete the series.
+- Local-day smart views and all-day/timed schedules behave across a documented DST boundary test.
 - Quick-add parsing never silently removes or changes user text.
 - Delete is soft-delete during the release; destructive purge is not exposed.
 
@@ -50,45 +47,18 @@ Acceptance:
 - Eisenhower view derived from priority and urgency rules:
   - important = high priority;
   - urgent = overdue or due within the user's next 24 hours;
-  - due boundary is derived, never stored separately: timed `end_at`, or the exclusive all-day `end_date` at midnight in the schedule timezone; an unscheduled task is not urgent.
+  - due boundary is derived, never stored separately: timed `end_at`, or the exclusive all-day `end_date` at midnight in the schedule timezone; an unscheduled task is not urgent;
   - all other tasks fall into the remaining quadrants.
 - Matrix actions can edit priority and schedule through accessible menus; drag between quadrants is not committed.
 - Global command/search palette with keyboard navigation for destinations, task search, and quick add.
 
 Acceptance:
 
-- List, calendar, agenda, and matrix are projections of the same task records; none stores a second task status or date.
+- List, calendar, agenda, Today/Upcoming, and matrix are projections of the same task records; none stores a second task status or date.
 - Every drag/resize operation has a visible keyboard-accessible alternative.
 - Calendar queries are range-bounded and do not load the entire task history.
 
-### 4. Habits
-
-- Create, edit, archive, and restore a habit with title, icon/emoji, color token, boolean or numeric goal, unit, and daily/selected-weekday/target-per-week schedule.
-- Check in, edit quantity/note, undo, skip, and mark unachieved for a local date.
-- Today surface integration, current streak, best streak, seven-day strip, and compact monthly heat map.
-- No gallery, Apple Health, mood analytics, or social habit sharing.
-
-Acceptance:
-
-- At most one effective log exists for a habit/local date.
-- Streak calculations are deterministic for each supported schedule and covered by unit tests.
-- Archive preserves history and removes the habit from active Today projections.
-
-### 5. Focus
-
-- Pomodoro and stopwatch modes linked optionally to a task or habit.
-- Start, pause, resume, finish, and discard one active timer per user; refresh/reconnect reconstructs state from timestamps rather than relying on an in-memory countdown.
-- Configurable focus and break duration, today's total, seven-day total, and a list of recent sessions.
-- Completed sessions can be corrected or deleted by their owner.
-- No white noise, app blocking, cross-device native controls, estimates-vs-actual charts, or achievement system.
-
-Acceptance:
-
-- A database constraint/application transaction prevents two active timers for one user.
-- Client clock drift cannot change the authoritative recorded duration.
-- A completed linked task remains readable in historical focus records.
-
-### 6. Reality-aware AI planner
+### 4. Reality-aware AI planner
 
 - Optional feature, hidden/disabled with an explanatory state when `OPENAI_API_KEY` is absent.
 - User can paste a brain dump, select open unscheduled tasks, set a work window, default duration, buffer, and planning date.
@@ -106,38 +76,52 @@ Acceptance:
 - Deterministic validation rejects overlapping output, out-of-window blocks, unknown records, and stale versions.
 - Golden eval fixtures cover vague input, multiple tasks, fixed appointments, overflow, impossible constraints, and irrelevant input.
 
-### 7. PWA, reminders, portability, and demo readiness
+### 5. Portability and demo readiness
 
-- Installable web manifest and service worker used for app-shell caching and web push.
-- Honest offline state: previously loaded shell may open, but domain writes are disabled with a clear banner; full offline mutation sync is not claimed.
-- Web-push subscription management and pg-boss worker delivery for the one supported reminder.
-- Versioned JSON export of all user-owned release data with documented schema version.
-- No import in the active release.
+- Honest runtime offline state disables domain writes with a clear banner; no offline cache or mutation sync is claimed.
+- Versioned JSON export of all user-owned active-release data with a documented schema version. Import is not included.
 - Original landing page, onboarding/empty states, demo seed, health endpoint, structured redacted logs, Docker Compose self-host path, Railway demo deployment, and submission assets/checklist.
+- A friend-testable hosted candidate with an isolated demo entry is the first release milestone.
 
 Acceptance:
 
 - Export contains no other user's records or server secrets.
-- A reminder job is idempotent and records success/failure without logging content or push credentials.
-- The production demo has a health check and reproducible setup instructions.
+- The production demo has a health check, isolated deterministic seed/reset, and reproducible setup instructions.
+- The friend candidate passes the core task, planning, AI review/apply, export, and sign-out paths before deferred work can be reconsidered.
+
+## Deferred extensions — not in the active goal
+
+The following capabilities were intentionally removed from the deadline-safe core. Their research and module contracts may remain as future references, but no route, table, migration, dependency, job, UI control, or claim may be implemented under the active goal:
+
+- Task recurrence, occurrence exceptions, series editing, and recurring-instance completion/skip.
+- Habits, habit schedules/logs, streaks, strips, and heat maps.
+- Focus timers, focus sessions, task/habit timer links, and focus statistics.
+- Browser-push reminders, push subscriptions, notification deliveries, and reminder worker jobs.
+- Installable PWA manifest/service-worker caching or push handling.
+
+After the hosted core candidate passes its friend-test gate, the user may promote one or more deferred extensions through the five-part scope-change protocol. Available time alone is not authorization.
 
 ## Explicitly out of the active goal
 
-Do not implement these under the Hackathon Release goal:
+Do not implement these under the Deadline-safe Hackathon Core goal:
 
+- Every item in “Deferred extensions” above.
 - Native iOS, Android, macOS, Windows, watch, browser extension, widgets, global shortcuts, location reminders, voice capture, or OS integrations.
 - Full offline-first mutation queue or sync/conflict UI.
 - Collaboration, invitations, assignees, comments, activity history, permissions, shared links, or real-time multi-user updates.
-- Separate note type, summaries/reports, attachments, recordings, transcription, templates, countdowns, achievements, themes/background galleries, white noise, constant/email/location/checklist reminders.
+- Separate note type, summaries/reports, attachments, recordings, transcription, templates, countdowns, achievements, themes/background galleries, white noise, or additional reminder channels.
 - Kanban, project timeline/Gantt, year/multi-week calendar, split task/calendar view, arbitrary saved filters, advanced group/sort, batch edit, task merge, custom fields, or advanced statistics.
 - External calendars, CalDAV, Notion, Telegram, email-to-task, Siri, Zapier/IFTTT, import from competitors, public API, CLI, or MCP server.
-- Arbitrary/custom RRULE editor, completion-relative recurrence, future-instance overrides beyond current occurrence, or reminders on multiple future occurrences.
 - Billing, plans, quotas, advertisements, or “premium” gates.
 - Autonomous agent behavior or AI deletion/completion.
 
-## Post-hackathon parity roadmap (not part of current goal)
+## Post-core parity roadmap (not part of current goal)
 
 Order matters; an earlier stage must be stable before the next begins.
+
+### Core extensions
+
+Recurrence/occurrence handling, habits, focus, one browser-push reminder, installable PWA shell, and the associated worker/provider reliability work.
 
 ### Stage A: task depth and portability
 

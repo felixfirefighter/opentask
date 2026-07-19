@@ -31,7 +31,7 @@ The rules, not this summary, control if wording differs.
 
 ### One sentence
 
-An open-source personal planning workspace that combines tasks, calendar planning, habits, focus, and reminders, then uses GPT-5.6 to turn a messy brain dump into a deterministic, editable schedule that never changes data without approval.
+An open-source personal planning workspace that combines tasks and active calendar planning, then uses GPT-5.6 to turn a messy brain dump into a deterministic, editable schedule that never changes data without approval.
 
 ### Why it is not only a clone
 
@@ -45,26 +45,24 @@ An open-source personal planning workspace that combines tasks, calendar plannin
 Retain concise evidence in Git and the final submission notes for:
 
 - scope and architecture decisions;
-- normalized schedule/recurrence modeling;
+- normalized all-day/timed schedule modeling;
 - generated tests for DST, authorization, and stale proposals;
 - visual and accessibility audit corrections;
 - final security/schema/scope audit.
 
 Do not create a running Markdown diary. Select a few meaningful commits and the final Codex task/session for the submission story.
 
-## Demonstration script: maximum 2:40
+## Demonstration script: maximum 2:30
 
 | Time | Story beat | Visible proof |
 |---:|---|---|
 | 0:00–0:12 | Problem and promise | Original landing page; open-source/self-host message |
-| 0:12–0:32 | Capture | Enter a natural-language task; recognized date remains editable |
-| 0:32–0:52 | Organize and plan | Put it in a list, add priority, schedule it on Calendar |
-| 0:52–1:08 | Shared task truth | Same task appears in Today and the correct Matrix quadrant |
-| 1:08–1:22 | Execute | Start/finish a task-linked focus session and complete the task |
-| 1:22–1:34 | Build consistency | Check in a habit and show streak/heat map |
-| 1:34–2:13 | GPT-5.6 showcase | Paste brain dump, generate typed proposal, show conflict/uncertainty, edit and apply |
-| 2:13–2:28 | Trust | Show explicit diff, non-AI fallback, and JSON export |
-| 2:28–2:40 | Build proof | Brief architecture/Codex evidence and repository/demo links |
+| 0:12–0:34 | Capture | Enter a natural-language task; recognized date remains editable |
+| 0:34–0:56 | Organize | Add list, priority, tag, checklist item, and Markdown context |
+| 0:56–1:16 | Plan across views | Schedule on Calendar; show the same task in Today and Matrix |
+| 1:16–2:04 | GPT-5.6 showcase | Paste brain dump, generate typed proposal, show conflict/uncertainty, edit and explicitly apply |
+| 2:04–2:18 | Trust | Show before/after, non-AI fallback, and JSON export |
+| 2:18–2:30 | Build proof | Brief architecture/Codex evidence and repository/demo links |
 
 Record a backup take. Keep cursor movement deliberate, browser zoom readable, and seeded data deterministic.
 
@@ -86,6 +84,7 @@ Record a backup take. Keep cursor movement deliberate, browser zoom readable, an
 
 ## Deadline operating rules
 
+- Deliver the hosted friend candidate by **2026-07-20 20:00 GMT+8** and freeze engineering by **2026-07-21 08:00 GMT+8**.
 - Reserve the final twelve hours for feature freeze, full audit, deployment, recording, and submission.
 - Submit a complete draft as soon as the hosted demo and first recording exist; improve it before the deadline rather than waiting for the last minute.
 - Keep a local video copy, a second hosted-demo verification path, and the exact release commit hash.

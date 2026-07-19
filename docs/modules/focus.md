@@ -1,4 +1,6 @@
-# Focus module contract
+# Deferred Focus module contract
+
+**Status:** Deferred extension. Nothing in this document is approved for implementation under the Deadline-safe Hackathon Core. It becomes active only through the scope-change protocol after the hosted friend candidate passes.
 
 `modules/focus` owns authoritative Pomodoro/stopwatch session state and derived focus totals. Countdown animation is presentation only.
 
@@ -49,4 +51,3 @@
 - Refresh/reconnect reconstruction and hostile client-clock tests.
 - Pomodoro/stopwatch duration, pause accumulation, break exclusion, correction, deletion, and summary-window tests.
 - Historical-link readability after task/habit archive or soft deletion.
-

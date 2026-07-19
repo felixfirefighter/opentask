@@ -18,7 +18,7 @@ Anatomy, in reading order:
 
 1. status control with a large row-level hit area;
 2. title and optional one-line context;
-3. schedule/reminder and tag metadata;
+3. schedule and tag metadata;
 4. priority marker with accessible text;
 5. overflow menu and optional reorder handle.
 
@@ -41,7 +41,7 @@ Keyboard: `Enter` opens details; the status control remains separately tabbable;
 
 The inspector uses a sticky header with status, title context, close, and overflow; a scrollable body; and no hidden save bar for fields that commit individually. Fields group into Schedule, Organization, Steps, and Notes. Changes expose saving/saved/error state without toast spam. Conflict state preserves unsaved input and offers “Review latest” and “Try again”.
 
-Date/time, recurrence, and reminder controls use labeled dialogs/popovers on desktop and full-width sheets on mobile. The non-drag schedule form is the canonical accessible editor.
+Date/time controls use labeled dialogs/popovers on desktop and full-width sheets on mobile. The non-drag schedule form is the canonical accessible editor.
 
 ## Reorderable list
 
@@ -65,13 +65,17 @@ The palette has a labeled search input and grouped results: Navigate, Tasks, and
 
 ## Calendar event
 
-Event blocks contain time when relevant, truncated title, and optional recurrence/reminder marker. Category background and readable paired foreground come from `tokens.md`. Selected events have a non-color outline. Drag/resize is pointer enhancement; activating an event opens the inspector, whose schedule form provides the complete alternative.
+Event blocks contain time when relevant, truncated title, status, and optional list/category context. Category background and readable paired foreground come from `tokens.md`. Selected events have a non-color outline. Drag/resize is pointer enhancement; activating an event opens the inspector, whose schedule form provides the complete alternative.
 
-## Habit check-in
+## Deferred habit check-in
+
+This primitive is not active-release implementation scope.
 
 The row/card includes icon/emoji, title, schedule/goal, current progress, streak summary, and an action whose label reflects goal type. Numeric habits open a quantity form instead of assuming one unit. Check-in success is reversible. Skip and unachieved are menu actions with explicit labels.
 
-## Focus timer
+## Deferred Focus timer
+
+This primitive is not active-release implementation scope.
 
 The timer uses tabular numerals and exposes its mode/state as text. Start is the only filled action at rest; Pause, Resume, Finish, and Discard follow the current state. A linked task/habit is optional and removable. Screen-reader announcements occur at state changes, not every second.
 

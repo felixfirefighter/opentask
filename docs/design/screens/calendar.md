@@ -22,7 +22,7 @@ At compact desktop/tablet the inspector overlays. On mobile, Agenda is the first
 ## Event presentation
 
 - All-day tasks occupy the all-day area/date cell; timed tasks use start/end placement.
-- Event block shows time when useful, title, and recurrence/reminder marker.
+- Event block shows time when useful, title, status, and list/category context.
 - Category token uses its paired readable foreground; selection adds outline and does not rely on color.
 - Overdue/open and completed/cancelled states include text/icon/decoration beyond color.
 - Overlapping events remain individually focusable and legible; no hidden aggregate is the only access path.
@@ -43,8 +43,8 @@ Drag/resize uses optimistic feedback only after a clear drop. On server rejectio
 | Default | Toolbar, visible-range calendar, task events, current-day marker, and task inspector/detail behavior. |
 | Empty | Keep the full calendar orientation and say “No scheduled tasks in this range” near the grid/agenda with Add task. Empty is never a blank white canvas. |
 | Loading | Preserve toolbar/range/grid geometry and show a subtle overlay or event skeletons; navigation remains stable and duplicate range requests do not flash empty state. |
-| Error | Keep the range and safe cached events labeled as stale, show Retry, and avoid rendering partial recurrence as authoritative. Failed drag/resize snaps back with a named error. |
-| Offline | Cached range is read-only under the global banner. Range navigation may show only cached coverage and must say when a range is unavailable. Disable create, drag, resize, and schedule edits. |
+| Error | Keep the range and safe loaded events labeled as stale, show Retry, and avoid rendering a partial range as authoritative. Failed drag/resize snaps back with a named error. |
+| Offline | The range already loaded in the open page is read-only under the global banner. Range navigation is unavailable without a connection. Disable create, drag, resize, and schedule edits. |
 | Permission | Unauthenticated access routes to sign-in. Events disappearing due to authorization refresh leave no metadata. Foreign/deleted event routes use generic unavailable detail state. |
 | Conflict | Restore the current server slot, outline the affected event, and offer Open details to review latest values. Do not choose local or server time silently. |
 
@@ -59,4 +59,4 @@ Drag/resize uses optimistic feedback only after a clear drop. On server rejectio
 
 ## Acceptance evidence
 
-Verify all four views, all-day/timed/overlapping/recurring events, bounded navigation, local DST transition, drag and resize success/failure/conflict, form-based schedule parity, empty/loading/error/offline/permission states, event focus, and mobile time-grid/agenda behavior at the required widths.
+Verify all four views, all-day/timed/overlapping events, bounded navigation, local DST transition, drag and resize success/failure/conflict, form-based schedule parity, empty/loading/error/offline/permission states, event focus, and mobile time-grid/agenda behavior at the required widths.

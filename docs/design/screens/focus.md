@@ -1,4 +1,6 @@
-# Focus
+# Deferred Focus screen
+
+**Status:** Not part of the Deadline-safe Hackathon Core. Do not implement this route or UI until the scope-change protocol promotes it.
 
 ## Purpose and route
 

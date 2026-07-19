@@ -1,4 +1,6 @@
-# Notifications module contract
+# Deferred notifications module contract
+
+**Status:** Deferred extension. Nothing in this document is approved for implementation under the Deadline-safe Hackathon Core. It becomes active only through the scope-change protocol after the hosted friend candidate passes.
 
 `modules/notifications` owns the single supported browser-push reminder, push subscriptions, delivery records, and pg-boss worker behavior.
 
@@ -28,7 +30,7 @@ pg-boss owns its internal queue schema; those tables are not domain tables.
 
 ## Invariants
 
-- Active scope permits at most one reminder row per task and supports only `absolute` or `relative_start`.
+- If promoted, the deferred first iteration permits at most one reminder row per task and supports only `absolute` or `relative_start`.
 - Absolute reminders require `remind_at`; relative reminders require `offset_minutes` and an eligible task start. Mixed fields are rejected.
 - Reminder/task/subscription/delivery ownership is constrained by `user_id` in SQL.
 - Relevant task/reminder changes and job creation occur in one database transaction where supported.
@@ -57,4 +59,3 @@ pg-boss owns its internal queue schema; those tables are not domain tables.
 - Recurring next-occurrence and DST scheduling tests.
 - Transient retry, permanent-revocation, provider-unavailable, and worker-disabled degradation tests.
 - Encryption round-trip plus log/export redaction tests that prove endpoint/auth/task content never leaks.
-

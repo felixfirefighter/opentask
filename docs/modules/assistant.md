@@ -29,7 +29,7 @@ The raw brain dump is not persisted by default.
 
 ## Invariants
 
-- OpenAI is optional; its absence cannot prevent identity, tasks, planning, habits, focus, reminders, or export from starting.
+- OpenAI is optional; its absence cannot prevent identity, tasks, planning, or export from starting.
 - The browser never receives an OpenAI key or calls OpenAI directly.
 - Requests send only selected/minimal context, use `store: false`, and logs contain no brain dump, task content, model input, or model output.
 - Model output contains semantic suggestions, not trusted database IDs, ownership, overlap decisions, or repository commands.
@@ -60,4 +60,3 @@ The raw brain dump is not persisted by default.
 - Cross-user selected-task/proposal denial and unknown-reference tests.
 - Review edit/deselect, allowed-action, forbidden-action, expiry, stale-version, atomic rollback, and idempotent retry tests.
 - End-to-end “propose, review, apply” test proving no mutation occurs before the second action.
-

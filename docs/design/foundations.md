@@ -17,17 +17,17 @@ The result should feel:
 Each screen has three visual levels:
 
 1. **Orientation:** page title, local date/range, view selector, and one primary action.
-2. **Work:** tasks, calendar events, habits, timer, or planner changes.
+2. **Work:** tasks, calendar events, or planner changes.
 3. **Context:** metadata, filters, counts, explanations, and secondary actions.
 
 Only one element in a local surface should use the filled action treatment. A page can contain multiple actions, but secondary actions use neutral, outline, or text treatments. Brand coral is not a generic highlight marker.
 
-Task title, current timer, and proposal action are stronger than their metadata. Overdue, conflict, and provider-unavailable states may interrupt the quiet hierarchy because they require attention.
+Task title and proposal action are stronger than their metadata. Overdue, conflict, and provider-unavailable states may interrupt the quiet hierarchy because they require attention.
 
 ## Typography
 
 - Use Geist Sans when available through the approved Next.js font path; otherwise use the documented system sans stack. Never use a proprietary competitor font.
-- Use tabular numerals for timers, durations, counts, and aligned time columns.
+- Use tabular numerals for durations, counts, and aligned time columns.
 - Page titles are compact and sentence case. Avoid display-sized headings inside the authenticated workspace.
 - Body and row text use the scales in `tokens.md`; do not create one-off sizes.
 - Limit regular prose to about 70 characters per line. Task descriptions can be wider in the inspector because they are working content.
@@ -37,7 +37,7 @@ Task title, current timer, and proposal action are stronger than their metadata.
 
 - Corners are softened, not pill-shaped by default. Pills are reserved for tags, status chips, and segmented controls.
 - Task rows are visually light, separated by whitespace or a subtle divider rather than individual cards.
-- Cards are used when a unit has its own state or action boundary: habit summary, focus statistics, planner proposal, or settings group.
+- Cards are used when a unit has its own state or action boundary: planner proposal or settings group.
 - The desktop workspace favors compact controls and stable alignment. Mobile preserves the same information hierarchy with larger targets and progressive disclosure.
 - Borders define editing surfaces and overlays. Shadows communicate elevation, not decoration.
 
@@ -55,7 +55,7 @@ Task title, current timer, and proposal action are stronger than their metadata.
 Use plain, specific language:
 
 - “Nothing planned for today” instead of “You're all caught up!”
-- “Push is blocked in this browser” instead of “Something went wrong”.
+- “Planning is unavailable because no AI key is configured” instead of “Something went wrong”.
 - “This task changed elsewhere. Review the latest version.” instead of “409 conflict”.
 - “Review 6 proposed changes” instead of “AI magic complete”.
 
@@ -63,10 +63,9 @@ Do not shame missed tasks or broken streaks. Avoid exclamation marks in routine 
 
 ## Motion
 
-Motion explains continuity: an inspector opening from a selected row, a reordered item settling, a timer state changing, or a proposal expanding. It must not delay work.
+Motion explains continuity: an inspector opening from a selected row, a reordered item settling, or a proposal expanding. It must not delay work.
 
 - Use the duration and easing tokens in `tokens.md`.
-- Never animate a recurring countdown every second beyond updating the text value.
 - Avoid parallax, bouncing, confetti, and autoplay illustration.
 - With reduced motion, replace transforms with immediate state changes or short opacity transitions.
 
@@ -75,6 +74,5 @@ Motion explains continuity: an inspector opening from a selected row, a reordere
 - Tasks use a checkbox/status control, not card color, as their primary completion affordance.
 - Priority uses a labeled menu and a small semantic marker; coral remains the product action color.
 - Calendar category colors always retain readable event text and an additional identifying label or marker.
-- Habit heat maps include a non-color summary and accessible per-cell text.
 - AI proposal actions use neutral cards until selected. Selection is explicit; coral does not imply model confidence.
-- Offline and provider-unavailable banners remain visible until the condition changes or the user dismisses a safely dismissible explanation.
+- Offline and AI-provider-unavailable banners remain visible until the condition changes or the user dismisses a safely dismissible explanation.

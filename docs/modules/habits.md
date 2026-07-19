@@ -1,4 +1,6 @@
-# Habits module contract
+# Deferred habits module contract
+
+**Status:** Deferred extension. Nothing in this document is approved for implementation under the Deadline-safe Hackathon Core. It becomes active only through the scope-change protocol after the hosted friend candidate passes.
 
 `modules/habits` owns personal habit definitions, supported schedules, local-day logs, and derived streak/history projections.
 
@@ -53,4 +55,3 @@
 - Quantity threshold, edit, undo, skipped, and unachieved behavior tests.
 - Archive/restore history and Today-projection integration tests.
 - Seven-day and monthly heat-map projection tests without persisted counters.
-

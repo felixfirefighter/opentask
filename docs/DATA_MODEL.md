@@ -12,7 +12,7 @@ Read this document before any schema change. It defines semantic ownership and p
    `id` alone; another user's use of the same UUID cannot conflict with or reveal the first row.
 5. User-facing aggregates carry `version`, `created_at`, and `updated_at`. An accepted mutation increments `version` exactly once.
 6. Soft deletion exists only where Trash/undo is part of behavior; it is not added reflexively to joins or immutable events.
-7. All instants are `timestamptz`; all-day and habit calendar days are PostgreSQL `date`; timezones are IANA names.
+7. All instants are `timestamptz`; all-day calendar values are PostgreSQL `date`; timezones are IANA names.
 8. Foreign keys, unique constraints, checks, and indexes encode invariants that can be expressed in PostgreSQL.
 9. Database rows never leave infrastructure. Repositories translate rows into application DTOs/domain values.
 10. No production schema push. Generate and review a migration, then run migration smoke tests.
@@ -34,9 +34,9 @@ Classify new data before implementing it.
 
 Examples:
 
-- A second reminder is a new `task_reminders` row in a later release, not `reminder_2_at`.
+- A future second reminder would be a new `task_reminders` row, not `reminder_2_at`; reminder tables are not active-core schema.
 - A task's start/end belongs to `task_schedules`, not another `deadline` column.
-- Completion of a recurring occurrence belongs to `task_occurrence_events`, not a cloned task.
+- A future recurring-occurrence completion belongs to `task_occurrence_events`, not a cloned task; recurrence tables are not active-core schema.
 - Google Calendar event metadata belongs to a future integration mapping table, not `tasks.google_event_id`.
 - A planner proposal is a short-lived versioned JSON document; JSONB is appropriate.
 
@@ -101,6 +101,8 @@ cursors, and the JavaScript fractional-key service share the same bytewise lexic
 deployment.
 
 ## Table catalog and ownership
+
+Only headings not prefixed with **Deferred** belong to the active schema. Deferred blueprints preserve later design intent but are explicit migration prohibitions under the Deadline-safe Hackathon Core.
 
 The WP02 client-ID aggregates `list_folders`, `task_lists`, `list_sections`, `tasks`,
 `checklist_items`, and `tags` use tenant-leading composite primary keys `(user_id, id)`. Their owning
@@ -178,18 +180,22 @@ One optional row per scheduled task; its owning foreign key is tenant-leading:
 
 Check constraints require exactly the fields for `kind`, `end >= start`, and no mixed date/instant representation. A schedule mutation increments the owning task version in the same transaction.
 
-### `task_recurrences` — tasks
+### Deferred: `task_recurrences` — tasks
+
+Do not create this table or recurrence API/UI under the active goal.
 
 One optional row per recurring task; its owning foreign key is tenant-leading:
 
 - `user_id`, `task_id` composite PK/FK
 - `rrule` text, `timezone`, `generation_mode`
-- `generation_mode` is fixed to `schedule` in active scope; completion-relative mode is reserved in domain vocabulary but not accepted by API
+- if promoted, `generation_mode` begins as `schedule`; completion-relative mode remains outside that initial deferred blueprint
 - `created_at`, `updated_at`
 
-RRULE is validated by the tasks domain wrapper; UI/API accepts only active-scope presets even if the library parses more.
+If promoted, RRULE is validated by the tasks domain wrapper and UI/API accepts only the presets authorized by that future scope change.
 
-### `task_occurrence_events` — tasks
+### Deferred: `task_occurrence_events` — tasks
+
+Do not create this table or occurrence API/UI under the active goal.
 
 Append-only effective state for a recurring occurrence:
 
@@ -218,9 +224,11 @@ Checklist items are not tasks and do not receive task schedules/tags in active s
 Normalize tag names with `lower(normalize(name, NFKC))` for active uniqueness per user; preserve the
 display spelling in the canonical `name` field.
 
-### `task_reminders` — notifications
+### Deferred: `task_reminders` — notifications
 
-Active release permits zero or one row per task through a unique `(user_id, task_id)` constraint and
+Do not create this table or reminder API/UI under the active goal.
+
+The deferred first iteration permits zero or one row per task through a unique `(user_id, task_id)` constraint and
 a tenant-leading owning foreign key:
 
 - `id`, `user_id`, `task_id`, `kind`: `absolute` or `relative_start`
@@ -229,7 +237,9 @@ a tenant-leading owning foreign key:
 
 A later move to multiple reminders removes the unique constraint; it does not add task columns.
 
-### `push_subscriptions` — notifications
+### Deferred: `push_subscriptions` — notifications
+
+Do not create this table or push API/UI under the active goal.
 
 - `id`, `user_id`, `endpoint_hash`
 - encrypted endpoint, `p256dh`, and auth material
@@ -238,7 +248,9 @@ A later move to multiple reminders removes the unique constraint; it does not ad
 
 Encryption uses a server-only data-encryption key with key-version metadata. Never return stored secret material except as required to send from the worker.
 
-### `notification_deliveries` — notifications
+### Deferred: `notification_deliveries` — notifications
+
+Do not create this table or worker job under the active goal.
 
 - `id`, `user_id`, `reminder_id`, nullable `occurrence_key`
 - `scheduled_for`, `state`, `attempt_count`, nullable `last_error_code`, `delivered_at`
@@ -247,15 +259,19 @@ Encryption uses a server-only data-encryption key with key-version metadata. Nev
 
 Jobs contain this ID/reminder ID, not content. Retention cleanup is a worker job.
 
-### `habits` — habits
+### Deferred: `habits` — habits
+
+Do not create this table or habit API/UI under the active goal.
 
 - `id`, `user_id`, `title`, `icon`, `color_token`
 - `goal_kind`: `boolean` or `quantity`; `target_value`, nullable `unit`
 - `version`, `created_at`, `updated_at`, `archived_at`
 
-### `habit_schedules` — habits
+### Deferred: `habit_schedules` — habits
 
-One row per habit in active scope:
+Do not create this table or habit schedule API/UI under the active goal.
+
+One row per habit in the deferred blueprint:
 
 - `habit_id` PK, `user_id`, `kind`: `daily`, `weekdays`, `weekly_target`
 - `weekdays` smallint array for selected weekdays; `target_per_week` for weekly target
@@ -264,7 +280,9 @@ One row per habit in active scope:
 
 Checks enforce the fields allowed for each discriminant. A schedule change increments the habit version.
 
-### `habit_logs` — habits
+### Deferred: `habit_logs` — habits
+
+Do not create this table or habit log API/UI under the active goal.
 
 - `id`, `user_id`, `habit_id`, `local_date`
 - `state`: `completed`, `skipped`, `unachieved`
@@ -274,7 +292,9 @@ Checks enforce the fields allowed for each discriminant. A schedule change incre
 
 Streaks and heat maps are projections; do not store counters on `habits`.
 
-### `focus_sessions` — focus
+### Deferred: `focus_sessions` — focus
+
+Do not create this table or Focus API/UI under the active goal.
 
 - `id`, `user_id`, nullable `task_id`, nullable `habit_id`
 - `mode`: `pomodoro` or `stopwatch`
@@ -303,9 +323,6 @@ At minimum, migration review checks:
 - tasks by `(user_id, status, status_changed_at)`;
 - schedules by `(user_id, start_at/end_at)` and `(user_id, start_date/end_date)`;
 - GIN/trigram indexes for scoped task search after measuring query form;
-- unique task/occurrence and habit/local-date constraints;
-- reminders by user/enabled and deliveries by scheduled/state;
-- partial unique active focus session;
 - planner proposals by user/status/expiry;
 - every foreign-key column used in deletion/authorization joins.
 
@@ -326,6 +343,7 @@ Do not add speculative indexes. Use `EXPLAIN (ANALYZE, BUFFERS)` against seeded 
 ## Schema audit checklist
 
 - Does the concept already exist under a canonical name?
+- Is the table active rather than marked Deferred in this catalog?
 - Is the owning module clear?
 - Is this scalar, repeating, relational, historical, provider-specific, or versioned document data?
 - Can a projection derive it instead of persisting it?

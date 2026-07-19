@@ -29,15 +29,15 @@ modules/                 Product feature modules
   identity/
   tasks/
   planning/
-  habits/
-  focus/
-  notifications/
+  habits/                 deferred contract; not implemented in active goal
+  focus/                  deferred contract; not implemented in active goal
+  notifications/          deferred contract; not implemented in active goal
   assistant/
   portability/
 shared/                  Approved stable cross-cutting surfaces
-worker/                  pg-boss runtime and job registration
+worker/                  zero-job pg-boss runtime scaffold
 drizzle/                 Generated, committed SQL migrations
-public/                  Original static/PWA assets
+public/                  Original static assets
 docs/                    Product and engineering contracts
 tests/                   Cross-module integration and E2E support
 ```
@@ -49,11 +49,11 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 | Module | Owns | Contract |
 |---|---|---|
 | identity | session context, user preferences, account bootstrap | `docs/modules/identity.md` |
-| tasks | folders, lists, sections, tasks, schedules, recurrence, tags, checklist, search | `docs/modules/tasks.md` |
+| tasks | folders, lists, sections, tasks, schedules, tags, checklist, search | `docs/modules/tasks.md` |
 | planning | smart views, calendar projections, Eisenhower rules, deterministic scheduler | `docs/modules/planning.md` |
-| habits | habit definitions, schedules, check-ins, streak projections | `docs/modules/habits.md` |
-| focus | active timer policy and completed focus sessions | `docs/modules/focus.md` |
-| notifications | reminder definitions, queue jobs, web push delivery | `docs/modules/notifications.md` |
+| habits | deferred habit definitions, schedules, logs, and streak projections | `docs/modules/habits.md` |
+| focus | deferred timer policy and completed focus sessions | `docs/modules/focus.md` |
+| notifications | deferred reminder definitions, queue jobs, and web push delivery | `docs/modules/notifications.md` |
 | assistant | OpenAI adapter, extraction, planner proposals, review/apply | `docs/modules/assistant.md` |
 | portability | versioned user export and future import adapters | `docs/modules/portability.md` |
 
@@ -82,7 +82,7 @@ The bootstrap work package must create these stable commands; later agents use t
 | Command | Contract |
 |---|---|
 | `pnpm dev` | web app in development |
-| `pnpm worker` | reminder/background worker |
+| `pnpm worker` | zero-job worker architecture smoke in the active core |
 | `pnpm db:up` / `pnpm db:down` | local PostgreSQL lifecycle |
 | `pnpm db:generate` | generate migration from reviewed schema change |
 | `pnpm db:migrate` | apply committed migrations |
@@ -108,4 +108,5 @@ The bootstrap work package must create these stable commands; later agents use t
 - Do not copy the same rule into multiple documents; link to the owner.
 - Do not store progress history in docs. A temporary `CURRENT_WORK.md`, if ever needed, is replaced rather than appended and is deleted at release.
 - New module contracts belong in `docs/modules/`; new screen contracts belong in `docs/design/screens/`.
+- A deferred module contract is not permission to create its routes, tables, jobs, dependencies, or UI under the active goal.
 - Architecture deviations use one short ADR in `docs/decisions/` and a manifest entry. Do not create ADRs for routine implementation choices.

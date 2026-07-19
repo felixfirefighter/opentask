@@ -18,9 +18,9 @@ If documents conflict, precedence is: `AGENTS.md` -> `docs/SCOPE.md` -> `docs/AR
 
 ## Scope control
 
-- The active implementation goal is exactly the Hackathon Release in `docs/SCOPE.md` and `docs/GOAL.md`.
+- The active implementation goal is exactly the Deadline-safe Hackathon Core in `docs/SCOPE.md` and `docs/GOAL.md`.
 - A researched TickTick feature is not automatically approved for implementation.
-- Post-hackathon features must not be started under the hackathon goal.
+- Deferred extensions and post-core roadmap features must not be started under the active goal.
 - Do not add a “small improvement” outside the active work package. Record it in the appropriate later-scope section only if it is materially useful.
 - Do not silently cut a committed feature. A cut requires explicit user approval and an update to `docs/SCOPE.md` and `docs/GOAL.md` in the same change.
 - Plans are maintained in place. Do not append status diaries, session logs, or implementation history to planning documents. Git is the history.

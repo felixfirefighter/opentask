@@ -55,7 +55,7 @@ types.
 
 - Task/list authorization or persistence beyond coordinating Inbox bootstrap.
 - Social login, email verification, password-reset email, passkeys, multi-factor authentication, collaboration, memberships, or workspaces.
-- Domain seed implementation for tasks, habits, focus, reminders, or planner proposals.
+- Domain seed implementation for tasks or planner proposals.
 
 ## Required tests
 

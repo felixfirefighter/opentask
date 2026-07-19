@@ -19,7 +19,7 @@ The composition is built from the product's own primitives and sample data. Neve
 
 Below the hero, no more than three concise sections explain:
 
-1. tasks, calendar planning, habits, and focus in one self-hostable app;
+1. tasks and active calendar planning in one self-hostable app;
 2. optional reality-aware planning with explicit review before apply;
 3. open-source use without artificial premium gates.
 
@@ -27,7 +27,7 @@ The footer includes project/license-source destinations when they exist and the 
 
 ## Demo entry
 
-“Try demo” explains before action that the server creates or resets an isolated sample dataset for this visitor. It never publishes shared credentials. While seeding, keep the CTA location stable and use one honest progress label unless the server exposes real granular stages. On success, enter the demo Inbox with sample tasks, habits, focus history, and a planner-ready scenario that support the submission narrative.
+“Try demo” explains before action that the server creates or resets an isolated sample dataset for this visitor. It never publishes shared credentials. While seeding, keep the CTA location stable and use one honest progress label unless the server exposes real granular stages. On success, enter the demo Inbox with sample tasks, schedules, and a planner-ready scenario that support the submission narrative.
 
 Demo copy makes sample/reset behavior clear and does not imply persistence guarantees the backend has not implemented.
 
@@ -39,7 +39,7 @@ After sign-up, the atomically created Inbox opens immediately. A small non-modal
 2. Today;
 3. command search.
 
-It can be dismissed at any point, never blocks task creation, and does not require users to configure AI, push, habits, focus, or preferences. The user's default timezone preference is visible through normal settings, not a mandatory wizard.
+It can be dismissed at any point, never blocks task creation, and does not require users to configure AI or preferences. The user's default timezone preference is visible through normal settings, not a mandatory wizard.
 
 Demo first run may use the same orientation but must not cover the seeded task that begins the demo story.
 
@@ -51,7 +51,7 @@ Demo first run may use the same orientation but must not cover the seeded task t
 | Empty | Marketing no-data empty state is not applicable. If the product composition cannot load, retain the complete text/CTA hierarchy rather than an empty frame. |
 | Loading | Static content renders first. Demo action shows stable progress and blocks duplicate reset/create requests; never display a fake percent. |
 | Error | Demo failure remains on the landing page, says whether no space was created/reset, and offers Retry plus Create account. A failed decorative composition does not block entry actions. |
-| Offline | Cached/static explanation remains readable. Create account, Sign in, and Try demo identify that connection is required and do not initiate writes. |
+| Offline | Already rendered/static explanation remains readable. Create account, Sign in, and Try demo identify that connection is required and do not initiate writes. |
 | Permission | Public content requires no permission. Signed-in status changes entry CTAs without exposing any domain data on the public page. |
 | First run | Orientation is dismissible, keyboard reachable, and never modal. Dismissal does not change product data. |
 

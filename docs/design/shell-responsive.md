@@ -17,7 +17,7 @@ At 200% zoom, layouts must naturally collapse to the next appropriate shell rath
 
 ### Module rail
 
-The rail switches product modules, not individual lists. It contains the mark/home affordance, Today, Tasks, Calendar, Habits, and Focus, with a labeled account menu at the bottom for Settings and Sign out. Matrix remains available through context navigation and the command palette. Every icon has a tooltip and accessible name; the selected item uses icon plus selected surface and current-page semantics.
+The rail switches product modules, not individual lists. It contains the mark/home affordance, Today, Tasks, Calendar, and Plan, with a labeled account menu at the bottom for Settings and Sign out. Matrix remains available through context navigation and the command palette. Every icon has a tooltip and accessible name; the selected item uses icon plus selected surface and current-page semantics.
 
 ### Context sidebar
 
@@ -25,8 +25,7 @@ The sidebar changes with the active module:
 
 - Tasks: Inbox, Today, Upcoming, Completed/Cancelled, Matrix, folders, lists, and list creation.
 - Calendar: view navigation and date context, without inventing an unscheduled backlog.
-- Habits: active and archived destinations.
-- Focus: timer and history/statistics destinations within the same route.
+- Plan: Describe, Review, and Result route-preserved steps.
 
 Folders disclose their lists inline. Manual reorder uses an explicit handle plus the menu fallback from `components.md`. The immutable Inbox never shows rename/delete actions.
 
@@ -48,8 +47,8 @@ At 1280 px and wider, selecting a task opens a 360 px inspector without replacin
 
 ## Mobile shell
 
-- Bottom navigation contains Today, Tasks, Calendar, Habits, and More.
-- More opens a labeled sheet with Focus, Matrix, Upcoming, Completed/Cancelled, settings, and sign out.
+- Bottom navigation contains Today, Tasks, Calendar, Plan, and More.
+- More opens a labeled sheet with Matrix, Upcoming, Completed/Cancelled, settings, and sign out.
 - The selected tab uses icon, short label, and current-page semantics. Do not use icon-only mobile navigation.
 - The top bar contains the current destination, an optional back action, and no more than two context actions. Less common actions go in the overflow menu.
 - Opening a task navigates to a full-page detail route. Browser/system Back returns to the same list, range, scroll position, and focused row when possible.
@@ -80,4 +79,4 @@ At 1280 px and wider, selecting a task opens a 360 px inspector without replacin
 
 ## Global condition banners
 
-Offline, reminder-worker unavailable, and critical stale-data conditions appear below the shell header. They include icon, short text, and a relevant action. Offline state disables domain mutations across all surfaces; it is not represented only by disabled controls. Provider-specific states remain local unless they affect more than one screen.
+Offline and critical stale-data conditions appear below the shell header. They include icon, short text, and a relevant action. Offline state disables domain mutations across all surfaces; it is not represented only by disabled controls. Provider-specific states remain local unless they affect more than one screen.

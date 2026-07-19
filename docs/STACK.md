@@ -9,13 +9,13 @@ The stack favors one language, one database, few operational services, strong sc
 | Runtime | Node.js 24 LTS | Current LTS, compatible with the selected framework and pg-boss; one server runtime. |
 | Language | TypeScript, strict mode | Shared contracts across browser, server, worker, and tests. |
 | Package manager | pnpm 11.14.0, Corepack-pinned | Deterministic, fast, single lockfile. |
-| Web framework | Next.js 16 App Router, Node runtime | Full-stack React, route handlers, PWA manifest support, one deployable web service. Do not use Edge runtime for DB/auth paths. |
+| Web framework | Next.js 16 App Router, Node runtime | Full-stack React, route handlers, and one deployable web service. Do not use Edge runtime for DB/auth paths. |
 | UI runtime | React 19 | Framework-supported client/server component model. |
 | Database | PostgreSQL 17 for local/self-host baseline | Durable relational invariants, search, queue, and migrations in one service. Hosted deployments may use a compatible newer supported major after verification. |
 | ORM/migrations | Drizzle ORM + Drizzle Kit | SQL-visible, modular TypeScript schemas, committed generated migrations. |
 | Local services | Docker Compose | Reproducible PostgreSQL without proprietary local tooling. |
 
-Next.js documents App Router as the current route model and provides an official PWA guide. Drizzle supports code-first PostgreSQL schemas and generated/applied migrations. Sources: [Next.js App Router](https://nextjs.org/docs/app), [Next.js PWA guide](https://nextjs.org/docs/app/guides/progressive-web-apps), [Drizzle migrations](https://orm.drizzle.team/docs/migrations).
+Next.js documents App Router as the current route model. Drizzle supports code-first PostgreSQL schemas and generated/applied migrations. Sources: [Next.js App Router](https://nextjs.org/docs/app), [Drizzle migrations](https://orm.drizzle.team/docs/migrations).
 
 ## Application and UI libraries
 
@@ -25,12 +25,12 @@ Next.js documents App Router as the current route model and provides an official
 | shadcn/ui patterns + Radix primitives, CVA, clsx, tailwind-merge | accessible commodity controls and token-backed variants | Keep vendored components generic; feature behavior stays in modules. |
 | Lucide React | original interface icon set | Never import competitor icons/assets. |
 | Zod | request, environment, AI, and versioned document validation | One canonical schema per contract; infer types from it. |
-| React Hook Form | non-trivial settings/task/habit forms | Simple one-field quick add can use local state. |
+| React Hook Form | non-trivial settings/task/planner forms | Simple one-field quick add can use local state. |
 | TanStack Query | client server-state cache, optimistic mutations, invalidation | Not a second domain store; server remains authoritative. |
 | FullCalendar standard React v7 packages | month/day/week/agenda and drag/resize | Standard MIT packages only; no premium Scheduler dependency. |
 | `@dnd-kit/core` + sortable | accessible list/section reorder | Must configure keyboard sensor, instructions, and menu fallback. |
 | `chrono-node` | English quick-add date/time recognition | Always show parsed tokens for confirmation. |
-| `rrule` | supported recurrence expansion | Domain wrapper limits accepted rules to active scope. |
+| `rrule` | deferred recurrence expansion | Do not install or import under the active core; reconsider only through the scope-change protocol. |
 | `temporal-polyfill` | explicit date/time arithmetic used by FullCalendar/domain adapters | Do not use implicit server-local timezone arithmetic. |
 | `date-fns` | display formatting and small date helpers | Temporal/domain value objects own scheduling semantics. |
 | `react-markdown` + `remark-gfm` | safe Markdown task-description rendering | Raw HTML disabled; sanitize any future HTML path. |
@@ -45,8 +45,8 @@ FullCalendar's React standard package is MIT and supports React 17–19; its int
 |---|---|---|
 | Better Auth with Drizzle adapter | email/password sessions and auth tables | Domain authorization still belongs to application use cases. |
 | `pg` | pooled PostgreSQL driver | One shared pool per process. |
-| pg-boss | reminder jobs, retries, cron maintenance | Separate worker entrypoint; no Redis. |
-| `web-push` | standards-based browser notification delivery | Subscription endpoints encrypted at rest where provider allows; never log them. |
+| pg-boss | zero-job worker architecture scaffold | Keep the existing boot smoke; no active-core job or queue behavior. |
+| `web-push` | deferred browser notification delivery | Do not install or import under the active core. |
 | Official `openai` JavaScript SDK | Responses API for the optional planner | Server-only, `store:false`, structured outputs, minimal context. |
 | Pino | structured application/worker logs | Mandatory redaction; no user content. |
 
@@ -113,19 +113,19 @@ deployed runtime path. Re-evaluate it whenever Better Auth or its dependency gra
 ## Search and analytics
 
 - PostgreSQL full-text/trigram search is sufficient for active scope. No Elasticsearch/Meilisearch.
-- Habit/focus visualizations use accessible HTML/CSS/SVG primitives for the small committed charts. Do not add a chart library until a later feature actually requires one; if it does, the default is ECharts.
+- Active-core planning surfaces use accessible HTML/CSS/SVG primitives where a small visual summary is needed. Do not add a chart library until a later approved feature actually requires one; if it does, the default is ECharts.
 - No third-party product analytics in the active release. Operational health comes from redacted logs and health checks.
 
 ## Deployment
 
 ### Canonical self-host path
 
-One multi-stage Docker image with two commands:
+One multi-stage Docker image retains two commands:
 
 - web: production Next.js server
-- worker: pg-boss worker
+- worker: zero-job pg-boss architecture smoke
 
-Docker Compose runs `web`, `worker`, and `postgres`. The app can run without the worker, but reminder UI must disclose that delivery is unavailable.
+Docker Compose runs `web`, `worker`, and `postgres` for reproducibility. The friend-test and hosted active core require only `web` and `postgres`; the worker has no product job.
 
 ### Hackathon demo
 
@@ -134,9 +134,9 @@ Railway is the recommended demo target because its official guides support a Nex
 ## Deliberate omissions
 
 - Supabase is not the application platform: it would duplicate Better Auth/provider choices and blur the self-host contract. PostgreSQL itself remains portable.
-- Redis/BullMQ is unnecessary because pg-boss covers the committed queue use case.
+- Redis/BullMQ is unnecessary; the retained pg-boss scaffold has no active-core jobs.
 - A monorepo is unnecessary for one web product and one worker entrypoint sharing the same modules.
-- Native/mobile frameworks are outside active scope; the responsive PWA proves the product first.
+- Native/mobile frameworks and installable PWA behavior are outside active scope; the responsive web app proves the product first.
 - Rich-text editor frameworks are deferred; Markdown keeps task content portable and implementation bounded.
 
 ## Recommended agent tooling

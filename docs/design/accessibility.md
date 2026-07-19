@@ -31,7 +31,7 @@ The target is WCAG 2.2 AA across authenticated product, landing/auth, and demo f
 ## Color, text, and zoom
 
 - Normal text meets 4.5:1 contrast; large text meets 3:1; meaningful component boundaries and focus indicators meet 3:1 against adjacent colors.
-- Status, priority, completion, habit intensity, proposal validity, and calendar identity use a non-color cue.
+- Status, priority, completion, proposal validity, and calendar identity use a non-color cue.
 - Text remains usable at 200% zoom and browser text-only resizing; no essential content is clipped at 400% reflow except permitted two-dimensional calendar regions.
 - Truncation does not hide the only copy of essential content; full text is available through focus/activation or the detail view.
 - Respect user theme and `prefers-contrast` where practical without creating an unsupported theme system.
@@ -40,7 +40,6 @@ The target is WCAG 2.2 AA across authenticated product, landing/auth, and demo f
 
 - Respect both saved reduced-motion preference and `prefers-reduced-motion`; the more restrictive value wins.
 - No content flashes more than three times per second.
-- Timed focus sessions do not expire a form or force navigation. Timer status remains readable without observing animation.
 - Toasts containing an action remain long enough to operate and pause on focus/hover; persistent errors use inline or banner treatment instead.
 
 ## Forms and errors
@@ -49,13 +48,13 @@ The target is WCAG 2.2 AA across authenticated product, landing/auth, and demo f
 - Error summaries identify all invalid fields and receive focus after a failed submit.
 - Authentication errors do not reveal whether another person's email exists.
 - Destructive confirmation describes the object and consequence; the confirmation action is not the initial focused control when cancellation is safer.
-- Changing a date, recurrence, reminder, or timezone shows the interpreted result in plain language before commit when ambiguity is possible.
+- Changing a date or timezone shows the interpreted result in plain language before commit when ambiguity is possible.
 
 ## Dynamic updates
 
-- A polite status live region announces save completion, optimistic rollback, list reorder, task completion/undo, habit check-in/undo, calendar move, and planner progress.
+- A polite status live region announces save completion, optimistic rollback, list reorder, task completion/undo, calendar move, and planner progress.
 - Critical session loss or failed atomic apply uses an assertive alert only when immediate attention is required.
-- Do not announce timer ticks, animation frames, every search keystroke, or each skeleton.
+- Do not announce animation frames, every search keystroke, or each skeleton.
 - Optimistic changes that roll back return focus to the affected action and state what was restored.
 
 ## Composite widgets
@@ -68,8 +67,6 @@ The target is WCAG 2.2 AA across authenticated product, landing/auth, and demo f
 
 ## Charts and visual summaries
 
-- Habit heat map cells have accessible habit/date/value/status names and a textual current/best streak summary.
-- Focus totals have textual values; any bars are supplemental and excluded from the accessibility tree when redundant.
 - Category legends pair swatch, label, and accessible text.
 - Empty and zero states are distinguishable.
 
@@ -77,8 +74,8 @@ The target is WCAG 2.2 AA across authenticated product, landing/auth, and demo f
 
 - The global offline banner is announced once when connectivity changes and says that writes are disabled.
 - Disabled mutations have an explanation discoverable without hover.
-- AI and push unavailable states name the missing capability and preserve manual alternatives.
-- Cached/stale content is labeled; the UI never announces an unsynced local mutation as saved.
+- AI unavailable states name the missing capability and preserve manual alternatives.
+- Already loaded stale content is labeled; the UI never announces an unsynced local mutation as saved.
 
 ## Required manual audit
 

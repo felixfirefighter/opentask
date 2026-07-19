@@ -27,7 +27,7 @@ Rows emphasize title, current schedule, and priority. Never use quadrant backgro
 
 ## Actions
 
-- Open task details, complete/undo, cancel/restore, or start focus through existing task actions.
+- Open task details, complete/undo, or cancel/restore through existing task actions.
 - Change priority through a labeled menu.
 - Change all-day/timed schedule through the canonical schedule form.
 - Quick-add is available through the global command palette; the matrix does not guess a quadrant from drop location.
@@ -44,7 +44,7 @@ Changing priority or schedule may move a row to a different quadrant after serve
 | Empty | An empty quadrant keeps its heading and says “No tasks in this quadrant”. If all four are empty, use one page-level “No open tasks to prioritize” state while retaining the rule explanation and Add task route. |
 | Loading | Preserve the 2 by 2/stacked geometry with row skeletons and one page status. Do not show temporary zero counts. |
 | Error | Keep safe cached classifications labeled stale, show Retry, and avoid placing partially loaded tasks into a guessed quadrant. Failed mutation restores the row to its authoritative region. |
-| Offline | Cached quadrants remain visible and read-only under the global banner. Disable status, priority, schedule, and focus-start mutations; navigation/details may remain available. |
+| Offline | Loaded quadrants remain visible and read-only under the global banner. Disable status, priority, and schedule mutations; navigation/details may remain available. |
 | Permission | Unauthenticated access routes to sign-in. Removed/foreign task records disappear without metadata; direct task access uses the generic unavailable state. |
 | Conflict | Restore the current server-derived quadrant, identify the task as changed elsewhere, and offer Open details. Do not preserve a stale visual classification. |
 

@@ -1,8 +1,8 @@
 # OpenTask (working title)
 
-OpenTask is a self-hostable, open-source personal productivity app for tasks, calendar planning, habits, focus sessions, reminders, and an optional review-before-apply planning assistant. Core workflows must remain useful without an AI key or paid feature tier.
+OpenTask is a self-hostable, open-source personal planning app for tasks, calendar planning, and an optional review-before-apply assistant. Core workflows remain useful without an AI key or paid feature tier.
 
-The Hackathon Release is implemented in the package order defined by [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). The approved fixture-driven visual proof remains available while product infrastructure replaces it incrementally; it is not permission to add behavior outside [docs/SCOPE.md](docs/SCOPE.md).
+The Deadline-safe Hackathon Core is implemented through the dependency-aware workstreams in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). The approved fixture-driven visual proof remains available while product infrastructure replaces it incrementally; it is not permission to add behavior outside [docs/SCOPE.md](docs/SCOPE.md).
 
 ## Quick start
 
@@ -18,7 +18,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-Run the zero-job worker in a second terminal with `pnpm worker`. Install the Playwright browser once with `pnpm exec playwright install chromium`, then use `pnpm verify` for the complete local gate. See [docs/SETUP.md](docs/SETUP.md) for the reproducible setup, Docker path, health checks, and command contracts.
+The active core does not require a background worker; `pnpm worker` remains a zero-job architecture smoke. Install the Playwright browser once with `pnpm exec playwright install chromium`, then use `pnpm verify` for the complete local gate. See [docs/SETUP.md](docs/SETUP.md) for the reproducible setup, Docker path, health checks, and command contracts.
 
 ## Development-only visual proof routes
 
@@ -26,7 +26,7 @@ The pre-implementation proof remains available under `pnpm dev` while real produ
 the real landing route, these fixture routes return not found from a production build and are never product data.
 
 - `/` — landing and product composition
-- `/today` — daily task and habit workspace
+- `/today` — daily task workspace
 - `/calendar` — Month, Week, Day, and Agenda views
 - `/tasks/demo` — task detail and checklist inspector
 - `/plan` — review-before-apply planning proposal

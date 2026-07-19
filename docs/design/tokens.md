@@ -45,7 +45,7 @@ Priority colors are separate from brand and always paired with a label in menus 
 
 ## Category palette
 
-Habits and calendar/list accents select one named category token. Event text uses the paired foreground; text never sits directly on the strong accent.
+Calendar/list accents select one named category token. Event text uses the paired foreground; text never sits directly on the strong accent.
 
 | Name | Light background / foreground | Dark background / foreground |
 |---|---|---|
@@ -62,11 +62,11 @@ The default font stack is `Geist Sans, Inter, ui-sans-serif, system-ui, -apple-s
 
 | Token | Size / line | Weight | Use |
 |---|---|---:|---|
-| `text-display` | 28 / 34 px | 650 | Marketing or focus timer support, rarely in workspace |
+| `text-display` | 28 / 34 px | 650 | Marketing emphasis, rarely in workspace |
 | `text-page-title` | 24 / 30 px | 650 | Screen title |
 | `text-section-title` | 18 / 24 px | 650 | Major section/card heading |
 | `text-body` | 14 / 20 px | 400 | Default UI and prose |
-| `text-row` | 14 / 20 px | 500 | Task/habit primary label |
+| `text-row` | 14 / 20 px | 500 | Task primary label |
 | `text-compact` | 13 / 18 px | 400 | Dense metadata and calendar labels |
 | `text-label` | 12 / 16 px | 600 | Eyebrow, field label, chip; never long prose |
 

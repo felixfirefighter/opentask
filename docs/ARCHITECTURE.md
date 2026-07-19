@@ -4,19 +4,15 @@
 
 ```mermaid
 flowchart LR
-    PWA["Browser / installable PWA"] --> PRES["Next.js presentation"]
+    BROWSER["Browser"] --> PRES["Next.js presentation"]
     PRES --> APP["Module application use cases"]
     APP --> DOM["Pure domain policies"]
     APP --> DBI["Drizzle repositories"]
     DBI --> PG[("PostgreSQL")]
-    APP --> JOB["pg-boss producer"]
-    JOB --> PG
-    PG --> WORKER["Worker process"]
-    WORKER --> PUSH["Web Push provider"]
     APP --> OAI["OpenAI adapter"]
 ```
 
-The web and worker are two processes built from one repository and one module graph. PostgreSQL is the only required stateful service. OpenAI and web push are optional adapters; core task behavior remains available when either is absent.
+The active product is one Next.js web process backed by PostgreSQL, with an optional OpenAI adapter. The repository retains a zero-job worker entry point as an architecture smoke, but the Deadline-safe Hackathon Core has no job, reminder, push, or service-worker behavior. Core task behavior remains available when OpenAI is absent.
 
 ## Boundary model
 
@@ -53,17 +49,16 @@ The small amount of dependency injection needed is explicit function parameters/
 2. Zod parses path/query/body data; client ownership claims are discarded.
 3. Application use case loads authorized records through its repository.
 4. Domain policy evaluates the mutation.
-5. Application use case writes in one transaction, increments `version`, and enqueues any job/outbox record needed.
+5. Application use case writes in one transaction and increments `version` exactly as the owning aggregate contract requires.
 6. Presentation receives an application DTO, never a raw Drizzle row.
 
 Stale mutation versions return a typed conflict response. Clients refetch the row and preserve unsaved input long enough to let the user retry; last-write-wins is not the default.
 
 ## Read projections
 
-Smart lists, calendar events, agenda rows, Eisenhower quadrants, Today habits, and statistics are projections. They do not own duplicate status/schedule data.
+Smart lists, calendar events, agenda rows, and Eisenhower quadrants are projections. They do not own duplicate status/schedule data.
 
 - Query application services accept a bounded filter/range and return view models.
-- Calendar recurrence expands only inside the requested date window.
 - Counts and aggregates execute in PostgreSQL when practical.
 - A projection may be cached in TanStack Query but PostgreSQL remains authoritative.
 - Do not create materialized projection tables during the hackathon release.
@@ -77,31 +72,13 @@ Time is a product invariant, not a formatting detail.
 - A task schedule is either all-day or timed; database constraints prevent mixed representations.
 - A task's derived due boundary is timed `end_at`, or the exclusive all-day `end_date` interpreted at local midnight. Matrix/overdue queries compute it; no `due_at` or deadline duplicate is stored.
 - Smart-list boundaries use the user's saved timezone.
-- Recurrence expands in the recurrence timezone and converts occurrences to instants only after local-rule evaluation.
-- Focus durations derive from server timestamps, not client countdown ticks.
 - Presentation formatting uses the user's week start and hour-cycle preferences.
 
 Domain tests must cover spring-forward/fall-back behavior for at least one representative IANA zone.
 
-## Recurrence model
+## Deferred architecture boundaries
 
-The series definition belongs to the task; occurrence state belongs to a separate occurrence-exception table.
-
-- RRULE is an infrastructure serialization, wrapped by a domain recurrence value object.
-- Only rules listed in active scope can be created through the release UI/API.
-- Completing, skipping, or overriding the current occurrence writes an exception keyed by series task and recurrence ID/local occurrence.
-- Editing the series changes future expansion; past occurrence exceptions remain historical.
-- Range queries expand rules and overlay exceptions.
-- The reminder worker schedules only the next eligible occurrence in active scope and idempotently advances after completion/delivery.
-
-## Reminder/job reliability
-
-- Application writes the task/reminder change and pg-boss job in the same database transaction where supported.
-- Each logical delivery has a deterministic idempotency key.
-- The worker re-loads the reminder and authorized task state before sending; job payloads contain IDs, not task content.
-- Deleted/completed/rescheduled tasks make obsolete jobs no-op.
-- Delivery attempts record channel, state, provider response class, and timestamps; never endpoint/auth secrets or task content.
-- Retry transient failures with bounded exponential backoff. Permanent subscription failures disable that subscription.
+Recurrence/occurrence events, habits, Focus, browser reminders/push delivery, and installable PWA/service-worker caching are deferred. Their module documents are blueprints only. They contribute no active table, route, job, dependency, navigation item, export section, provider requirement, or release gate until promoted through the scope-change protocol.
 
 ## AI planner architecture
 
@@ -139,21 +116,19 @@ The release uses Structured Outputs because OpenAI documents schema adherence an
 - Every query constrains owner/user IDs in SQL rather than loading first and filtering in memory.
 - Export enumerates records through the same authorized module query surfaces.
 
-## PWA and offline boundary
+## Browser and offline boundary
 
-The release service worker provides installability, static/app-shell caching, and push handling. It is not an offline sync engine.
+The active release has no service worker, installability claim, or cache-backed offline shell.
 
-- Cache only versioned public assets and explicitly safe GET responses.
-- Never cache auth responses, OpenAI responses, exports, or arbitrary mutation responses.
-- When offline, show previously rendered/cache-safe UI where available and disable domain mutations with clear feedback.
+- When the running page detects lost connectivity or a network failure, keep already rendered data visible as stale and disable domain mutations with clear feedback.
+- Never describe previously rendered data as an offline cache or claim the app opens without a connection.
 - Full offline writes require the Stage D sync protocol, tombstones, idempotency, and conflict UX; do not simulate them with local-only state now.
 
 ## Observability
 
-- Pino JSON logs include request/job ID, route/use-case name, duration, status class, and opaque entity IDs only where useful.
-- Redaction covers cookies, auth headers, OpenAI keys, VAPID keys, push endpoints, request bodies, task content, and planner input/output.
+- Pino JSON logs include request ID, route/use-case name, duration, status class, and opaque entity IDs only where useful.
+- Redaction covers cookies, auth headers, OpenAI keys, request bodies, task content, and planner input/output.
 - `/api/health/live` checks process liveness; `/api/health/ready` checks database connectivity and migration compatibility.
-- Worker emits queue lag, success/failure class, and retry counts to logs.
 - No third-party behavioral analytics in active scope.
 
 ## Error contract

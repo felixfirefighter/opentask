@@ -18,7 +18,7 @@ Warmth comes from color, spacing, plain language, and gentle geometry. Precision
 
 ## Product design principles
 
-- **Manual first:** every core workflow remains clear when AI, push, or the worker is unavailable.
+- **Manual first:** every core workflow remains clear when AI is unavailable.
 - **One record, many views:** Inbox, Today, calendar, agenda, and matrix look different but never imply separate copies of a task.
 - **Quiet until needed:** secondary metadata recedes; conflicts, overdue work, permission problems, and destructive actions do not.
 - **Review before consequence:** completion, destructive actions, calendar moves, and planner apply have visible outcomes and recovery where appropriate.
@@ -39,14 +39,14 @@ Read only the files relevant to the surface being changed, after this file.
 | WCAG, keyboard, touch, focus, announcements, charts | `docs/design/accessibility.md` |
 | Public landing, first-run orientation, demo CTA | `docs/design/screens/landing.md` |
 | Sign in and sign up | `docs/design/screens/auth.md` |
-| Preferences, push/provider status, JSON export | `docs/design/screens/settings.md` |
+| Preferences, AI provider status, JSON export | `docs/design/screens/settings.md` |
 | Inbox and regular task-list behavior | `docs/design/screens/inbox.md` |
-| Today task/habit composition | `docs/design/screens/today.md` |
+| Today task projection | `docs/design/screens/today.md` |
 | Inspector and mobile task-detail route | `docs/design/screens/task-details.md` |
 | Month, week, day, and agenda planning | `docs/design/screens/calendar.md` |
 | Derived Eisenhower projection | `docs/design/screens/matrix.md` |
-| Habit management and history | `docs/design/screens/habits.md` |
-| Pomodoro, stopwatch, and focus history | `docs/design/screens/focus.md` |
+| Deferred habit management and history | `docs/design/screens/habits.md` |
+| Deferred Pomodoro, stopwatch, and focus history | `docs/design/screens/focus.md` |
 | Reality-aware planner input, review, and apply | `docs/design/screens/assistant.md` |
 
 Feature scope remains owned by `docs/SCOPE.md`; a design document cannot add a feature.
@@ -61,7 +61,7 @@ Feature scope remains owned by `docs/SCOPE.md`; a design document cannot add a f
 - Body text never conveys status by color alone. Pair color with text, shape, icon, pattern, or position.
 - Every drag/resize path has a visible Edit/Move menu or form alternative.
 - Every committed screen implements the state contract in its routed file before being called complete.
-- UI copy uses sentence case. Buttons use a verb plus object when ambiguity exists: “Create habit”, “Apply 4 changes”.
+- UI copy uses sentence case. Buttons use a verb plus object when ambiguity exists: “Create task”, “Apply 4 changes”.
 - Destructive actions use the danger token only at the point of consequence and require confirmation when undo cannot recover the result.
 
 ## Design review gate
