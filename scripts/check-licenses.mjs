@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 const allowedLicenses = new Set([
   "0BSD",
@@ -22,12 +24,63 @@ const inventory = JSON.parse(
 const licenses = Object.keys(inventory);
 const rejected = licenses.filter((license) => !allowedLicenses.has(license));
 const packageCount = Object.values(inventory).reduce((count, packages) => count + packages.length, 0);
+const reviewedFontAssets = [
+  {
+    asset: "app/fonts/InterVariable.woff2",
+    license: "app/fonts/licenses/Inter-OFL.txt",
+    runtimeLicense: "licenses/fonts/Inter-OFL.txt",
+    copyright: "The Inter Project Authors",
+    sha256: "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+  },
+  {
+    asset: "app/fonts/NewsreaderVariable.woff2",
+    license: "app/fonts/licenses/Newsreader-OFL.txt",
+    runtimeLicense: "licenses/fonts/Newsreader-OFL.txt",
+    copyright: "The Newsreader Project Authors",
+    sha256: "1faa3380ac0e87e057b180e03fd94bd708a612afb67d2590677be4508909fae9",
+  },
+];
 
-if (rejected.length) {
-  process.stderr.write(`Unreviewed production dependency licenses: ${rejected.join(", ")}\n`);
+const assetFailures = [];
+const dockerfileLines = readFileSync("Dockerfile", "utf8")
+  .split(/\r?\n/u)
+  .map((line) => line.trim());
+const runnerLine = dockerfileLines.indexOf("FROM base AS runner");
+const runtimeUserLine = dockerfileLines.indexOf("USER opentask", runnerLine + 1);
+
+if (runnerLine === -1 || runtimeUserLine === -1) {
+  assetFailures.push("Dockerfile: missing the reviewed runner stage or runtime user boundary");
+}
+
+for (const font of reviewedFontAssets) {
+  const bytes = readFileSync(font.asset);
+  const actualHash = createHash("sha256").update(bytes).digest("hex");
+  if (actualHash !== font.sha256) {
+    assetFailures.push(`${font.asset}: expected ${font.sha256}, received ${actualHash}`);
+  }
+
+  const notice = readFileSync(font.license, "utf8");
+  if (!notice.includes(font.copyright) || !notice.includes("SIL OPEN FONT LICENSE Version 1.1")) {
+    assetFailures.push(`${font.license}: missing the reviewed copyright/OFL 1.1 notice`);
+  }
+
+  const expectedCopy = `COPY --from=builder --chown=opentask:nodejs /app/${font.license} ./${font.runtimeLicense}`;
+  const copyLine = dockerfileLines.indexOf(expectedCopy, runnerLine + 1);
+  if (copyLine === -1 || copyLine >= runtimeUserLine) {
+    assetFailures.push(
+      `Dockerfile: must copy ${font.license} to /app/${font.runtimeLicense} in the runner stage before USER opentask`,
+    );
+  }
+}
+
+if (rejected.length || assetFailures.length) {
+  if (rejected.length) {
+    process.stderr.write(`Unreviewed production dependency licenses: ${rejected.join(", ")}\n`);
+  }
+  for (const failure of assetFailures) process.stderr.write(`Vendored font check failed: ${failure}\n`);
   process.exitCode = 1;
 } else {
   process.stdout.write(
-    `Production license inventory passed (${packageCount} packages; ${licenses.sort().join(", ")}).\n`,
+    `Production license inventory passed (${packageCount} packages; ${reviewedFontAssets.length} vendored OFL fonts; ${licenses.sort().join(", ")}).\n`,
   );
 }

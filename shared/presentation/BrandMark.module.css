@@ -13,9 +13,8 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-card);
-  background: var(--action);
-  color: var(--text-on-action);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--action) 22%, transparent);
+  background: var(--brand);
+  color: var(--text-on-strong);
 }
 
 .wordmark {

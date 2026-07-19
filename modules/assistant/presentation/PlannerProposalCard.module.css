@@ -1,7 +1,7 @@
 .card {
   display: grid;
-  gap: var(--space-2);
-  padding: var(--space-5) 0;
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
   scroll-margin-bottom: calc(var(--space-16) * 2);
   grid-template-columns: var(--control-target-touch) minmax(0, 1fr);
 }
@@ -12,6 +12,7 @@
 
 .card[data-selected] {
   background: var(--surface-selected);
+  box-shadow: inset calc(var(--border-default) * 3) 0 var(--brand);
 }
 
 .selector {
@@ -45,7 +46,7 @@
 .selector input:checked + span {
   border-color: var(--action);
   background: var(--action);
-  color: var(--text-on-action);
+  color: var(--text-on-strong);
 }
 
 .selector input:focus-visible + span {
@@ -66,7 +67,7 @@
   display: flex;
   min-height: var(--control-target-touch);
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .titleRow h3 {
@@ -116,8 +117,8 @@
 }
 
 .diff > div {
-  min-height: 64px;
-  padding: var(--space-2) var(--space-3);
+  min-height: calc(var(--space-16) + var(--space-2));
+  padding: var(--space-3);
   border-radius: var(--radius-control);
   background: var(--surface-subtle);
 }
@@ -135,8 +136,8 @@
 .diff p {
   margin: var(--space-1) 0 0;
   overflow-wrap: anywhere;
-  font-size: var(--type-compact-size);
-  line-height: var(--type-compact-line);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
 }
 
 .diff > svg {
@@ -145,8 +146,8 @@
 
 .detail {
   display: grid;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
+  gap: var(--space-3);
+  margin-top: var(--space-4);
 }
 
 .rationale {
@@ -155,8 +156,8 @@
   gap: var(--space-2);
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--type-compact-size);
-  line-height: var(--type-compact-line);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
 }
 
 .rationale svg,
@@ -178,12 +179,12 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3);
   border-left: 3px solid var(--info);
   border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--info) 7%, var(--surface));
-  font-size: var(--type-compact-size);
-  line-height: var(--type-compact-line);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
 }
 
 .notice[data-tone="warning"] {
@@ -264,6 +265,7 @@
 
 @media (max-width: 767px) {
   .card {
+    scroll-margin-bottom: calc(var(--space-16) * 3);
     grid-template-columns: var(--control-target-touch) minmax(0, 1fr);
   }
 

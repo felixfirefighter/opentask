@@ -18,7 +18,7 @@ const authenticatedRoutes = [
 
 test("the friend-candidate journey renders at every approved viewport", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
-  const evidenceDirectory = path.resolve("artifacts/visual-proof");
+  const evidenceDirectory = path.resolve(process.env.PLAYWRIGHT_VISUAL_PROOF_DIR ?? "artifacts/visual-proof");
   const captureDirectory = path.join(
     tmpdir(),
     `opentask-visual-proof-${testInfo.project.name}-${randomUUID()}`,
@@ -45,6 +45,11 @@ test("the friend-candidate journey renders at every approved viewport", async ({
     await page.goto(route.path);
     await expect(page.getByRole("heading", { name: route.heading, exact: true }).first()).toBeVisible();
     await captureRoute(page, testInfo, captureDirectory, route.slug);
+    if (route.slug === "today") {
+      await setDocumentTheme(page, "dark");
+      await captureRoute(page, testInfo, captureDirectory, "today-dark");
+      await setDocumentTheme(page, "light");
+    }
   }
 
   const taskDetailsPath =
@@ -78,7 +83,11 @@ test("the friend-candidate journey renders at every approved viewport", async ({
 
 async function captureRoute(page: Page, testInfo: TestInfo, captureDirectory: string, slug: string) {
   await page.waitForLoadState("networkidle");
-  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    if (document.activeElement?.tagName === "H1") (document.activeElement as HTMLElement).blur();
+    window.scrollTo(0, 0);
+  });
 
   const viewport = await page.evaluate(() => ({
     width: document.documentElement.clientWidth,
@@ -107,6 +116,14 @@ async function publishEvidence(captureDirectory: string, evidenceDirectory: stri
   await Promise.all(
     files.map((file) => copyFile(path.join(captureDirectory, file), path.join(evidenceDirectory, file))),
   );
+}
+
+async function setDocumentTheme(page: Page, theme: "light" | "dark") {
+  await page.evaluate((nextTheme) => {
+    localStorage.setItem("opentask-theme-preference", nextTheme);
+    document.documentElement.dataset.themePreference = nextTheme;
+    document.documentElement.dataset.theme = nextTheme;
+  }, theme);
 }
 
 function isolatedClientAddress() {

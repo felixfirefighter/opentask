@@ -66,6 +66,8 @@
 
 .eventContent strong {
   overflow: hidden;
+  font-weight: var(--type-row-weight);
+  line-height: var(--type-compact-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

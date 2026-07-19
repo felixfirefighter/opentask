@@ -1,5 +1,6 @@
 .page {
   min-height: 100vh;
+  overflow-x: clip;
   background: var(--canvas);
 }
 
@@ -21,7 +22,16 @@
 .headerNav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
+}
+
+.headerNav :global(.primary-button),
+.heroActions :global(.primary-button),
+.heroActions :global(.secondary-button) {
+  min-height: var(--control-target-touch);
+  padding-right: var(--space-5);
+  padding-left: var(--space-5);
+  border-radius: var(--radius-pill);
 }
 
 .signInLink {
@@ -37,9 +47,9 @@
   display: grid;
   min-height: 610px;
   align-items: center;
-  gap: 64px;
+  gap: var(--space-16);
   grid-template-columns: minmax(360px, 0.88fr) minmax(520px, 1.12fr);
-  padding: 48px 0 64px;
+  padding: var(--space-12) 0 var(--space-16);
 }
 
 .heroCopy {
@@ -48,26 +58,28 @@
 
 .heroCopy h1 {
   max-width: 540px;
-  margin: 22px 0 20px;
-  font-size: clamp(46px, 5vw, 72px);
-  font-weight: 720;
-  letter-spacing: -0.055em;
-  line-height: 0.98;
+  margin: var(--space-6) 0 var(--space-5);
+  font-family: var(--font-display);
+  font-size: var(--type-display-size);
+  font-weight: var(--type-display-weight);
+  letter-spacing: var(--type-display-tracking);
+  line-height: var(--type-display-line);
 }
 
 .lede {
   max-width: 540px;
   margin: 0;
   color: var(--text-muted);
-  font-size: 18px;
-  line-height: 28px;
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-section-title-line);
 }
 
 .heroActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 30px;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
 }
 
 .heroActions > div {
@@ -91,10 +103,11 @@
 .trustLine {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 18px 0 0;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
 }
 
 .trustLine svg {
@@ -103,7 +116,7 @@
 
 .valueGrid {
   display: grid;
-  gap: 16px;
+  gap: var(--space-6);
   padding: 86px 0 96px;
   border-top: 1px solid var(--border);
   grid-template-columns: 1.2fr repeat(3, 1fr);
@@ -114,24 +127,24 @@
 }
 
 .sectionIntro h2 {
-  margin: 8px 0 10px;
-  font-size: 28px;
-  letter-spacing: -0.035em;
-  line-height: 34px;
+  margin: var(--space-2) 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-display-weight);
+  letter-spacing: var(--type-display-tracking);
+  line-height: var(--type-page-title-line);
 }
 
 .sectionIntro p:last-child,
 .valueCard p {
   margin: 0;
   color: var(--text-muted);
-  line-height: 22px;
+  line-height: var(--type-body-line);
 }
 
 .valueCard {
-  padding: 22px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
+  padding: var(--space-6) 0 0;
+  border-top: 1px solid var(--border);
 }
 
 .valueIcon {
@@ -140,15 +153,15 @@
   height: 38px;
   align-items: center;
   justify-content: center;
-  border-radius: 11px;
+  border-radius: 50%;
   background: var(--surface-selected);
   color: var(--brand);
 }
 
 .valueCard h3 {
-  margin: 18px 0 8px;
-  font-size: 15px;
-  line-height: 20px;
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: var(--type-row-size);
+  line-height: var(--type-row-line);
 }
 
 .footer {
@@ -176,10 +189,6 @@
   .hero {
     gap: 36px;
     grid-template-columns: 0.82fr 1.18fr;
-  }
-
-  .heroCopy h1 {
-    font-size: 50px;
   }
 
   .valueGrid {
@@ -213,20 +222,18 @@
 
   .hero {
     min-height: 0;
-    gap: 44px;
+    gap: var(--space-12);
     grid-template-columns: 1fr;
-    padding: 44px 0 72px;
+    padding: var(--space-12) 0 var(--space-16);
   }
 
   .heroCopy h1 {
-    margin: 18px 0;
-    font-size: 48px;
-    line-height: 0.98;
+    margin: var(--space-5) 0;
   }
 
   .lede {
-    font-size: 16px;
-    line-height: 25px;
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
   }
 
   .heroActions {
@@ -266,5 +273,21 @@
 @media (max-width: 479px) {
   .header > [aria-label="OpenTask"] > :last-child {
     display: none;
+  }
+}
+
+@media (max-width: 359px) {
+  .headerNav {
+    gap: var(--space-1);
+  }
+
+  .headerNav :global(.primary-button) {
+    padding-right: var(--space-3);
+    padding-left: var(--space-3);
+  }
+
+  .signInLink {
+    padding-right: var(--space-1);
+    padding-left: var(--space-1);
   }
 }

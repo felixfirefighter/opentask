@@ -253,6 +253,7 @@
 
   .topBarActions > button {
     width: auto;
+    min-width: var(--control-target-desktop);
     justify-content: center;
   }
 
@@ -292,6 +293,10 @@
 
   .shell[data-mobile-navigation="false"] {
     grid-template-rows: 52px auto minmax(0, 1fr);
+  }
+
+  .topBarActions > button {
+    min-width: var(--control-target-touch);
   }
 
   .mobileDestination,
@@ -370,14 +375,4 @@
   .railLink {
     width: var(--control-target-touch);
   }
-}
-
-:global(:root[data-reduced-motion="true"]) .shell,
-:global(:root[data-reduced-motion="true"]) .shell *,
-:global(:root[data-reduced-motion="true"]) .shell *::before,
-:global(:root[data-reduced-motion="true"]) .shell *::after {
-  scroll-behavior: auto !important;
-  transition-duration: 0.01ms !important;
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
 }

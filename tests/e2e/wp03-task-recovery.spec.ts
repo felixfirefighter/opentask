@@ -175,6 +175,9 @@ test("keyboard and touch-menu reorder remain available while offline writes are 
     await alphaHandle.focus();
     await alphaHandle.press("Space");
     await alphaHandle.press("ArrowUp");
+    await expect(
+      page.getByRole("status").filter({ hasText: `${alpha.title} moved to position 1 of 2.` }),
+    ).toBeVisible();
     await alphaHandle.press("Space");
   }
   await expect(
@@ -219,12 +222,14 @@ test("keyboard and touch-menu reorder remain available while offline writes are 
   await page.goto(`/lists/${destination.id}`);
   const movedRow = taskRow(page, alpha.id);
   await expect(movedRow).toBeVisible();
+  const movedReorder = movedRow.getByRole("button", { name: `Reorder ${alpha.title}` });
+  await expect(movedReorder).toBeVisible();
 
   await context.setOffline(true);
   await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
   await expect(page.getByLabel("New task", { exact: true })).toBeDisabled();
   await expect(movedRow.getByRole("button", { name: `Complete ${alpha.title}` })).toBeDisabled();
-  await expect(movedRow.getByRole("button", { name: `Reorder ${alpha.title}` })).toBeDisabled();
+  await expect(movedReorder).toBeDisabled();
 
   const offlineMore = movedRow.getByRole("button", { name: `More actions for ${alpha.title}` });
   if (touchPath) await offlineMore.tap();

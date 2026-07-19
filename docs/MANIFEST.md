@@ -17,6 +17,7 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 | Tests, audits, completion gates | `docs/QUALITY.md` |
 | Design north star and routing | `DESIGN.md` |
 | Active visual migration target | `docs/design/editorial-focus.md` |
+| Vendored font asset sources/notices | `app/fonts/README.md` and `docs/STACK.md` |
 | Hackathon constraints/submission | `docs/HACKATHON.md` |
 | Reproducible local/container setup | `docs/SETUP.md` |
 | Hosted Railway deployment | `docs/DEPLOYMENT.md` |

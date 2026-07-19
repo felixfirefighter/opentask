@@ -1,5 +1,6 @@
 .trigger {
   display: inline-flex;
+  min-width: var(--control-target-desktop);
   min-height: var(--control-target-desktop);
   align-items: center;
   gap: var(--space-2);
@@ -88,7 +89,7 @@
 }
 
 .inputRow :global([cmdk-input])::placeholder {
-  color: var(--text-disabled);
+  color: var(--text-muted);
 }
 
 .inputRow :global([cmdk-input]):disabled {
@@ -129,6 +130,7 @@
 @media (any-pointer: coarse) {
   .trigger,
   .close {
+    min-width: var(--control-target-touch);
     min-height: var(--control-target-touch);
   }
 
@@ -140,6 +142,7 @@
 @media (max-width: 767px) {
   .trigger {
     width: var(--control-target-touch);
+    min-width: var(--control-target-touch);
     min-height: var(--control-target-touch);
     justify-content: center;
     padding: 0;

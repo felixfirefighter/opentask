@@ -47,7 +47,7 @@
   padding: var(--space-3) var(--space-4);
   border: var(--border-default) solid var(--border);
   border-radius: var(--radius-card);
-  background: var(--surface);
+  background: var(--surface-subtle);
 }
 
 .summary strong {
@@ -96,7 +96,7 @@
 
 .rows {
   overflow: hidden;
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-4);
   border: var(--border-default) solid var(--border);
   border-radius: var(--radius-card);
   background: var(--surface);

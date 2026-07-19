@@ -66,6 +66,7 @@ export async function readBaseTaskRowContract(row: Locator) {
         muted: readTokenColor("--text-muted"),
       },
       tokens: {
+        fontDisplay: token("--font-display"),
         fontSans: token("--font-sans"),
         rowSize: token("--type-row-size"),
         rowLine: token("--type-row-line"),

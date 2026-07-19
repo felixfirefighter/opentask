@@ -7,14 +7,18 @@ productivity-oriented adaptation of the editorial visual principles documented i
 [GetDesign ElevenLabs source snapshot](https://github.com/VoltAgent/awesome-design-md/blob/e06a96660396d741d0c106c8972172254dafbdc2/design-md/elevenlabs/DESIGN.md).
 The local adaptation contract is `docs/design/editorial-focus.md`.
 
-P0 is active, but this direction is not yet the implemented design system. Until the P0 visual proof
-is approved and its executable tokens and contracts change together, **Warm Precision below remains
-the executable baseline**. Do not mix the systems piecemeal, begin broad rollout before screenshot
-approval, or style later-feature screens before the P0 foundation freezes.
+P0.1 makes the Editorial Focus shared font/token foundation executable and applies it to the five
+proof surfaces. That does not authorize P0.2: broad route-specific restyling still stops until the
+user approves the screenshots. Unmigrated screens may safely inherit shared tokens but retain their
+existing structural treatment until their approved lane.
 
-OpenTask uses **Warm Precision**: a calm, warm-neutral interface with a restrained coral accent, compact information density, and unusually clear interaction states. The visual starting point is the warmth and approachability described in [GetDesign's Airbnb study](https://getdesign.md/airbnb/design-md), adapted into an original productivity system rather than a marketplace aesthetic.
+OpenTask uses **Editorial Focus**: an original paper/ink/pine planning system with an editorial voice
+at major orientation moments, readable Inter typography for working UI, comfortable task density,
+and unusually clear interaction states.
 
-This is not an Airbnb or TickTick clone. Do not copy either product's assets, fonts, wording, icon treatment, screen composition, or trade dress. OpenTask uses original layouts, Lucide icons, open fonts, semantic tokens, and its own product voice.
+This is not an ElevenLabs, GetDesign, Airbnb, or TickTick clone. Do not copy their assets, fonts,
+wording, icon treatment, screen composition, palette, or trade dress. OpenTask uses original layouts,
+Lucide icons, open fonts, semantic tokens, and its own product voice.
 
 ## North star
 
@@ -26,7 +30,10 @@ The interface should make a busy day feel understandable in under five seconds:
 4. AI suggestions always look like reviewable proposals, never completed work.
 5. Desktop speed and mobile clarity are equally intentional.
 
-Warmth comes from color, spacing, plain language, and gentle geometry. Precision comes from compact rows, consistent alignment, visible system state, and strong keyboard behavior. Decorative imagery, oversized marketplace cards, glass effects, and novelty animation do not belong in the product workspace.
+Warmth comes from paper-like color, spacing, plain language, and gentle geometry. Focus comes from
+ink-first hierarchy, comfortable rows, consistent alignment, visible state, and strong keyboard
+behavior. Decorative imagery, oversized promotional cards, glass effects, and novelty animation do
+not belong in the product workspace.
 
 ## Product design principles
 

@@ -2,10 +2,10 @@
 
 ## Status and authority
 
-Editorial Focus is the active visual target for P0 of the Local-first Full Release. It is a target,
-not a claim that the current application already conforms. `DESIGN.md` and its existing routed
-contracts remain executable truth until P0 changes documentation, tokens, checks, and implementation
-together and the user approves the visual proof.
+Editorial Focus is the active visual target for P0 of the Local-first Full Release. P0.1 installs its
+shared font/token foundation and the five proof surfaces; it is not a claim that the broad product
+migration is approved or complete. `DESIGN.md`, this contract, `foundations.md`, `tokens.md`, and
+their executable checks change together. P0.2 remains blocked until the user approves the proof.
 
 This file cannot add product behavior. Feature scope remains owned by `docs/SCOPE.md`.
 
@@ -46,18 +46,15 @@ Editorial Focus should feel:
 
 ## Typography and density target
 
-- Preferred display candidate: self-hosted **Newsreader Variable**, weights 300–400, with its OFL
-  notice committed when the font is added.
-- Preferred working UI: self-hosted **Inter Variable**, weights 400–600, with system fallbacks and
-  its OFL notice committed when the font is added.
+- Display face: self-hosted **Newsreader Variable**, used at weights 300–400, with its OFL notice
+  committed.
+- Working UI: self-hosted **Inter Variable**, normally used at weights 400–600, with system fallbacks
+  and its OFL notice committed.
 - Serif is a display voice, not a universal product font. Dense information, input, task, calendar,
   and planner-diff content stays sans-serif.
-- P0 must test task titles at approximately 15/22 px and standard metadata at no less than the
-  readable compact scale. Exact values become canonical only when `docs/design/tokens.md`,
-  `shared/design/tokens.css`, and computed design tests change together.
-- Standard two-line task rows should begin the proof near 64 px on desktop and may grow modestly on
-  coarse-pointer layouts. The proof decides the final values; density must feel comfortable rather
-  than loose.
+- P0.1 uses 15/22 px task titles, 13/18 px metadata, 64 px fine-pointer rows, and 68 px coarse-pointer
+  rows. `docs/design/tokens.md`, `shared/design/tokens.css`, and computed design tests own these exact
+  values together.
 - Public display type may scale responsively. Authenticated workspace titles remain subordinate to
   the work and cannot consume marketing-scale vertical space.
 

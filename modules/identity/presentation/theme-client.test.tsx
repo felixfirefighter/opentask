@@ -7,11 +7,13 @@ afterEach(() => {
   delete document.documentElement.dataset.theme;
   delete document.documentElement.dataset.themePreference;
   delete document.documentElement.dataset.reducedMotion;
+  delete document.documentElement.dataset.themeTransition;
   vi.restoreAllMocks();
 });
 
 describe("theme-client", () => {
   it("applies and reads an explicit preview without persisting it", () => {
+    const flush = vi.spyOn(document.documentElement, "getBoundingClientRect");
     expect(applyThemePreference("dark", true)).toEqual({
       theme: "dark",
       resolvedTheme: "dark",
@@ -22,11 +24,14 @@ describe("theme-client", () => {
       resolvedTheme: "dark",
       reducedMotion: true,
     });
+    expect(flush).toHaveBeenCalledOnce();
+    expect(document.documentElement.dataset.themeTransition).toBeUndefined();
   });
 
   it("keeps a system preference synchronized with color-scheme changes", async () => {
     let dark = false;
     let notifyChange: (() => void) | undefined;
+    const flush = vi.spyOn(document.documentElement, "getBoundingClientRect");
     vi.spyOn(window, "matchMedia").mockImplementation(
       (query) =>
         ({
@@ -57,5 +62,7 @@ describe("theme-client", () => {
       resolvedTheme: "dark",
       reducedMotion: false,
     });
+    expect(flush).toHaveBeenCalledTimes(2);
+    expect(document.documentElement.dataset.themeTransition).toBeUndefined();
   });
 });

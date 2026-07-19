@@ -62,7 +62,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: var(--text-on-action);
+  color: var(--text-on-strong);
 }
 
 .statusDone {

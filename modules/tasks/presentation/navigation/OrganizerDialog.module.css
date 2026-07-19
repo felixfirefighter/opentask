@@ -129,7 +129,7 @@
 .primaryButton {
   border: var(--border-default) solid var(--action);
   background: var(--action);
-  color: var(--text-on-action);
+  color: var(--text-on-strong);
 }
 
 .primaryButton:hover:not(:disabled) {

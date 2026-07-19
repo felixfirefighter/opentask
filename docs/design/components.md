@@ -22,7 +22,12 @@ Anatomy, in reading order:
 4. priority marker with accessible text;
 5. overflow menu and optional reorder handle.
 
-The standard two-line row uses `text-row` for the title, `text-compact` for metadata, `text-label` for tags, and a 4 px title/metadata gap. Its minimum height is 60 px on fine-pointer-only layouts and 64 px whenever a coarse pointer is available. The 40 px compact variant is valid only when secondary context is absent. Status and overflow targets remain at least 36 by 36 px with a fine pointer and 44 by 44 px when any coarse pointer is available. Narrow screens may hide tag chips, but the semantic priority marker remains visible.
+The standard two-line row uses `text-row` for the title, `text-compact` for metadata, `text-label` for
+tags, and a 4 px title/metadata gap. Its minimum height is 64 px on fine-pointer-only layouts and
+68 px whenever a coarse pointer is available. The 44 px compact variant is valid only when secondary
+context is absent. Status and overflow targets remain at least 36 by 36 px with a fine pointer and
+44 by 44 px when any coarse pointer is available. Narrow screens may hide tag chips, but the semantic
+priority marker remains visible.
 
 Completed titles use reduced emphasis and a strike only when still readable. Cancelled/won't-do uses a labeled status, not the same styling as completed. Overdue uses icon/text plus semantic color. Row selection and completion are separate actions.
 

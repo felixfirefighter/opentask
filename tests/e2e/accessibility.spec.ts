@@ -35,6 +35,130 @@ test("public landing and authentication routes pass the serious accessibility ga
   for (const route of publicRoutes) await auditRoute(page, route);
 });
 
+test("a theme switch never exposes transitional primary-action contrast", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "One browser samples the transient theme frames.");
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("opentask-theme-preference", "light"));
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(
+    page.getByRole("navigation", { name: "Public navigation" }).getByRole("link", { name: "Create account" }),
+  ).toBeVisible();
+
+  const result = await page.evaluate(async () => {
+    const toggle = document.querySelector('[aria-label="Use dark theme"]');
+    const primaryAction = document.querySelector('header a[href="/sign-up"].primary-button');
+    if (!(toggle instanceof HTMLButtonElement) || !(primaryAction instanceof HTMLElement)) {
+      throw new Error("The landing theme controls are unavailable.");
+    }
+
+    function contrastRatio(foreground: string, background: string) {
+      const foregroundChannels = foreground
+        .match(/[\d.]+/gu)
+        ?.slice(0, 3)
+        .map(Number);
+      const backgroundChannels = background
+        .match(/[\d.]+/gu)
+        ?.slice(0, 3)
+        .map(Number);
+      if (!foregroundChannels || !backgroundChannels) return 0;
+      const luminance = (channels: number[]) => {
+        const linear = channels.map((channel) => {
+          const value = channel / 255;
+          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+      };
+      const foregroundLuminance = luminance(foregroundChannels);
+      const backgroundLuminance = luminance(backgroundChannels);
+      const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+      const darker = Math.min(foregroundLuminance, backgroundLuminance);
+      return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    function sample(element: HTMLElement) {
+      const style = getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        foreground: style.color,
+        ratio: contrastRatio(style.color, style.backgroundColor),
+      };
+    }
+
+    toggle.click();
+    const samples = [sample(primaryAction)];
+    for (let frame = 0; frame < 8; frame += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      samples.push(sample(primaryAction));
+    }
+    return { samples, theme: document.documentElement.dataset.theme };
+  });
+
+  expect(result.theme).toBe("dark");
+  expect(result.samples).toHaveLength(9);
+  for (const sample of result.samples) expect(sample.ratio).toBeGreaterThanOrEqual(4.5);
+});
+
+test("the public system theme follows live OS color-scheme changes", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "One browser proves the system preference bridge.");
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("opentask-theme-preference", "system"));
+  await page.goto("/");
+
+  const root = page.locator("html");
+  await expect(root).toHaveAttribute("data-theme-preference", "system");
+  await expect(root).toHaveAttribute("data-theme", "light");
+
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "no-preference" });
+  await expect(root).toHaveAttribute("data-theme", "dark");
+  await expect(root).not.toHaveAttribute("data-theme-transition");
+
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
+  await expect(root).toHaveAttribute("data-theme", "light");
+  await expect(root).toHaveAttribute("data-theme-preference", "system");
+});
+
+test("saved reduced motion reaches a portaled dialog when the OS allows motion", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "One desktop portal proves global coverage.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await enterIsolatedDemo(page, testInfo);
+  await openRoute(page, { path: "/settings", heading: "Settings" });
+
+  const reduceMotion = page.getByRole("checkbox", { name: /Reduce motion/u });
+  await reduceMotion.check();
+  await expect(page.locator("html")).toHaveAttribute("data-reduced-motion", "true");
+  await page.getByRole("button", { name: "Save appearance" }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-reduced-motion", "true");
+  expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(false);
+
+  await page.goto(`/tasks/${demo.scheduledTaskId}`);
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(demo.scheduledTaskTitle);
+  await page.getByRole("button", { name: "Delete task…", exact: true }).click();
+  const dialog = page.getByRole("alertdialog", { name: `Delete “${demo.scheduledTaskTitle}”?` });
+  const keepTask = dialog.getByRole("button", { name: "Keep task" });
+  await expect(dialog).toBeVisible();
+  await expect(keepTask).toBeFocused();
+
+  const portalMotion = await keepTask.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      animationDuration: style.animationDuration,
+      insideShell: element.closest("[data-mobile-navigation]") !== null,
+      transitionDuration: style.transitionDuration,
+    };
+  });
+  expect(portalMotion.insideShell).toBe(false);
+  expect(maximumCssTimeMs(portalMotion.transitionDuration)).toBeLessThanOrEqual(0.01);
+  expect(maximumCssTimeMs(portalMotion.animationDuration)).toBeLessThanOrEqual(0.01);
+  await expectNoSevereViolations(page, '[role="alertdialog"]');
+  await keepTask.click();
+  await expect(dialog).toBeHidden();
+});
+
 test("one isolated demo covers the deadline-safe core accessibility surface", async ({
   context,
   page,
@@ -200,4 +324,14 @@ async function expectNoSevereViolations(page: Page, activeOverlay?: string) {
     (violation) => violation.impact === "serious" || violation.impact === "critical",
   );
   expect(severeViolations).toEqual([]);
+}
+
+function maximumCssTimeMs(value: string) {
+  return Math.max(
+    ...value.split(",").map((part) => {
+      const duration = part.trim();
+      const numeric = Number.parseFloat(duration);
+      return duration.endsWith("ms") ? numeric : numeric * 1000;
+    }),
+  );
 }

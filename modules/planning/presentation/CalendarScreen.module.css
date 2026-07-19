@@ -73,9 +73,8 @@
 }
 
 .viewControl button[aria-pressed="true"] {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-overlay);
+  background: var(--surface-selected);
+  color: var(--text-selected);
 }
 
 .scheduleFallback {
@@ -136,7 +135,7 @@
   min-height: 580px;
   overflow: auto;
   border: var(--border-default) solid var(--border);
-  border-radius: var(--radius-overlay);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 
@@ -207,14 +206,36 @@
   inset: 0;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .toolbar {
-    align-items: stretch;
-    flex-wrap: wrap;
+    display: grid;
+    align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .rangeControls {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns:
+      var(--control-target-desktop) auto var(--control-target-desktop)
+      minmax(0, 1fr);
+  }
+
+  .rangeLabel {
+    text-align: right;
+  }
+
+  .viewControl {
+    justify-self: start;
+  }
+
+  .toolbar > :global(.primary-button) {
+    grid-column: 2;
+    grid-row: 2;
   }
 
   .scheduleFallback {
-    grid-template-columns: minmax(0, 1fr) minmax(200px, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
   }
 
   .scheduleFallback > div {
@@ -228,30 +249,40 @@
   }
 
   .toolbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .rangeControls {
     display: grid;
-    grid-column: 1 / -1;
-    grid-template-columns: var(--control-target-touch) auto var(--control-target-touch) minmax(0, 1fr);
+    grid-template-columns: var(--control-target-touch) max-content var(--control-target-touch);
   }
 
   .rangeLabel {
+    margin: var(--space-1) 0 0;
+    overflow: visible;
     font-size: var(--type-body-size);
+    grid-column: 1 / -1;
     line-height: var(--type-body-line);
-    text-align: right;
+    text-align: left;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   .viewControl {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(var(--control-target-touch), 1fr));
   }
 
   .viewControl button {
     min-height: var(--control-target-touch);
     padding: 0 var(--space-2);
+  }
+
+  .toolbar > :global(.primary-button) {
+    align-self: flex-end;
   }
 
   .scheduleFallback {

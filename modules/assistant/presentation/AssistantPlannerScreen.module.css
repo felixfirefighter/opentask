@@ -1,8 +1,26 @@
 .page {
+  position: relative;
+  isolation: isolate;
   width: min(100%, 920px);
   min-height: 100%;
   margin: 0 auto;
   padding: var(--space-8) var(--space-6) calc(var(--space-16) + var(--space-6));
+}
+
+.page::before {
+  position: absolute;
+  z-index: -1;
+  top: var(--space-6);
+  right: var(--space-8);
+  left: var(--space-8);
+  height: calc(var(--space-16) * 6);
+  background:
+    radial-gradient(circle at 18% 18%, var(--atmosphere-moss), transparent 42%),
+    radial-gradient(circle at 86% 42%, var(--atmosphere-clay), transparent 38%);
+  content: "";
+  filter: blur(var(--atmosphere-blur));
+  opacity: var(--atmosphere-opacity);
+  pointer-events: none;
 }
 
 .pageHeader {
@@ -90,7 +108,7 @@
 .steps li[data-state="current"] > span {
   border-color: var(--action);
   background: var(--action);
-  color: var(--text-on-action);
+  color: var(--text-on-strong);
 }
 
 .banner {

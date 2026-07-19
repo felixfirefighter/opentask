@@ -2,6 +2,8 @@
 
 import { createElement, useEffect } from "react";
 
+import { withThemeTransitionSuppressed } from "@/shared/presentation";
+
 import type { PreferenceDocument } from "../application/preferences-contract";
 
 export type ThemePreference = PreferenceDocument["theme"];
@@ -19,9 +21,11 @@ export function applyThemePreference(theme: ThemePreference, reducedMotion: bool
 
   const resolvedTheme = resolveTheme(theme);
   const root = document.documentElement;
-  root.dataset.theme = resolvedTheme;
-  root.dataset.themePreference = theme;
-  root.dataset.reducedMotion = String(reducedMotion);
+  withThemeTransitionSuppressed(() => {
+    root.dataset.theme = resolvedTheme;
+    root.dataset.themePreference = theme;
+    root.dataset.reducedMotion = String(reducedMotion);
+  });
   try {
     localStorage.setItem("opentask-theme-preference", theme);
   } catch {
@@ -82,5 +86,5 @@ function isThemePreference(value: string | undefined): value is ThemePreference 
 
 function createThemeBootstrapScript(theme: ThemePreference, reducedMotion: boolean) {
   const preference = JSON.stringify({ theme, reducedMotion });
-  return `(()=>{const p=${preference};const r=document.documentElement;const t=p.theme==="system"?(window.matchMedia("${darkThemeQuery}").matches?"dark":"light"):p.theme;r.dataset.theme=t;r.dataset.themePreference=p.theme;r.dataset.reducedMotion=String(p.reducedMotion);try{localStorage.setItem("opentask-theme-preference",p.theme)}catch{}})()`;
+  return `(()=>{const p=${preference};const r=document.documentElement;const v=r.dataset.themeTransition;r.dataset.themeTransition="suppressed";const t=p.theme==="system"?(window.matchMedia("${darkThemeQuery}").matches?"dark":"light"):p.theme;r.dataset.theme=t;r.dataset.themePreference=p.theme;r.dataset.reducedMotion=String(p.reducedMotion);try{localStorage.setItem("opentask-theme-preference",p.theme)}catch{}void r.offsetHeight;v===undefined?delete r.dataset.themeTransition:r.dataset.themeTransition=v})()`;
 }

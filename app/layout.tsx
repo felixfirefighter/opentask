@@ -1,9 +1,29 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 
 import { AppClientProviders } from "@/shared/presentation";
 
 import "./globals.css";
+
+const interfaceFont = localFont({
+  src: "./fonts/InterVariable.woff2",
+  variable: "--font-interface",
+  display: "swap",
+  style: "normal",
+  weight: "100 900",
+  fallback: ["ui-sans-serif", "system-ui", "Segoe UI", "sans-serif"],
+});
+
+const editorialFont = localFont({
+  src: "./fonts/NewsreaderVariable.woff2",
+  variable: "--font-editorial",
+  display: "swap",
+  preload: false,
+  style: "normal",
+  weight: "200 800",
+  fallback: ["Georgia", "Times New Roman", "serif"],
+});
 
 export const metadata: Metadata = {
   title: {
@@ -15,7 +35,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${interfaceFont.variable} ${editorialFont.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script
           data-public-theme-bootstrap=""

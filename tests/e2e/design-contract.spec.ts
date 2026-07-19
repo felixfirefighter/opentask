@@ -1,7 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { signUpThroughUi } from "./support/wp01-auth";
 import { assertPriorityMarkers, readBaseTaskRowContract } from "./support/task-row-contract";
@@ -12,10 +13,12 @@ test("production TaskRow preserves the approved density, typography, and action 
 }, testInfo) => {
   test.setTimeout(60_000);
   await signUpThroughUi(page, testInfo);
+  await page.evaluate(() => document.fonts.ready);
   const created = await quickAddTask(page, "Review production task row");
   const prioritized = await updateTask(page, created, { priority: "high" });
   await addTagToTask(page, prioritized, "Launch");
   await page.reload();
+  await page.evaluate(() => document.fonts.ready);
 
   const row = taskRow(page, created.id);
   const status = row.getByRole("button", { name: `Complete ${created.title}` });
@@ -31,10 +34,10 @@ test("production TaskRow preserves the approved density, typography, and action 
 
   const contract = await readBaseTaskRowContract(row);
   expect(contract.tokens).toEqual({
-    fontSans:
-      '"Geist Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    rowSize: "14px",
-    rowLine: "20px",
+    fontDisplay: expect.stringContaining("editorialFont"),
+    fontSans: expect.stringContaining("interfaceFont"),
+    rowSize: "15px",
+    rowLine: "22px",
     rowWeight: "500",
     compactSize: "13px",
     compactLine: "18px",
@@ -47,9 +50,35 @@ test("production TaskRow preserves the approved density, typography, and action 
     desktopTarget: "36px",
     touchTarget: "44px",
     statusIndicator: "20px",
-    standardHeight: "60px",
-    touchHeight: "64px",
+    standardHeight: "64px",
+    touchHeight: "68px",
   });
+  const fontState = await page.evaluate(() => {
+    const style = getComputedStyle(document.body);
+    const interfaceFamily = style.getPropertyValue("--font-interface").trim();
+    const editorialFamily = style.getPropertyValue("--font-editorial").trim();
+    const relevantFaces = Array.from(document.fonts)
+      .filter((face) => /interfaceFont|editorialFont/i.test(face.family))
+      .map((face) => ({ family: face.family, status: face.status }));
+    return {
+      status: document.fonts.status,
+      interfaceFamily,
+      editorialFamily,
+      relevantFaces,
+    };
+  });
+  expect(fontState.status).toBe("loaded");
+  expect(fontState.interfaceFamily).toContain("interfaceFont");
+  expect(fontState.editorialFamily).toContain("editorialFont");
+  expect(fontState.relevantFaces).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ family: expect.stringMatching(/interfaceFont/i), status: "loaded" }),
+      expect.objectContaining({
+        family: expect.stringMatching(/editorialFont/i),
+        status: expect.stringMatching(/^(?:loaded|unloaded)$/),
+      }),
+    ]),
+  );
   expect(contract.bodyFontFamily).toBe(contract.tokenFontFamily);
   expect(contract.title).toMatchObject({
     color: contract.semanticColors.text,
@@ -112,7 +141,9 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
   page,
 }, testInfo) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  const heroHeading = page.getByRole("heading", { name: "Make room for what matters." });
+  await expect(heroHeading).toBeVisible();
   await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Create account" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Try demo" })).toBeVisible();
@@ -124,6 +155,26 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
   expect(layout.clientWidth).toBe(page.viewportSize()?.width);
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
 
+  const typography = await heroHeading.evaluate((heading) => {
+    const rootStyle = getComputedStyle(document.documentElement);
+    const headingStyle = getComputedStyle(heading);
+    const normalizeFontFamily = (value: string) =>
+      value.split(",").map((family) => family.trim().replace(/^['"]|['"]$/g, ""));
+    return {
+      displayFamilies: normalizeFontFamily(rootStyle.getPropertyValue("--font-display")),
+      headingFamilies: normalizeFontFamily(headingStyle.fontFamily),
+      editorialFaces: Array.from(document.fonts)
+        .filter((face) => /editorialFont/i.test(face.family))
+        .map((face) => ({ family: face.family, status: face.status })),
+    };
+  });
+  expect(typography.headingFamilies).toEqual(typography.displayFamilies);
+  expect(typography.editorialFaces).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ family: expect.stringMatching(/editorialFont/i), status: "loaded" }),
+    ]),
+  );
+
   const evidenceDirectory = path.resolve("artifacts/visual-proof/boundaries");
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({
@@ -133,6 +184,158 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
   });
 });
 
+test("mobile authenticated surfaces preserve the touch and readable-range contract", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    !["mobile-chromium", "boundary-320-chromium"].includes(testInfo.project.name),
+    "The two mobile boundary projects own this contract.",
+  );
+  test.setTimeout(90_000);
+  await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
+  await page.goto("/");
+  const demoResponse = page.waitForResponse(
+    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Try demo" }).click();
+  expect((await demoResponse).status()).toBe(200);
+  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+
+  await assertMobileTouchContracts(page, "50000000-0000-4000-8000-000000000001");
+});
+
+test("the five proof surfaces reflow at a 200% zoom equivalent and honor reduced motion", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "One zoom audit owns this evidence.");
+  test.setTimeout(60_000);
+
+  // At 200% browser zoom a 1440 px display exposes roughly 720 CSS px to the page.
+  await page.setViewportSize({ width: 720, height: 900 });
+  await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/boundaries");
+  await mkdir(evidenceDirectory, { recursive: true });
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
+  const createAccount = page.getByRole("link", { name: "Create account" }).first();
+  await createAccount.focus();
+  await expect(createAccount).toBeFocused();
+  const focusStyle = await createAccount.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(focusStyle).toEqual({ outlineStyle: "solid", outlineWidth: "2px" });
+  await auditZoomSurface(page, evidenceDirectory, "landing");
+
+  await page.getByRole("button", { name: "Try demo" }).click();
+  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
+  if (await dismissTips.isVisible()) await dismissTips.click();
+
+  await page.goto("/today");
+  await expect(page.getByRole("heading", { name: "Today", exact: true }).first()).toBeVisible();
+  await auditZoomSurface(page, evidenceDirectory, "today");
+
+  await page.goto("/calendar");
+  await expect(page.getByRole("heading", { name: "Calendar", exact: true }).first()).toBeVisible();
+  await auditZoomSurface(page, evidenceDirectory, "calendar");
+
+  await page.goto("/tasks/50000000-0000-4000-8000-000000000001");
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue("Record the two-minute demo");
+  await expect(page.getByRole("link", { name: "Back to task list" })).toBeVisible();
+  await expect(page.getByText("Title is saved")).toBeVisible();
+  await auditZoomSurface(page, evidenceDirectory, "task-details");
+
+  await page.goto("/plan");
+  await expect(page.getByRole("heading", { name: "AI Review", exact: true })).toBeVisible();
+  await auditZoomSurface(page, evidenceDirectory, "ai-review");
+});
+
+async function auditZoomSurface(page: Page, evidenceDirectory: string, slug: string) {
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => document.fonts.ready);
+  const contract = await page.evaluate(() => {
+    const milliseconds = (value: string) =>
+      value
+        .split(",")
+        .map((duration) => duration.trim())
+        .map((duration) =>
+          duration.endsWith("ms") ? Number.parseFloat(duration) : Number.parseFloat(duration) * 1_000,
+        );
+    const durations = Array.from(document.querySelectorAll("button, a"))
+      .slice(0, 80)
+      .flatMap((element) => {
+        const style = getComputedStyle(element);
+        return [...milliseconds(style.transitionDuration), ...milliseconds(style.animationDuration)];
+      });
+    return {
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+      maximumMotionDuration: Math.max(0, ...durations),
+    };
+  });
+  expect(contract.clientWidth).toBe(720);
+  expect(contract.scrollWidth, `${slug} horizontal overflow at 200% zoom`).toBeLessThanOrEqual(
+    contract.clientWidth + 1,
+  );
+  expect(contract.reducedMotion).toBe(true);
+  expect(contract.maximumMotionDuration).toBeLessThanOrEqual(0.02);
+  await page.screenshot({
+    path: path.join(evidenceDirectory, `zoom-200-${slug}.png`),
+    animations: "disabled",
+    fullPage: true,
+  });
+}
+
+async function assertMobileTouchContracts(page: Page, taskId: string) {
+  const searchTrigger = page.getByRole("button", {
+    name: "Search tasks and commands (Command or Control K)",
+  });
+  await expect(searchTrigger).toBeVisible();
+  await expectTouchTarget(searchTrigger, "command search trigger");
+
+  await page.goto("/calendar");
+  await expect(page.getByRole("heading", { name: "Calendar", exact: true }).first()).toBeVisible();
+  const calendarControls = page.locator('[aria-label="Calendar controls"]');
+  const rangeLabel = calendarControls.locator("strong");
+  await expect(rangeLabel).toBeVisible();
+  const rangeContract = await rangeLabel.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    text: element.textContent?.trim() ?? "",
+  }));
+  expect(rangeContract.text).toMatch(/\d{4}.*\d{4}/u);
+  expect(rangeContract.scrollWidth, "calendar range label truncates").toBeLessThanOrEqual(
+    rangeContract.clientWidth + 1,
+  );
+
+  for (const view of ["Month", "Week", "Day", "Agenda"] as const) {
+    await expectTouchTarget(page.getByRole("button", { name: view, exact: true }), `${view} calendar view`);
+  }
+
+  await page.goto(`/tasks/${taskId}`);
+  await expect(page.getByLabel("Task title", { exact: true })).toBeVisible();
+  await expectTouchTarget(
+    page.getByRole("combobox", { name: "Priority", exact: true }),
+    "task priority select",
+  );
+}
+
+async function expectTouchTarget(locator: Locator, label: string) {
+  const box = await locator.boundingBox();
+  expect(box, `${label} has a bounding box`).not.toBeNull();
+  expect(box!.width, `${label} width`).toBeGreaterThanOrEqual(44);
+  expect(box!.height, `${label} height`).toBeGreaterThanOrEqual(44);
+}
+
 function pixels(value: string) {
   return Number.parseFloat(value);
+}
+
+function isolatedClientAddress() {
+  const seed = randomUUID().replaceAll("-", "");
+  return `2001:db8:${seed.slice(0, 4)}:${seed.slice(4, 8)}:${seed.slice(8, 12)}:${seed.slice(12, 16)}::1`;
 }

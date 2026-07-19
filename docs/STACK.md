@@ -45,6 +45,26 @@ primitives and keyboard/accessibility hooks. Sources:
 [dnd-kit accessibility](https://docs.dndkit.com/guides/accessibility),
 [Chrono](https://github.com/wanasit/chrono).
 
+## Vendored font assets
+
+P0.1 self-hosts two roman variable WOFF2 assets through the framework-bundled `next/font/local`;
+there is no font runtime package, CDN request, or build-time network dependency. The shipped UI does
+not require italics, so italic binaries are intentionally omitted.
+
+| Asset | Purpose and range | Pinned source | License | SHA-256 |
+|---|---|---|---|---|
+| Inter Variable 4.1 | Working UI, available weight axis 100–900; product usage normally stays 400–600 | Official [`v4.1` release archive](https://github.com/rsms/inter/releases/tag/v4.1), `web/InterVariable.woff2` | SIL OFL 1.1; upstream notice committed beside the asset | `693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3` |
+| Newsreader Variable | Display moments, optical-size/weight axes; product usage stays 300–400 | Official repository commit [`cfcb4f7`](https://github.com/productiontype/Newsreader/tree/cfcb4f7af0e52c25e8df2a2431814c8e5fe2e155), `fonts/variable/woff2/Newsreader[opsz,wght].woff2` | SIL OFL 1.1; upstream notice committed beside the asset | `1faa3380ac0e87e057b180e03fd94bd708a612afb67d2590677be4508909fae9` |
+
+The source asset inventory and upstream notices live in `app/fonts/README.md` and
+`app/fonts/licenses/`. The production image distributes the two notices at
+`/app/licenses/fonts/Inter-OFL.txt` and `/app/licenses/fonts/Newsreader-OFL.txt`; the Dockerfile uses
+explicit source-to-runtime copies so the notices remain available even though source font files are
+compiled into Next.js output. `pnpm check:licenses` enforces both mappings in addition to the source
+asset hashes and notice contents. Replacing or subsetting either font is a font-asset dependency
+change: pin the new source, retain the license, update the checksum and runtime copy mapping,
+rebuild, and rerun visual/font-load evidence.
+
 ## Server, worker, and providers
 
 | Package/system | Approved use | Guardrail |

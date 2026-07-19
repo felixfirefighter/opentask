@@ -178,7 +178,7 @@
   padding: 0 var(--space-4);
   border-radius: var(--radius-control);
   background: var(--danger);
-  color: var(--text-on-action);
+  color: var(--text-on-strong);
   cursor: pointer;
   font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);

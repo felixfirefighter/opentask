@@ -73,7 +73,8 @@ At 1280 px and wider, selecting a task opens a 360 px inspector without replacin
 
 ## Density behavior
 
-- Desktop lists use 40 px compact rows and reveal secondary actions on row focus as well as hover.
+- Desktop lists use the 44 px compact-row contract when no secondary line exists and reveal
+  secondary actions on row focus as well as hover.
 - When any coarse pointer is available, layouts retain compact visual grouping but expand the row hit region and action targets to at least 44 px regardless of viewport width.
 - Metadata collapses in a fixed order: verbose list name, tag overflow, lower-priority secondary date text. Status, title, schedule warning, and primary action never disappear.
 - Truncated text exposes its full value on focus/activation, not hover alone.

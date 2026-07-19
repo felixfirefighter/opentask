@@ -3,7 +3,7 @@
   padding: var(--space-3);
   border: var(--border-default) solid var(--border-strong);
   border-radius: var(--radius-card);
-  background: var(--surface);
+  background: var(--surface-elevated);
 }
 
 .label {

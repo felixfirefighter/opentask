@@ -68,6 +68,7 @@ test("G2 projects canonical scheduled tasks across Today, Upcoming, Calendar, an
 
   await page.goto("/calendar");
   for (const view of ["Month", "Week", "Day", "Agenda"] as const) {
+    let overflowDialog: Locator | undefined;
     await page.getByRole("button", { name: view, exact: true }).click();
     await expect(page.getByRole("button", { name: view, exact: true })).toHaveAttribute(
       "aria-pressed",
@@ -81,11 +82,17 @@ test("G2 projects canonical scheduled tasks across Today, Upcoming, Calendar, an
         .first();
       await expect(more).toBeVisible();
       await more.click();
+      overflowDialog = page.locator('[role="dialog"][data-date]');
+      await expect(overflowDialog).toBeVisible();
     }
     await expect(calendarEvent(page, allDay.title)).toBeVisible();
     await expect(calendarEvent(page, timed.title)).toBeVisible();
     await expect(calendarEvent(page, allDay.title)).toHaveAttribute("href", `/tasks/${allDay.id}`);
     await expect(calendarEvent(page, timed.title)).toHaveAttribute("href", `/tasks/${timed.id}`);
+    if (overflowDialog) {
+      await page.keyboard.press("Escape");
+      await expect(overflowDialog).toBeHidden();
+    }
   }
 
   await editCalendarScheduleWithKeyboard(page, allDay, {

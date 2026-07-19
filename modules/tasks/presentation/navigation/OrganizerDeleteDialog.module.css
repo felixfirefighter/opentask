@@ -72,7 +72,7 @@
 .dangerButton {
   border: var(--border-default) solid var(--danger);
   background: var(--danger);
-  color: var(--text-on-action);
+  color: var(--text-on-strong);
 }
 
 .dangerButton:disabled {

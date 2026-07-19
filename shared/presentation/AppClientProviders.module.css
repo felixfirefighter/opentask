@@ -32,7 +32,7 @@
 
 .action {
   background: var(--action) !important;
-  color: var(--text-on-action) !important;
+  color: var(--text-on-strong) !important;
 }
 
 .cancel,

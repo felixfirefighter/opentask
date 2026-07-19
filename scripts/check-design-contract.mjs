@@ -1,48 +1,27 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
+import {
+  buildContrastEvidence,
+  contrastPairs,
+  contrastRatio,
+  requiredDarkTokens,
+  requiredTokens,
+} from "./design-contract/token-contract.mjs";
+
 const repositoryRoot = process.cwd();
 const tokenFile = "shared/design/tokens.css";
 const cssRoots = ["app", "modules", "shared"];
-const requiredTokens = new Map(
-  Object.entries({
-    "--font-sans":
-      '"Geist Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    "--type-row-size": "14px",
-    "--type-row-line": "20px",
-    "--type-row-weight": "500",
-    "--type-compact-size": "13px",
-    "--type-compact-line": "18px",
-    "--type-compact-weight": "400",
-    "--type-label-size": "12px",
-    "--type-label-line": "16px",
-    "--type-label-weight": "600",
-    "--space-0": "0",
-    "--space-1": "4px",
-    "--space-2": "8px",
-    "--radius-control": "5px",
-    "--radius-pill": "999px",
-    "--border-default": "1px",
-    "--control-target-desktop": "36px",
-    "--control-target-touch": "44px",
-    "--task-status-indicator-size": "20px",
-    "--task-row-standard-height": "60px",
-    "--task-row-touch-height": "64px",
-    "--ease-exit": "cubic-bezier(0.4, 0, 1, 1)",
-    "--z-base": "0",
-    "--z-sticky": "10",
-    "--z-popover": "30",
-    "--z-sheet": "40",
-    "--z-dialog": "50",
-    "--z-toast": "60",
-  }),
-);
-
 const failures = [];
 const sourceFiles = (await Promise.all(cssRoots.map(collectSourceFiles))).flat().sort();
 const cssFiles = sourceFiles.filter((file) => file.endsWith(".css"));
 const tokenSource = await readRelative(tokenFile);
-const declaredTokens = parseCustomProperties(tokenSource);
+const themeRules = parseRules(tokenSource);
+const lightTokens = themeRules.find((rule) => rule.selector === ":root")?.declarations;
+const darkTokens = themeRules.find((rule) => rule.selector === ':root[data-theme="dark"]')?.declarations;
+const declaredTokens = lightTokens ?? new Map();
+
+if (!lightTokens) failures.push(`${tokenFile}: missing :root token block`);
 
 for (const [token, expectedValue] of requiredTokens) {
   const actualValue = declaredTokens.get(token);
@@ -53,6 +32,59 @@ for (const [token, expectedValue] of requiredTokens) {
       `${tokenFile}: ${token} must equal ${expectedValue}; received ${actualValue || "an empty value"}`,
     );
   }
+}
+
+for (const token of declaredTokens.keys()) {
+  if (token.startsWith("--") && !requiredTokens.has(token)) {
+    failures.push(`${tokenFile}: unreviewed light token ${token} must be added to the exact contract`);
+  }
+}
+
+if (!darkTokens) {
+  failures.push(`${tokenFile}: missing :root[data-theme="dark"] token block`);
+} else {
+  for (const [token, expectedValue] of requiredDarkTokens) {
+    const actualValue = darkTokens.get(token);
+    if (actualValue !== expectedValue) {
+      failures.push(
+        `${tokenFile}: dark ${token} must equal ${expectedValue}; received ${actualValue ?? "a missing value"}`,
+      );
+    }
+  }
+  for (const token of darkTokens.keys()) {
+    if (token.startsWith("--") && !requiredDarkTokens.has(token)) {
+      failures.push(`${tokenFile}: unreviewed dark override ${token} must be added to the exact contract`);
+    }
+  }
+}
+
+for (const [theme, tokens] of [
+  ["light", declaredTokens],
+  ["dark", darkTokens],
+]) {
+  if (!tokens) continue;
+  const effectiveTokens = theme === "dark" ? new Map([...declaredTokens, ...tokens]) : tokens;
+  for (const [foreground, background, minimum] of contrastPairs) {
+    const foregroundValue = effectiveTokens.get(foreground);
+    const backgroundValue = effectiveTokens.get(background);
+    const ratio = contrastRatio(foregroundValue, backgroundValue);
+    if (ratio === undefined) {
+      failures.push(`${tokenFile}: ${theme} ${foreground}/${background} must use six-digit hex values`);
+    } else if (ratio + Number.EPSILON < minimum) {
+      failures.push(
+        `${tokenFile}: ${theme} ${foreground}/${background} contrast ${ratio.toFixed(2)} must be at least ${minimum.toFixed(1)}`,
+      );
+    }
+  }
+}
+
+const darkEffectiveTokens = darkTokens
+  ? new Map([...declaredTokens, ...darkTokens])
+  : new Map(declaredTokens);
+const contrastEvidence = buildContrastEvidence(declaredTokens, darkEffectiveTokens);
+const tokenDocumentation = (await readRelative("docs/design/tokens.md")).replace(/\s+/g, " ");
+if (!tokenDocumentation.includes(contrastEvidence)) {
+  failures.push(`docs/design/tokens.md: contrast evidence is stale; expected \`${contrastEvidence}\``);
 }
 
 const globalSource = await readRelative("app/globals.css");
@@ -72,6 +104,12 @@ for (const file of sourceFiles) {
     );
 
     if (file.endsWith(".css")) {
+      for (const match of source.matchAll(/::placeholder[^{}]*\{[^{}]*var\(--text-disabled\)[^{}]*\}/g)) {
+        failures.push(
+          `${file}:${lineNumber(source, match.index)}: active placeholder text must use --text-muted, not the disabled-state token`,
+        );
+      }
+
       for (const match of source.matchAll(
         /(?:^|[;{])\s*(color|background(?:-color|-image)?|border(?:-(?:top|right|bottom|left|color|top-color|right-color|bottom-color|left-color))?|outline|box-shadow|text-shadow|fill|stroke)\s*:\s*([^;}]+)(?:;|(?=\s*}))/gm,
       )) {
@@ -240,14 +278,6 @@ function parseRules(source) {
     rules.push({ selector, declarations });
   }
   return rules;
-}
-
-function parseCustomProperties(source) {
-  const properties = new Map();
-  for (const match of source.matchAll(/^\s*(--[\w-]+)\s*:\s*([^;]*);/gm)) {
-    if (!properties.has(match[1])) properties.set(match[1], match[2]?.trim().replace(/\s+/g, " "));
-  }
-  return properties;
 }
 
 function lineNumber(source, index = 0) {

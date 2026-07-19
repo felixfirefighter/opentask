@@ -19,6 +19,7 @@ body {
   font-size: var(--type-body-size);
   font-weight: var(--type-body-weight);
   line-height: var(--type-body-line);
+  font-optical-sizing: auto;
   text-rendering: optimizeLegibility;
 }
 
@@ -103,7 +104,7 @@ button {
 .primary-button {
   padding: 8px 14px;
   background: var(--action);
-  color: var(--text-on-action);
+  color: var(--text-on-strong);
 }
 
 .primary-button:hover {
@@ -198,7 +199,7 @@ button {
   color: var(--text-muted);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (any-pointer: coarse) {
   .primary-button,
   .secondary-button,
   .quiet-button,
@@ -209,6 +210,23 @@ button {
   .icon-button {
     width: var(--control-target-touch);
   }
+}
+
+:root[data-reduced-motion="true"],
+:root[data-reduced-motion="true"] *,
+:root[data-reduced-motion="true"] *::before,
+:root[data-reduced-motion="true"] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
+
+:root[data-theme-transition="suppressed"],
+:root[data-theme-transition="suppressed"] *,
+:root[data-theme-transition="suppressed"] *::before,
+:root[data-theme-transition="suppressed"] *::after {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

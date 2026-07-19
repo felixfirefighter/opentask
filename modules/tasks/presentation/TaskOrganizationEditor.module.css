@@ -58,6 +58,12 @@
   background: var(--surface);
 }
 
+@media (any-pointer: coarse) {
+  .field select {
+    min-height: var(--control-target-touch);
+  }
+}
+
 .icon {
   display: flex;
   align-items: center;

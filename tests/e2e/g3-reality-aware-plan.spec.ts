@@ -312,6 +312,7 @@ async function captureReviewEvidence(page: Page, projectName: string) {
   const screenshotPath = path.join(temporaryDirectory, fileName);
   await page.evaluate(async () => {
     await document.fonts.ready;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   });
   await page.getByRole("heading", { name: "AI Review", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({
@@ -319,7 +320,41 @@ async function captureReviewEvidence(page: Page, projectName: string) {
     animations: "disabled",
     fullPage: true,
   });
-  return { fileName, screenshotPath, temporaryDirectory };
+  const captures = [{ fileName, screenshotPath }];
+
+  if (projectName === "mobile-chromium") {
+    const proposalCard = page.locator("article").first();
+    const proposalTitle = proposalCard.getByRole("heading");
+    const beforeValue = proposalCard.getByText("Before", { exact: true });
+    const applyButton = page.getByRole("button", { name: /Apply \d+ changes?/u });
+    await proposalCard.scrollIntoViewIfNeeded();
+    await expect(proposalCard).toBeInViewport();
+    await expect(proposalTitle).toBeInViewport();
+    await expect(beforeValue).toBeInViewport();
+    await expect(applyButton).toBeInViewport();
+
+    const [titleBox, beforeBox, applyBox] = await Promise.all([
+      proposalTitle.boundingBox(),
+      beforeValue.boundingBox(),
+      applyButton.boundingBox(),
+    ]);
+    expect(titleBox, "populated proposal title bounds").not.toBeNull();
+    expect(beforeBox, "populated proposal diff bounds").not.toBeNull();
+    expect(applyBox, "sticky Apply bounds").not.toBeNull();
+    expect(titleBox!.y + titleBox!.height).toBeLessThanOrEqual(applyBox!.y);
+    expect(beforeBox!.y + beforeBox!.height).toBeLessThanOrEqual(applyBox!.y);
+
+    const populatedFileName = "ai-review-populated-mobile-chromium.png";
+    const populatedScreenshotPath = path.join(temporaryDirectory, populatedFileName);
+    await page.screenshot({
+      path: populatedScreenshotPath,
+      animations: "disabled",
+      fullPage: true,
+    });
+    captures.push({ fileName: populatedFileName, screenshotPath: populatedScreenshotPath });
+  }
+
+  return { captures, temporaryDirectory };
 }
 
 async function publishReviewEvidence(
@@ -327,6 +362,10 @@ async function publishReviewEvidence(
 ): Promise<void> {
   const evidenceDirectory = path.resolve("artifacts/visual-proof/g3");
   await mkdir(evidenceDirectory, { recursive: true });
-  await copyFile(capture.screenshotPath, path.join(evidenceDirectory, capture.fileName));
+  await Promise.all(
+    capture.captures.map(({ fileName, screenshotPath }) =>
+      copyFile(screenshotPath, path.join(evidenceDirectory, fileName)),
+    ),
+  );
   await rm(capture.temporaryDirectory, { recursive: true, force: true });
 }
