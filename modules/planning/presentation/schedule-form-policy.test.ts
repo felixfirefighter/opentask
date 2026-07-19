@@ -61,4 +61,30 @@ describe("canonical schedule form policy", () => {
     expect(localDateForInstant("2026-07-19T17:00:00Z", "Asia/Singapore")).toBe("2026-07-20");
     expect(midpointLocalDate("2026-07-01", "2026-08-01")).toBe("2026-07-16");
   });
+
+  it("rejects daylight-saving gaps and repeated local times instead of choosing silently", () => {
+    const timedValues = {
+      allDay: false,
+      startDate: "2026-03-08",
+      endDate: "2026-03-09",
+      startLocal: "2026-03-08T02:30",
+      endLocal: "2026-03-08T03:30",
+    } as const;
+
+    expect(() => scheduleFromForm(timedValues, "America/New_York")).toThrow(
+      "Daylight-saving gaps or repeated times must be adjusted",
+    );
+    expect(() =>
+      scheduleFromForm(
+        {
+          ...timedValues,
+          startDate: "2026-11-01",
+          endDate: "2026-11-02",
+          startLocal: "2026-11-01T01:30",
+          endLocal: "2026-11-01T02:30",
+        },
+        "America/New_York",
+      ),
+    ).toThrow("Daylight-saving gaps or repeated times must be adjusted");
+  });
 });

@@ -42,8 +42,8 @@ export function scheduleFromForm(values: ScheduleFormValues, timeZone: string): 
       throw new RangeError("End date must be after start date.");
     return { kind: "all_day", startDate: start.toString(), endDate: end.toString() };
   }
-  const start = Temporal.PlainDateTime.from(values.startLocal).toZonedDateTime(timeZone).toInstant();
-  const end = Temporal.PlainDateTime.from(values.endLocal).toZonedDateTime(timeZone).toInstant();
+  const start = localDateTimeToInstant(values.startLocal, timeZone);
+  const end = localDateTimeToInstant(values.endLocal, timeZone);
   if (Temporal.Instant.compare(end, start) < 0) throw new RangeError("End time cannot be before start time.");
   return { kind: "timed", startAt: start.toString(), endAt: end.toString(), timezone: timeZone };
 }
@@ -67,6 +67,18 @@ function instantToLocal(instant: string, timeZone: string) {
     .toZonedDateTimeISO(timeZone)
     .toPlainDateTime()
     .toString({ smallestUnit: "minute" });
+}
+
+function localDateTimeToInstant(value: string, timeZone: string) {
+  try {
+    return Temporal.PlainDateTime.from(value)
+      .toZonedDateTime(timeZone, { disambiguation: "reject" })
+      .toInstant();
+  } catch {
+    throw new RangeError(
+      "Enter a valid local time. Daylight-saving gaps or repeated times must be adjusted.",
+    );
+  }
 }
 
 function formValues(
