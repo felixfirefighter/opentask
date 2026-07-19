@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import {
   addLocalDays,
@@ -9,7 +9,6 @@ import {
   planningTaskRow,
   readTaskSchedule,
   setTaskSchedule,
-  singaporeInstant,
   type TestSchedule,
 } from "./support/golden-path-planning";
 import { signUpThroughUi } from "./support/wp01-auth";
@@ -32,8 +31,9 @@ test("G2 projects canonical scheduled tasks across Today, Upcoming, Calendar, an
 
   const allDayCreated = await quickAddTask(page, "G2 all-day canonical task");
   const timedCreated = await quickAddTask(page, "G2 timed canonical task");
-  const timedStart = new Date(singaporeInstant(today, "15:00"));
-  const timedEnd = new Date(timedStart.getTime() + 60 * 60_000);
+  const capturedNow = new Date();
+  const timedStart = new Date(capturedNow.getTime() - 10 * 60_000);
+  const timedEnd = new Date(capturedNow.getTime() + 2 * 60 * 60_000);
   const { task: allDay } = await setTaskSchedule(page, allDayCreated, {
     kind: "all_day",
     startDate: today,
@@ -163,7 +163,7 @@ test("G2 moves an all-day calendar event with the pointer", async ({ page }, tes
       candidate.request().method() === "PATCH" &&
       new URL(candidate.url()).pathname === `/api/v1/tasks/${task.id}/schedule`,
   );
-  await event.dragTo(target);
+  await dragWithPointer(page, event, target);
   expect((await response).status()).toBe(200);
   await expect
     .poll(async () => readTaskSchedule(page, task.id))
@@ -320,4 +320,23 @@ async function saveAllDaySchedule(
   await save.press("Enter");
   expect((await response).status()).toBe(200);
   await expect(dialog).toBeHidden();
+}
+
+async function dragWithPointer(page: Page, source: Locator, target: Locator) {
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  if (!sourceBox || !targetBox) throw new Error("Calendar drag endpoints must have layout boxes.");
+
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2 - 12, sourceBox.y + sourceBox.height / 2, {
+    steps: 4,
+  });
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+    steps: 12,
+  });
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  await page.mouse.up();
 }
