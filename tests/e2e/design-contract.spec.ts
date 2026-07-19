@@ -3,11 +3,13 @@ import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
+import { signUpThroughUi } from "./support/wp01-auth";
 import {
   assertPriorityMarkers,
   readBaseTaskRowContract,
   readTaskRowState,
 } from "./support/task-row-contract";
+import { addTagToTask, quickAddTask, taskRow, updateTask } from "./support/wp03-tasks";
 
 test("task row consumes the canonical density and typography tokens", async ({ page }, testInfo) => {
   await page.goto("/today");
@@ -305,6 +307,87 @@ test("task row consumes the canonical density and typography tokens", async ({ p
   await status.click({ trial: true });
   await more.click({ trial: true });
   await assertPriorityMarkers(page);
+});
+
+test("production TaskRow preserves the approved density, typography, and action targets", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60_000);
+  await signUpThroughUi(page, testInfo);
+  const created = await quickAddTask(page, "Review production task row");
+  const prioritized = await updateTask(page, created, { priority: "high" });
+  await addTagToTask(page, prioritized, "Launch");
+  await page.reload();
+
+  const row = taskRow(page, created.id);
+  const status = row.getByRole("button", { name: `Complete ${created.title}` });
+  const more = row.getByRole("button", { name: `More actions for ${created.title}` });
+  await expect(row).toBeVisible();
+  await expect(row.getByRole("img", { name: "high priority" })).toBeVisible();
+  await expect(row).toContainText("Launch");
+  await status.focus();
+  await expect(status).toBeFocused();
+  await more.focus();
+  await expect(more).toBeFocused();
+  await assertPriorityMarkers(page);
+
+  const contract = await readBaseTaskRowContract(row);
+  expect(contract.bodyFontFamily).toBe(contract.tokenFontFamily);
+  expect(contract.title).toMatchObject({
+    color: contract.semanticColors.text,
+    fontFamily: contract.tokenFontFamily,
+    fontSize: contract.tokens.rowSize,
+    fontWeight: contract.tokens.rowWeight,
+    lineHeight: contract.tokens.rowLine,
+  });
+  expect(contract.metadata).toMatchObject({
+    color: contract.semanticColors.muted,
+    fontFamily: contract.tokenFontFamily,
+    fontSize: contract.tokens.compactSize,
+    fontWeight: contract.tokens.compactWeight,
+    lineHeight: contract.tokens.compactLine,
+  });
+  expect(contract.tag).toMatchObject({
+    fontFamily: contract.tokenFontFamily,
+    fontSize: contract.tokens.labelSize,
+    fontWeight: contract.tokens.labelWeight,
+    lineHeight: contract.tokens.labelLine,
+  });
+  expect(contract.contentGap).toBe(contract.tokens.contentGap);
+  expect(contract.row.columnGap).toBe(contract.tokens.columnGap);
+  expect(contract.metadata.box.top - contract.title.box.bottom).toBeCloseTo(
+    pixels(contract.tokens.contentGap),
+    1,
+  );
+
+  const expectedHeight = contract.coarsePointerAvailable
+    ? contract.tokens.touchHeight
+    : contract.tokens.standardHeight;
+  const expectedTarget = pixels(
+    contract.coarsePointerAvailable ? contract.tokens.touchTarget : contract.tokens.desktopTarget,
+  );
+  expect(contract.row.minHeight).toBe(expectedHeight);
+  expect(contract.row.box.height).toBeGreaterThanOrEqual(pixels(expectedHeight));
+  expect(contract.status.box.width).toBeGreaterThanOrEqual(expectedTarget);
+  expect(contract.status.box.height).toBeGreaterThanOrEqual(expectedTarget);
+  expect(contract.more.box.width).toBeGreaterThanOrEqual(expectedTarget);
+  expect(contract.more.box.height).toBeGreaterThanOrEqual(expectedTarget);
+  expect(contract.statusIndicatorBox.width).toBe(pixels(contract.tokens.statusIndicator));
+  expect(contract.statusIndicatorBox.height).toBe(pixels(contract.tokens.statusIndicator));
+  expect(contract.contentBox.right).toBeLessThanOrEqual(contract.trailingBox.left);
+  if (contract.viewportWidth >= 390) expect(contract.title.textFits).toBe(true);
+  expect(contract.metadata.textFits).toBe(true);
+
+  if (contract.viewportWidth < 768) expect(contract.tag.display).toBe("none");
+  else expect(contract.tag.display).not.toBe("none");
+
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/wp03");
+  await mkdir(evidenceDirectory, { recursive: true });
+  await more.evaluate((element) => (element as HTMLElement).blur());
+  await row.screenshot({
+    path: path.join(evidenceDirectory, `production-task-row-${testInfo.project.name}.png`),
+    animations: "disabled",
+  });
 });
 
 function pixels(value: string) {

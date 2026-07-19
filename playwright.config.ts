@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
+  workers: 1,
   retries: 0,
   reporter: "list",
   use: {
@@ -12,7 +13,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "pnpm exec next dev --port 3107",
+    command: "pnpm exec next dev --webpack --port 3107",
     env: {
       BETTER_AUTH_SECRET: "opentask-playwright-only-auth-secret-000000000000000000",
       BETTER_AUTH_URL: "http://127.0.0.1:3107",

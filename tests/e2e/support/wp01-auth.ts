@@ -35,7 +35,9 @@ export async function signUpThroughUi(
   await page.getByLabel("Confirm password", { exact: true }).fill(account.password);
   await page.getByRole("button", { name: "Create account" }).click();
 
-  await expect(page).toHaveURL(returnTo ?? "/inbox");
+  await expect(page).toHaveURL(returnTo ?? "/inbox", { timeout: 30_000 });
+  await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
+  await page.waitForLoadState("networkidle");
   return account;
 }
 
