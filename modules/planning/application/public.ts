@@ -1,3 +1,24 @@
+import { getUserPreferences } from "@/modules/identity";
+import { getTasksApplication } from "@/modules/tasks";
+import { systemClock } from "@/shared/time/clock";
+
+import { createPlanningProjectionApplication } from "./planning-projection-application";
+
+let projectionApplication: ReturnType<typeof createPlanningProjectionApplication> | undefined;
+
+export function getPlanningProjectionApplication() {
+  projectionApplication ??= createPlanningProjectionApplication({
+    tasks: getTasksApplication().planningSource,
+    timeZones: {
+      async getSavedTimeZone(actor) {
+        return (await getUserPreferences(actor)).timezone;
+      },
+    },
+    clock: systemClock,
+  });
+  return projectionApplication;
+}
+
 export { buildDeterministicPlan } from "./build-deterministic-plan";
 export { createPlanningProjectionApplication } from "./planning-projection-application";
 export {
