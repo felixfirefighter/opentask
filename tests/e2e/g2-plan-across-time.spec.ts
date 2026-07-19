@@ -9,6 +9,7 @@ import {
   planningTaskRow,
   readTaskSchedule,
   setTaskSchedule,
+  singaporeInstant,
   type TestSchedule,
 } from "./support/golden-path-planning";
 import { signUpThroughUi } from "./support/wp01-auth";
@@ -31,7 +32,7 @@ test("G2 projects canonical scheduled tasks across Today, Upcoming, Calendar, an
 
   const allDayCreated = await quickAddTask(page, "G2 all-day canonical task");
   const timedCreated = await quickAddTask(page, "G2 timed canonical task");
-  const timedStart = new Date(Date.now() + 10 * 60_000);
+  const timedStart = new Date(singaporeInstant(today, "15:00"));
   const timedEnd = new Date(timedStart.getTime() + 60 * 60_000);
   const { task: allDay } = await setTaskSchedule(page, allDayCreated, {
     kind: "all_day",
