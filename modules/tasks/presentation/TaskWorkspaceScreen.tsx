@@ -6,6 +6,7 @@ import type { RegularListDto, TaskPage } from "../application/contracts";
 import { combineTerminalTasks } from "./data/task-page-view";
 import { useSectionsQuery } from "./data/use-organizer-queries";
 import { useTaskListQuery, useTerminalTaskQuery } from "./data/use-task-queries";
+import { FirstRunOrientation } from "./FirstRunOrientation";
 import { TaskQuickAdd } from "./TaskQuickAdd";
 import { CreateSectionControl } from "./TaskSectionControls";
 import { TerminalTaskGroups } from "./TerminalTaskGroups";
@@ -81,6 +82,7 @@ function OpenTaskWorkspace({
       }}
       showAddTask
     >
+      {isInbox ? <FirstRunOrientation /> : null}
       <TaskQuickAdd listId={destination.list.id} listName={destination.list.name} />
       {!isInbox && <CreateSectionControl listId={destination.list.id} />}
       {useSectionFallback && sectionsQuery.isPending ? (

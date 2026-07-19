@@ -1,0 +1,119 @@
+.orientation {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--category-coral-bg) 46%, var(--surface));
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.heading p,
+.heading h2,
+.tips h3,
+.tips p {
+  margin: 0;
+}
+
+.heading h2 {
+  margin-top: var(--space-1);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.heading button {
+  display: flex;
+  width: var(--control-target-desktop);
+  min-width: var(--control-target-desktop);
+  height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.heading button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.tips {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tips section {
+  display: grid;
+  min-width: 0;
+  align-items: start;
+  gap: var(--space-2);
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.icon {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  background: var(--surface-selected);
+  color: var(--text-selected);
+}
+
+.tips h3 {
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  line-height: var(--type-row-line);
+}
+
+.tips p {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.tips a {
+  color: var(--text-selected);
+  font-weight: var(--type-label-weight);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tips kbd {
+  padding: 1px var(--space-1);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: inherit;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .orientation {
+    padding: var(--space-3);
+  }
+
+  .heading button {
+    width: var(--control-target-touch);
+    min-width: var(--control-target-touch);
+    height: var(--control-target-touch);
+  }
+
+  .tips {
+    grid-template-columns: 1fr;
+  }
+}
