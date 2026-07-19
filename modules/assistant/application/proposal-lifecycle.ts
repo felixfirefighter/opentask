@@ -12,12 +12,15 @@ import type {
 import {
   plannerProposalDtoSchema,
   plannerProposalSchema,
-  plannerProposalStatusSchema,
   proposalContextVersionsSchema,
   type PlannerProposal,
   type PlannerProposalDto,
   type ProposalContextVersions,
 } from "./contracts/proposal-contract";
+import {
+  assertPlannerSubjectContextVersions,
+  mapStoredPlannerProposalRecord,
+} from "./proposal-record-mapper";
 
 const DEFAULT_PROPOSAL_TTL_MS = 30 * 60 * 1_000;
 
@@ -44,7 +47,12 @@ export function createPlannerProposalLifecycle(dependencies: {
   const get = async (actor: AuthenticatedActor, proposalId: string): Promise<PlannerProposalDto> => {
     const id = entityIdSchema.parse(proposalId);
     const record = await findOwnedOrThrow(dependencies.persistence, actor.userId, id);
-    return expireIfDue(dependencies.persistence, actor.userId, toDto(record, actor.userId), clock.now());
+    return expireIfDue(
+      dependencies.persistence,
+      actor.userId,
+      mapStoredPlannerProposalRecord(record, actor.userId),
+      clock.now(),
+    );
   };
 
   return {
@@ -54,7 +62,7 @@ export function createPlannerProposalLifecycle(dependencies: {
     ): Promise<PlannerProposalDto> {
       const proposal = plannerProposalSchema.parse(input.proposal);
       const contextVersions = proposalContextVersionsSchema.parse(input.contextVersions);
-      assertSubjectContextVersions(proposal, contextVersions);
+      assertPlannerSubjectContextVersions(proposal, contextVersions);
 
       const createdAt = clock.now();
       const expiresAt = new Date(createdAt.getTime() + proposalTtlMs);
@@ -90,7 +98,7 @@ export function createPlannerProposalLifecycle(dependencies: {
         expiresAt,
         appliedAt: null,
       };
-      return toDto(await dependencies.persistence.insert(record), actor.userId);
+      return mapStoredPlannerProposalRecord(await dependencies.persistence.insert(record), actor.userId);
     },
 
     get,
@@ -108,10 +116,10 @@ export function createPlannerProposalLifecycle(dependencies: {
         "rejected",
         null,
       );
-      if (transitioned) return toDto(transitioned, actor.userId);
+      if (transitioned) return mapStoredPlannerProposalRecord(transitioned, actor.userId);
 
       const latest = await findOwnedOrThrow(dependencies.persistence, actor.userId, current.id);
-      const latestDto = toDto(latest, actor.userId);
+      const latestDto = mapStoredPlannerProposalRecord(latest, actor.userId);
       if (latestDto.status === "rejected") return latestDto;
       throw proposalConflict("The planner proposal changed before it could be rejected.");
     },
@@ -131,9 +139,9 @@ async function expireIfDue(
   if (proposal.status !== "pending" || Date.parse(proposal.expiresAt) > now.getTime()) return proposal;
 
   const expired = await persistence.transitionOwned(userId, proposal.id, "pending", "expired", null);
-  if (expired) return toDto(expired, userId);
+  if (expired) return mapStoredPlannerProposalRecord(expired, userId);
 
-  return toDto(await findOwnedOrThrow(persistence, userId, proposal.id), userId);
+  return mapStoredPlannerProposalRecord(await findOwnedOrThrow(persistence, userId, proposal.id), userId);
 }
 
 async function findOwnedOrThrow(
@@ -146,53 +154,6 @@ async function findOwnedOrThrow(
     throw new ApplicationError("NOT_FOUND", "The requested planner proposal was not found.");
   }
   return record;
-}
-
-function toDto(record: StoredPlannerProposalRecord, expectedUserId: string): PlannerProposalDto {
-  try {
-    const proposal = plannerProposalSchema.parse(record.proposal);
-    const contextVersions = proposalContextVersionsSchema.parse(record.contextVersions);
-    const status = plannerProposalStatusSchema.parse(record.status);
-    if (
-      proposal.schemaVersion !== record.schemaVersion ||
-      proposal.planningDate !== record.planningDate ||
-      record.userId !== expectedUserId ||
-      record.expiresAt.getTime() <= record.createdAt.getTime() ||
-      (status === "applied") !== (record.appliedAt !== null)
-    ) {
-      throw new Error("Stored proposal metadata is inconsistent.");
-    }
-    assertSubjectContextVersions(proposal, contextVersions);
-
-    return plannerProposalDtoSchema.parse({
-      id: record.id,
-      planningDate: record.planningDate,
-      schemaVersion: record.schemaVersion,
-      proposal,
-      contextVersions,
-      status,
-      model: record.model,
-      promptVersion: record.promptVersion,
-      applyToken: record.idempotencyKey,
-      createdAt: record.createdAt.toISOString(),
-      expiresAt: record.expiresAt.toISOString(),
-      appliedAt: record.appliedAt?.toISOString() ?? null,
-    });
-  } catch {
-    throw new ApplicationError("INTERNAL", "The planner proposal could not be read safely.");
-  }
-}
-
-function assertSubjectContextVersions(
-  proposal: PlannerProposal,
-  contextVersions: ProposalContextVersions,
-): void {
-  for (const subject of proposal.subjects) {
-    if (subject.taskId === null) continue;
-    if (!(subject.taskId in contextVersions)) {
-      throw new ApplicationError("VALIDATION_FAILED", "A planner subject is missing its task version.");
-    }
-  }
 }
 
 function assertProposalTtl(value: number): void {

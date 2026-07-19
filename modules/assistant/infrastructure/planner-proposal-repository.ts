@@ -34,6 +34,20 @@ export function createPlannerProposalRepository(
       return record ?? null;
     },
 
+    async findOwnedForUpdate(
+      userId: string,
+      id: string,
+      executor: DatabaseExecutor,
+    ): Promise<typeof table.$inferSelect | null> {
+      const [record] = await executor
+        .select()
+        .from(table)
+        .where(and(eq(table.userId, userId), eq(table.id, id)))
+        .limit(1)
+        .for("update");
+      return record ?? null;
+    },
+
     async transitionOwned(
       userId: string,
       id: string,
@@ -64,6 +78,28 @@ export function createPlannerProposalRepository(
         .where(and(eq(table.userId, userId), eq(table.status, "pending"), lte(table.expiresAt, now)))
         .returning({ id: table.id });
       return records.length;
+    },
+
+    async markAppliedOwned(
+      userId: string,
+      id: string,
+      applyToken: string,
+      appliedAt: Date,
+      executor: DatabaseExecutor,
+    ): Promise<boolean> {
+      const records = await executor
+        .update(table)
+        .set({ status: "applied", appliedAt })
+        .where(
+          and(
+            eq(table.userId, userId),
+            eq(table.id, id),
+            eq(table.status, "pending"),
+            eq(table.idempotencyKey, applyToken),
+          ),
+        )
+        .returning({ id: table.id });
+      return records.length === 1;
     },
   };
 }
