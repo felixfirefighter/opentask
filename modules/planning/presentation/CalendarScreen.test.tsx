@@ -1,4 +1,4 @@
-import type { CalendarOptions, EventDropInfo } from "@fullcalendar/react";
+import type { CalendarOptions, EventDisplayInfo, EventDropInfo } from "@fullcalendar/react";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -51,6 +51,31 @@ describe("CalendarScreen", () => {
       end: "2026-08-01",
       view: "month",
     });
+  });
+
+  it("creates and labels the FullCalendar v7 end-resize handle", () => {
+    renderCalendar();
+    const eventAfterClass = calendarMock.latest?.eventAfterClass;
+    if (typeof eventAfterClass !== "function") throw new Error("Missing end-resize class hook.");
+    const displayInfo = {
+      event: { id: calendarFixture.events[0]!.id },
+      isEndResizable: true,
+    } as EventDisplayInfo;
+    const generatedClass = eventAfterClass(displayInfo);
+    const className = Array.isArray(generatedClass)
+      ? generatedClass.filter((value): value is string => typeof value === "string").join(" ")
+      : typeof generatedClass === "string"
+        ? generatedClass
+        : "";
+    const eventElement = document.createElement("article");
+    const handle = document.createElement("div");
+    handle.className = className;
+    eventElement.append(handle);
+
+    calendarMock.latest?.eventDidMount?.({ ...displayInfo, el: eventElement });
+
+    expect(handle).toHaveAttribute("data-ui", "calendar-event-resize-handle");
+    expect(handle).toHaveAttribute("aria-hidden", "true");
   });
 
   it("defaults a new mobile visit to Agenda while respecting a saved view", () => {

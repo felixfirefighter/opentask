@@ -8,8 +8,10 @@ import {
   createPlanningTask,
   parsePlanningQuickAdd,
   setPlanningTaskSchedule,
+  type PlanningSchedule,
   type PlanningQuickAddSuggestion,
 } from "./planning-client-api";
+import { editedQuickAddScheduleLabel } from "./quick-add-schedule-label";
 import { nextLocalDate } from "./schedule-form-policy";
 import { ScheduleEditorDialog } from "./ScheduleEditorDialog";
 import { TodayScreen } from "./TodayScreen";
@@ -26,6 +28,8 @@ export function TodayRouteScreen({
   const [submitting, setSubmitting] = useState(false);
   const [suggestions, setSuggestions] = useState<readonly PlanningQuickAddSuggestion[]>([]);
   const [removedTokens, setRemovedTokens] = useState<ReadonlySet<number>>(new Set());
+  const [editedTokens, setEditedTokens] = useState<ReadonlySet<number>>(new Set());
+  const [editingToken, setEditingToken] = useState<number | null>(null);
   const [quickAddError, setQuickAddError] = useState("");
   const draft = useRef<Readonly<{ text: string; id: string }> | null>(null);
   const tasks = useMemo(
@@ -34,6 +38,15 @@ export function TodayRouteScreen({
   );
   const controller = usePlanningTaskController(tasks, projection.timeZone);
   const model = toTodayPlanningModel(projection, { hourCycle });
+  const editingSuggestion = editingToken === null ? undefined : suggestions[editingToken];
+  const quickAddEditorTask = editingSuggestion
+    ? {
+        id: String(editingToken),
+        title: quickAdd.trim() || "new task",
+        version: 1,
+        schedule: editingSuggestion.schedule,
+      }
+    : null;
 
   useEffect(() => {
     if (!quickAdd.trim()) return;
@@ -66,6 +79,8 @@ export function TodayRouteScreen({
       setQuickAdd("");
       setSuggestions([]);
       setRemovedTokens(new Set());
+      setEditedTokens(new Set());
+      setEditingToken(null);
       router.refresh();
     } catch {
       setQuickAddError(
@@ -82,6 +97,19 @@ export function TodayRouteScreen({
       ? ({ kind: "error", message: quickAddError } as const)
       : controller.condition;
 
+  async function saveEditedQuickAddSchedule(tokenId: string, schedule: PlanningSchedule) {
+    const index = Number(tokenId);
+    if (!Number.isInteger(index) || !suggestions[index] || removedTokens.has(index)) return false;
+    setSuggestions((current) =>
+      current.map((suggestion, suggestionIndex) =>
+        suggestionIndex === index ? { ...suggestion, schedule } : suggestion,
+      ),
+    );
+    setEditedTokens((current) => new Set(current).add(index));
+    setEditingToken(null);
+    return true;
+  }
+
   return (
     <>
       <TodayScreen
@@ -92,7 +120,16 @@ export function TodayRouteScreen({
           submitting,
           destinationLabel: "Today · Anytime unless a date is recognized",
           tokens: suggestions.flatMap((suggestion, index) =>
-            removedTokens.has(index) ? [] : [{ id: String(index), label: suggestion.recognizedText }],
+            removedTokens.has(index)
+              ? []
+              : [
+                  {
+                    id: String(index),
+                    label: editedTokens.has(index)
+                      ? editedQuickAddScheduleLabel(suggestion.recognizedText, suggestion.schedule, hourCycle)
+                      : suggestion.recognizedText,
+                  },
+                ],
           ),
         }}
         taskActions={controller.taskActions}
@@ -103,13 +140,28 @@ export function TodayRouteScreen({
           if (!value.trim()) setSuggestions([]);
           setQuickAddError("");
           setRemovedTokens(new Set());
+          setEditedTokens(new Set());
+          setEditingToken(null);
           if (draft.current?.text !== value.trim()) draft.current = null;
         }}
         onQuickAddSubmit={(value) => void submitQuickAdd(value)}
+        onEditQuickAddToken={(tokenId) => {
+          const index = Number(tokenId);
+          if (Number.isInteger(index) && suggestions[index] && !removedTokens.has(index)) {
+            setEditingToken(index);
+          }
+        }}
         onRemoveQuickAddToken={(tokenId) =>
           setRemovedTokens((current) => new Set(current).add(Number(tokenId)))
         }
         onRetry={controller.retry}
+      />
+      <ScheduleEditorDialog
+        localDate={projection.localDate}
+        task={quickAddEditorTask}
+        timeZone={projection.timeZone}
+        onClose={() => setEditingToken(null)}
+        onSave={saveEditedQuickAddSchedule}
       />
       <ScheduleEditorDialog
         localDate={projection.localDate}

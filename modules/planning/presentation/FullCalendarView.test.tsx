@@ -27,4 +27,24 @@ describe("FullCalendarView", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Prepare clean demo data")).toBeInTheDocument();
   });
+
+  it("renders the FullCalendar v7 resize handle for an editable timed event", async () => {
+    render(
+      <FullCalendarView
+        model={{ ...calendarFixture, view: "week" }}
+        view="week"
+        navigation={{ revision: 0, direction: "today" }}
+        readOnly={false}
+        onOpenTask={vi.fn()}
+        onSelectEvent={vi.fn()}
+        onVisibleRangeChange={vi.fn()}
+        onEventMove={vi.fn().mockResolvedValue({ ok: true })}
+        onEventResize={vi.fn().mockResolvedValue({ ok: true })}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(document.querySelector('[data-ui="calendar-event-resize-handle"]')).toBeInTheDocument(),
+    );
+  });
 });

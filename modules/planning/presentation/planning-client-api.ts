@@ -3,16 +3,31 @@ import { z } from "zod";
 import type { PlanningPriority, PlanningTaskStatus } from "./planning-screen-model";
 
 const entityRefSchema = z.object({ id: z.uuidv4(), version: z.number().int().positive() });
-const scheduleSchema = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("all_day"), startDate: z.iso.date(), endDate: z.iso.date() }),
-  z.strictObject({
-    kind: z.literal("timed"),
-    startAt: z.iso.datetime({ offset: true }),
-    endAt: z.iso.datetime({ offset: true }),
-    timezone: z.string().min(1),
-  }),
+const allDayScheduleSchema = z.strictObject({
+  kind: z.literal("all_day"),
+  startDate: z.iso.date(),
+  endDate: z.iso.date(),
+});
+const timedScheduleSchema = z.strictObject({
+  kind: z.literal("timed"),
+  startAt: z.iso.datetime({ offset: true }),
+  endAt: z.iso.datetime({ offset: true }),
+  timezone: z.string().min(1),
+});
+const scheduleSchema = z.discriminatedUnion("kind", [allDayScheduleSchema, timedScheduleSchema]);
+const scheduleDtoFields = {
+  taskId: z.uuidv4(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+} as const;
+const scheduleDtoSchema = z.discriminatedUnion("kind", [
+  allDayScheduleSchema.extend(scheduleDtoFields),
+  timedScheduleSchema.extend(scheduleDtoFields),
 ]);
-const scheduleMutationSchema = z.object({ task: entityRefSchema, schedule: scheduleSchema.nullable() });
+const scheduleMutationSchema = z.object({
+  task: entityRefSchema,
+  schedule: scheduleDtoSchema.nullable(),
+});
 const quickAddSchema = z.object({
   sourceText: z.string(),
   suggestions: z.array(

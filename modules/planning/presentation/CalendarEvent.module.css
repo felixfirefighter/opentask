@@ -1,6 +1,18 @@
 .calendarEvent {
+  position: relative;
   border-radius: var(--radius-control);
   outline: none;
+}
+
+.resizeHandle {
+  position: absolute;
+  right: calc(var(--border-default) * -2);
+  bottom: calc(var(--border-default) * -2);
+  width: var(--space-4);
+  height: var(--space-4);
+  border: calc(var(--border-default) * 3) solid var(--surface);
+  border-radius: var(--radius-pill);
+  background: var(--action);
 }
 
 .calendarEvent:focus-visible {
@@ -85,5 +97,10 @@
 @media (max-width: 767px), (any-pointer: coarse) {
   .eventContent {
     min-height: var(--control-target-touch);
+  }
+
+  .resizeHandle {
+    width: var(--space-5);
+    height: var(--space-5);
   }
 }

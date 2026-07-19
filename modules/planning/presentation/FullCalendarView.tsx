@@ -144,6 +144,7 @@ export function FullCalendarView({
           eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: model.hourCycle === "12" }}
           datesSet={handleRange}
           eventContent={renderEvent}
+          eventAfterClass={(info) => (info.isEndResizable ? eventStyles.resizeHandle : "")}
           eventClass={(info) => {
             const event = eventsById.get(info.event.id);
             return event?.conflicted
@@ -156,6 +157,9 @@ export function FullCalendarView({
             const label = calendarEventAccessibleLabel(event);
             info.el.setAttribute("aria-label", label);
             info.el.setAttribute("title", label);
+            const resizeHandle = info.el.querySelector(`.${eventStyles.resizeHandle}`);
+            resizeHandle?.setAttribute("aria-hidden", "true");
+            resizeHandle?.setAttribute("data-ui", "calendar-event-resize-handle");
           }}
           eventClick={(info) => {
             info.jsEvent.preventDefault();
