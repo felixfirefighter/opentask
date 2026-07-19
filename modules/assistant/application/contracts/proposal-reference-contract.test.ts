@@ -35,6 +35,12 @@ function baseProposal() {
   return {
     schemaVersion: PLANNER_SCHEMA_VERSION,
     planningDate: "2026-07-20",
+    planningContext: {
+      timeZone: "Asia/Singapore",
+      workWindow: { start: "09:00", end: "17:00" },
+      defaultDurationMinutes: 30,
+      bufferMinutes: 10,
+    },
     summary: "Review the launch.",
     subjects: [selectedSubject()],
     actions: [scheduleAction()],

@@ -7,8 +7,8 @@ export {
   validateExtractionReferences,
 } from "./extraction-contract";
 export type { ModelExtraction, PlannerExtractionRequest } from "./extraction-contract";
-export { plannerInputSchema } from "./planner-contract";
-export type { PlannerInput } from "./planner-contract";
+export { plannerInputSchema, plannerPlanningContextSchema } from "./planner-contract";
+export type { PlannerInput, PlannerPlanningContext } from "./planner-contract";
 export type { PlannerExtractionProvider, PlannerExtractionResult } from "./provider-contract";
 export {
   plannerActionSchema,
@@ -26,11 +26,27 @@ export type {
   PlannerProposal,
   PlannerProposalDto,
   PlannerProposalStatus,
+  PlannerSchedule,
   PlannerSelection,
   ProposalContextVersions,
 } from "./proposal-contract";
 export { plannerProposalSubjectSchema, plannerProposalSubjectsSchema } from "./proposal-subject-contract";
 export type { PlannerProposalSubject } from "./proposal-subject-contract";
+export type {
+  PlannerBusySchedule,
+  PlannerBusyScheduleQuery,
+  PlannerBusyScheduleReader,
+  PlannerProposalWriter,
+  PlannerSelectedTaskReader,
+  PlannerSelectedTaskSnapshot,
+} from "./proposal-creation-contract";
+export type {
+  PlannerApplyDependencies,
+  PlannerApplyProposalRepository,
+  PlannerApplyTaskSnapshot,
+  PlannerApplyTaskWriter,
+  PlannerApplyTransactionRunner,
+} from "./planner-apply-unit-of-work";
 export type {
   NewPlannerProposalRecord,
   PlannerProposalPersistence,

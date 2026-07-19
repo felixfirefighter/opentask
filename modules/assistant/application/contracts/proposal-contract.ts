@@ -20,6 +20,7 @@ import {
 } from "./contract-primitives";
 import { validateProposalSemantics } from "./proposal-semantic-validation";
 import { plannerProposalSubjectsSchema } from "./proposal-subject-contract";
+import { plannerPlanningContextSchema } from "./planner-contract";
 
 const actionBase = {
   actionId: entityIdSchema,
@@ -164,6 +165,7 @@ export const plannerProposalSchema = z
   .strictObject({
     schemaVersion: z.literal(PLANNER_SCHEMA_VERSION),
     planningDate: localDateSchema,
+    planningContext: plannerPlanningContextSchema,
     summary: summarySchema,
     subjects: plannerProposalSubjectsSchema,
     actions: z.array(plannerActionSchema).max(200),
@@ -273,6 +275,7 @@ export type PlannerApplyResult = z.infer<typeof plannerApplyResultSchema>;
 export type PlannerProposal = z.infer<typeof plannerProposalSchema>;
 export type PlannerProposalDto = z.infer<typeof plannerProposalDtoSchema>;
 export type PlannerProposalStatus = z.infer<typeof plannerProposalStatusSchema>;
+export type PlannerSchedule = z.infer<typeof plannerScheduleSchema>;
 export type PlannerSelection = z.infer<typeof plannerSelectionSchema>;
 export type ProposalContextVersions = z.infer<typeof proposalContextVersionsSchema>;
 

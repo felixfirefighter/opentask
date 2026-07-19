@@ -73,6 +73,12 @@ function proposal() {
   return {
     schemaVersion: PLANNER_SCHEMA_VERSION,
     planningDate: "2026-07-20",
+    planningContext: {
+      timeZone: "Asia/Singapore",
+      workWindow: { start: "09:00", end: "17:00" },
+      defaultDurationMinutes: 30,
+      bufferMinutes: 10,
+    },
     summary: "One selected task is scheduled.",
     subjects: [
       {
@@ -231,6 +237,21 @@ describe("versioned proposal contracts", () => {
       }).success,
     ).toBe(false);
     expect(plannerProposalSchema.safeParse({ ...proposal(), rawBrainDump: "secret" }).success).toBe(false);
+    expect(
+      plannerProposalSchema.safeParse({
+        ...proposal(),
+        planningContext: { ...proposal().planningContext, brainDump: "secret" },
+      }).success,
+    ).toBe(false);
+    expect(
+      plannerProposalSchema.safeParse({
+        ...proposal(),
+        planningContext: {
+          ...proposal().planningContext,
+          workWindow: { start: "17:00", end: "09:00" },
+        },
+      }).success,
+    ).toBe(false);
     expect(
       plannerProposalSchema.safeParse({
         ...proposal(),

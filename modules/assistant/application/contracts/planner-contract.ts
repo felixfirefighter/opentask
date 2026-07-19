@@ -8,20 +8,24 @@ import {
   timeZoneSchema,
 } from "./contract-primitives";
 
+export const plannerPlanningContextSchema = z.strictObject({
+  timeZone: timeZoneSchema,
+  workWindow: z
+    .strictObject({ start: localTimeSchema, end: localTimeSchema })
+    .refine((window) => window.start < window.end, {
+      path: ["end"],
+      message: "The work window must end after it starts.",
+    }),
+  defaultDurationMinutes: z.number().int().min(5).max(480),
+  bufferMinutes: z.number().int().min(0).max(120),
+});
+
 export const plannerInputSchema = z
   .strictObject({
     brainDump: brainDumpSchema,
     selectedTaskIds: z.array(entityIdSchema).max(50),
     planningDate: localDateSchema,
-    timeZone: timeZoneSchema,
-    workWindow: z
-      .strictObject({ start: localTimeSchema, end: localTimeSchema })
-      .refine((window) => window.start < window.end, {
-        path: ["end"],
-        message: "The work window must end after it starts.",
-      }),
-    defaultDurationMinutes: z.number().int().min(5).max(480),
-    bufferMinutes: z.number().int().min(0).max(120),
+    ...plannerPlanningContextSchema.shape,
   })
   .superRefine((input, context) => {
     if (input.brainDump.trim().length === 0 && input.selectedTaskIds.length === 0) {
@@ -42,3 +46,4 @@ export const plannerInputSchema = z
   });
 
 export type PlannerInput = z.infer<typeof plannerInputSchema>;
+export type PlannerPlanningContext = z.infer<typeof plannerPlanningContextSchema>;
