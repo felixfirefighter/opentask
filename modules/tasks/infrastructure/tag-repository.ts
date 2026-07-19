@@ -5,7 +5,7 @@ import { schema } from "@/shared/db/schema";
 
 import { createTaskTagRepository, type StoredTag } from "./task-tag-repository";
 
-export type { ReplaceTaskTagsResult, StoredTag } from "./task-tag-repository";
+export type { ReplaceTaskTagsResult, StoredTag, StoredTaskTag } from "./task-tag-repository";
 export type TagPageCursor = Readonly<{ normalizedName: string; id: string }>;
 
 export function createTagRepository(defaultExecutor: DatabaseExecutor = getDatabase()) {

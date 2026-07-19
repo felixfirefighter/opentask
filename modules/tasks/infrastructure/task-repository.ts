@@ -8,12 +8,14 @@ import {
   countActiveTasksByList,
   findScopedTask,
   listDirectSubtasks,
+  listActiveTerminalTaskPage,
   listActiveTaskPage,
   listActiveTaskRankScope,
   lockScopedTask,
   taskLifecyclePredicate,
   taskRankScopePredicate,
   type ActiveTaskPageQuery,
+  type ActiveTerminalTaskPageQuery,
   type TaskLifecycle,
   type TaskReadLifecycle,
   type TaskRankScope,
@@ -24,6 +26,7 @@ export type StoredTask = typeof schema.tasks.$inferSelect;
 export type TaskPriority = "none" | "low" | "medium" | "high";
 export type {
   ActiveTaskPageQuery,
+  ActiveTerminalTaskPageQuery,
   TaskLifecycle,
   TaskPageCursor,
   TaskRankScope,
@@ -87,6 +90,14 @@ export function createTaskRepository(defaultExecutor: DatabaseExecutor = getData
 
     listActivePage(userId: string, query: ActiveTaskPageQuery, executor: DatabaseExecutor = defaultExecutor) {
       return listActiveTaskPage(userId, query, executor);
+    },
+
+    listActiveTerminalPage(
+      userId: string,
+      query: ActiveTerminalTaskPageQuery,
+      executor: DatabaseExecutor = defaultExecutor,
+    ) {
+      return listActiveTerminalTaskPage(userId, query, executor);
     },
 
     listActiveRankScope(userId: string, scope: TaskRankScope, executor: DatabaseExecutor = defaultExecutor) {

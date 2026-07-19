@@ -31,6 +31,7 @@ export {
   tagQuerySchema,
   taskQuerySchema,
   taskSearchQuerySchema,
+  terminalTaskQuerySchema,
   transitionTaskStatusRequestSchema,
   updateChecklistItemRequestSchema,
   updateFolderRequestSchema,
@@ -52,10 +53,12 @@ export type {
   TagPage,
   TaskDetailDto,
   TaskDto,
+  TaskListItemDto,
   TaskPage,
   TaskQuery,
   TaskSearchPage,
   TaskSearchResultDto,
+  TerminalTaskQuery,
   TaskVersionRef,
 } from "./application/contracts";
 export type { TasksApplication } from "./application/tasks-application";

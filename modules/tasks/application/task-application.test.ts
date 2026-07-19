@@ -7,6 +7,7 @@ const repositories = vi.hoisted(() => ({
     findById: vi.fn(),
     lockById: vi.fn(),
     listActivePage: vi.fn(),
+    listActiveTerminalPage: vi.fn(),
     listActiveRankScope: vi.fn(),
     listDirectSubtasks: vi.fn(),
     insert: vi.fn(),
@@ -24,7 +25,7 @@ const repositories = vi.hoisted(() => ({
   lists: { findActiveById: vi.fn(), lockById: vi.fn() },
   sections: { findById: vi.fn(), lockById: vi.fn() },
   checklist: { listByTask: vi.fn() },
-  tags: { listActiveForTask: vi.fn() },
+  tags: { listActiveForTask: vi.fn(), listActiveForTasks: vi.fn() },
   lockRankScope: vi.fn(),
   lockRankScopes: vi.fn(),
 }));
@@ -119,11 +120,13 @@ describe("task application", () => {
     repositories.tasks.findById.mockResolvedValue(storedTask());
     repositories.tasks.lockById.mockResolvedValue(storedTask());
     repositories.tasks.listActivePage.mockResolvedValue([]);
+    repositories.tasks.listActiveTerminalPage.mockResolvedValue([]);
     repositories.tasks.listActiveRankScope.mockResolvedValue([]);
     repositories.tasks.listDirectSubtasks.mockResolvedValue([]);
     repositories.tasks.rewriteRanks.mockResolvedValue([]);
     repositories.checklist.listByTask.mockResolvedValue([]);
     repositories.tags.listActiveForTask.mockResolvedValue([]);
+    repositories.tags.listActiveForTasks.mockResolvedValue([]);
     repositories.lockRankScope.mockResolvedValue(undefined);
     repositories.lockRankScopes.mockResolvedValue(undefined);
   });
@@ -151,6 +154,46 @@ describe("task application", () => {
       userId,
       expect.objectContaining({ limit: 101 }),
     );
+    expect(repositories.tags.listActiveForTasks).toHaveBeenCalledWith(
+      userId,
+      page.items.map(({ id }) => id),
+    );
+  });
+
+  it("enriches a bounded task page with one bulk tag read", async () => {
+    repositories.tasks.listActivePage.mockResolvedValue([storedTask()]);
+    repositories.tags.listActiveForTasks.mockResolvedValue([
+      {
+        taskId,
+        tag: {
+          id: tagId,
+          userId,
+          name: "Launch",
+          colorToken: "coral",
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+        },
+      },
+    ]);
+
+    const page = await createTaskApplication({ database, clock }).listTasks(actor, {
+      listId,
+      parentTaskId: null,
+      status: "open",
+      limit: 50,
+    });
+
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        id: taskId,
+        tags: [expect.objectContaining({ id: tagId, name: "Launch" })],
+      }),
+    ]);
+    expect(page.items[0]).not.toHaveProperty("userId");
+    expect(page.items[0]?.tags[0]).not.toHaveProperty("userId");
+    expect(repositories.tags.listActiveForTasks).toHaveBeenCalledOnce();
   });
 
   it("assembles active checklist, tag, and subtask detail without exposing owner columns", async () => {

@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gt, isNotNull, isNull, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, isNotNull, isNull, lt, or, type SQL } from "drizzle-orm";
 
 import type { DatabaseExecutor } from "@/shared/db/client";
 import { schema } from "@/shared/db/schema";
@@ -18,6 +18,11 @@ export type ActiveTaskPageQuery = Readonly<{
   status: TaskStatus;
   limit: number;
   after?: TaskPageCursor;
+}>;
+export type ActiveTerminalTaskPageQuery = Readonly<{
+  status: "completed" | "cancelled";
+  limit: number;
+  after?: Readonly<{ statusChangedAt: Date; id: string }>;
 }>;
 
 export async function findScopedTask(
@@ -76,6 +81,35 @@ export function listActiveTaskPage(userId: string, query: ActiveTaskPageQuery, e
       ),
     )
     .orderBy(asc(schema.tasks.rank), asc(schema.tasks.id))
+    .limit(query.limit);
+}
+
+export function listActiveTerminalTaskPage(
+  userId: string,
+  query: ActiveTerminalTaskPageQuery,
+  executor: DatabaseExecutor,
+) {
+  if (!Number.isSafeInteger(query.limit) || query.limit < 1 || query.limit > 101) {
+    throw new RangeError("Terminal task repository page limit must be between 1 and 101.");
+  }
+  const after = query.after;
+  return executor
+    .select()
+    .from(schema.tasks)
+    .where(
+      and(
+        eq(schema.tasks.userId, userId),
+        eq(schema.tasks.status, query.status),
+        isNull(schema.tasks.deletedAt),
+        after
+          ? or(
+              lt(schema.tasks.statusChangedAt, after.statusChangedAt),
+              and(eq(schema.tasks.statusChangedAt, after.statusChangedAt), lt(schema.tasks.id, after.id)),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(desc(schema.tasks.statusChangedAt), desc(schema.tasks.id))
     .limit(query.limit);
 }
 

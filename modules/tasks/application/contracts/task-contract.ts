@@ -40,8 +40,12 @@ export const taskDetailDtoSchema = taskDtoSchema.extend({
   subtasks: z.array(taskDtoSchema),
 });
 
+export const taskListItemDtoSchema = taskDtoSchema.extend({
+  tags: z.array(tagDtoSchema),
+});
+
 export const taskPageSchema = z.strictObject({
-  items: z.array(taskDtoSchema),
+  items: z.array(taskListItemDtoSchema),
   nextCursor: opaqueCursorSchema.nullable(),
 });
 
@@ -50,6 +54,12 @@ export const taskQuerySchema = z.strictObject({
   sectionId: entityIdSchema.optional(),
   parentTaskId: entityIdSchema.nullable().optional().default(null),
   status: taskStatusSchema.default("open"),
+  cursor: opaqueCursorSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const terminalTaskQuerySchema = z.strictObject({
+  status: z.enum(["completed", "cancelled"]),
   cursor: opaqueCursorSchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
@@ -128,11 +138,13 @@ export type MoveTaskRequest = z.infer<typeof moveTaskRequestSchema>;
 export type PositionTaskRequest = z.infer<typeof positionTaskRequestSchema>;
 export type TaskDetailDto = z.infer<typeof taskDetailDtoSchema>;
 export type TaskDto = z.infer<typeof taskDtoSchema>;
+export type TaskListItemDto = z.infer<typeof taskListItemDtoSchema>;
 export type TaskPage = z.infer<typeof taskPageSchema>;
 export type TaskQuery = z.infer<typeof taskQuerySchema>;
 export type TaskSearchPage = z.infer<typeof taskSearchPageSchema>;
 export type TaskSearchQuery = z.infer<typeof taskSearchQuerySchema>;
 export type TaskSearchResultDto = z.infer<typeof taskSearchResultDtoSchema>;
+export type TerminalTaskQuery = z.infer<typeof terminalTaskQuerySchema>;
 export type TaskVersionRef = z.infer<typeof taskVersionRefSchema>;
 export type TransitionTaskStatusRequest = z.infer<typeof transitionTaskStatusRequestSchema>;
 export type UpdateTaskRequest = z.infer<typeof updateTaskRequestSchema>;

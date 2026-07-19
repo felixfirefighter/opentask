@@ -4,6 +4,7 @@ import { type DatabaseExecutor, type DatabaseTransaction } from "@/shared/db/cli
 import { schema } from "@/shared/db/schema";
 
 export type StoredTag = typeof schema.tags.$inferSelect;
+export type StoredTaskTag = Readonly<{ taskId: string; tag: StoredTag }>;
 
 export type ReplaceTaskTagsResult =
   | Readonly<{ kind: "updated"; taskId: string; version: number; tags: readonly StoredTag[] }>
@@ -15,6 +16,14 @@ export function createTaskTagRepository(defaultExecutor: DatabaseExecutor) {
   return {
     listActiveForTask(userId: string, taskId: string, executor: DatabaseExecutor = defaultExecutor) {
       return listTagsForTask(userId, taskId, executor);
+    },
+
+    listActiveForTasks(
+      userId: string,
+      taskIds: readonly string[],
+      executor: DatabaseExecutor = defaultExecutor,
+    ) {
+      return listTagsForTasks(userId, taskIds, executor);
     },
 
     async replaceForActiveTask(
@@ -87,6 +96,50 @@ export function createTaskTagRepository(defaultExecutor: DatabaseExecutor) {
       return { kind: "updated", taskId: task.id, version: updatedTask.version, tags };
     },
   };
+}
+
+async function listTagsForTasks(
+  userId: string,
+  taskIds: readonly string[],
+  executor: DatabaseExecutor,
+): Promise<StoredTaskTag[]> {
+  if (taskIds.length === 0) return [];
+  if (taskIds.length > 100 || new Set(taskIds).size !== taskIds.length) {
+    throw new RangeError("Bulk task-tag reads require at most 100 unique task IDs.");
+  }
+  const rows = await executor
+    .select({
+      taskId: schema.taskTags.taskId,
+      id: schema.tags.id,
+      userId: schema.tags.userId,
+      name: schema.tags.name,
+      colorToken: schema.tags.colorToken,
+      version: schema.tags.version,
+      createdAt: schema.tags.createdAt,
+      updatedAt: schema.tags.updatedAt,
+      deletedAt: schema.tags.deletedAt,
+    })
+    .from(schema.taskTags)
+    .innerJoin(
+      schema.tasks,
+      and(eq(schema.tasks.id, schema.taskTags.taskId), eq(schema.tasks.userId, schema.taskTags.userId)),
+    )
+    .innerJoin(
+      schema.tags,
+      and(eq(schema.tags.id, schema.taskTags.tagId), eq(schema.tags.userId, schema.taskTags.userId)),
+    )
+    .where(
+      and(
+        eq(schema.taskTags.userId, userId),
+        inArray(schema.taskTags.taskId, taskIds),
+        eq(schema.tasks.userId, userId),
+        isNull(schema.tasks.deletedAt),
+        eq(schema.tags.userId, userId),
+        isNull(schema.tags.deletedAt),
+      ),
+    )
+    .orderBy(asc(schema.taskTags.taskId), asc(sql`lower(${schema.tags.name})`), asc(schema.tags.id));
+  return rows.map(({ taskId, ...tag }) => ({ taskId, tag }));
 }
 
 function listTagsForTask(userId: string, taskId: string, executor: DatabaseExecutor): Promise<StoredTag[]> {

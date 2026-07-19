@@ -23,8 +23,8 @@
 - Detail commands: manage tags and checklist items; set/clear schedule; set/edit supported recurrence; complete, skip, or reopen the current occurrence.
 - Queries: get task detail, list/search tasks, load selected open unscheduled tasks, and range-bounded schedule/occurrence reads.
 - Parsing: `parseQuickAdd(text, timezone)` returns the unchanged source text plus explicit editable suggestions; it performs no write.
-- Public contracts: the WP02 folder/list/section/tag/task DTO and page types,
-  `ReplaceTaskTagsOutput`, `TaskQuery`, `TaskVersionRef`, `TaskScheduleDto`, `TaskOccurrenceDto`,
+- Public contracts: the WP02 folder/list/section/tag/task DTO and tag-enriched task-list item/page types,
+  `ReplaceTaskTagsOutput`, `TaskQuery`, `TerminalTaskQuery`, `TaskVersionRef`, `TaskScheduleDto`, `TaskOccurrenceDto`,
   `TaskSnapshotReader`, and narrow mutation services used by assistant/planning/portability.
 - The module root explicitly exports only those cross-module DTOs plus the strict request/query schemas
   consumed by `app/api/v1`; base resource, cursor, rank, and field schemas remain module-internal.

@@ -35,7 +35,9 @@ import {
   taskRankScope,
 } from "./task-application-support";
 import { createTaskLifecycleCommands } from "./task-lifecycle-commands";
+import { createTerminalTaskQuery } from "./terminal-task-query";
 import { taskConflict, taskResourceNotFound } from "./task-errors";
+import { mapTaskListItems } from "./task-list-item-projection";
 import { normalizeTaskTitle, validateTaskDescription } from "../domain/task-text";
 import { createChecklistRepository } from "../infrastructure/checklist-repository";
 import { createSectionRepository } from "../infrastructure/section-repository";
@@ -53,6 +55,7 @@ export function createTaskApplication({ database, clock }: { database: Database;
   const tags = createTagRepository(database);
   const placementRepositories = { tasks, lists, sections };
   const lifecycleCommands = createTaskLifecycleCommands({ database, clock });
+  const terminalQuery = createTerminalTaskQuery({ database });
 
   return {
     async listTasks(actor: AuthenticatedActor, rawQuery: TaskQuery): Promise<TaskPage> {
@@ -84,7 +87,14 @@ export function createTaskApplication({ database, clock }: { database: Database;
         ...(after ? { after } : {}),
       });
       const page = pageFromRows(rows, query.limit);
-      return taskPageSchema.parse({ items: page.items.map(mapTask), nextCursor: page.nextCursor });
+      const taskTags = await tags.listActiveForTasks(
+        actor.userId,
+        page.items.map(({ id }) => id),
+      );
+      return taskPageSchema.parse({
+        items: mapTaskListItems(page.items, taskTags),
+        nextCursor: page.nextCursor,
+      });
     },
 
     async getTask(actor: AuthenticatedActor, rawTaskId: string): Promise<TaskDetailDto> {
@@ -228,6 +238,7 @@ export function createTaskApplication({ database, clock }: { database: Database;
     },
 
     ...lifecycleCommands,
+    ...terminalQuery,
   };
 }
 
