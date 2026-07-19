@@ -94,20 +94,28 @@ const calendarEventFields = {
   version: versionSchema,
 } as const;
 
-const allDayCalendarEventSchema = z.strictObject({
-  ...calendarEventFields,
-  kind: z.literal("all_day"),
-  startDate: localDateSchema,
-  endDate: localDateSchema,
-});
+const allDayCalendarEventSchema = z
+  .strictObject({
+    ...calendarEventFields,
+    kind: z.literal("all_day"),
+    startDate: localDateSchema,
+    endDate: localDateSchema,
+  })
+  .refine((event) => compareLocalDates(event.endDate, event.startDate) > 0, {
+    message: "An all-day event must end after it starts.",
+  });
 
-const timedCalendarEventSchema = z.strictObject({
-  ...calendarEventFields,
-  kind: z.literal("timed"),
-  startAt: instantSchema,
-  endAt: instantSchema,
-  timezone: ianaTimeZoneSchema,
-});
+const timedCalendarEventSchema = z
+  .strictObject({
+    ...calendarEventFields,
+    kind: z.literal("timed"),
+    startAt: instantSchema,
+    endAt: instantSchema,
+    timezone: ianaTimeZoneSchema,
+  })
+  .refine((event) => compareInstants(event.endAt, event.startAt) >= 0, {
+    message: "A timed event cannot end before it starts.",
+  });
 
 export const calendarEventDtoSchema = z.discriminatedUnion("kind", [
   allDayCalendarEventSchema,

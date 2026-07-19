@@ -47,8 +47,8 @@ export function buildLocalRange(startDate: string, endDate: string, timeZone: st
   return {
     startDate,
     endDate,
-    startAt: start.toString(),
-    endAt: end.toString(),
+    startAt: start.toInstant().toString(),
+    endAt: end.toInstant().toString(),
   };
 }
 

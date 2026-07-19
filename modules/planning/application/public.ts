@@ -1,4 +1,5 @@
 export { buildDeterministicPlan } from "./build-deterministic-plan";
+export { createPlanningProjectionApplication } from "./planning-projection-application";
 export {
   PLANNING_PROJECTION_MAX_ROWS,
   PLANNING_RANGE_MAX_LOCAL_DAYS,
@@ -36,6 +37,7 @@ export type {
   TodayProjection,
   UpcomingProjection,
 } from "./projection-dto-contract";
+export type { PlanningProjectionApplication } from "./planning-projection-application";
 export type {
   BusyInterval,
   FixedSchedulingCandidate,

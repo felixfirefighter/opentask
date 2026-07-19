@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calendarEventDtoSchema,
   calendarProjectionSchema,
   eisenhowerProjectionSchema,
   planningRangeQuerySchema,
@@ -116,6 +117,23 @@ describe("planning projection DTO contracts", () => {
         timeSensitive: [],
         later: [],
         truncated: false,
+      }),
+    ).toThrow();
+  });
+
+  it("rejects invalid flattened Calendar event bounds", () => {
+    expect(() =>
+      calendarEventDtoSchema.parse({
+        taskId,
+        listId,
+        title: "Backwards event",
+        status: "open",
+        priority: "none",
+        version: 1,
+        kind: "timed",
+        startAt: "2026-07-20T02:00:00Z",
+        endAt: "2026-07-20T01:00:00Z",
+        timezone: "Asia/Singapore",
       }),
     ).toThrow();
   });
