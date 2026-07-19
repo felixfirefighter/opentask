@@ -8,7 +8,7 @@
 - urgent = its derived schedule due boundary is overdue or falls within the user's next 24 hours;
 - every task belongs to one of the remaining combinations.
 
-The due boundary is the timed end or exclusive all-day end interpreted in the schedule timezone. It is derived from the canonical schedule and never persisted as a second field; unscheduled tasks are not urgent.
+The due boundary is the timed end or exclusive all-day end interpreted at midnight in the user's saved IANA timezone. It is derived from the canonical schedule and never persisted as a second field; unscheduled tasks are not urgent.
 
 Use plain secondary labels so the surface is actionable without implying collaboration:
 

@@ -47,7 +47,7 @@ Acceptance:
 - Eisenhower view derived from priority and urgency rules:
   - important = high priority;
   - urgent = overdue or due within the user's next 24 hours;
-  - due boundary is derived, never stored separately: timed `end_at`, or the exclusive all-day `end_date` at midnight in the schedule timezone; an unscheduled task is not urgent;
+  - due boundary is derived, never stored separately: timed `end_at`, or the exclusive all-day `end_date` at midnight in the user's saved IANA timezone; an unscheduled task is not urgent;
   - all other tasks fall into the remaining quadrants.
 - Matrix actions can edit priority and schedule through accessible menus; drag between quadrants is not committed.
 - Global command/search palette with keyboard navigation for destinations, task search, and quick add.

@@ -70,7 +70,7 @@ Time is a product invariant, not a formatting detail.
 - Timed schedules persist UTC instants plus an IANA timezone describing user intent.
 - All-day schedules persist local `date` values, never midnight UTC stand-ins.
 - A task schedule is either all-day or timed; database constraints prevent mixed representations.
-- A task's derived due boundary is timed `end_at`, or the exclusive all-day `end_date` interpreted at local midnight. Matrix/overdue queries compute it; no `due_at` or deadline duplicate is stored.
+- A task's derived due boundary is timed `end_at`, or the exclusive all-day `end_date` interpreted at midnight in the user's saved IANA timezone. Matrix/overdue queries compute it; no `due_at` or deadline duplicate is stored.
 - Smart-list boundaries use the user's saved timezone.
 - Presentation formatting uses the user's week start and hour-cycle preferences.
 
