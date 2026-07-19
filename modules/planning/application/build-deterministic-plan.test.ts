@@ -152,6 +152,80 @@ describe("buildDeterministicPlan interval policy", () => {
     expect(result.placed[0]?.startAt).toBe("2026-07-20T01:20:00Z");
   });
 
+  it("accepts a point busy interval without reserving time when the buffer is zero", () => {
+    const result = buildDeterministicPlan(
+      input({
+        workWindows: [{ localDate: "2026-07-20", startTime: "09:00", endTime: "10:00" }],
+        busyIntervals: [
+          {
+            semanticRef: "point-busy",
+            startAt: "2026-07-20T01:30:00Z",
+            endAt: "2026-07-20T01:30:00Z",
+          },
+        ],
+        bufferMinutes: 0,
+        candidates: [{ kind: "flexible", semanticRef: "exact", durationMinutes: 60 }],
+      }),
+    );
+
+    expect(result).toEqual({
+      placed: [
+        {
+          semanticRef: "exact",
+          startAt: "2026-07-20T01:00:00Z",
+          endAt: "2026-07-20T02:00:00Z",
+        },
+      ],
+      overflow: [],
+      conflicts: [],
+    });
+  });
+
+  it("reserves the configured buffer around a point busy interval", () => {
+    const result = buildDeterministicPlan(
+      input({
+        workWindows: [{ localDate: "2026-07-20", startTime: "09:00", endTime: "12:00" }],
+        busyIntervals: [
+          {
+            semanticRef: "point-busy",
+            startAt: "2026-07-20T02:00:00Z",
+            endAt: "2026-07-20T02:00:00Z",
+          },
+        ],
+        bufferMinutes: 15,
+        candidates: [{ kind: "flexible", semanticRef: "buffered", durationMinutes: 60 }],
+      }),
+    );
+
+    expect(result.placed[0]).toEqual({
+      semanticRef: "buffered",
+      startAt: "2026-07-20T02:15:00Z",
+      endAt: "2026-07-20T03:15:00Z",
+    });
+    expect(result.conflicts).toEqual([]);
+  });
+
+  it("continues to reject a reversed busy interval", () => {
+    const result = buildDeterministicPlan(
+      input({
+        busyIntervals: [
+          {
+            semanticRef: "reversed",
+            startAt: "2026-07-20T03:00:00Z",
+            endAt: "2026-07-20T02:00:00Z",
+          },
+        ],
+        candidates: [{ kind: "flexible", semanticRef: "not-placed", durationMinutes: 30 }],
+      }),
+    );
+
+    expect(result).toEqual({
+      placed: [],
+      overflow: [],
+      conflicts: [{ semanticRef: "reversed", code: "INVALID_BUSY_INTERVAL" }],
+    });
+  });
+
   it("rejects fixed candidates that cross either work-window boundary", () => {
     const result = buildDeterministicPlan(
       input({
@@ -201,6 +275,41 @@ describe("buildDeterministicPlan interval policy", () => {
         endAt: "2026-07-20T09:00:00Z",
       },
     ]);
+  });
+
+  it("accepts a point fixed candidate and leaves capacity available at zero buffer", () => {
+    const result = buildDeterministicPlan(
+      input({
+        workWindows: [{ localDate: "2026-07-20", startTime: "09:00", endTime: "10:00" }],
+        bufferMinutes: 0,
+        candidates: [
+          {
+            kind: "fixed",
+            semanticRef: "point-fixed",
+            startAt: "2026-07-20T01:30:00Z",
+            endAt: "2026-07-20T01:30:00Z",
+          },
+          { kind: "flexible", semanticRef: "exact", durationMinutes: 60 },
+        ],
+      }),
+    );
+
+    expect(result).toEqual({
+      placed: [
+        {
+          semanticRef: "point-fixed",
+          startAt: "2026-07-20T01:30:00Z",
+          endAt: "2026-07-20T01:30:00Z",
+        },
+        {
+          semanticRef: "exact",
+          startAt: "2026-07-20T01:00:00Z",
+          endAt: "2026-07-20T02:00:00Z",
+        },
+      ],
+      overflow: [],
+      conflicts: [],
+    });
   });
 
   it("rejects every overlapping fixed candidate instead of choosing one", () => {
@@ -352,6 +461,79 @@ describe("buildDeterministicPlan interval policy", () => {
 
     expect(result.placed.map((block) => block.semanticRef)).toEqual(["first-input", "second-input"]);
     expect(result.placed[0]?.startAt).toBe("2026-07-20T01:30:00Z");
+  });
+
+  it("allocates deadline-constrained work before unconstrained work in either input order", () => {
+    const unconstrained = {
+      kind: "flexible" as const,
+      semanticRef: "unconstrained",
+      durationMinutes: 60,
+    };
+    const constrained = {
+      kind: "flexible" as const,
+      semanticRef: "deadline",
+      durationMinutes: 60,
+      deadlineAt: "2026-07-20T02:00:00Z",
+    };
+
+    for (const candidates of [
+      [unconstrained, constrained],
+      [constrained, unconstrained],
+    ]) {
+      const schedulingInput = input({
+        workWindows: [{ localDate: "2026-07-20", startTime: "09:00", endTime: "11:00" }],
+        bufferMinutes: 0,
+        candidates,
+      });
+      const result = buildDeterministicPlan(schedulingInput);
+
+      expect(result.overflow).toEqual([]);
+      expect(result.conflicts).toEqual([]);
+      expect(result.placed.find((block) => block.semanticRef === "deadline")).toEqual({
+        semanticRef: "deadline",
+        startAt: "2026-07-20T01:00:00Z",
+        endAt: "2026-07-20T02:00:00Z",
+      });
+      expect(result.placed.find((block) => block.semanticRef === "unconstrained")).toEqual({
+        semanticRef: "unconstrained",
+        startAt: "2026-07-20T02:00:00Z",
+        endAt: "2026-07-20T03:00:00Z",
+      });
+      expect(JSON.stringify(buildDeterministicPlan(schedulingInput))).toBe(JSON.stringify(result));
+    }
+  });
+
+  it("leaves pre-earliest-start capacity available to later candidates", () => {
+    const result = buildDeterministicPlan(
+      input({
+        workWindows: [{ localDate: "2026-07-20", startTime: "09:00", endTime: "12:00" }],
+        bufferMinutes: 0,
+        candidates: [
+          {
+            kind: "flexible",
+            semanticRef: "constrained",
+            durationMinutes: 60,
+            earliestStartAt: "2026-07-20T02:00:00Z",
+            deadlineAt: "2026-07-20T03:00:00Z",
+          },
+          { kind: "flexible", semanticRef: "fills-before", durationMinutes: 60 },
+        ],
+      }),
+    );
+
+    expect(result.overflow).toEqual([]);
+    expect(result.placed).toEqual([
+      {
+        semanticRef: "constrained",
+        startAt: "2026-07-20T02:00:00Z",
+        endAt: "2026-07-20T03:00:00Z",
+      },
+      {
+        semanticRef: "fills-before",
+        startAt: "2026-07-20T01:00:00Z",
+        endAt: "2026-07-20T02:00:00Z",
+      },
+    ]);
   });
 
   it("rejects every occurrence of a duplicate semantic reference", () => {

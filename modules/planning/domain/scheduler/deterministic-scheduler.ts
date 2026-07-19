@@ -48,7 +48,7 @@ export function scheduleDeterministically(input: RawSchedulingInput): DomainSche
   const placements: IndexedPlacement[] = acceptedFixed.map((candidate) => ({ ...candidate }));
   const overflow: SchedulingOverflow[] = [];
 
-  for (const candidate of flexibleCandidates) {
+  for (const candidate of [...flexibleCandidates].sort(compareAllocationPriority)) {
     if (candidateConflicts.has(candidate.index)) {
       continue;
     }
@@ -159,6 +159,23 @@ function compareIntervals(left: InstantInterval, right: InstantInterval): number
   }
 
   return left.start < right.start ? -1 : 1;
+}
+
+function compareAllocationPriority(left: IndexedFlexibleCandidate, right: IndexedFlexibleCandidate): number {
+  // Earliest deadlines win; equal deadlines retain caller order and unconstrained work is last.
+  if (left.deadline === null && right.deadline !== null) {
+    return 1;
+  }
+
+  if (left.deadline !== null && right.deadline === null) {
+    return -1;
+  }
+
+  if (left.deadline !== null && right.deadline !== null && left.deadline !== right.deadline) {
+    return left.deadline < right.deadline ? -1 : 1;
+  }
+
+  return left.index - right.index;
 }
 
 function resultWithGlobalConflict(code: SchedulingConflict["code"]): DomainSchedulingResult {

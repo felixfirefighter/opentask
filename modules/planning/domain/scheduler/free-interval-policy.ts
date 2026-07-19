@@ -16,7 +16,13 @@ export function intervalIsContained(
   interval: InstantInterval,
   containers: readonly InstantInterval[],
 ): boolean {
-  return containers.some((container) => interval.start >= container.start && interval.end <= container.end);
+  return containers.some((container) => {
+    if (interval.start === interval.end) {
+      return interval.start >= container.start && interval.start < container.end;
+    }
+
+    return interval.start >= container.start && interval.end <= container.end;
+  });
 }
 
 export function sortIntervals(intervals: readonly InstantInterval[]): InstantInterval[] {
@@ -54,7 +60,8 @@ export function freeIntervals(
       .map((interval) => ({
         start: interval.start < window.start ? window.start : interval.start,
         end: interval.end > window.end ? window.end : interval.end,
-      })),
+      }))
+      .filter((interval) => interval.end > interval.start),
   );
   const free: InstantInterval[] = [];
   let cursor = window.start;

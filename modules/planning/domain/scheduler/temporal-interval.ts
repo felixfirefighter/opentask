@@ -27,7 +27,7 @@ export function parseInstantInterval(startAt: string, endAt: string): InstantInt
   const start = parseInstant(startAt);
   const end = parseInstant(endAt);
 
-  if (start === null || end === null || end <= start) {
+  if (start === null || end === null || end < start) {
     return null;
   }
 
