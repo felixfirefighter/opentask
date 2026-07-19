@@ -28,4 +28,31 @@ describe("DemoEntryAction", () => {
     expect(screen.getByRole("button", { name: "Preparing demo…" })).toBeDisabled();
     expect(screen.getByText("Preparing an isolated demo workspace…")).toBeInTheDocument();
   });
+
+  it("disables entry while offline without attempting a write", () => {
+    const fetchRequest = vi.fn();
+    vi.stubGlobal("fetch", fetchRequest);
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+
+    render(<DemoEntryAction />);
+
+    expect(screen.getByRole("button", { name: "Try demo" })).toBeDisabled();
+    expect(screen.getByText("A connection is required to create an isolated demo.")).toBeInTheDocument();
+    expect(fetchRequest).not.toHaveBeenCalled();
+  });
+
+  it("keeps the visitor on the entry surface with a safe retry after failure", async () => {
+    const fetchRequest = vi.fn().mockResolvedValue(new Response(null, { status: 503 }));
+    vi.stubGlobal("fetch", fetchRequest);
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+    const user = userEvent.setup();
+
+    render(<DemoEntryAction />);
+    await user.click(screen.getByRole("button", { name: "Try demo" }));
+
+    expect(
+      await screen.findByText("No demo workspace was opened. Try again or create your own account."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try demo" })).toBeEnabled();
+  });
 });

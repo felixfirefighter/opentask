@@ -14,6 +14,7 @@ import { logger } from "@/shared/logging/logger";
 
 import type { AuthRuntimeConfig } from "./auth-runtime-config";
 import { preparePublicAuthRequest } from "./authentication-request-contract";
+import { demoEmailSuffix } from "./demo-account-policy";
 
 const clientAddressPolicy: NonNullable<NonNullable<BetterAuthOptions["advanced"]>["ipAddress"]> = {
   ipAddressHeaders: ["x-real-ip"],
@@ -148,7 +149,7 @@ export function createAuthenticationGateway({
     },
 
     async createDemoAccount(headers: Headers) {
-      const email = `demo-${randomUUID()}@demo.opentask.invalid`;
+      const email = `demo-${randomUUID()}${demoEmailSuffix}`;
       const password = `${randomBytes(32).toString("base64url")}Aa1!`;
       await auth.api.signUpEmail({
         headers,

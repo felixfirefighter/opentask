@@ -4,7 +4,8 @@ import type { Database, DatabaseTransaction } from "@/shared/db/client";
 import { ApplicationError } from "@/shared/http/application-error";
 import type { Clock } from "@/shared/time/clock";
 
-import { createInboxBootstrapPort } from "@/modules/tasks";
+import { createDemoProposalResetter } from "@/modules/assistant";
+import { createDemoDatasetSeeder, createInboxBootstrapPort } from "@/modules/tasks";
 
 import type { DemoDatasetSeeder, DemoEntryResult, InboxBootstrapPort } from "./contracts";
 import {
@@ -20,16 +21,14 @@ import { createAuthenticationGateway } from "../infrastructure/authentication-ga
 import { createDemoEntryLimiter } from "../infrastructure/demo-entry-limiter";
 import { createPreferencesRepository } from "../infrastructure/preferences-repository";
 import type { StoredPreferences } from "../infrastructure/preferences-repository";
-
-const demoEmailSuffix = "@demo.opentask.invalid";
-const emptyDemoSeeder: DemoDatasetSeeder = { reset: async () => undefined };
+import { isDemoAccountEmail } from "../infrastructure/demo-account-policy";
 
 export function createIdentityApplication({
   database,
   clock,
   authRuntime,
   inboxPort = createInboxBootstrapPort(database, clock),
-  demoSeeder = emptyDemoSeeder,
+  demoSeeder = createDefaultDemoSeeder(database, clock),
 }: {
   database: Database;
   clock: Clock;
@@ -116,7 +115,7 @@ export function createIdentityApplication({
     }
 
     const current = await authentication.findSession(headers);
-    if (current?.email.endsWith(demoEmailSuffix)) {
+    if (current && isDemoAccountEmail(current.email)) {
       await bootstrapAccount(current.actor.userId);
       await demoSeeder.reset(current.actor.userId);
       return { actor: current.actor, mode: "reset", setCookieHeaders: [] };
@@ -141,6 +140,19 @@ export function createIdentityApplication({
     resolveActor,
     security: authentication.security,
     updateUserPreferences,
+  };
+}
+
+function createDefaultDemoSeeder(database: Database, clock: Clock): DemoDatasetSeeder {
+  const proposals = createDemoProposalResetter({ database });
+  const tasks = createDemoDatasetSeeder({ database, clock });
+  return {
+    async reset(userId: string): Promise<void> {
+      await database.transaction(async (transaction) => {
+        await proposals.reset(userId, transaction);
+        await tasks.reset(userId, transaction);
+      });
+    },
   };
 }
 

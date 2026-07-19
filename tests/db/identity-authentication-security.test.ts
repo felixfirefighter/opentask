@@ -82,6 +82,23 @@ describe("identity authentication and request security", () => {
     );
     expect(unknownField.status).toBe(400);
 
+    const userCountBeforeReservedAttempt = (await database.select({ id: schema.user.id }).from(schema.user))
+      .length;
+    const reservedDemoIdentity = await application.handleAuthRequest(
+      authRequest("/sign-up/email", {
+        email: "visitor@DEMO.OPENTASK.INVALID",
+        password: identityTestPassword,
+      }),
+    );
+    expect(reservedDemoIdentity.status).toBe(400);
+    await expect(reservedDemoIdentity.clone().json()).resolves.toMatchObject({
+      code: "VALIDATION_FAILED",
+      detail: "Review the submitted values and try again.",
+    });
+    expect(await database.select({ id: schema.user.id }).from(schema.user)).toHaveLength(
+      userCountBeforeReservedAttempt,
+    );
+
     const oversized = await application.handleAuthRequest(
       authRequest("/sign-up/email", { ...credentials, padding: "x".repeat(1200) }),
     );

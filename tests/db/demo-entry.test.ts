@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { like } from "drizzle-orm";
+import { and, eq, like, ne, sql } from "drizzle-orm";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -95,6 +95,92 @@ describe("isolated demo entry", () => {
     }
   });
 
+  it("creates a session-backed visitor and seeds the real task dataset through the route", async () => {
+    const { POST } = await import("../../app/api/v1/demo/route.ts");
+    const response = await POST(demoMutationRequest({ clientAddress: "203.0.113.91" }));
+
+    expect(response.status).toBe(200);
+    await expect(response.clone().json()).resolves.toEqual({ mode: "created", redirectTo: "/inbox" });
+    const cookie = cookiesFromSetCookie(response.headers.getSetCookie());
+    expect(cookie).not.toBe("");
+
+    const identity = await createIdentityApplication({
+      database,
+      clock,
+      authRuntime,
+    }).getOptionalSessionIdentity(new Headers({ cookie }));
+    expect(identity?.email).toMatch(/^demo-.*@demo\.opentask\.invalid$/);
+    const taskRows = await database
+      .select({ title: schema.tasks.title })
+      .from(schema.tasks)
+      .where(eq(schema.tasks.userId, identity!.actor.userId));
+    expect(taskRows).toHaveLength(10);
+    expect(taskRows).toContainEqual({ title: "Record the two-minute demo" });
+    expect(taskRows).toContainEqual({ title: "Draft the launch narrative" });
+
+    const otherResponse = await POST(demoMutationRequest({ clientAddress: "203.0.113.92" }));
+    const otherCookie = cookiesFromSetCookie(otherResponse.headers.getSetCookie());
+    const otherIdentity = await createIdentityApplication({
+      database,
+      clock,
+      authRuntime,
+    }).getOptionalSessionIdentity(new Headers({ cookie: otherCookie }));
+    await insertPendingProposal(identity!.actor.userId);
+    await insertPendingProposal(otherIdentity!.actor.userId);
+
+    const resetResponse = await POST(demoMutationRequest({ clientAddress: "203.0.113.91", cookie }));
+    expect(resetResponse.status).toBe(200);
+    await expect(resetResponse.json()).resolves.toEqual({ mode: "reset", redirectTo: "/inbox" });
+    const proposals = await database
+      .select({ userId: schema.plannerProposals.userId })
+      .from(schema.plannerProposals);
+    expect(proposals).toEqual([{ userId: otherIdentity!.actor.userId }]);
+  });
+
+  it("rolls task data and planner proposals back together when reset cannot finish", async () => {
+    const { POST } = await import("../../app/api/v1/demo/route.ts");
+    const created = await POST(demoMutationRequest({ clientAddress: "203.0.113.93" }));
+    const cookie = cookiesFromSetCookie(created.headers.getSetCookie());
+    const identity = await createIdentityApplication({
+      database,
+      clock,
+      authRuntime,
+    }).getOptionalSessionIdentity(new Headers({ cookie }));
+    const userId = identity!.actor.userId;
+    await insertPendingProposal(userId);
+    await database
+      .update(schema.tasks)
+      .set({ title: "Keep the previous demo after failure" })
+      .where(and(eq(schema.tasks.userId, userId), eq(schema.tasks.title, "Record the two-minute demo")));
+    await database
+      .update(schema.tasks)
+      .set({ title: "Earlier isolated demo task" })
+      .where(and(ne(schema.tasks.userId, userId), eq(schema.tasks.title, "Record the two-minute demo")));
+    await database.execute(
+      sql`alter table tasks add constraint demo_entry_forced_failure
+          check (title <> 'Record the two-minute demo')`,
+    );
+
+    try {
+      const failedReset = await POST(demoMutationRequest({ clientAddress: "203.0.113.93", cookie }));
+      expect(failedReset.status).toBe(500);
+      expect(
+        await database
+          .select({ id: schema.plannerProposals.id })
+          .from(schema.plannerProposals)
+          .where(eq(schema.plannerProposals.userId, userId)),
+      ).toHaveLength(1);
+      expect(
+        await database
+          .select({ title: schema.tasks.title })
+          .from(schema.tasks)
+          .where(eq(schema.tasks.userId, userId)),
+      ).toContainEqual({ title: "Keep the previous demo after failure" });
+    } finally {
+      await database.execute(sql`alter table tasks drop constraint demo_entry_forced_failure`);
+    }
+  });
+
   it("asks the injected seeder to reset only the current demo actor", async () => {
     const seededByUser = new Map<string, number>();
     const demoSeeder: DemoDatasetSeeder = {
@@ -166,19 +252,43 @@ function demoRequest(clientAddress: string, cookie?: string) {
 function demoMutationRequest({
   origin = authRuntime.baseUrl,
   contentType = "application/json",
+  clientAddress = "203.0.113.90",
+  cookie,
 }: {
   origin?: string | null;
   contentType?: string;
+  clientAddress?: string;
+  cookie?: string;
 }) {
   const headers = new Headers({
     "content-type": contentType,
     "sec-fetch-site": "same-origin",
-    "x-real-ip": "203.0.113.90",
+    "x-real-ip": clientAddress,
   });
   if (origin) headers.set("origin", origin);
+  if (cookie) headers.set("cookie", cookie);
   return new Request(`${authRuntime.baseUrl}/api/v1/demo`, {
     method: "POST",
     headers,
     body: contentType === "application/json" ? JSON.stringify({}) : "demo=true",
+  });
+}
+
+async function insertPendingProposal(userId: string): Promise<void> {
+  const createdAt = clock.now();
+  await database.insert(schema.plannerProposals).values({
+    id: randomUUID(),
+    userId,
+    planningDate: "2026-07-18",
+    schemaVersion: 1,
+    proposal: {},
+    contextVersions: {},
+    status: "pending",
+    model: "gpt-5.6",
+    promptVersion: "demo-reset-test",
+    idempotencyKey: randomUUID(),
+    createdAt,
+    expiresAt: new Date(createdAt.getTime() + 60_000),
+    appliedAt: null,
   });
 }

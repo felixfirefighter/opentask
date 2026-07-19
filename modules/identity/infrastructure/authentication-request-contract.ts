@@ -3,6 +3,8 @@ import { z } from "zod";
 import { ApplicationError } from "@/shared/http/application-error";
 import { readBoundedJson } from "@/shared/http/request-security";
 
+import { isDemoAccountEmail } from "./demo-account-policy";
+
 const maximumAuthRequestBytes = 1024;
 const authApiPath = "/api/auth";
 
@@ -12,6 +14,10 @@ const credentialsSchema = z.strictObject({
   email: emailSchema,
   password: passwordSchema,
 });
+const signUpCredentialsSchema = credentialsSchema.refine(
+  ({ email }) => !isDemoAccountEmail(email),
+  "That email address is reserved.",
+);
 const emptyBodySchema = z.strictObject({});
 const publicPostPaths = new Set([
   `${authApiPath}/sign-up/email`,
@@ -35,7 +41,7 @@ export async function preparePublicAuthRequest(request: Request): Promise<Reques
 
   const input = await readBoundedJson(request, maximumAuthRequestBytes);
   if (url.pathname === `${authApiPath}/sign-up/email`) {
-    const credentials = credentialsSchema.parse(input);
+    const credentials = signUpCredentialsSchema.parse(input);
     return replaceJsonBody(request, { ...credentials, name: "OpenTask user" });
   }
   if (url.pathname === `${authApiPath}/sign-in/email`) {

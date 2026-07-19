@@ -101,5 +101,13 @@ export function createPlannerProposalRepository(
         .returning({ id: table.id });
       return records.length === 1;
     },
+
+    async deleteOwned(userId: string, executor: DatabaseExecutor = defaultExecutor): Promise<number> {
+      const records = await executor
+        .delete(table)
+        .where(eq(table.userId, userId))
+        .returning({ id: table.id });
+      return records.length;
+    },
   };
 }

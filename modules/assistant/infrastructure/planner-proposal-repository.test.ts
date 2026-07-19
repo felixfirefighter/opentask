@@ -58,6 +58,16 @@ describe("planner proposal repository SQL scoping", () => {
     expect(query?.params).toEqual(expect.arrayContaining([userId, "pending", now.toISOString()]));
   });
 
+  it("deletes reset data only for the selected actor", async () => {
+    const fixture = createRecorder();
+    await expect(fixture.repository.deleteOwned(userId)).resolves.toBe(0);
+
+    const query = fixture.queries[0];
+    expect(query?.sql).toContain('delete from "planner_proposals"');
+    expect(query?.sql).toContain('"planner_proposals"."user_id" =');
+    expect(query?.params).toContain(userId);
+  });
+
   it("rejects an applied status without its matching application timestamp", async () => {
     const fixture = createRecorder();
     await expect(

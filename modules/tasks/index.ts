@@ -1,4 +1,5 @@
 export { createInboxBootstrapPort, getInbox } from "./application/inbox";
+export { createDemoDatasetSeeder } from "./application/demo-dataset-seeder";
 export { parseTaskApiCreateKey, parseTaskApiResourceId } from "./application/api-identifiers";
 export { getTasksApplication } from "./application/public";
 export { readPortableTasks } from "./application/task-portability-reader";
