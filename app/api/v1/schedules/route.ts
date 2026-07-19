@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "schedules.list", async () => {
     const actor = await resolveTaskApiActor(request);
     const query = parseTaskApiQuery(request, taskScheduleRangeQuerySchema);
     return privateTaskJson(await getTasksApplication().schedules.listRange(actor, query));

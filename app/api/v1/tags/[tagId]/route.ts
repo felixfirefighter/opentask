@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 type TagRouteContext = Readonly<{ params: Promise<{ tagId: string }> }>;
 
 export function GET(request: Request, context: TagRouteContext): Promise<Response> {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tags.get", async () => {
     const actor = await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
     const tagId = parseTaskApiId((await context.params).tagId);
@@ -24,7 +24,7 @@ export function GET(request: Request, context: TagRouteContext): Promise<Respons
 }
 
 export function PATCH(request: Request, context: TagRouteContext): Promise<Response> {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tags.update", async () => {
     const { actor, input } = await readTaskApiMutation(request, updateTagRequestSchema, {
       method: "PATCH",
     });

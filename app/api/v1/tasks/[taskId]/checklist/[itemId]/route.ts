@@ -16,7 +16,7 @@ type ChecklistRouteContext = Readonly<{
 }>;
 
 export function PATCH(request: Request, context: ChecklistRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "checklist.update", async () => {
     const { actor, input } = await readTaskApiMutation(request, updateChecklistItemRequestSchema, {
       method: "PATCH",
     });

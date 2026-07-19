@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "planning.today", async () => {
     const query = parseTaskApiQuery(request, projectionLimitQuerySchema);
     const actor = await resolveTaskApiActor(request);
     return privateTaskJson(await getPlanningProjectionApplication().getToday(actor, query));

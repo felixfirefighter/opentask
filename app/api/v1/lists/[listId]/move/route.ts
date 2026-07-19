@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 type ListRouteContext = Readonly<{ params: Promise<{ listId: string }> }>;
 
 export function POST(request: Request, context: ListRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "lists.move", async () => {
     const { actor, input } = await readTaskApiMutation(request, moveRegularListRequestSchema);
     assertNoTaskApiQuery(request);
     const listId = parseTaskApiId((await context.params).listId);

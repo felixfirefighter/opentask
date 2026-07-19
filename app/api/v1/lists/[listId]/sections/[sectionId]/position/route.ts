@@ -16,7 +16,7 @@ type SectionRouteContext = Readonly<{
 }>;
 
 export function POST(request: Request, context: SectionRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "sections.position", async () => {
     const { actor, input } = await readTaskApiMutation(request, positionSectionRequestSchema);
     assertNoTaskApiQuery(request);
     const params = await context.params;

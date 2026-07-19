@@ -17,7 +17,7 @@ type SectionRouteContext = Readonly<{
 }>;
 
 export function GET(request: Request, context: SectionRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "sections.get", async () => {
     const actor = await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
     const params = await context.params;
@@ -32,7 +32,7 @@ export function GET(request: Request, context: SectionRouteContext) {
 }
 
 export function PATCH(request: Request, context: SectionRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "sections.update", async () => {
     const { actor, input } = await readTaskApiMutation(request, updateSectionRequestSchema, {
       method: "PATCH",
     });

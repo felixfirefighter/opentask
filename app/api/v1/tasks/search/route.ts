@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request): Promise<Response> {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tasks.search", async () => {
     const actor = await resolveTaskApiActor(request);
     const query = parseTaskApiQuery(request, taskSearchQuerySchema);
     return privateTaskJson(await getTasksApplication().search.searchTasks(actor, query));

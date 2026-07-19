@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 type TaskScheduleRouteContext = Readonly<{ params: Promise<{ taskId: string }> }>;
 
 export function GET(request: Request, context: TaskScheduleRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "schedules.get", async () => {
     const actor = await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
@@ -24,7 +24,7 @@ export function GET(request: Request, context: TaskScheduleRouteContext) {
 }
 
 export function PATCH(request: Request, context: TaskScheduleRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "schedules.update", async () => {
     const { actor, input } = await readTaskApiMutation(request, setTaskScheduleRequestSchema, {
       method: "PATCH",
     });

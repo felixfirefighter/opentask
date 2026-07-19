@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 type TaskTagsRouteContext = Readonly<{ params: Promise<{ taskId: string }> }>;
 
 export function POST(request: Request, context: TaskTagsRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tasks.replace-tags", async () => {
     const { actor, input } = await readTaskApiMutation(request, replaceTaskTagsRequestSchema);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);

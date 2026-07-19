@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 type FolderRouteContext = Readonly<{ params: Promise<{ folderId: string }> }>;
 
 export function POST(request: Request, context: FolderRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "folders.restore", async () => {
     const { actor, input } = await readTaskApiMutation(request, restoreFolderRequestSchema);
     assertNoTaskApiQuery(request);
     const folderId = parseTaskApiId((await context.params).folderId);

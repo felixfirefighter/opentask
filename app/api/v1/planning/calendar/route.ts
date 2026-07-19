@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "planning.calendar", async () => {
     const query = parseTaskApiQuery(request, planningRangeQuerySchema);
     const actor = await resolveTaskApiActor(request);
     return privateTaskJson(await getPlanningProjectionApplication().getCalendarRange(actor, query));

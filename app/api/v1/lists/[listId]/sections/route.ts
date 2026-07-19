@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 type SectionCollectionContext = Readonly<{ params: Promise<{ listId: string }> }>;
 
 export function GET(request: Request, context: SectionCollectionContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "sections.list", async () => {
     const actor = await resolveTaskApiActor(request);
     const listId = parseTaskApiId((await context.params).listId);
     const query = parseTaskApiQuery(request, sectionQuerySchema);
@@ -27,7 +27,7 @@ export function GET(request: Request, context: SectionCollectionContext) {
 }
 
 export function POST(request: Request, context: SectionCollectionContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "sections.create", async () => {
     const { actor, input } = await readTaskApiMutation(request, createSectionRequestSchema);
     assertNoTaskApiQuery(request);
     const listId = parseTaskApiId((await context.params).listId);

@@ -16,7 +16,7 @@ type ChecklistRouteContext = Readonly<{
 }>;
 
 export function POST(request: Request, context: ChecklistRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "checklist.position", async () => {
     const { actor, input } = await readTaskApiMutation(request, positionChecklistItemRequestSchema);
     assertNoTaskApiQuery(request);
     const params = await context.params;

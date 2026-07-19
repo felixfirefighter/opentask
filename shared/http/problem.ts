@@ -75,17 +75,23 @@ export function problemResponse(problem: ProblemDetails) {
   });
 }
 
-export function problemResponseFromError(error: unknown) {
+export function problemResponseFromError(error: unknown, correlationId?: string) {
   if (error instanceof ApplicationError) {
-    return problemResponse(createProblem(error.code, error.message, undefined, error.currentVersion));
+    return problemResponse(createProblem(error.code, error.message, correlationId, error.currentVersion));
   }
   if (hasProblemCode(error, "UNAUTHENTICATED")) {
-    return problemResponse(createProblem("UNAUTHENTICATED", "Sign in to continue."));
+    return problemResponse(createProblem("UNAUTHENTICATED", "Sign in to continue.", correlationId));
   }
   if (error instanceof ZodError || error instanceof SyntaxError) {
-    return problemResponse(createProblem("VALIDATION_FAILED", "Review the submitted values and try again."));
+    return problemResponse(
+      createProblem("VALIDATION_FAILED", "Review the submitted values and try again.", correlationId),
+    );
   }
-  const problem = createProblem("INTERNAL", "The request could not be completed. Try again safely.");
+  const problem = createProblem(
+    "INTERNAL",
+    "The request could not be completed. Try again safely.",
+    correlationId,
+  );
   logger.event("REQUEST_FAILED", {
     correlationId: problem.correlationId,
     errorName: error instanceof Error ? error.name : "UnknownError",

@@ -16,7 +16,7 @@ type SectionRouteContext = Readonly<{
 }>;
 
 export function POST(request: Request, context: SectionRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "sections.delete", async () => {
     const { actor, input } = await readTaskApiMutation(request, deleteSectionRequestSchema);
     assertNoTaskApiQuery(request);
     const params = await context.params;

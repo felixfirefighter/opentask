@@ -42,7 +42,7 @@ describe("task API support", () => {
   });
 
   it("maps application failures and marks JSON private", async () => {
-    const response = await taskApiResponse(() => {
+    const response = await taskApiResponse(new Request("http://localhost/api/v1/tasks"), "tasks.list", () => {
       throw Object.assign(new Error("no session"), { code: "UNAUTHENTICATED" });
     });
     expect(response.status).toBe(401);

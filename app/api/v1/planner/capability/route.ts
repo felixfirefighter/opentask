@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "planner.capability", async () => {
     await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
     return privateTaskJson(getAssistantPlannerApplication().capability());

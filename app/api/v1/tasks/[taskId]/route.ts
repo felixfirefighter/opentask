@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 type TaskRouteContext = Readonly<{ params: Promise<{ taskId: string }> }>;
 
 export function GET(request: Request, context: TaskRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tasks.get", async () => {
     const actor = await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
@@ -25,7 +25,7 @@ export function GET(request: Request, context: TaskRouteContext) {
 }
 
 export function PATCH(request: Request, context: TaskRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tasks.update", async () => {
     const { actor, input } = await readTaskApiMutation(request, updateTaskRequestSchema, {
       method: "PATCH",
       maxBytes: taskMutationBodyLimits.task,

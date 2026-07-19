@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 type ListRouteContext = Readonly<{ params: Promise<{ listId: string }> }>;
 
 export function GET(request: Request, context: ListRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "lists.get", async () => {
     const actor = await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
     const listId = parseTaskApiId((await context.params).listId);
@@ -24,7 +24,7 @@ export function GET(request: Request, context: ListRouteContext) {
 }
 
 export function PATCH(request: Request, context: ListRouteContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "lists.update", async () => {
     const { actor, input } = await readTaskApiMutation(request, updateRegularListRequestSchema, {
       method: "PATCH",
     });

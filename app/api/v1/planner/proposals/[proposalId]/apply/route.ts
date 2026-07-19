@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 type PlannerProposalContext = Readonly<{ params: Promise<{ proposalId: string }> }>;
 
 export function POST(request: Request, context: PlannerProposalContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "planner.apply-proposal", async () => {
     const { actor, input } = await readTaskApiMutation(request, plannerSelectionSchema, {
       maxBytes: taskMutationBodyLimits.task,
     });

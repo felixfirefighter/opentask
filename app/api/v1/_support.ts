@@ -2,7 +2,7 @@ import type { AuthenticatedActor } from "@/shared/auth/actor";
 import { getIdentityRequestSecurity, resolveActor } from "@/modules/identity";
 import { parseTaskApiCreateKey, parseTaskApiResourceId } from "@/modules/tasks";
 import { ApplicationError } from "@/shared/http/application-error";
-import { problemResponseFromError } from "@/shared/http/problem";
+import { observeApiRequest } from "@/shared/http/request-observability";
 import { assertTrustedJsonMutation, readBoundedJson } from "@/shared/http/request-security";
 import type { z } from "zod";
 
@@ -11,10 +11,12 @@ export const taskMutationBodyLimits = {
   task: 98_304,
 } as const;
 
-export function taskApiResponse(work: () => Response | Promise<Response>): Promise<Response> {
-  return Promise.resolve()
-    .then(work)
-    .catch((error: unknown) => problemResponseFromError(error));
+export function taskApiResponse(
+  request: Request,
+  useCase: string,
+  work: () => Response | Promise<Response>,
+): Promise<Response> {
+  return observeApiRequest(request, useCase, work);
 }
 
 export function resolveTaskApiActor(request: Request): Promise<AuthenticatedActor> {

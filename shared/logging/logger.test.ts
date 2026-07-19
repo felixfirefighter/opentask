@@ -68,6 +68,56 @@ describe("structured logging", () => {
     expect(output).not.toContain("sentinel-");
   });
 
+  it("emits bounded request completion metadata without content-like fields", () => {
+    let output = "";
+    const destination = new Writable({
+      write(chunk, _encoding, callback) {
+        output += String(chunk);
+        callback();
+      },
+    });
+    const fields = {
+      requestId: "11111111-1111-4111-8111-111111111111",
+      correlationId: "22222222-2222-4222-8222-222222222222",
+      routePattern: "/api/v1/tasks/:resource/status",
+      useCase: "tasks.transition-status",
+      durationMs: 17,
+      statusClass: "4xx",
+      email: "sentinel-email@example.invalid",
+      title: "sentinel-private-title",
+      body: "sentinel-private-body",
+    } as unknown as SafeLogFields;
+
+    createLogger(destination).event("REQUEST_COMPLETED", fields);
+
+    const line = JSON.parse(output) as Record<string, unknown>;
+    expect(line).toMatchObject({
+      code: "REQUEST_COMPLETED",
+      requestId: fields.requestId,
+      correlationId: fields.correlationId,
+      routePattern: fields.routePattern,
+      useCase: fields.useCase,
+      durationMs: 17,
+      statusClass: "4xx",
+      msg: "request completed",
+    });
+    expect(Object.keys(line).sort()).toEqual(
+      [
+        "code",
+        "correlationId",
+        "durationMs",
+        "level",
+        "msg",
+        "requestId",
+        "routePattern",
+        "statusClass",
+        "time",
+        "useCase",
+      ].sort(),
+    );
+    expect(output).not.toContain("sentinel-");
+  });
+
   it("rejects unreviewed fields and raw logging methods at type-check time", () => {
     if (false) {
       const logger = createLogger();

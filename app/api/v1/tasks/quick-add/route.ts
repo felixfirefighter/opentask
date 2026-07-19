@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function POST(request: Request) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tasks.parse-quick-add", async () => {
     const { input } = await readTaskApiMutation(request, quickAddRequestSchema);
     assertNoTaskApiQuery(request);
     return privateTaskJson(getTasksApplication().quickAdd.parseQuickAdd(input));

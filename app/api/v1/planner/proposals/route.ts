@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function POST(request: Request) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "planner.generate-proposal", async () => {
     const { actor, input } = await readTaskApiMutation(request, plannerInputSchema, {
       maxBytes: taskMutationBodyLimits.task,
     });

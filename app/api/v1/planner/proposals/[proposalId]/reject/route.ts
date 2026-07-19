@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 type PlannerProposalContext = Readonly<{ params: Promise<{ proposalId: string }> }>;
 
 export function POST(request: Request, context: PlannerProposalContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "planner.reject-proposal", async () => {
     const { actor } = await readTaskApiMutation(request, z.strictObject({}));
     assertNoTaskApiQuery(request);
     const proposalId = parseTaskApiId((await context.params).proposalId);

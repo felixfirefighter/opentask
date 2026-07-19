@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 type TagDeleteRouteContext = Readonly<{ params: Promise<{ tagId: string }> }>;
 
 export function POST(request: Request, context: TagDeleteRouteContext): Promise<Response> {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tags.delete", async () => {
     const { actor, input } = await readTaskApiMutation(request, deleteTagRequestSchema);
     assertNoTaskApiQuery(request);
     const tagId = parseTaskApiId((await context.params).tagId);

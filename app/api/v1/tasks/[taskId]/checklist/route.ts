@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 type ChecklistCollectionContext = Readonly<{ params: Promise<{ taskId: string }> }>;
 
 export function POST(request: Request, context: ChecklistCollectionContext) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "checklist.create", async () => {
     const { actor, input } = await readTaskApiMutation(request, createChecklistItemRequestSchema);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);

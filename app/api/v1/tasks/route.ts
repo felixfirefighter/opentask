@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tasks.list", async () => {
     const actor = await resolveTaskApiActor(request);
     const query = parseTaskApiQuery(request, taskQuerySchema);
     return privateTaskJson(await getTasksApplication().tasks.listTasks(actor, query));
@@ -24,7 +24,7 @@ export function GET(request: Request) {
 }
 
 export function POST(request: Request) {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tasks.create", async () => {
     const { actor, input } = await readTaskApiMutation(request, createTaskRequestSchema, {
       maxBytes: taskMutationBodyLimits.task,
     });

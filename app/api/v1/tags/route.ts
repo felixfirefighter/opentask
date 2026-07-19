@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request): Promise<Response> {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tags.list", async () => {
     const actor = await resolveTaskApiActor(request);
     const query = parseTaskApiQuery(request, tagQuerySchema);
     return privateTaskJson(await getTasksApplication().tags.listTags(actor, query));
@@ -23,7 +23,7 @@ export function GET(request: Request): Promise<Response> {
 }
 
 export function POST(request: Request): Promise<Response> {
-  return taskApiResponse(async () => {
+  return taskApiResponse(request, "tags.create", async () => {
     const { actor, input } = await readTaskApiMutation(request, createTagRequestSchema);
     assertNoTaskApiQuery(request);
     const resourceId = parseTaskApiCreateId(request.headers);

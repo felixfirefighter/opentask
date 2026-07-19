@@ -17,7 +17,7 @@ describe("readiness route", () => {
   });
 
   it("returns ready after the database compatibility check", async () => {
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/health/ready"));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ status: "ready" });
@@ -27,7 +27,7 @@ describe("readiness route", () => {
     const secret = "postgresql://user:sentinel-password@database.invalid/opentask";
     assertDatabaseReady.mockRejectedValueOnce(new Error(secret));
 
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/health/ready"));
     const body = await response.json();
     const serialized = JSON.stringify(body);
 
