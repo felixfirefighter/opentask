@@ -1,9 +1,14 @@
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { defineConfig, devices } from "@playwright/test";
 
 const plannerFixtureMode = process.env.PLAYWRIGHT_PLANNER_FIXTURE === "1";
+const outputDir = process.env.PLAYWRIGHT_OUTPUT_DIR ?? path.join(tmpdir(), "opentask-playwright-results");
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  outputDir,
   fullyParallel: false,
   workers: 1,
   retries: 0,
