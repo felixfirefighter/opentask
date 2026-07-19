@@ -1,0 +1,331 @@
+import { randomUUID } from "node:crypto";
+
+import { drizzle } from "drizzle-orm/node-postgres";
+import type { Pool } from "pg";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import {
+  buildUserExportFilename,
+  createPortabilityApplication,
+  createPostgresExportSnapshot,
+  userExportEnvelopeSchema,
+  type UserExportEnvelope,
+} from "../../modules/portability/index.ts";
+import type { AuthenticatedActor } from "../../shared/auth/actor.ts";
+import type { Database } from "../../shared/db/client.ts";
+import { schema } from "../../shared/db/schema.ts";
+import type { Clock } from "../../shared/time/clock.ts";
+
+import {
+  ALL_DAY_END_DATE,
+  ALL_DAY_START_DATE,
+  EXPORT_INSTANT,
+  PLANNING_DATE,
+  PROPOSAL_APPLIED_INSTANT,
+  PROPOSAL_EXPIRY_INSTANT,
+  RECORD_INSTANT,
+  portableEntityIds,
+  seedPortableTenant,
+} from "./support/export-test-data.ts";
+import { createWp02SchemaFixture } from "./wp02-schema-support.ts";
+
+const fixture = createWp02SchemaFixture("portability_export");
+const exportClock: Clock = { now: () => new Date(EXPORT_INSTANT) };
+const serverSecretCanary = "server-openai-key-must-not-leak";
+let pool: Pool;
+let database: Database;
+let ownerA: AuthenticatedActor;
+let ownerB: AuthenticatedActor;
+let ownerASeed: Awaited<ReturnType<typeof seedPortableTenant>>;
+let ownerBSeed: Awaited<ReturnType<typeof seedPortableTenant>>;
+
+describe("portable PostgreSQL export", () => {
+  beforeAll(async () => {
+    pool = await fixture.setup();
+    database = drizzle(pool, { schema });
+    ownerA = { userId: randomUUID() };
+    ownerB = { userId: randomUUID() };
+    ownerASeed = await seedPortableTenant(pool, {
+      actor: ownerA,
+      email: `alpha-${ownerA.userId}@example.test`,
+      marker: "ALPHA_PRIVATE",
+      timezone: "Asia/Singapore",
+      timedStartInput: "2026-07-20T09:15:30.123+08:00",
+      timedEndInput: "2026-07-20T10:45:30.123+08:00",
+      timedStartUtc: "2026-07-20T01:15:30.123Z",
+      timedEndUtc: "2026-07-20T02:45:30.123Z",
+    });
+    ownerBSeed = await seedPortableTenant(pool, {
+      actor: ownerB,
+      email: `beta-${ownerB.userId}@example.test`,
+      marker: "BETA_PRIVATE",
+      timezone: "America/New_York",
+      timedStartInput: "2026-07-20T09:15:30.123-04:00",
+      timedEndInput: "2026-07-20T10:45:30.123-04:00",
+      timedStartUtc: "2026-07-20T13:15:30.123Z",
+      timedEndUtc: "2026-07-20T14:45:30.123Z",
+    });
+  });
+
+  afterAll(async () => fixture.teardown());
+
+  it("exports one canonical relationship-safe document per actor with deterministic ordering", async () => {
+    const application = createExporter();
+    const firstA = await application.exportUserData(ownerA);
+    const secondA = await application.exportUserData(ownerA);
+    const exportB = await application.exportUserData(ownerB);
+
+    expect(userExportEnvelopeSchema.parse(firstA)).toEqual(firstA);
+    expect(firstA).toEqual(secondA);
+    expect(firstA.schemaVersion).toBe(1);
+    expect(firstA.identity.profile).toMatchObject({
+      id: ownerA.userId,
+      name: ownerASeed.ownerName,
+    });
+    expect(exportB.identity.profile).toMatchObject({
+      id: ownerB.userId,
+      name: ownerBSeed.ownerName,
+    });
+    expect(JSON.stringify(firstA)).not.toContain("BETA_PRIVATE");
+    expect(JSON.stringify(firstA)).not.toContain(ownerB.userId);
+    expect(JSON.stringify(exportB)).not.toContain("ALPHA_PRIVATE");
+    expect(JSON.stringify(exportB)).not.toContain(ownerA.userId);
+
+    expect(firstA.tasks.folders.map(({ id }) => id)).toEqual([portableEntityIds.folder]);
+    expect(firstA.tasks.lists.map(({ id }) => id)).toEqual([
+      portableEntityIds.regularList,
+      portableEntityIds.inboxList,
+    ]);
+    expect(firstA.tasks.sections.map(({ id }) => id)).toEqual([portableEntityIds.section]);
+    expect(firstA.tasks.tasks.map(({ id }) => id)).toEqual([
+      portableEntityIds.childTask,
+      portableEntityIds.timedTask,
+      portableEntityIds.allDayTask,
+      portableEntityIds.rootTask,
+    ]);
+    expect(firstA.tasks.schedules.map(({ taskId }) => taskId)).toEqual([
+      portableEntityIds.timedTask,
+      portableEntityIds.allDayTask,
+    ]);
+    expect(firstA.tasks.tags.map(({ id }) => id)).toEqual([
+      portableEntityIds.firstTag,
+      portableEntityIds.secondTag,
+    ]);
+    expect(firstA.tasks.tags[1]?.deletedAt).toBe(RECORD_INSTANT);
+    expect(firstA.tasks.taskTags).toEqual([
+      { taskId: portableEntityIds.timedTask, tagId: portableEntityIds.firstTag },
+      { taskId: portableEntityIds.rootTask, tagId: portableEntityIds.secondTag },
+    ]);
+    expect(firstA.assistant.proposals.map(({ id }) => id)).toEqual([
+      portableEntityIds.firstProposal,
+      portableEntityIds.secondProposal,
+    ]);
+    expect(exportB.tasks.tasks.map(({ id }) => id)).toEqual(firstA.tasks.tasks.map(({ id }) => id));
+    expect(exportB.assistant.proposals.map(({ id }) => id)).toEqual(
+      firstA.assistant.proposals.map(({ id }) => id),
+    );
+    expectRelationshipIntegrity(firstA);
+    expectRelationshipIntegrity(exportB);
+    await expect(application.exportUserData({ userId: randomUUID() })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+
+  it("omits authentication, apply, raw-input, provider, environment, and server secrets", async () => {
+    const previousOpenAiKey = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = serverSecretCanary;
+    try {
+      const before = await readMutationSentinels(ownerA.userId);
+      const exported = await createExporter().exportUserData(ownerA);
+      const after = await readMutationSentinels(ownerA.userId);
+      const serialized = JSON.stringify(exported);
+
+      expect(after).toEqual(before);
+      expect(serialized).toContain("ALPHA_PRIVATE private root description");
+      for (const secret of [
+        ...ownerASeed.secretCanaries,
+        ...ownerBSeed.secretCanaries,
+        portableEntityIds.firstApplyToken,
+        portableEntityIds.secondApplyToken,
+        serverSecretCanary,
+      ]) {
+        expect(serialized).not.toContain(secret);
+      }
+      const exportedKeys = new Set(allKeys(exported));
+      for (const forbiddenKey of [
+        "accessToken",
+        "account",
+        "applyToken",
+        "idempotencyKey",
+        "password",
+        "providerPayload",
+        "rawBrainDump",
+        "refreshToken",
+        "serverConfiguration",
+        "session",
+        "token",
+      ]) {
+        expect(exportedKeys.has(forbiddenKey)).toBe(false);
+      }
+    } finally {
+      if (previousOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = previousOpenAiKey;
+    }
+  });
+
+  it("preserves local dates, UTC instants, and explicit IANA timezone intent", async () => {
+    const exported = await createExporter().exportUserData(ownerA);
+    const allDay = exported.tasks.schedules.find(({ kind }) => kind === "all_day");
+    const timed = exported.tasks.schedules.find(({ kind }) => kind === "timed");
+    const applied = exported.assistant.proposals.find(({ status }) => status === "applied");
+    const proposalSchedule = exported.assistant.proposals[0]?.proposal.actions[0];
+
+    expect(exported.exportedAt).toBe(EXPORT_INSTANT);
+    expect(exported.identity.preferences).toMatchObject({
+      timezone: "Asia/Singapore",
+      createdAt: RECORD_INSTANT,
+      updatedAt: RECORD_INSTANT,
+    });
+    expect(allDay).toEqual({
+      taskId: portableEntityIds.allDayTask,
+      kind: "all_day",
+      startDate: ALL_DAY_START_DATE,
+      endDate: ALL_DAY_END_DATE,
+      createdAt: RECORD_INSTANT,
+      updatedAt: RECORD_INSTANT,
+    });
+    expect(timed).toEqual({
+      taskId: portableEntityIds.timedTask,
+      kind: "timed",
+      startAt: ownerASeed.timedStartUtc,
+      endAt: ownerASeed.timedEndUtc,
+      timezone: "Asia/Singapore",
+      createdAt: RECORD_INSTANT,
+      updatedAt: RECORD_INSTANT,
+    });
+    expect(applied).toMatchObject({
+      planningDate: PLANNING_DATE,
+      createdAt: RECORD_INSTANT,
+      expiresAt: PROPOSAL_EXPIRY_INSTANT,
+      appliedAt: PROPOSAL_APPLIED_INSTANT,
+    });
+    expect(proposalSchedule).toMatchObject({
+      kind: "schedule",
+      after: {
+        kind: "timed",
+        startAt: ownerASeed.timedStartUtc,
+        endAt: ownerASeed.timedEndUtc,
+        timeZone: "Asia/Singapore",
+      },
+    });
+    for (const instant of allInstantValues(exported)) {
+      expect(instant).toMatch(/^\d{4}-\d{2}-\d{2}T.*Z$/u);
+      expect(Number.isNaN(Date.parse(instant))).toBe(false);
+    }
+    expect(buildUserExportFilename(exported.exportedAt)).toBe("opentask-export-2026-07-20.json");
+  });
+
+  it("exposes no import, restore, parser, or mutation surface", async () => {
+    const portabilityModule = await import("../../modules/portability/index.ts");
+    expect(Object.keys(portabilityModule).sort()).toEqual([
+      "PORTABLE_SECTION_SCHEMA_VERSION",
+      "USER_EXPORT_SCHEMA_VERSION",
+      "buildUserExportFilename",
+      "createPortabilityApplication",
+      "createPostgresExportSnapshot",
+      "getPortabilityApplication",
+      "userExportEnvelopeSchema",
+    ]);
+  });
+});
+
+function createExporter() {
+  return createPortabilityApplication({
+    snapshot: createPostgresExportSnapshot(database),
+    clock: exportClock,
+  });
+}
+
+async function readMutationSentinels(userId: string) {
+  const [tasks, proposals, preferences] = await Promise.all([
+    pool.query(`select id, title, version from tasks where user_id = $1 order by id`, [userId]),
+    pool.query(`select id, status, idempotency_key from planner_proposals where user_id = $1 order by id`, [
+      userId,
+    ]),
+    pool.query(`select version, preferences from user_preferences where user_id = $1`, [userId]),
+  ]);
+  return { tasks: tasks.rows, proposals: proposals.rows, preferences: preferences.rows };
+}
+
+function expectRelationshipIntegrity(envelope: UserExportEnvelope) {
+  const folderIds = new Set(envelope.tasks.folders.map(({ id }) => id));
+  const lists = new Map(envelope.tasks.lists.map((list) => [list.id, list]));
+  const sections = new Map(envelope.tasks.sections.map((section) => [section.id, section]));
+  const tasks = new Map(envelope.tasks.tasks.map((task) => [task.id, task]));
+  const tagIds = new Set(envelope.tasks.tags.map(({ id }) => id));
+  for (const list of envelope.tasks.lists) {
+    expect(list.folderId === null || folderIds.has(list.folderId)).toBe(true);
+  }
+  for (const section of envelope.tasks.sections) expect(lists.has(section.listId)).toBe(true);
+  for (const task of envelope.tasks.tasks) {
+    expect(lists.has(task.listId)).toBe(true);
+    if (task.sectionId !== null) expect(sections.get(task.sectionId)?.listId).toBe(task.listId);
+    if (task.parentTaskId !== null) expect(tasks.get(task.parentTaskId)?.listId).toBe(task.listId);
+  }
+  for (const schedule of envelope.tasks.schedules) expect(tasks.has(schedule.taskId)).toBe(true);
+  for (const item of envelope.tasks.checklistItems) expect(tasks.has(item.taskId)).toBe(true);
+  for (const link of envelope.tasks.taskTags) {
+    expect(tasks.has(link.taskId)).toBe(true);
+    expect(tagIds.has(link.tagId)).toBe(true);
+  }
+  for (const proposal of envelope.assistant.proposals) {
+    for (const subject of proposal.proposal.subjects) {
+      if (subject.taskId !== null) expect(tasks.has(subject.taskId)).toBe(true);
+    }
+  }
+}
+
+function allKeys(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(allKeys);
+  if (typeof value !== "object" || value === null) return [];
+  return Object.entries(value).flatMap(([key, child]) => [key, ...allKeys(child)]);
+}
+
+function allInstantValues(envelope: UserExportEnvelope): string[] {
+  const values: string[] = [
+    envelope.exportedAt,
+    envelope.identity.profile.createdAt,
+    envelope.identity.profile.updatedAt,
+    envelope.identity.preferences.createdAt,
+    envelope.identity.preferences.updatedAt,
+  ];
+  for (const row of [
+    ...envelope.tasks.folders,
+    ...envelope.tasks.lists,
+    ...envelope.tasks.sections,
+    ...envelope.tasks.tasks,
+    ...envelope.tasks.checklistItems,
+    ...envelope.tasks.tags,
+  ]) {
+    values.push(row.createdAt, row.updatedAt);
+    if ("deletedAt" in row && row.deletedAt !== null) values.push(row.deletedAt);
+    if ("statusChangedAt" in row) values.push(row.statusChangedAt);
+  }
+  for (const schedule of envelope.tasks.schedules) {
+    values.push(schedule.createdAt, schedule.updatedAt);
+    if (schedule.kind === "timed") values.push(schedule.startAt, schedule.endAt);
+  }
+  for (const record of envelope.assistant.proposals) {
+    values.push(record.createdAt, record.expiresAt);
+    if (record.appliedAt !== null) values.push(record.appliedAt);
+    for (const action of record.proposal.actions) {
+      if (action.kind === "schedule" && action.after.kind === "timed") {
+        values.push(action.after.startAt, action.after.endAt);
+      }
+      if (action.kind === "create" && action.after.schedule?.kind === "timed") {
+        values.push(action.after.schedule.startAt, action.after.schedule.endAt);
+      }
+    }
+  }
+  return values;
+}
