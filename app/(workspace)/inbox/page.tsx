@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
-import { getInbox } from "@/modules/tasks";
-import { InboxScreen } from "@/modules/tasks/presentation";
+import { getInbox, getTasksApplication } from "@/modules/tasks";
+import { TaskCommandPalette, TaskNavigation, TaskWorkspaceScreen } from "@/modules/tasks/presentation";
 
 import { loadWorkspace } from "../_load-workspace";
 
@@ -12,6 +12,12 @@ export const dynamic = "force-dynamic";
 export default async function InboxPage() {
   const workspace = await loadWorkspace("/inbox");
   const inbox = await getInbox(workspace.identity.actor);
+  const initialTasks = await getTasksApplication().tasks.listTasks(workspace.identity.actor, {
+    listId: inbox.id,
+    parentTaskId: null,
+    status: "open",
+    limit: 50,
+  });
 
   return (
     <AuthenticatedShell
@@ -20,8 +26,13 @@ export default async function InboxPage() {
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="tasks"
       destinationTitle="Inbox"
+      topBarActions={<TaskCommandPalette inbox={inbox} currentListId={inbox.id} />}
+      contextNavigation={<TaskNavigation current="inbox" inboxId={inbox.id} />}
+      compactNavigation={<TaskNavigation current="inbox" inboxId={inbox.id} variant="compact" />}
     >
-      <InboxScreen summary={inbox} />
+      <TaskWorkspaceScreen
+        destination={{ kind: "list", list: inbox, inbox, immutableInbox: true, initialTasks }}
+      />
     </AuthenticatedShell>
   );
 }

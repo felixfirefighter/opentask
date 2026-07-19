@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import { AuthenticatedShell, SettingsScreen } from "@/modules/identity/presentation";
+import { getInbox } from "@/modules/tasks";
+import { TaskCommandPalette } from "@/modules/tasks/presentation";
 
 import { loadWorkspace } from "../_load-workspace";
 
@@ -9,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const workspace = await loadWorkspace("/settings");
+  const inbox = await getInbox(workspace.identity.actor);
 
   return (
     <AuthenticatedShell
@@ -16,6 +19,7 @@ export default async function SettingsPage() {
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="settings"
+      topBarActions={<TaskCommandPalette inbox={inbox} />}
     >
       <SettingsScreen initialPreferences={workspace.preferences} />
     </AuthenticatedShell>
