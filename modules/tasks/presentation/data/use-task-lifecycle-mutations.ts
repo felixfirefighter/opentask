@@ -90,7 +90,7 @@ export function useTaskStatusMutation() {
         previousDestinationTerminal,
       };
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, _variables, context) => {
       if (!context) return;
       if (context.listKey) queryClient.setQueryData(context.listKey, context.previousList);
       queryClient.setQueryData(context.detailKey, context.previousDetail);
@@ -100,6 +100,12 @@ export function useTaskStatusMutation() {
         queryClient.setQueryData(context.sourceTerminalKey, context.previousSourceTerminal);
       if (context.destinationTerminalKey)
         queryClient.setQueryData(context.destinationTerminalKey, context.previousDestinationTerminal);
+      toast.error("Task change not saved", {
+        description:
+          error instanceof Error && "code" in error && error.code === "CONFLICT"
+            ? "The task changed elsewhere. The latest state is being loaded."
+            : "The previous state has been restored.",
+      });
     },
     onSuccess: (updated, { task, status }) => {
       queryClient.setQueryData<TaskDetailDto>(taskQueryKeys.detail(task.id), (detail) =>

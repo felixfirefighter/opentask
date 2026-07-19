@@ -20,7 +20,7 @@ export function SettingsScreen({ initialPreferences }: { initialPreferences: Use
     <div className={styles.page}>
       <header className={styles.pageHeader}>
         <p className="eyebrow">Account</p>
-        <h1 id="page-heading" tabIndex={-1}>
+        <h1 id="page-heading" tabIndex={-1} data-route-focus>
           Settings
         </h1>
         <p>Choose how dates, time, color, and motion appear in your workspace.</p>

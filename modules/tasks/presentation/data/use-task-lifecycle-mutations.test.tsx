@@ -101,6 +101,9 @@ describe("task status cache recovery", () => {
     act(() => rejectRequest?.(new Error("offline")));
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(cachedTasks(client, taskQueryKeys.list(LIST_ID))).toEqual([task()]);
+    expect(toastApi.error).toHaveBeenCalledWith("Task change not saved", {
+      description: "The previous state has been restored.",
+    });
   });
 
   it("merges the authoritative server version into the completed projection", async () => {
