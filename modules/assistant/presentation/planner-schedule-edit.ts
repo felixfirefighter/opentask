@@ -15,7 +15,7 @@ export function scheduleToLocalValue(instant: string, timeZone: string): string 
 
 export function localValueToInstant(value: string, timeZone: string): string | null {
   try {
-    return Temporal.PlainDateTime.from(value).toZonedDateTime(timeZone).toInstant().toString();
+    return localDateTimeToInstant(Temporal.PlainDateTime.from(value), timeZone);
   } catch {
     return null;
   }
@@ -26,22 +26,22 @@ export function defaultTimedSchedule(input: {
   timeZone: string;
   workWindowStart: string;
   durationMinutes: number;
-}): PlannerSchedule {
-  const start = Temporal.PlainDateTime.from(`${input.planningDate}T${input.workWindowStart}`).toZonedDateTime(
-    input.timeZone,
-  );
-  return {
-    kind: "timed",
-    startAt: start.toInstant().toString(),
-    endAt: start.add({ minutes: input.durationMinutes }).toInstant().toString(),
-    timeZone: input.timeZone,
-  };
+}): PlannerSchedule | null {
+  try {
+    const start = Temporal.PlainDateTime.from(
+      `${input.planningDate}T${input.workWindowStart}`,
+    ).toZonedDateTime(input.timeZone, { disambiguation: "reject" });
+    return {
+      kind: "timed",
+      startAt: start.toInstant().toString(),
+      endAt: start.add({ minutes: input.durationMinutes }).toInstant().toString(),
+      timeZone: input.timeZone,
+    };
+  } catch {
+    return null;
+  }
 }
 
-export function defaultAllDaySchedule(planningDate: string): PlannerSchedule {
-  return {
-    kind: "all_day",
-    startDate: planningDate,
-    endDate: Temporal.PlainDate.from(planningDate).add({ days: 1 }).toString(),
-  };
+function localDateTimeToInstant(value: Temporal.PlainDateTime, timeZone: string): string {
+  return value.toZonedDateTime(timeZone, { disambiguation: "reject" }).toInstant().toString();
 }
