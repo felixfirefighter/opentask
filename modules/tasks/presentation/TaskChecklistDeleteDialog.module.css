@@ -1,0 +1,81 @@
+.dialogOverlay {
+  position: fixed;
+  z-index: var(--z-dialog);
+  background: color-mix(in srgb, var(--canvas) 76%, transparent);
+  inset: 0;
+}
+
+.dialogContent {
+  position: fixed;
+  z-index: var(--z-dialog);
+  top: 50%;
+  left: 50%;
+  width: min(360px, calc(100vw - var(--space-10)));
+  padding: var(--space-5);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+  transform: translate(-50%, -50%);
+}
+
+.dialogTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.dialogDescription {
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.message,
+.error {
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.dangerButton {
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-4);
+  border: var(--border-default) solid var(--danger);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--danger);
+  cursor: pointer;
+  font-weight: var(--type-label-weight);
+}
+
+.dangerButton:hover,
+.dangerButton:focus-visible {
+  background: color-mix(in srgb, var(--danger) 9%, var(--surface));
+}
+
+.dangerButton:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+@media (any-pointer: coarse) {
+  .dangerButton {
+    min-height: var(--control-target-touch);
+  }
+}

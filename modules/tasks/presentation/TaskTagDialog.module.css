@@ -1,0 +1,197 @@
+.overlay {
+  position: fixed;
+  z-index: var(--z-dialog);
+  background: color-mix(in srgb, var(--text) 24%, transparent);
+  inset: 0;
+}
+
+.dialog,
+.confirmDialog {
+  position: fixed;
+  z-index: var(--z-dialog);
+  top: 50%;
+  left: 50%;
+  width: min(calc(100vw - var(--space-8)), 500px);
+  max-height: calc(100dvh - var(--space-8));
+  padding: var(--space-6);
+  overflow-y: auto;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+  transform: translate(-50%, -50%);
+}
+
+.confirmDialog {
+  width: min(calc(100vw - var(--space-8)), 420px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.header h2,
+.confirmDialog h2 {
+  margin: 0;
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-section-title-line);
+}
+
+.header p,
+.confirmDialog p {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.tagList {
+  max-height: 260px;
+  margin-top: var(--space-5);
+  overflow-y: auto;
+  border-top: var(--border-default) solid var(--border);
+  border-bottom: var(--border-default) solid var(--border);
+}
+
+.tagList > p {
+  margin: 0;
+  padding: var(--space-4) 0;
+  color: var(--text-muted);
+}
+
+.loadMore {
+  width: 100%;
+  min-height: var(--control-target-desktop);
+  background: transparent;
+  color: var(--info);
+  cursor: pointer;
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.tagRow {
+  display: grid;
+  min-height: var(--control-target-touch);
+  align-items: center;
+  border-bottom: var(--border-default) solid var(--border);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.tagRow:last-child {
+  border-bottom: 0;
+}
+
+.tagRow label {
+  display: flex;
+  min-width: 0;
+  min-height: var(--control-target-touch);
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.swatch {
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: 50%;
+  background: var(--category-slate-fg);
+}
+
+.swatch[data-accent="coral"] {
+  background: var(--category-coral-fg);
+}
+.swatch[data-accent="amber"] {
+  background: var(--category-amber-fg);
+}
+.swatch[data-accent="mint"] {
+  background: var(--category-mint-fg);
+}
+.swatch[data-accent="sky"] {
+  background: var(--category-sky-fg);
+}
+.swatch[data-accent="violet"] {
+  background: var(--category-violet-fg);
+}
+
+.editRow {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+.editRow input,
+.editRow select,
+.createForm input,
+.createForm select {
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-2);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.rowError {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+  grid-column: 1 / -1;
+}
+
+.createForm {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.createForm > label {
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.createForm > div {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.error {
+  color: var(--danger);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.dangerButton {
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--danger);
+  color: var(--text-on-action);
+  cursor: pointer;
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+}
+
+@media (max-width: 560px) {
+  .editRow,
+  .createForm > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .editRow button,
+  .createForm button {
+    grid-column: span 1;
+  }
+}

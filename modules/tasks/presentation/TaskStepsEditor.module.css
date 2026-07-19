@@ -1,0 +1,263 @@
+.group {
+  padding: var(--space-5) 0;
+  border-top: var(--border-default) solid var(--border);
+}
+
+.group > h2 {
+  margin: 0 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.04em;
+  line-height: var(--type-label-line);
+  text-transform: uppercase;
+}
+
+.subgroup + .subgroup {
+  margin-top: var(--space-5);
+}
+
+.subheading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.subheading h3 {
+  margin: 0;
+  font-size: var(--type-body-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-body-line);
+}
+
+.subheading span,
+.empty,
+.boundary {
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.empty,
+.boundary {
+  margin: var(--space-2) 0;
+}
+
+.subtasks,
+.checklist {
+  display: flex;
+  flex-direction: column;
+}
+
+.subtask,
+.checkItem {
+  display: grid;
+  min-height: 44px;
+  align-items: center;
+  border-bottom: var(--border-default) solid var(--border);
+}
+
+.subtask {
+  grid-template-columns: var(--control-target-desktop) minmax(0, 1fr) auto auto;
+}
+
+.statusButton,
+.dragHandle,
+.stepMenuTrigger {
+  display: flex;
+  min-width: var(--control-target-desktop);
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.statusButton:hover,
+.dragHandle:hover,
+.stepMenuTrigger:hover,
+.statusButton:focus-visible,
+.dragHandle:focus-visible,
+.stepMenuTrigger:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.dragHandle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.subtask > a {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.subtask > a > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtask > a[data-status="completed"] > span:first-child {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.cancelledLabel {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.checkItem {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.subtask[data-dragging="true"],
+.checkItem[data-dragging="true"] {
+  background: var(--surface-selected);
+}
+
+.checkItem label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.checkItem input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--success);
+}
+
+.checkItem span {
+  overflow: hidden;
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkItem span[data-completed="true"] {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.stepMenu {
+  z-index: var(--z-popover);
+  min-width: 168px;
+  padding: var(--space-1);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+}
+
+.stepMenuItem,
+.stepMenuDanger {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+  outline: none;
+}
+
+.stepMenuItem[data-highlighted],
+.stepMenuDanger[data-highlighted] {
+  background: var(--surface-hover);
+}
+
+.stepMenuDanger {
+  color: var(--danger);
+}
+
+.stepMenuItem[data-disabled],
+.stepMenuDanger[data-disabled] {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.stepMenuSeparator {
+  height: var(--border-default);
+  margin: var(--space-1) 0;
+  background: var(--border);
+}
+
+.addForm {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.addForm label {
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.addForm > div {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.addForm input {
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.error {
+  margin: var(--space-2) 0 0;
+  color: var(--danger);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+@media (any-pointer: coarse) {
+  .statusButton,
+  .dragHandle,
+  .stepMenuTrigger,
+  .stepMenuItem,
+  .stepMenuDanger,
+  .addForm input {
+    min-height: var(--control-target-touch);
+  }
+
+  .subtask {
+    grid-template-columns: var(--control-target-touch) minmax(0, 1fr) auto auto;
+  }
+
+  .statusButton,
+  .dragHandle,
+  .stepMenuTrigger {
+    min-width: var(--control-target-touch);
+  }
+}

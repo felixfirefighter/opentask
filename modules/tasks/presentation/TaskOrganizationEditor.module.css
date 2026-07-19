@@ -1,0 +1,95 @@
+.group {
+  padding: var(--space-5) 0;
+  border-top: var(--border-default) solid var(--border);
+}
+
+.group h2 {
+  margin: 0 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.04em;
+  line-height: var(--type-label-line);
+  text-transform: uppercase;
+}
+
+.field {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  grid-template-columns: 24px 104px minmax(0, 1fr);
+  text-align: left;
+}
+
+.field:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.field:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.field strong,
+.field select {
+  min-width: 0;
+  justify-self: end;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-compact-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field select {
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-2);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+}
+
+.boundary {
+  margin: 0 var(--space-2) var(--space-2) calc(24px + var(--space-4));
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.error span {
+  flex: 1 1 180px;
+}
+
+@media (max-width: 420px) {
+  .field {
+    grid-template-columns: 24px 88px minmax(0, 1fr);
+  }
+}

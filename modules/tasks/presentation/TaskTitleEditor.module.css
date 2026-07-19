@@ -1,0 +1,79 @@
+.editor {
+  padding-bottom: var(--space-5);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.input {
+  display: block;
+  width: 100%;
+  min-height: 70px;
+  padding: var(--space-2);
+  resize: vertical;
+  border: var(--border-default) solid transparent;
+  border-radius: var(--radius-control);
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.input:hover,
+.input:focus {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+.input:disabled {
+  color: var(--text-disabled);
+}
+
+.saveState {
+  display: flex;
+  min-height: var(--type-compact-line);
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.saveState svg {
+  color: var(--success);
+}
+
+.conflict {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+}
+
+.conflict strong,
+.conflict p {
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.conflict p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+}
+
+.conflictActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
