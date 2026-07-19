@@ -4,7 +4,6 @@ import type { Database, DatabaseTransaction } from "@/shared/db/client";
 import { ApplicationError } from "@/shared/http/application-error";
 import type { Clock } from "@/shared/time/clock";
 
-import { createDemoProposalResetter } from "@/modules/assistant";
 import { createDemoDatasetSeeder, createInboxBootstrapPort } from "@/modules/tasks";
 
 import type { DemoDatasetSeeder, DemoEntryResult, InboxBootstrapPort } from "./contracts";
@@ -144,10 +143,14 @@ export function createIdentityApplication({
 }
 
 function createDefaultDemoSeeder(database: Database, clock: Clock): DemoDatasetSeeder {
-  const proposals = createDemoProposalResetter({ database });
   const tasks = createDemoDatasetSeeder({ database, clock });
   return {
     async reset(userId: string): Promise<void> {
+      // Load the optional assistant reset adapter only when demo entry runs. A static
+      // identity -> assistant import would close the assistant -> planning -> identity
+      // runtime cycle and prevent ordinary manual planning routes from starting.
+      const { createDemoProposalResetter } = await import("@/modules/assistant");
+      const proposals = createDemoProposalResetter({ database });
       await database.transaction(async (transaction) => {
         await proposals.reset(userId, transaction);
         await tasks.reset(userId, transaction);
