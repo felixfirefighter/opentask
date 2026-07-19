@@ -1,0 +1,203 @@
+.row {
+  display: grid;
+  min-height: var(--task-row-standard-height);
+  align-items: center;
+  border-bottom: var(--border-default) solid var(--border);
+  column-gap: var(--space-2);
+  grid-template-columns: var(--control-target-desktop) minmax(0, 1fr) auto;
+  transition: background var(--motion-fast) var(--ease-standard);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover,
+.row:focus-within {
+  background: color-mix(in srgb, var(--surface-hover) 58%, transparent);
+}
+
+.row[data-conflict="true"] {
+  box-shadow: inset 3px 0 var(--warning);
+}
+
+.status,
+.more {
+  display: flex;
+  width: var(--control-target-desktop);
+  height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.status:hover:not(:disabled),
+.more:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.status:disabled,
+.more:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.statusDone,
+.statusCancelled {
+  display: flex;
+  width: var(--task-status-indicator-size);
+  height: var(--task-status-indicator-size);
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--text-on-action);
+}
+
+.statusDone {
+  background: var(--success);
+}
+
+.statusCancelled {
+  background: var(--text-muted);
+}
+
+.content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
+}
+
+.title {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  line-height: var(--type-row-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row[data-status="completed"] .title {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.metadata {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-compact-weight);
+  line-height: var(--type-compact-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conflictLabel {
+  color: var(--warning);
+  font-weight: var(--type-label-weight);
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.priority {
+  display: flex;
+  align-items: center;
+  color: var(--priority-none);
+}
+
+.priority[data-priority="high"] {
+  color: var(--priority-high);
+}
+
+.priority[data-priority="medium"] {
+  color: var(--priority-medium);
+}
+
+.priority[data-priority="low"] {
+  color: var(--priority-low);
+}
+
+.menu {
+  z-index: var(--z-popover);
+  min-width: 196px;
+  padding: var(--space-1);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+}
+
+.menuItem {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  outline: none;
+}
+
+.menuItem[data-highlighted] {
+  background: var(--surface-hover);
+}
+
+.menuLabel {
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.radioIndicator {
+  display: flex;
+  width: var(--space-4);
+  color: var(--text-selected);
+}
+
+.separator {
+  height: var(--border-default);
+  margin: var(--space-1) 0;
+  background: var(--border);
+}
+
+@media (any-pointer: coarse), (max-width: 767px) {
+  .row {
+    min-height: var(--task-row-touch-height);
+    grid-template-columns: var(--control-target-touch) minmax(0, 1fr) auto;
+  }
+
+  .status,
+  .more {
+    width: var(--control-target-touch);
+    height: var(--control-target-touch);
+  }
+
+  .menuItem {
+    min-height: var(--control-target-touch);
+  }
+
+  .context {
+    display: none;
+  }
+}

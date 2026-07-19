@@ -1,0 +1,89 @@
+.calendarEvent {
+  border-radius: var(--radius-control);
+  outline: none;
+}
+
+.calendarEvent:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.conflictedEvent {
+  outline: 2px solid var(--warning);
+  outline-offset: 1px;
+}
+
+.eventContent {
+  display: flex;
+  min-width: 0;
+  min-height: var(--control-target-desktop);
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--category-slate-bg);
+  color: var(--category-slate-fg);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.eventContent[data-category="coral"] {
+  background: var(--category-coral-bg);
+  color: var(--category-coral-fg);
+}
+
+.eventContent[data-category="amber"] {
+  background: var(--category-amber-bg);
+  color: var(--category-amber-fg);
+}
+
+.eventContent[data-category="mint"] {
+  background: var(--category-mint-bg);
+  color: var(--category-mint-fg);
+}
+
+.eventContent[data-category="sky"] {
+  background: var(--category-sky-bg);
+  color: var(--category-sky-fg);
+}
+
+.eventContent[data-category="violet"] {
+  background: var(--category-violet-bg);
+  color: var(--category-violet-fg);
+}
+
+.eventContent strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eventTime,
+.eventContext,
+.eventConflict {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.eventTime {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-label-size);
+}
+
+.eventContext {
+  overflow: hidden;
+  font-size: var(--type-label-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eventConflict {
+  font-weight: var(--type-label-weight);
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .eventContent {
+    min-height: var(--control-target-touch);
+  }
+}

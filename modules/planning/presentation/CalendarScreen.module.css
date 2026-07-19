@@ -1,0 +1,270 @@
+.page {
+  min-height: 100%;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+.pageHeader {
+  min-height: 56px;
+  padding: 0 var(--space-1) var(--space-4);
+}
+
+.pageHeader h1 {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.06em;
+  line-height: var(--type-label-line);
+  text-transform: uppercase;
+}
+
+.toolbar,
+.rangeControls,
+.viewControl {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar {
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.rangeControls {
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.rangeLabel {
+  min-width: 0;
+  margin-left: var(--space-2);
+  overflow: hidden;
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-section-title-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewControl {
+  padding: var(--space-1);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+}
+
+.viewControl button {
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.viewControl button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-overlay);
+}
+
+.scheduleFallback {
+  display: grid;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  grid-template-columns: minmax(210px, 1fr) minmax(220px, 1fr) auto auto;
+}
+
+.scheduleFallback > div,
+.scheduleFallback > div > span {
+  display: flex;
+}
+
+.scheduleFallback > div {
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-muted);
+}
+
+.scheduleFallback > div > span {
+  min-width: 0;
+  flex-direction: column;
+}
+
+.scheduleFallback strong {
+  color: var(--text);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.scheduleFallback small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheduleFallback select {
+  min-width: 0;
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.frame {
+  position: relative;
+  min-height: 580px;
+  overflow: auto;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-overlay);
+  background: var(--surface);
+}
+
+.calendarMount {
+  min-height: 580px;
+  padding: var(--space-3);
+}
+
+.calendarMount :global(table) {
+  border-collapse: collapse;
+  color: var(--text);
+}
+
+.calendarMount :global(th),
+.calendarMount :global(td) {
+  border-color: var(--border);
+}
+
+.calendarMount :global(th) {
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.calendarMount :global(a) {
+  color: inherit;
+}
+
+.emptyNotice {
+  position: absolute;
+  z-index: var(--z-sticky);
+  top: var(--space-12);
+  left: 50%;
+  display: flex;
+  width: min(360px, calc(100% - var(--space-8)));
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.emptyNotice span {
+  color: var(--text-muted);
+}
+
+.loadingOverlay {
+  position: absolute;
+  z-index: var(--z-sticky);
+  display: grid;
+  place-content: center;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: var(--text-muted);
+  inset: 0;
+}
+
+@media (max-width: 1023px) {
+  .toolbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .scheduleFallback {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 1fr) auto auto;
+  }
+
+  .scheduleFallback > div {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767px) {
+  .page {
+    padding: var(--space-5) var(--space-4) var(--space-16);
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .rangeControls {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: var(--control-target-touch) auto var(--control-target-touch) minmax(0, 1fr);
+  }
+
+  .rangeLabel {
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
+    text-align: right;
+  }
+
+  .viewControl {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .viewControl button {
+    min-height: var(--control-target-touch);
+    padding: 0 var(--space-2);
+  }
+
+  .scheduleFallback {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .scheduleFallback select {
+    min-height: var(--control-target-touch);
+    grid-column: 1 / -1;
+  }
+
+  .scheduleFallback > button {
+    min-height: var(--control-target-touch);
+  }
+
+  .frame {
+    min-height: 520px;
+  }
+
+  .frame[data-view="month"] .calendarMount,
+  .frame[data-view="week"] .calendarMount,
+  .frame[data-view="day"] .calendarMount {
+    min-width: 660px;
+  }
+}

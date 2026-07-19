@@ -1,0 +1,101 @@
+.banner {
+  display: grid;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--info);
+  border-radius: var(--radius-control);
+  margin-bottom: var(--space-4);
+  background: color-mix(in srgb, var(--info) 8%, var(--surface));
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.banner[data-tone="warning"] {
+  border-left-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+}
+
+.banner[data-tone="danger"] {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+.icon {
+  display: flex;
+  color: var(--text-muted);
+}
+
+.message {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.message strong {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.message span {
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.statePanel {
+  display: grid;
+  min-height: 280px;
+  place-content: center;
+  justify-items: center;
+  padding: var(--space-8);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.statePanel h2 {
+  margin: var(--space-3) 0 var(--space-2);
+  color: var(--text);
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-section-title-line);
+}
+
+.statePanel p {
+  max-width: 44ch;
+  margin: 0 0 var(--space-4);
+}
+
+.skeleton {
+  overflow: hidden;
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.skeleton span {
+  display: block;
+  height: var(--task-row-standard-height);
+  border-bottom: var(--border-default) solid var(--border);
+  background: linear-gradient(90deg, transparent, var(--surface-subtle), transparent);
+}
+
+.skeleton span:last-of-type {
+  border-bottom: 0;
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .banner {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .banner button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .skeleton span {
+    height: var(--task-row-touch-height);
+  }
+}

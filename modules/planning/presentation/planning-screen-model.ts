@@ -1,0 +1,134 @@
+export type PlanningPriority = "none" | "low" | "medium" | "high";
+export type PlanningTaskStatus = "open" | "completed" | "cancelled";
+export type PlanningCategory = "coral" | "amber" | "mint" | "sky" | "violet" | "slate";
+
+export type PlanningTaskRowModel = Readonly<{
+  id: string;
+  title: string;
+  detailsHref: string;
+  status: PlanningTaskStatus;
+  priority: PlanningPriority;
+  scheduleLabel: string;
+  contextLabel?: string | undefined;
+  category?: PlanningCategory | undefined;
+  conflicted?: boolean | undefined;
+}>;
+
+export type PlanningTaskActions = Readonly<{
+  onOpenTask?: ((taskId: string) => void) | undefined;
+  onStatusChange?: ((taskId: string, status: PlanningTaskStatus) => void) | undefined;
+  onPriorityChange?: ((taskId: string, priority: PlanningPriority) => void) | undefined;
+  onEditSchedule?: ((taskId: string) => void) | undefined;
+}>;
+
+export type PlanningScreenCondition =
+  | Readonly<{ kind: "ready" }>
+  | Readonly<{ kind: "loading" }>
+  | Readonly<{ kind: "error"; message?: string | undefined }>
+  | Readonly<{ kind: "offline" }>
+  | Readonly<{ kind: "permission" }>
+  | Readonly<{ kind: "conflict"; message?: string | undefined }>
+  | Readonly<{ kind: "date-changed"; currentDateLabel: string }>;
+
+export type QuickAddTokenModel = Readonly<{
+  id: string;
+  label: string;
+}>;
+
+export type QuickAddModel = Readonly<{
+  value: string;
+  tokens?: readonly QuickAddTokenModel[] | undefined;
+  destinationLabel: string;
+  submitting?: boolean | undefined;
+}>;
+
+export type TodayPlanningModel = Readonly<{
+  localDateLabel: string;
+  localWeekdayLabel: string;
+  timeZoneLabel: string;
+  remainingLabel: string;
+  overdue: readonly PlanningTaskRowModel[];
+  timed: readonly PlanningTaskRowModel[];
+  anytime: readonly PlanningTaskRowModel[];
+}>;
+
+export type UpcomingGroupModel = Readonly<{
+  id: string;
+  dateLabel: string;
+  tasks: readonly PlanningTaskRowModel[];
+}>;
+
+export type UpcomingPlanningModel = Readonly<{
+  rangeLabel: string;
+  timeZoneLabel: string;
+  totalLabel: string;
+  groups: readonly UpcomingGroupModel[];
+}>;
+
+export type CalendarView = "month" | "week" | "day" | "agenda";
+
+export type PlanningCalendarEventModel = Readonly<{
+  id: string;
+  taskId: string;
+  title: string;
+  detailsHref: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  scheduleLabel: string;
+  statusLabel: string;
+  categoryLabel: string;
+  category: PlanningCategory;
+  conflicted?: boolean | undefined;
+}>;
+
+export type CalendarPlanningModel = Readonly<{
+  view: CalendarView;
+  hasSavedView: boolean;
+  initialDate: string;
+  rangeLabel: string;
+  timeZone: string;
+  timeZoneLabel: string;
+  weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  hourCycle: "12" | "24";
+  events: readonly PlanningCalendarEventModel[];
+  selectedEventId?: string | null | undefined;
+}>;
+
+export type VisibleCalendarRange = Readonly<{
+  start: string;
+  end: string;
+  view: CalendarView;
+}>;
+
+export type CalendarEventChange = Readonly<{
+  taskId: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+}>;
+
+export type CalendarChangeResult =
+  | Readonly<{ ok: true; announcement?: string | undefined }>
+  | Readonly<{ ok: false; message: string; conflict?: boolean | undefined }>;
+
+export type MatrixQuadrantId = "do-now" | "plan" | "time-sensitive" | "later";
+
+export type MatrixQuadrantModel = Readonly<{
+  id: MatrixQuadrantId;
+  title: string;
+  ruleLabel: string;
+  tasks: readonly PlanningTaskRowModel[];
+  category: PlanningCategory;
+}>;
+
+export type MatrixPlanningModel = Readonly<{
+  boundaryLabel: string;
+  quadrants: Readonly<{
+    doNow: MatrixQuadrantModel & Readonly<{ id: "do-now" }>;
+    plan: MatrixQuadrantModel & Readonly<{ id: "plan" }>;
+    timeSensitive: MatrixQuadrantModel & Readonly<{ id: "time-sensitive" }>;
+    later: MatrixQuadrantModel & Readonly<{ id: "later" }>;
+  }>;
+  announcement?: string | undefined;
+}>;

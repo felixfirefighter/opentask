@@ -1,0 +1,114 @@
+.composer {
+  margin-bottom: var(--space-6);
+  padding: var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.label {
+  display: block;
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.inputRow {
+  display: grid;
+  min-height: var(--control-target-touch);
+  align-items: center;
+  gap: var(--space-2);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.inputRow > svg {
+  color: var(--text-selected);
+}
+
+.inputRow input {
+  min-width: 0;
+  height: var(--control-target-touch);
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.inputRow input::placeholder {
+  color: var(--text-muted);
+}
+
+.inputRow input:disabled {
+  color: var(--text-disabled);
+}
+
+.confirmationRow {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--border-default) solid var(--border);
+}
+
+.destination,
+.token {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.token {
+  padding: 0 var(--space-1) 0 var(--space-2);
+  background: var(--category-sky-bg);
+  color: var(--category-sky-fg);
+}
+
+.token button {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.token button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--category-sky-fg) 9%, transparent);
+}
+
+.explanation {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .composer {
+    position: sticky;
+    z-index: var(--z-sticky);
+    top: 0;
+  }
+
+  .inputRow > button {
+    min-width: var(--control-target-touch);
+    padding-inline: var(--space-3);
+  }
+
+  .token button {
+    min-height: var(--control-target-touch);
+  }
+}
