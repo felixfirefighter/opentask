@@ -257,7 +257,7 @@
   }
 
   .composition::before {
-    inset: -20px -10px 20px 38px;
+    inset: -20px 4px 20px 38px;
     border-radius: 30px;
   }
 

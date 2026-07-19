@@ -56,6 +56,13 @@
   display: none;
 }
 
+.steps li strong {
+  position: relative;
+  z-index: 1;
+  padding-right: var(--space-2);
+  background: var(--canvas);
+}
+
 .steps li > span {
   z-index: 1;
   display: inline-flex;

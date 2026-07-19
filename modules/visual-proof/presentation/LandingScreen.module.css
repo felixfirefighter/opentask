@@ -262,3 +262,9 @@
     text-align: left;
   }
 }
+
+@media (max-width: 479px) {
+  .header > [aria-label="OpenTask"] > :last-child {
+    display: none;
+  }
+}
