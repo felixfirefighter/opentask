@@ -4,6 +4,8 @@ export const taskQueryKeys = {
   terminalRoot: () => ["tasks", "terminal"] as const,
   searchRoot: () => ["tasks", "search"] as const,
   detailRoot: () => ["tasks", "detail"] as const,
+  scheduleRoot: () => ["tasks", "schedule"] as const,
+  schedulePreferences: () => ["tasks", "schedule-preferences"] as const,
   lists: () => ["tasks", "lists"] as const,
   folders: () => ["tasks", "folders"] as const,
   sections: (listId: string) => ["tasks", "sections", listId] as const,
@@ -11,5 +13,6 @@ export const taskQueryKeys = {
   list: (listId: string) => ["tasks", "list", listId, "open"] as const,
   terminal: (status: "completed" | "cancelled") => ["tasks", "terminal", status] as const,
   detail: (taskId: string) => ["tasks", "detail", taskId] as const,
+  schedule: (taskId: string) => ["tasks", "schedule", taskId] as const,
   search: (query: string) => ["tasks", "search", query.trim().toLocaleLowerCase()] as const,
 } as const;

@@ -15,6 +15,7 @@ import { useTaskDetailQuery } from "./data/use-task-queries";
 import { TaskDeleteDialog } from "./TaskDeleteDialog";
 import { TaskNotesEditor } from "./TaskNotesEditor";
 import { TaskOrganizationEditor } from "./TaskOrganizationEditor";
+import { TaskScheduleEditor } from "./TaskScheduleEditor";
 import { TaskStepsEditor } from "./TaskStepsEditor";
 import { TaskTitleEditor } from "./TaskTitleEditor";
 import styles from "./TaskDetailScreen.module.css";
@@ -139,6 +140,7 @@ export function TaskDetailScreen({
         )}
         {!online && <p className={styles.offline}>Task details are read-only while you’re offline.</p>}
         <TaskTitleEditor task={task} headingId={`task-title-${task.id}`} disabled={!online} />
+        <TaskScheduleEditor key={task.id} task={task} disabled={!online} />
         <TaskOrganizationEditor
           task={task}
           inbox={inbox ?? { id: task.listId, name: "Current list" }}
