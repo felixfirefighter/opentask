@@ -1,0 +1,306 @@
+.createControl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.createButton,
+.menuTrigger {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.createButton {
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+}
+
+.menuTrigger {
+  width: var(--control-target-desktop);
+  border: 0;
+}
+
+.createButton:hover:not(:disabled),
+.menuTrigger:hover:not(:disabled),
+.menuTrigger:focus-visible,
+.menuTrigger[data-state="open"] {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.createButton:disabled,
+.menuTrigger:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.offlineStatus {
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.actionsRoot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.sectionMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sectionDragHandle {
+  display: inline-grid;
+  width: var(--control-target-desktop);
+  min-height: var(--control-target-desktop);
+  place-items: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+  opacity: 0;
+  touch-action: none;
+}
+
+.sortableSection:hover .sectionDragHandle,
+.sortableSection:focus-within .sectionDragHandle,
+.sectionDragHandle:focus-visible {
+  opacity: 1;
+}
+
+.sectionDragHandle:hover:not(:disabled),
+.sectionDragHandle:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.sectionDragHandle:active {
+  cursor: grabbing;
+}
+
+.sectionDragHandle:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.sortableSection {
+  transition: transform var(--motion-standard) var(--ease-standard);
+}
+
+.sortableSection[data-dragging="true"] {
+  z-index: var(--z-popover);
+}
+
+.reorderError {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-control);
+  background: var(--category-amber-bg);
+  color: var(--category-amber-fg);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.menu {
+  z-index: var(--z-popover);
+  min-width: 208px;
+  padding: var(--space-1);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+}
+
+.menuItem {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+  outline: none;
+  user-select: none;
+}
+
+.menuItem[data-highlighted] {
+  background: var(--surface-hover);
+}
+
+.menuItem[data-disabled] {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.dangerItem:not([data-disabled]) {
+  color: var(--danger);
+}
+
+.menuExplanation {
+  max-width: 200px;
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  white-space: normal;
+}
+
+.separator {
+  height: var(--border-default);
+  margin: var(--space-1);
+  background: var(--border);
+}
+
+.inlineError {
+  position: absolute;
+  z-index: var(--z-popover);
+  top: calc(100% + var(--space-1));
+  right: 0;
+  width: min(280px, calc(100vw - var(--space-8)));
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-control);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+  color: var(--text);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.overlay {
+  position: fixed;
+  z-index: var(--z-dialog);
+  background: color-mix(in srgb, var(--text) 24%, transparent);
+  inset: 0;
+}
+
+.dialog {
+  position: fixed;
+  z-index: var(--z-dialog);
+  top: 50%;
+  left: 50%;
+  width: min(calc(100vw - var(--space-8)), 440px);
+  padding: var(--space-6);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+  transform: translate(-50%, -50%);
+}
+
+.dialogTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.dialogDescription {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--text);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.input {
+  width: 100%;
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.error {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+  color: var(--text);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.dangerButton {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--danger);
+  color: var(--text-on-action);
+  cursor: pointer;
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.dangerButton:disabled {
+  background: var(--surface-subtle);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+@media (any-pointer: coarse) {
+  .createButton,
+  .menuTrigger,
+  .menuItem,
+  .input,
+  .dangerButton {
+    min-height: var(--control-target-touch);
+  }
+
+  .menuTrigger {
+    width: var(--control-target-touch);
+  }
+
+  .sectionDragHandle {
+    width: var(--control-target-touch);
+    min-height: var(--control-target-touch);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sortableSection {
+    transition: none;
+  }
+}
