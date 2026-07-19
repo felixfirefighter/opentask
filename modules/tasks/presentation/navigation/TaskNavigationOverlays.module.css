@@ -1,0 +1,191 @@
+.navigationContent {
+  min-width: 0;
+}
+
+.condition,
+.warning,
+.actionError {
+  margin: 0 var(--space-3) var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.condition {
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+
+.warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  background: var(--category-amber-bg);
+  color: var(--category-amber-fg);
+}
+
+.warning button {
+  min-height: var(--control-target-desktop);
+  flex: none;
+  padding: 0 var(--space-2);
+  border: var(--border-default) solid currentcolor;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-compact-line);
+}
+
+.warning button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.actionError {
+  background: var(--surface-subtle);
+  color: var(--danger);
+}
+
+.loadMore {
+  display: flex;
+  padding: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.loadMore button,
+.failure button {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-compact-line);
+}
+
+.loadMore button:hover,
+.failure button:hover {
+  background: var(--surface-hover);
+}
+
+.loadMore button:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.loading,
+.failure {
+  padding: var(--space-3);
+}
+
+.loading p,
+.failure p {
+  margin: 0 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.loading span {
+  display: block;
+  height: 32px;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.failure button {
+  padding: 0 var(--space-3);
+}
+
+.drawerTrigger,
+.drawerClose {
+  display: inline-grid;
+  width: var(--control-target-desktop);
+  min-height: var(--control-target-desktop);
+  flex: none;
+  place-items: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.drawerTrigger:hover,
+.drawerClose:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.drawerOverlay {
+  position: fixed;
+  z-index: var(--z-sheet);
+  background: color-mix(in srgb, var(--canvas) 72%, transparent);
+  inset: 0;
+}
+
+.drawer {
+  position: fixed;
+  z-index: var(--z-sheet);
+  top: 0;
+  left: 0;
+  width: min(88vw, 320px);
+  height: 100dvh;
+  padding: var(--space-4) 0;
+  overflow-y: auto;
+  border-right: var(--border-default) solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.drawerHeader div {
+  min-width: 0;
+}
+
+.drawerHeader h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.drawerHeader p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+@media (any-pointer: coarse) {
+  .drawerTrigger,
+  .drawerClose,
+  .loadMore button,
+  .failure button {
+    width: var(--control-target-touch);
+    min-height: var(--control-target-touch);
+  }
+
+  .warning button {
+    min-height: var(--control-target-touch);
+  }
+}

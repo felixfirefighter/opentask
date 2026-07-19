@@ -1,0 +1,287 @@
+.navigation {
+  min-width: 0;
+  padding: 0 var(--space-3) var(--space-5);
+}
+
+.destinationList,
+.groupList,
+.listGroup {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.destinationList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.destinationLink,
+.listLink {
+  display: flex;
+  min-width: 0;
+  min-height: 40px;
+  align-items: center;
+  gap: var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  line-height: var(--type-row-line);
+}
+
+.destinationLink {
+  padding: 0 var(--space-3);
+}
+
+.destinationLink:hover,
+.listLink:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.destinationLink[aria-current="page"],
+.listLink[aria-current="page"] {
+  background: var(--surface-selected);
+  color: var(--text-selected);
+  font-weight: var(--type-label-weight);
+}
+
+.sectionHeading {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding-left: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.05em;
+  line-height: var(--type-label-line);
+  text-transform: uppercase;
+}
+
+.headingActions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.createButton,
+.disclosure,
+.dragHandle {
+  display: inline-grid;
+  width: var(--control-target-desktop);
+  min-height: var(--control-target-desktop);
+  flex: none;
+  place-items: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.createButton:hover,
+.disclosure:hover,
+.dragHandle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.createButton:disabled,
+.disclosure:disabled,
+.dragHandle:disabled {
+  cursor: not-allowed;
+  color: var(--text-disabled);
+}
+
+.emptyNavigation {
+  padding: var(--space-4) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.emptyNavigation p {
+  margin: 0;
+}
+
+.emptyNavigation button {
+  min-height: var(--control-target-desktop);
+  margin-top: var(--space-2);
+  padding: 0;
+  background: transparent;
+  color: var(--text-selected);
+  cursor: pointer;
+  font-weight: var(--type-label-weight);
+}
+
+.emptyNavigation button:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.sortableItem {
+  min-width: 0;
+  transition: transform var(--motion-standard) var(--ease-standard);
+}
+
+.sortableItem[data-dragging="true"] {
+  z-index: var(--z-popover);
+  opacity: 0.7;
+}
+
+.folderRow,
+.listRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  border-radius: var(--radius-control);
+}
+
+.folderRow {
+  min-height: 40px;
+  color: var(--text-muted);
+}
+
+.folderRow:hover,
+.folderRow:focus-within,
+.listRow:hover,
+.listRow:focus-within {
+  background: var(--surface-hover);
+}
+
+.folderName {
+  min-width: 0;
+  flex: 1;
+  margin-left: var(--space-2);
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-compact-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dragHandle {
+  cursor: grab;
+  opacity: 0;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.folderRow:hover .dragHandle,
+.folderRow:focus-within .dragHandle,
+.listRow:hover .dragHandle,
+.listRow:focus-within .dragHandle,
+.folderRow:hover :global([data-organizer-menu-trigger]),
+.folderRow:focus-within :global([data-organizer-menu-trigger]),
+.listRow:hover :global([data-organizer-menu-trigger]),
+.listRow:focus-within :global([data-organizer-menu-trigger]) {
+  opacity: 1;
+}
+
+.listGroup {
+  padding-left: var(--space-4);
+}
+
+.listRow {
+  min-height: 40px;
+}
+
+.listLink {
+  flex: 1;
+  padding: 0 0 0 var(--space-3);
+  overflow: hidden;
+}
+
+.listLink span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listAccent {
+  width: var(--space-2);
+  height: var(--space-2);
+  flex: none;
+  border-radius: 50%;
+  background: var(--category-slate-fg);
+}
+
+.listAccent[data-color="coral"] {
+  background: var(--category-coral-fg);
+}
+
+.listAccent[data-color="amber"] {
+  background: var(--category-amber-fg);
+}
+
+.listAccent[data-color="mint"] {
+  background: var(--category-mint-fg);
+}
+
+.listAccent[data-color="sky"] {
+  background: var(--category-sky-fg);
+}
+
+.listAccent[data-color="violet"] {
+  background: var(--category-violet-fg);
+}
+
+.unfiledSection {
+  margin-top: var(--space-3);
+}
+
+.unfiledSection h3 {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.fallbackDescription {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+@media (any-pointer: coarse) {
+  .destinationLink,
+  .folderRow,
+  .listRow,
+  .listLink,
+  .sectionHeading {
+    min-height: var(--control-target-touch);
+  }
+
+  .createButton,
+  .disclosure,
+  .dragHandle {
+    width: var(--control-target-touch);
+    min-height: var(--control-target-touch);
+  }
+
+  .dragHandle,
+  .folderRow :global([data-organizer-menu-trigger]),
+  .listRow :global([data-organizer-menu-trigger]) {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sortableItem {
+    transition: none;
+  }
+}

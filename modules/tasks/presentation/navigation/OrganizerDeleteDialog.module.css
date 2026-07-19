@@ -1,0 +1,88 @@
+.overlay {
+  position: fixed;
+  z-index: var(--z-dialog);
+  background: color-mix(in srgb, var(--canvas) 72%, transparent);
+  inset: 0;
+}
+
+.content {
+  position: fixed;
+  z-index: var(--z-dialog);
+  top: 50%;
+  left: 50%;
+  width: min(calc(100vw - var(--space-8)), 460px);
+  padding: var(--space-5);
+  transform: translate(-50%, -50%);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+}
+
+.title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.description {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.error {
+  margin: var(--space-3) 0 0;
+  color: var(--danger);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.secondaryButton,
+.dangerButton {
+  min-height: var(--control-target-desktop);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-size: var(--type-body-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-body-line);
+}
+
+.secondaryButton {
+  border: var(--border-default) solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.secondaryButton:hover {
+  background: var(--surface-hover);
+}
+
+.dangerButton {
+  border: var(--border-default) solid var(--danger);
+  background: var(--danger);
+  color: var(--text-on-action);
+}
+
+.dangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (any-pointer: coarse) {
+  .secondaryButton,
+  .dangerButton {
+    min-height: var(--control-target-touch);
+  }
+}
