@@ -14,7 +14,7 @@ The first external deliverable is a friend-testable URL and test script. Interna
 
 ## Active product boundary
 
-The release includes identity/demo entry, the task/organization core, non-recurring schedules, Today/Upcoming, Calendar, Matrix, the GPT-5.6 proposal/review/apply flow, JSON export, landing/seed/deployment, and release evidence.
+The release includes identity/demo entry, the task/organization core, non-recurring schedules, Today/Upcoming, Calendar, Matrix, the GPT-5.6 proposal/review/apply flow, JSON export, landing/demo seed/deployment, and release evidence.
 
 Do not implement recurrence, occurrence events, habits, Focus, reminders/push, service-worker caching, or PWA installability. Those are deferred extensions and require a new scope change after the friend-candidate gate.
 
@@ -52,7 +52,7 @@ flowchart LR
     S --> A2["B4b: proposal review/apply integration"]
     A1 --> A2
     B --> X["B5: export"]
-    T --> I["B6: seed/landing/deploy/integration"]
+    T --> I["B6: demo seed/landing/deploy/integration"]
     P --> I
     A2 --> I
     X --> I
@@ -66,7 +66,7 @@ flowchart LR
 - Apply the five-part scope-change protocol across scope, goal, module, data, quality, design, hackathon, and implementation contracts.
 - Stabilize the existing core-task presentation work into small reviewable commits.
 - Remove dead controls/imports/tests that reference deferred features.
-- Confirm repository status, branch, environment, PostgreSQL readiness, and deterministic seed baseline.
+- Confirm repository status, branch, environment, PostgreSQL readiness, and the idempotent database seed-readiness baseline.
 
 ### Gate
 
@@ -181,7 +181,7 @@ Own planning projections and their presentation. Mutations call the public tasks
 - Two-user denial, schema/relationship validation, consistent-snapshot, serialization, headers, filename, and secret-redaction tests.
 - No import route/parser/mutation.
 
-## B6 — Landing, seed, integration, and hosted candidate (maximum 8 hours)
+## B6 — Landing, demo seed, integration, and hosted candidate (maximum 8 hours)
 
 ### Deliverables
 
@@ -194,7 +194,7 @@ Own planning projections and their presentation. Mutations call the public tasks
 
 ### Gate
 
-- Fresh-clone install/migrate/seed/build rehearsal.
+- Fresh-clone install/migrate/seed-readiness/build rehearsal plus isolated **Try demo** reset.
 - Full G1–G4 once locally and once on hosted candidate.
 - OpenAI-disabled, database-unavailable, offline-write, and seed-isolation disclosures.
 - Production headers/cookies/cache/health/log-redaction smoke.

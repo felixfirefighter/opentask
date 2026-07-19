@@ -71,7 +71,7 @@ pnpm db:migrate
 pnpm test:db
 ```
 
-Review and commit generated SQL. `drizzle-kit push` is not an approved migration path. The seed command is idempotent; before feature tables exist it verifies connectivity and writes zero records.
+Review and commit generated SQL. `drizzle-kit push` is not an approved migration path. `pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Isolated sample data is created or reset only through the app's **Try demo** entry.
 
 ## Verification
 

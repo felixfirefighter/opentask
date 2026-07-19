@@ -28,6 +28,7 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 ```text
 app/                     Next.js routes and composition only
 modules/                 Product feature modules
+  landing/                public landing presentation only
   identity/
   tasks/
   planning/
@@ -50,6 +51,7 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 
 | Module | Owns | Contract |
 |---|---|---|
+| landing | public landing presentation and original product preview | `docs/modules/landing.md` |
 | identity | session context, user preferences, account bootstrap | `docs/modules/identity.md` |
 | tasks | folders, lists, sections, tasks, schedules, tags, checklist, search | `docs/modules/tasks.md` |
 | planning | smart views, calendar projections, Eisenhower rules, deterministic scheduler | `docs/modules/planning.md` |
@@ -88,7 +90,7 @@ The bootstrap work package must create these stable commands; later agents use t
 | `pnpm db:up` / `pnpm db:down` | local PostgreSQL lifecycle |
 | `pnpm db:generate` | generate migration from reviewed schema change |
 | `pnpm db:migrate` | apply committed migrations |
-| `pnpm db:seed` | idempotent development/demo seed |
+| `pnpm db:seed` | idempotent database seed-readiness/connectivity check; writes no user or demo records |
 | `pnpm lint` | static lint |
 | `pnpm format:check` | deterministic formatting gate |
 | `pnpm test:boundaries` | executable negative architecture-boundary probe |

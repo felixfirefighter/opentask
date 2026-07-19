@@ -16,7 +16,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-Open `http://127.0.0.1:3000`. Create an account, or choose **Try demo** to create/reset a private sample workspace for that browser. The active core does not require a background worker; `pnpm worker` remains a zero-job architecture smoke.
+`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose **Try demo** to create/reset a private sample workspace for that browser. The active core does not require a background worker; `pnpm worker` remains a zero-job architecture smoke.
 
 ## Core release
 

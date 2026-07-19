@@ -57,7 +57,7 @@ The goal is complete only when all of the following are true:
 3. Cross-user authorization denial tests cover every user-owned aggregate.
 4. The supported schedule, export, and planner failure cases are verified, not only their happy paths.
 5. Desktop and mobile visual/keyboard/accessibility audits pass at the required viewports.
-6. A fresh clone can follow the README to run web, PostgreSQL, migrations, and seed data without undocumented services; the zero-job worker scaffold still boots through its documented verification command.
+6. A fresh clone can follow the README to run web, PostgreSQL, migrations, the database seed-readiness check, and the isolated **Try demo** sample-data path without undocumented services; the zero-job worker scaffold still boots through its documented verification command.
 7. The hosted friend candidate health check passes and the seeded demo path does not expose shared secrets or personal data.
 8. The repository contains the intended license, attribution/license inventory, security guidance, and no committed secrets.
 9. The under-three-minute demo and submission package meet `docs/HACKATHON.md`.
