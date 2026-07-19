@@ -82,11 +82,34 @@ process.stdout.write(
 async function readHealth(path, expectedStatus) {
   const response = await fetch(`http://127.0.0.1:3000/api/health/${path}`);
   if (!response.ok) throw new Error(`Production ${path} health returned HTTP ${response.status}.`);
+  assertSecurityHeaders(response.headers);
   const body = await response.json();
   if (body.status !== expectedStatus) {
     throw new Error(`Production ${path} health returned an unexpected status.`);
   }
   return body;
+}
+
+function assertSecurityHeaders(headers) {
+  const policy = headers.get("content-security-policy") ?? "";
+  if (!policy.includes("default-src 'self'") || !policy.includes("frame-ancestors 'none'")) {
+    throw new Error("Production response is missing the required Content Security Policy.");
+  }
+  if (policy.includes("'unsafe-eval'")) {
+    throw new Error("Production Content Security Policy permits unsafe evaluation.");
+  }
+
+  const expected = new Map([
+    ["cross-origin-opener-policy", "same-origin"],
+    ["permissions-policy", "camera=(), microphone=(), geolocation=(), browsing-topics=()"],
+    ["referrer-policy", "strict-origin-when-cross-origin"],
+    ["strict-transport-security", "max-age=31536000"],
+    ["x-content-type-options", "nosniff"],
+    ["x-frame-options", "DENY"],
+  ]);
+  for (const [name, value] of expected) {
+    if (headers.get(name) !== value) throw new Error(`Production response has an invalid ${name} header.`);
+  }
 }
 
 function readComposeServices() {
