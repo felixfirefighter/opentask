@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
 
@@ -7,7 +8,12 @@ import styles from "./AccountMenu.module.css";
 
 type SignOutState = "idle" | "pending" | "error";
 
-export function SignOutButton() {
+type SignOutButtonProps = Readonly<{
+  onSignedOut?: (() => void) | undefined;
+}>;
+
+export function SignOutButton({ onSignedOut = redirectToSignIn }: SignOutButtonProps = {}) {
+  const queryClient = useQueryClient();
   const [state, setState] = useState<SignOutState>("idle");
 
   async function signOut() {
@@ -22,7 +28,9 @@ export function SignOutButton() {
         body: "{}",
       });
       if (!response.ok) throw new Error("Sign-out request failed");
-      window.location.assign("/sign-in");
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      onSignedOut();
     } catch {
       setState("error");
     }
@@ -47,4 +55,8 @@ export function SignOutButton() {
       )}
     </div>
   );
+}
+
+function redirectToSignIn() {
+  window.location.assign("/sign-in");
 }

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -105,18 +106,23 @@ describe("AuthenticatedShell", () => {
 });
 
 function renderShell(currentDestination: "tasks" | "settings" = "tasks") {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return render(
-    <AuthenticatedShell
-      identity={identity}
-      theme="light"
-      reducedMotion={false}
-      currentDestination={currentDestination}
-      destinationTitle={currentDestination === "tasks" ? "Inbox" : undefined}
-    >
-      <h1 tabIndex={-1} data-route-focus>
-        Release workspace
-      </h1>
-    </AuthenticatedShell>,
+    <QueryClientProvider client={queryClient}>
+      <AuthenticatedShell
+        identity={identity}
+        theme="light"
+        reducedMotion={false}
+        currentDestination={currentDestination}
+        destinationTitle={currentDestination === "tasks" ? "Inbox" : undefined}
+      >
+        <h1 tabIndex={-1} data-route-focus>
+          Release workspace
+        </h1>
+      </AuthenticatedShell>
+    </QueryClientProvider>,
   );
 }
 
