@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
@@ -99,7 +100,7 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
   await expect(page.getByRole("heading", { name: "New tasks" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Deferred and overflow" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Apply 4 changes" })).toBeEnabled();
-  await captureReviewEvidence(page, testInfo.project.name);
+  const reviewEvidence = await captureReviewEvidence(page, testInfo.project.name);
 
   const updateCard = page.getByText("Update", { exact: true }).locator("xpath=ancestor::article");
   await updateCard.getByRole("button", { name: "Edit change" }).click();
@@ -203,6 +204,7 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
   await page.goto(`/calendar?date=${proposal.planningDate}&view=agenda`);
   await expect(calendarEvent(page, editedTitle)).toBeVisible();
   await expect(calendarEvent(page, "Draft release summary")).toBeVisible();
+  await publishReviewEvidence(reviewEvidence);
 });
 
 test("G3 recovers from provider failure and rejects the persisted proposal without task writes", async ({
@@ -305,15 +307,26 @@ async function readPlannerProposal(page: Page, proposalId: string) {
 }
 
 async function captureReviewEvidence(page: Page, projectName: string) {
-  const evidenceDirectory = path.resolve("artifacts/visual-proof/g3");
-  await mkdir(evidenceDirectory, { recursive: true });
+  const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "opentask-g3-review-"));
+  const fileName = `ai-review-${projectName}.png`;
+  const screenshotPath = path.join(temporaryDirectory, fileName);
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
   await page.getByRole("heading", { name: "AI Review", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: path.join(evidenceDirectory, `ai-review-${projectName}.png`),
+    path: screenshotPath,
     animations: "disabled",
     fullPage: true,
   });
+  return { fileName, screenshotPath, temporaryDirectory };
+}
+
+async function publishReviewEvidence(
+  capture: Awaited<ReturnType<typeof captureReviewEvidence>>,
+): Promise<void> {
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/g3");
+  await mkdir(evidenceDirectory, { recursive: true });
+  await copyFile(capture.screenshotPath, path.join(evidenceDirectory, capture.fileName));
+  await rm(capture.temporaryDirectory, { recursive: true, force: true });
 }
