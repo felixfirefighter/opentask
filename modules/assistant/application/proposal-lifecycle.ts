@@ -54,7 +54,7 @@ export function createPlannerProposalLifecycle(dependencies: {
     ): Promise<PlannerProposalDto> {
       const proposal = plannerProposalSchema.parse(input.proposal);
       const contextVersions = proposalContextVersionsSchema.parse(input.contextVersions);
-      assertActionContextVersions(proposal, contextVersions);
+      assertSubjectContextVersions(proposal, contextVersions);
 
       const createdAt = clock.now();
       const expiresAt = new Date(createdAt.getTime() + proposalTtlMs);
@@ -162,7 +162,7 @@ function toDto(record: StoredPlannerProposalRecord, expectedUserId: string): Pla
     ) {
       throw new Error("Stored proposal metadata is inconsistent.");
     }
-    assertActionContextVersions(proposal, contextVersions);
+    assertSubjectContextVersions(proposal, contextVersions);
 
     return plannerProposalDtoSchema.parse({
       id: record.id,
@@ -183,15 +183,14 @@ function toDto(record: StoredPlannerProposalRecord, expectedUserId: string): Pla
   }
 }
 
-function assertActionContextVersions(
+function assertSubjectContextVersions(
   proposal: PlannerProposal,
   contextVersions: ProposalContextVersions,
 ): void {
-  for (const action of proposal.actions) {
-    const taskId = action.kind === "create" ? null : action.taskId;
-    if (taskId === null) continue;
-    if (!(taskId in contextVersions)) {
-      throw new ApplicationError("VALIDATION_FAILED", "A planner action is missing its task version.");
+  for (const subject of proposal.subjects) {
+    if (subject.taskId === null) continue;
+    if (!(subject.taskId in contextVersions)) {
+      throw new ApplicationError("VALIDATION_FAILED", "A planner subject is missing its task version.");
     }
   }
 }

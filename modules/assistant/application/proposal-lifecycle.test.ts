@@ -30,6 +30,14 @@ function proposal(): PlannerProposal {
     schemaVersion: PLANNER_SCHEMA_VERSION,
     planningDate: "2026-07-20",
     summary: "Schedule the selected launch review.",
+    subjects: [
+      {
+        semanticRef: "selected-1",
+        title: "Review launch",
+        source: "selected_task",
+        taskId,
+      },
+    ],
     actions: [
       {
         actionId,
@@ -140,7 +148,17 @@ describe("proposal lifecycle", () => {
     const stored = [...records.values()][0];
     expect(stored?.userId).toBe(user.userId);
     expect(stored?.idempotencyKey).toBe(applyToken);
-    expect(JSON.stringify(stored)).not.toContain("brain dump");
+    expect(stored?.proposal).toMatchObject({
+      subjects: [
+        {
+          semanticRef: "selected-1",
+          title: "Review launch",
+          source: "selected_task",
+          taskId,
+        },
+      ],
+    });
+    expect(JSON.stringify(stored)).not.toContain("Prepare launch notes from the private brain dump");
   });
 
   it("returns existence-safe not found for another actor and rejects only owned pending rows", async () => {
@@ -188,6 +206,25 @@ describe("proposal lifecycle", () => {
     await expect(
       lifecycle.persist(user, {
         proposal: proposal(),
+        contextVersions: {},
+        model: "gpt-5.6",
+        promptVersion: PLANNER_PROMPT_VERSION,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
+    expect(records).toHaveLength(0);
+  });
+
+  it("requires context versions for selected subjects referenced only by overflow", async () => {
+    const { lifecycle, records } = createLifecycle();
+    const overflowOnlyProposal: PlannerProposal = {
+      ...proposal(),
+      actions: [],
+      overflow: [{ semanticRef: "selected-1", reason: "NO_FREE_INTERVAL" }],
+    };
+
+    await expect(
+      lifecycle.persist(user, {
+        proposal: overflowOnlyProposal,
         contextVersions: {},
         model: "gpt-5.6",
         promptVersion: PLANNER_PROMPT_VERSION,

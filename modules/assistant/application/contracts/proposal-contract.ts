@@ -18,6 +18,8 @@ import {
   uncertaintySchema,
   versionSchema,
 } from "./contract-primitives";
+import { validateProposalSemantics } from "./proposal-semantic-validation";
+import { plannerProposalSubjectsSchema } from "./proposal-subject-contract";
 
 const actionBase = {
   actionId: entityIdSchema,
@@ -163,6 +165,7 @@ export const plannerProposalSchema = z
     schemaVersion: z.literal(PLANNER_SCHEMA_VERSION),
     planningDate: localDateSchema,
     summary: summarySchema,
+    subjects: plannerProposalSubjectsSchema,
     actions: z.array(plannerActionSchema).max(200),
     overflow: z.array(overflowSchema).max(100),
     conflicts: z.array(conflictSchema).max(100),
@@ -210,6 +213,8 @@ export const plannerProposalSchema = z
         message: "Overflow references must be unique.",
       });
     }
+
+    validateProposalSemantics(proposal, context);
   });
 
 export const proposalContextVersionsSchema = z

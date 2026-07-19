@@ -149,6 +149,26 @@ describe("OpenAI Responses planner provider", () => {
     expect(JSON.stringify({ error, events: fixture.events })).not.toContain("Review launch");
   });
 
+  it("normalizes malformed JSON syntax failures without retaining parser or user content", async () => {
+    const fixture = createRecorder(new SyntaxError("Malformed JSON near private brain dump"));
+    const error = await fixture.provider.extract(request()).catch((caught: unknown) => caught);
+
+    expect(error).toEqual(
+      expect.objectContaining({
+        kind: "malformed_output",
+        name: "PlannerProviderMalformedOutputError",
+      }),
+    );
+    expect(fixture.events).toEqual([
+      {
+        code: "REQUEST_FAILED",
+        fields: { errorName: "PlannerProviderMalformedOutputError" },
+      },
+    ]);
+    expect(JSON.stringify({ error, events: fixture.events })).not.toContain("private brain dump");
+    expect(JSON.stringify({ error, events: fixture.events })).not.toContain("Malformed JSON");
+  });
+
   it("rejects missing, schema-invalid, and semantically unknown output", async () => {
     const missing = createRecorder({
       output: [],
@@ -211,6 +231,7 @@ describe("OpenAI Responses planner provider", () => {
         apiKey: " ",
         requestSchema: plannerExtractionRequestSchema,
         responseSchema: modelExtractionSchema,
+        validateOutput: validateExtractionReferences,
       }),
     ).toThrow(RangeError);
     expect(() =>
@@ -218,6 +239,7 @@ describe("OpenAI Responses planner provider", () => {
         apiKey: "provider-key",
         requestSchema: plannerExtractionRequestSchema,
         responseSchema: modelExtractionSchema,
+        validateOutput: validateExtractionReferences,
         timeoutMs: 120_001,
       }),
     ).toThrow(RangeError);

@@ -74,6 +74,14 @@ function proposal() {
     schemaVersion: PLANNER_SCHEMA_VERSION,
     planningDate: "2026-07-20",
     summary: "One selected task is scheduled.",
+    subjects: [
+      {
+        semanticRef: "selected-1",
+        title: "Review launch",
+        source: "selected_task",
+        taskId,
+      },
+    ],
     actions: [scheduleAction()],
     overflow: [],
     conflicts: [],
@@ -226,6 +234,14 @@ describe("versioned proposal contracts", () => {
     expect(
       plannerProposalSchema.safeParse({
         ...proposal(),
+        subjects: [
+          {
+            semanticRef: "new-1",
+            title: "Draft brief",
+            source: "brain_dump",
+            taskId: null,
+          },
+        ],
         actions: [
           {
             actionId,

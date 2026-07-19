@@ -2,6 +2,7 @@ import OpenAI, { APIConnectionTimeoutError } from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { ZodError, type ZodType } from "zod";
 
+import { getEnvironment } from "@/shared/config/environment";
 import { logger, type SafeLogger } from "@/shared/logging/logger";
 
 const MODEL = "gpt-5.6" as const;
@@ -35,15 +36,27 @@ export type OpenAIResponsesProviderResult<TOutput> = Readonly<{
   model: string;
 }>;
 
-export function createOpenAIResponsesProvider<TRequest, TOutput>(options: {
+type OpenAIResponsesProviderOptions<TRequest, TOutput> = {
   apiKey: string;
   requestSchema: ZodType<TRequest>;
   responseSchema: ZodType<TOutput>;
-  validateOutput?: (request: TRequest, output: TOutput) => boolean;
+  validateOutput: (request: TRequest, output: TOutput) => boolean;
   client?: Pick<OpenAI, "responses">;
   log?: SafeLogger;
   timeoutMs?: number;
-}) {
+};
+
+export function createConfiguredOpenAIResponsesProvider<TRequest, TOutput>(
+  options: Omit<OpenAIResponsesProviderOptions<TRequest, TOutput>, "apiKey">,
+) {
+  const apiKey = getEnvironment().OPENAI_API_KEY;
+  if (!apiKey) return null;
+  return createOpenAIResponsesProvider({ ...options, apiKey });
+}
+
+export function createOpenAIResponsesProvider<TRequest, TOutput>(
+  options: OpenAIResponsesProviderOptions<TRequest, TOutput>,
+) {
   if (options.apiKey.trim().length === 0) {
     throw new RangeError("An OpenAI API key is required to create the configured provider.");
   }
@@ -80,7 +93,7 @@ export function createOpenAIResponsesProvider<TRequest, TOutput>(options: {
         if (response.status !== "completed") throw new PlannerProviderError("malformed_output");
         if (response.output_parsed === null) throw new PlannerProviderError("malformed_output");
         const output = options.responseSchema.parse(response.output_parsed);
-        if (options.validateOutput && !options.validateOutput(request, output)) {
+        if (!options.validateOutput(request, output)) {
           throw new PlannerProviderError("semantic_invalid");
         }
 

@@ -29,6 +29,8 @@ export type {
   PlannerSelection,
   ProposalContextVersions,
 } from "./proposal-contract";
+export { plannerProposalSubjectSchema, plannerProposalSubjectsSchema } from "./proposal-subject-contract";
+export type { PlannerProposalSubject } from "./proposal-subject-contract";
 export type {
   NewPlannerProposalRecord,
   PlannerProposalPersistence,

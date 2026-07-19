@@ -11,6 +11,8 @@ export {
   plannerProposalDtoSchema,
   plannerProposalSchema,
   plannerProposalStatusSchema,
+  plannerProposalSubjectSchema,
+  plannerProposalSubjectsSchema,
   plannerScheduleSchema,
   plannerSelectionSchema,
   proposalContextVersionsSchema,
@@ -28,9 +30,11 @@ export type {
   PlannerProposal,
   PlannerProposalDto,
   PlannerProposalStatus,
+  PlannerProposalSubject,
   PlannerSelection,
   ProposalContextVersions,
 } from "./application/contracts";
 export { getPlannerCapability } from "./application/planner-capability";
+export { createPlannerExtractionProvider } from "./application/planner-extraction-provider";
 export { createPlannerProposalLifecycle } from "./application/proposal-lifecycle";
 export type { PersistPlannerProposalInput, PlannerProposalLifecycle } from "./application/proposal-lifecycle";
