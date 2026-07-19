@@ -4,12 +4,10 @@
 
 ## Responsibilities
 
-- Inbox, Today, Upcoming seven-day, and Completed/Cancelled projections.
+- Today and Upcoming seven-day projections.
 - Range-bounded calendar month, week/day, and agenda projections.
 - Eisenhower quadrant projection and accessible priority/schedule actions through tasks commands.
-- Global destination/task-search/quick-add command palette composition.
 - Deterministic allocation of proposed work into free intervals for the assistant.
-- Today projection of due tasks.
 
 ## Owned persistence
 
@@ -45,6 +43,7 @@
 
 ## Non-responsibilities
 
+- Inbox, regular-list, or Completed/Cancelled task projections; task search, quick add, and the task-backed global palette.
 - Task, recurrence, occurrence, habit, or proposal persistence.
 - OpenAI calls, proposal review/apply, reminder delivery, external calendars, saved filters, Kanban, timeline/Gantt, or multi-week/year views.
 - Autonomous rescheduling or background planning.

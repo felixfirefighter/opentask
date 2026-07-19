@@ -6,9 +6,11 @@
 
 - Folder, regular-list, section, tag, task, one-level subtask, and checklist CRUD.
 - Immutable personal Inbox behavior, task move/manual reorder, soft delete/restore, and status transitions.
+- Inbox, regular-list, and Completed/Cancelled task projections over canonical task rows.
 - All-day/timed schedules with explicit timezone semantics.
 - English quick-add recognition with `chrono-node`, preserving visible editable source text.
 - User-scoped task/title/description/tag search and bounded authorized task reads for other modules.
+- Task-backed global palette composition for destination navigation, authorized search, and quick add.
 
 ## Owned persistence
 
@@ -21,7 +23,7 @@
 - Container commands: create/update/reorder/soft-delete/restore folders and lists; create/update/reorder/delete empty sections; `createPersonalInbox` for identity bootstrap.
 - Task commands: create/update/move/reorder/soft-delete/restore and transition among `open`, `completed`, and `cancelled`.
 - Detail commands: manage tags and checklist items; set/clear schedule.
-- Queries: get task detail, list/search tasks, load selected open unscheduled tasks, and range-bounded schedule reads.
+- Queries: get task detail, list Inbox/regular/terminal tasks, search tasks, load selected open unscheduled tasks, and range-bounded schedule reads.
 - Parsing: `parseQuickAdd(text, timezone)` returns the unchanged source text plus explicit editable suggestions; it performs no write.
 - Public contracts: the WP02 folder/list/section/tag/task DTO and tag-enriched task-list item/page types,
   `ReplaceTaskTagsOutput`, `TaskQuery`, `TerminalTaskQuery`, `TaskVersionRef`, `TaskScheduleDto`,
@@ -83,7 +85,7 @@ No public contract exposes a Drizzle row or an unscoped repository method.
 
 ## Non-responsibilities
 
-- Smart-view, calendar, agenda, Eisenhower, or deterministic planner projection logic.
+- Today/Upcoming, calendar, agenda, Eisenhower, or deterministic planner projection logic.
 - Recurrence/occurrence handling, reminder definitions, push subscriptions/delivery, focus totals, habit state, AI fields, saved filters, collaboration, or import.
 - Batch editing, Kanban, or timeline.
 
