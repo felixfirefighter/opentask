@@ -1,73 +1,115 @@
-import { expect, test } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import { copyFile, mkdir, readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
-const routes = [
-  { slug: "landing", path: "/", heading: "Make room for what matters." },
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
+
+const DEMO_TASK_ID = "50000000-0000-4000-8000-000000000001";
+const DEMO_LIST_ID = "20000000-0000-4000-8000-000000000001";
+
+const authenticatedRoutes = [
+  { slug: "inbox", path: "/inbox", heading: "Inbox" },
   { slug: "today", path: "/today", heading: "Today" },
+  { slug: "upcoming", path: "/upcoming", heading: "Upcoming" },
   { slug: "calendar", path: "/calendar", heading: "Calendar" },
-  { slug: "task-details", path: "/tasks/demo", heading: null },
-  { slug: "plan-review", path: "/plan", heading: "Review your proposal" },
+  { slug: "matrix", path: "/matrix", heading: "Priority matrix" },
 ] as const;
 
-for (const route of routes) {
-  test(`${route.slug} renders without viewport overflow`, async ({ page }, testInfo) => {
+test("the friend-candidate journey renders at every approved viewport", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  const evidenceDirectory = path.resolve("artifacts/visual-proof");
+  const captureDirectory = path.join(
+    tmpdir(),
+    `opentask-visual-proof-${testInfo.project.name}-${randomUUID()}`,
+  );
+  await mkdir(captureDirectory, { recursive: true });
+  await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
+  await captureRoute(page, testInfo, captureDirectory, "landing");
+  await page.getByRole("button", { name: "Use dark theme" }).click();
+  await captureRoute(page, testInfo, captureDirectory, "landing-dark");
+  await page.getByRole("button", { name: "Use light theme" }).click();
+
+  await page.getByRole("button", { name: "Try demo" }).click();
+  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
+  const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
+  await expect(dismissTips).toBeVisible();
+  await dismissTips.click();
+  await expect(dismissTips).toBeHidden();
+
+  for (const route of authenticatedRoutes) {
     await page.goto(route.path);
-    await page.waitForLoadState("networkidle");
-    if (route.heading)
-      await expect(page.getByRole("heading", { name: route.heading, exact: true }).first()).toBeVisible();
-    else await expect(page.getByLabel("Task title")).toBeVisible();
-    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.getByRole("heading", { name: route.heading, exact: true }).first()).toBeVisible();
+    await captureRoute(page, testInfo, captureDirectory, route.slug);
+  }
 
-    const viewport = await page.evaluate(() => ({
-      width: window.innerWidth,
-      scrollWidth: document.documentElement.scrollWidth,
-    }));
-    const expectedWidth =
-      testInfo.project.name === "desktop-chromium"
-        ? 1440
-        : testInfo.project.name.includes("tablet")
-          ? 1024
-          : 390;
-    expect(page.viewportSize()?.width).toBe(expectedWidth);
-    expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
+  const taskDetailsPath =
+    page.viewportSize()!.width >= 768
+      ? `/lists/${DEMO_LIST_ID}?task=${DEMO_TASK_ID}`
+      : `/tasks/${DEMO_TASK_ID}`;
+  await page.goto(taskDetailsPath);
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue("Record the two-minute demo");
+  if (page.viewportSize()!.width >= 1280) {
+    const details = page.getByRole("complementary", { name: "Task details" });
+    await expect(details).toBeVisible();
+    await expect(details.getByRole("button", { name: "Edit schedule" })).toBeVisible();
+  } else if (page.viewportSize()!.width >= 768) {
+    const details = page.getByRole("dialog", { name: "Task details" });
+    await expect(details).toBeVisible();
+    await expect(details.getByRole("button", { name: "Edit schedule" })).toBeVisible();
+  } else {
+    await expect(page.getByRole("link", { name: "Back to task list" })).toBeVisible();
+  }
+  await captureRoute(page, testInfo, captureDirectory, "task-details");
 
-    await page.screenshot({
-      path: path.resolve("artifacts/visual-proof", `${route.slug}-${testInfo.project.name}.png`),
-      animations: "disabled",
-    });
+  await page.goto("/plan");
+  await expect(page.getByRole("heading", { name: "AI Review", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Planning is unavailable because no AI key is configured" }),
+  ).toBeVisible();
+  await captureRoute(page, testInfo, captureDirectory, "ai-review-no-key");
+  await page.close();
+  await publishEvidence(captureDirectory, evidenceDirectory);
+});
 
-    if (route.slug === "today" && !testInfo.project.name.includes("tablet")) {
-      await page.getByRole("button", { name: "Use dark theme" }).click();
-      await expect(page.getByRole("button", { name: "Use light theme" })).toBeVisible();
-      await page.screenshot({
-        path: path.resolve("artifacts/visual-proof", `today-dark-${testInfo.project.name}.png`),
-        animations: "disabled",
-      });
-    }
+async function captureRoute(page: Page, testInfo: TestInfo, captureDirectory: string, slug: string) {
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => window.scrollTo(0, 0));
+
+  const viewport = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  const expectedWidth =
+    testInfo.project.name === "desktop-chromium"
+      ? 1440
+      : testInfo.project.name.includes("tablet")
+        ? 1024
+        : 390;
+  expect(page.viewportSize()?.width).toBe(expectedWidth);
+  expect(viewport.width).toBe(expectedWidth);
+  expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
+
+  await page.screenshot({
+    path: path.join(captureDirectory, `${slug}-${testInfo.project.name}.png`),
+    animations: "disabled",
+    fullPage: true,
   });
 }
 
-test("core visual-proof controls expose their state", async ({ page }) => {
-  await page.goto("/today");
-  await page.waitForLoadState("networkidle");
-  const taskToggle = page.getByRole("button", { name: "Complete Record the two-minute demo" });
-  await taskToggle.click();
-  await expect(
-    page.getByRole("button", { name: "Mark Record the two-minute demo incomplete" }),
-  ).toHaveAttribute("aria-pressed", "true");
+async function publishEvidence(captureDirectory: string, evidenceDirectory: string) {
+  await mkdir(evidenceDirectory, { recursive: true });
+  const files = (await readdir(captureDirectory)).filter((file) => file.endsWith(".png"));
+  await Promise.all(
+    files.map((file) => copyFile(path.join(captureDirectory, file), path.join(evidenceDirectory, file))),
+  );
+}
 
-  await page.goto("/calendar");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: "Week" }).click();
-  await expect(page.getByRole("region", { name: "Week time grid" })).toBeVisible();
-
-  await page.goto("/plan");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("checkbox", { name: /record the two-minute demo/i }).click();
-  await expect(page.getByRole("button", { name: "Apply 2 changes" })).toBeVisible();
-
-  await page.goto("/tasks/demo");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("checkbox", { name: "Record the core workflow" }).check();
-  await expect(page.getByRole("checkbox", { name: "Record the core workflow" })).toBeChecked();
-});
+function isolatedClientAddress() {
+  const seed = randomUUID().replaceAll("-", "");
+  return `2001:db8:${seed.slice(0, 4)}:${seed.slice(4, 8)}:${seed.slice(8, 12)}:${seed.slice(12, 16)}::1`;
+}
