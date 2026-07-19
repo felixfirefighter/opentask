@@ -1,3 +1,4 @@
+import { createAssistantSchema } from "../../modules/assistant/infrastructure/schema.ts";
 import { createIdentitySchema } from "../../modules/identity/infrastructure/schema.ts";
 import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 
@@ -5,6 +6,7 @@ import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 // consumers import the composed instances from here so references stay canonical.
 const identitySchema = createIdentitySchema();
 const taskSchema = createTaskSchema(() => identitySchema.user.id);
+const assistantSchema = createAssistantSchema(() => identitySchema.user.id);
 
 export const user = identitySchema.user;
 export const session = identitySchema.session;
@@ -20,6 +22,7 @@ export const taskSchedules = taskSchema.taskSchedules;
 export const checklistItems = taskSchema.checklistItems;
 export const tags = taskSchema.tags;
 export const taskTags = taskSchema.taskTags;
+export const plannerProposals = assistantSchema.plannerProposals;
 
 export const schema = {
   user,
@@ -36,4 +39,5 @@ export const schema = {
   checklistItems,
   tags,
   taskTags,
+  plannerProposals,
 };

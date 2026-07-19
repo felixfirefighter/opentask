@@ -71,6 +71,13 @@
       "when": 1784454066310,
       "tag": "0009_wp04-task-schedules",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784455093861,
+      "tag": "0010_wp05-planner-proposals",
+      "breakpoints": true
     }
   ]
 }
