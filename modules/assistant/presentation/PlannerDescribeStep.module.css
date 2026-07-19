@@ -1,0 +1,316 @@
+.form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.card {
+  padding: var(--space-6);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-overlay);
+  background: var(--surface);
+}
+
+.cardHeading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.cardHeading h2 {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.cardHeading > svg {
+  color: var(--category-violet-fg);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.field > span,
+.taskFieldset legend,
+.searchField > span,
+.timeZoneSummary strong {
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-compact-line);
+}
+
+.field > span small,
+.taskFieldset legend span {
+  color: var(--text-muted);
+  font-size: inherit;
+  font-weight: var(--type-body-weight);
+}
+
+.field input,
+.field textarea,
+.searchInput {
+  width: 100%;
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.field input {
+  min-height: var(--control-target-touch);
+  padding: 0 var(--space-3);
+}
+
+.field textarea {
+  min-height: 132px;
+  padding: var(--space-3);
+  line-height: var(--type-body-line);
+  resize: vertical;
+}
+
+.field input:disabled,
+.field textarea:disabled,
+.searchInput:has(input:disabled) {
+  background: var(--surface-subtle);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.taskFieldset {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-6) 0 0;
+  padding: var(--space-5) 0 0;
+  border: 0;
+  border-top: var(--border-default) solid var(--border);
+}
+
+.taskFieldset > p {
+  margin: 0 0 var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.searchField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.searchInput {
+  display: flex;
+  min-height: var(--control-target-touch);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  color: var(--text-muted);
+}
+
+.searchInput input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.searchInput:focus-within {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.taskOptions {
+  max-height: 240px;
+  overflow: auto;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.taskOption {
+  display: grid;
+  min-height: var(--control-target-touch);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.taskOption + .taskOption {
+  border-top: var(--border-default) solid var(--border);
+}
+
+.taskOption:has(input:checked) {
+  background: var(--surface-selected);
+}
+
+.taskOption input {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.taskOption > span {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.taskOption strong {
+  overflow: hidden;
+  font-size: var(--type-row-size);
+  line-height: var(--type-row-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskOption small,
+.taskEmpty,
+.timeZoneSummary span {
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.taskEmpty {
+  margin: 0;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.fieldGrid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.numberInput {
+  display: grid;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.numberInput input {
+  grid-area: 1 / 1 / 2 / 3;
+  padding-right: 72px;
+}
+
+.numberInput small {
+  z-index: 1;
+  grid-area: 1 / 2;
+  padding-right: var(--space-3);
+  color: var(--text-muted);
+}
+
+.timeZoneSummary {
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  min-height: var(--control-target-touch);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.windowSummary {
+  margin: var(--space-4) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.windowSummary strong {
+  color: var(--text);
+}
+
+.dataUse {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface-subtle);
+}
+
+.dataUse svg {
+  flex: 0 0 auto;
+  color: var(--success);
+}
+
+.dataUse p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.dataUse strong {
+  color: var(--text);
+}
+
+.formActions {
+  display: flex;
+  min-height: var(--control-target-touch);
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+.formActions > span:first-child {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+  text-align: right;
+}
+
+.formActions button:disabled {
+  background: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.errorSummary {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+.errorSummary span,
+.errorSummary a {
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.errorSummary a {
+  color: var(--info);
+  text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+  .card {
+    padding: var(--space-5);
+  }
+
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .formActions > span:first-child {
+    text-align: left;
+  }
+
+  .formActions button {
+    width: 100%;
+  }
+}
