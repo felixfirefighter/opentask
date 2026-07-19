@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     default: "OpenTask",
     template: "%s · OpenTask",
   },
-  description: "An open-source personal planning workspace for tasks, routines, focus, and reviewable AI.",
+  description: "An open-source workspace for task and calendar planning with reviewable AI.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

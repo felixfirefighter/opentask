@@ -161,11 +161,6 @@
   white-space: nowrap;
 }
 
-.detailRow[data-muted="true"] strong {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
 .detailRow[data-tone="danger"] strong,
 .detailRow[data-tone="danger"] .detailIcon {
   color: var(--priority-high);

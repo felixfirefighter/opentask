@@ -269,7 +269,7 @@
 }
 .agendaEvent {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: 64px minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   min-height: 62px;
@@ -377,7 +377,7 @@
     padding-right: 10px;
   }
   .agendaEvent {
-    grid-template-columns: 51px minmax(0, 1fr) auto;
+    grid-template-columns: 51px minmax(0, 1fr);
     gap: 8px;
     padding-inline: 8px;
   }

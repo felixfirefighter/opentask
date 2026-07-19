@@ -4,21 +4,16 @@ import { CalendarDays, ChevronRight, Clock3, Plus, Sparkles, Sunrise } from "luc
 import Link from "next/link";
 import { useState } from "react";
 
-import { anytimeTasks, habits, overdueTasks, timedTasks, type FixtureTask } from "./fixtures";
+import { anytimeTasks, overdueTasks, timedTasks, type FixtureTask } from "./fixtures";
 import { TaskRow } from "./TaskRow";
 import styles from "./TodayScreen.module.css";
 import { VisualProofShell } from "./VisualProofShell";
 
 export function TodayScreen() {
   const [completed, setCompleted] = useState<Set<string>>(new Set());
-  const [checkedHabits, setCheckedHabits] = useState<Set<string>>(new Set(["water"]));
 
   function toggleTask(id: string) {
     setCompleted((current) => toggleSetValue(current, id));
-  }
-
-  function toggleHabit(id: string) {
-    setCheckedHabits((current) => toggleSetValue(current, id));
   }
 
   return (
@@ -47,7 +42,7 @@ export function TodayScreen() {
             </span>
             <div>
               <strong>A focused day, with room to breathe.</strong>
-              <span>5 tasks · 2 habits · 3h 15m scheduled</span>
+              <span>5 tasks · 3h 15m scheduled</span>
             </div>
           </div>
           <Link href="/plan" className={styles.planLink}>
@@ -77,42 +72,6 @@ export function TodayScreen() {
           <TaskSection label="Anytime" count={2}>
             {anytimeTasks.map((task) => renderTask(task, completed, toggleTask))}
           </TaskSection>
-
-          <section id="habits" className={styles.habitSection} aria-labelledby="habit-heading">
-            <div className={styles.sectionHeading}>
-              <div>
-                <h2 id="habit-heading">Habits</h2>
-                <span>2 scheduled</span>
-              </div>
-              <span className={styles.streakSummary}>Best streak · 12 days</span>
-            </div>
-            <div className={styles.habitGrid}>
-              {habits.map((habit) => {
-                const checked = checkedHabits.has(habit.id);
-                return (
-                  <article className={styles.habitCard} key={habit.id}>
-                    <span className={styles.habitIcon} aria-hidden="true">
-                      {habit.icon}
-                    </span>
-                    <div className={styles.habitCopy}>
-                      <strong>{habit.title}</strong>
-                      <span>{checked ? habit.detail : "Ready when you are"}</span>
-                      <small>{habit.streak}</small>
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.habitCheck}
-                      data-checked={checked || undefined}
-                      onClick={() => toggleHabit(habit.id)}
-                      aria-pressed={checked}
-                    >
-                      {checked ? "Done" : "Check in"}
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
         </div>
       </div>
     </VisualProofShell>
@@ -150,8 +109,6 @@ function renderTask(task: FixtureTask, completed: Set<string>, toggleTask: (id: 
       title={task.title}
       meta={task.meta}
       priority={task.priority}
-      recurrence={task.recurrence}
-      reminder={task.reminder}
       tag={task.tag}
       accent={task.accent}
       completed={completed.has(task.id)}

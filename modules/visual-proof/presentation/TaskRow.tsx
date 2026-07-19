@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CalendarClock, Circle, Flag, MoreHorizontal, Repeat2 } from "lucide-react";
+import { CalendarClock, Circle, Flag, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 
 import styles from "./TaskRow.module.css";
@@ -10,8 +10,6 @@ export type TaskRowProps = {
   meta: string;
   href?: string | undefined;
   priority?: "high" | "medium" | "low" | "none" | undefined;
-  recurrence?: boolean | undefined;
-  reminder?: boolean | undefined;
   completed?: boolean | undefined;
   onToggle?: (() => void) | undefined;
   tag?: string | undefined;
@@ -23,8 +21,6 @@ export function TaskRow({
   meta,
   href = "/tasks/demo",
   priority = "none",
-  recurrence,
-  reminder,
   completed,
   onToggle,
   tag,
@@ -58,8 +54,6 @@ export function TaskRow({
         </span>
         <span className={styles.meta} data-ui-part="metadata">
           <CalendarClock size={13} aria-hidden="true" /> {meta}
-          {recurrence && <Repeat2 size={13} aria-label="Repeats" />}
-          {reminder && <Bell size={13} aria-label="Reminder set" />}
         </span>
       </Link>
       <div className={styles.trailing} data-ui-part="trailing">

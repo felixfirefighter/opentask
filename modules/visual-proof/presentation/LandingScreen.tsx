@@ -42,8 +42,8 @@ export function LandingScreen({ signedIn, demoAction }: { signedIn: boolean; dem
             </p>
             <h1>Make room for what matters.</h1>
             <p className={styles.lede}>
-              Capture tasks quickly, plan them against real time, and build routines without putting useful
-              features behind a premium tier.
+              Capture tasks quickly, plan them against real time, and review optional AI proposals without
+              putting useful features behind a premium tier.
             </p>
             <div className={styles.heroActions}>
               {signedIn ? (
@@ -87,7 +87,7 @@ export function LandingScreen({ signedIn, demoAction }: { signedIn: boolean; dem
           <ValueCard
             icon={<CalendarDays size={19} />}
             title="See work in real time"
-            text="Move between Today, Calendar, habits, and focus without losing context."
+            text="See the same task in Today, Calendar, and Matrix without losing context."
           />
           <ValueCard
             icon={<Sparkles size={19} />}

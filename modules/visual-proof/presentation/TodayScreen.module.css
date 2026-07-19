@@ -180,80 +180,6 @@
   background: var(--surface);
 }
 
-.habitSection {
-  padding-top: 4px;
-}
-
-.streakSummary {
-  color: var(--text-muted);
-}
-
-.habitGrid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.habitCard {
-  display: grid;
-  min-height: 92px;
-  align-items: center;
-  padding: 15px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  column-gap: 12px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-}
-
-.habitIcon {
-  display: flex;
-  width: 42px;
-  height: 42px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: var(--category-mint-bg);
-  font-size: 20px;
-}
-
-.habitCopy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.habitCopy strong {
-  line-height: 19px;
-}
-
-.habitCopy span,
-.habitCopy small {
-  overflow: hidden;
-  color: var(--text-muted);
-  font-size: 11px;
-  line-height: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.habitCheck {
-  min-height: 34px;
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.habitCheck[data-checked="true"] {
-  border-color: transparent;
-  background: var(--category-mint-bg);
-  color: var(--category-mint-fg);
-}
-
 @media (max-width: 767px) {
   .page {
     width: auto;
@@ -305,19 +231,5 @@
 
   .rows {
     padding: 0 8px;
-  }
-
-  .habitGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .habitCard {
-    min-height: 88px;
-    padding: 12px;
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-  }
-
-  .habitCheck {
-    min-height: 44px;
   }
 }

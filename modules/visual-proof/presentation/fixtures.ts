@@ -5,8 +5,6 @@ export type FixtureTask = {
   priority: "high" | "medium" | "low" | "none";
   tag?: string;
   accent?: "coral" | "amber" | "mint" | "sky" | "violet" | "slate";
-  recurrence?: boolean;
-  reminder?: boolean;
 };
 
 export const overdueTasks: FixtureTask[] = [
@@ -28,7 +26,6 @@ export const timedTasks: FixtureTask[] = [
     priority: "high",
     tag: "Launch",
     accent: "violet",
-    reminder: true,
   },
   {
     id: "review-landing",
@@ -46,7 +43,6 @@ export const anytimeTasks: FixtureTask[] = [
     title: "Recheck the submission rules",
     meta: "Today · Anytime",
     priority: "low",
-    recurrence: true,
   },
   {
     id: "prepare-seed",
@@ -55,25 +51,6 @@ export const anytimeTasks: FixtureTask[] = [
     priority: "medium",
     tag: "Product",
     accent: "amber",
-  },
-];
-
-export const habits = [
-  {
-    id: "water",
-    title: "Drink water",
-    detail: "5 of 8 glasses",
-    streak: "12 day streak",
-    progress: 63,
-    icon: "💧",
-  },
-  {
-    id: "walk",
-    title: "Take a short walk",
-    detail: "Not checked in",
-    streak: "4 day streak",
-    progress: 0,
-    icon: "🌿",
   },
 ];
 

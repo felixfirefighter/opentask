@@ -1,4 +1,4 @@
-import { Bell, CalendarClock, Repeat2 } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
@@ -104,13 +104,8 @@ function AgendaView() {
                   <time>{event.start}</time>
                   <span>
                     <strong>{event.title}</strong>
-                    <small>Build Week · 60 min</small>
+                    <small>Open · Build Week · 60 min</small>
                   </span>
-                  {event.id === "e3" ? (
-                    <Bell size={15} aria-label="Reminder set" />
-                  ) : (
-                    <Repeat2 size={15} aria-label="Recurring" />
-                  )}
                 </Link>
               ))}
             </div>

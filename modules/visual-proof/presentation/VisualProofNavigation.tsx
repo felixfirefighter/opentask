@@ -9,7 +9,6 @@ import {
   MoreHorizontal,
   Search,
   Sparkles,
-  Timer,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -79,7 +78,7 @@ export function VisualProofNavigation({ active }: { active: ActiveDestination })
             active={active === "today"}
           />
           <ContextLink href="/calendar" icon={<CalendarDays size={17} />} label="Upcoming" />
-          <ContextLink href="/tasks/demo" icon={<CheckSquare2 size={17} />} label="Completed" />
+          <ContextLink href="/completed" icon={<CheckSquare2 size={17} />} label="Completed / Cancelled" />
         </nav>
 
         <div className={styles.listGroup}>
@@ -94,9 +93,9 @@ export function VisualProofNavigation({ active }: { active: ActiveDestination })
             accent="coral"
           />
           <ContextLink
-            href="/today#habits"
+            href="/tasks/demo"
             icon={<ListTodo size={16} />}
-            label="Routines"
+            label="Launch prep"
             count="3"
             accent="mint"
           />
@@ -136,15 +135,15 @@ export function VisualProofNavigation({ active }: { active: ActiveDestination })
           active={active === "calendar"}
           icon={<CalendarDays size={20} />}
         />
-        <MobileLink href="/today#habits" label="Habits" icon={<Timer size={20} />} />
+        <MobileLink href="/plan" label="Plan" active={active === "plan"} icon={<Sparkles size={20} />} />
         <details className={styles.moreMenu}>
           <summary aria-label="More destinations">
             <MoreHorizontal size={20} />
             <span>More</span>
           </summary>
           <div className={styles.moreSheet}>
-            <Link href="/plan">
-              <Sparkles size={18} /> Reality-aware plan
+            <Link href="/completed">
+              <CheckSquare2 size={18} /> Completed / Cancelled
             </Link>
           </div>
         </details>

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Bell,
   CalendarClock,
   Check,
   ChevronDown,
@@ -11,7 +10,6 @@ import {
   ListTodo,
   MoreHorizontal,
   Plus,
-  Repeat2,
   Tag,
   X,
 } from "lucide-react";
@@ -98,8 +96,6 @@ function TaskDetailPanel() {
         <section className={styles.fieldGroup} aria-labelledby="schedule-heading">
           <h2 id="schedule-heading">Schedule</h2>
           <DetailRow icon={<CalendarClock size={17} />} label="Today" value="10:30–11:30 AM" />
-          <DetailRow icon={<Repeat2 size={17} />} label="Repeat" value="Does not repeat" muted />
-          <DetailRow icon={<Bell size={17} />} label="Reminder" value="10 minutes before" />
         </section>
 
         <section className={styles.fieldGroup} aria-labelledby="organize-heading">
@@ -115,7 +111,7 @@ function TaskDetailPanel() {
             <span>1 of 3</span>
           </div>
           <div className={styles.steps}>
-            {["Hide personal notifications", "Record the core workflow", "Add captions and upload"].map(
+            {["Hide personal details", "Record the core workflow", "Add captions and upload"].map(
               (step, index) => (
                 <label className={styles.step} key={step}>
                   <input type="checkbox" checked={steps[index]} onChange={() => toggleStep(index)} />
@@ -132,8 +128,8 @@ function TaskDetailPanel() {
         <section className={styles.fieldGroup} aria-labelledby="notes-heading">
           <h2 id="notes-heading">Notes</h2>
           <p className={styles.description}>
-            Show quick capture, Calendar planning, a focus session, and the review-before-apply planner. Keep
-            the cursor movement deliberate.
+            Show quick capture, Calendar planning, and the review-before-apply planner. Keep the cursor
+            movement deliberate.
           </p>
         </section>
       </div>
@@ -145,17 +141,15 @@ function DetailRow({
   icon,
   label,
   value,
-  muted,
   tone,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  muted?: boolean;
   tone?: "danger";
 }) {
   return (
-    <button type="button" className={styles.detailRow} data-muted={muted || undefined} data-tone={tone}>
+    <button type="button" className={styles.detailRow} data-tone={tone}>
       <span className={styles.detailIcon}>{icon}</span>
       <span>{label}</span>
       <strong>{value}</strong>
