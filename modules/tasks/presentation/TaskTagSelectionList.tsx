@@ -1,7 +1,7 @@
 "use client";
 
 import type { TagDto } from "../application/contracts";
-import { TagManagerRow } from "./TagManagerRow";
+import { TagManagerRow, type TagManagerEditState } from "./TagManagerRow";
 import styles from "./TaskTagDialog.module.css";
 
 export function TaskTagSelectionList({
@@ -13,6 +13,7 @@ export function TaskTagSelectionList({
   loading,
   onCheckedChange,
   onDeleted,
+  onEditStateChange,
   onLoadMore,
   selectedIds,
 }: Readonly<{
@@ -24,6 +25,7 @@ export function TaskTagSelectionList({
   loading: boolean;
   onCheckedChange: (tag: TagDto, checked: boolean) => void;
   onDeleted: (tagId: string) => void;
+  onEditStateChange: (tagId: string, state: TagManagerEditState) => void;
   onLoadMore: () => void;
   selectedIds: ReadonlySet<string>;
 }>) {
@@ -42,6 +44,7 @@ export function TaskTagSelectionList({
           checked={selectedIds.has(tag.id)}
           disabled={disabled}
           onDeleted={onDeleted}
+          onEditStateChange={onEditStateChange}
           onCheckedChange={(checked) => onCheckedChange(tag, checked)}
         />
       ))}

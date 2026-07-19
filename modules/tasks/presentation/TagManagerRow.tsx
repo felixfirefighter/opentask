@@ -2,24 +2,31 @@
 
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { Pencil, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { ColorToken, TagDto } from "../application/contracts";
 import { COLOR_TOKEN_OPTIONS } from "./color-token-options";
 import { useDeleteTagMutation, useUpdateTagMutation } from "./data/use-tag-mutations";
 import styles from "./TaskTagDialog.module.css";
 
+export type TagManagerEditState = Readonly<{
+  dirty: boolean;
+  pending: boolean;
+}>;
+
 export function TagManagerRow({
   checked,
   disabled,
   onCheckedChange,
   onDeleted,
+  onEditStateChange,
   tag,
 }: Readonly<{
   checked: boolean;
   disabled: boolean;
   onCheckedChange: (checked: boolean) => void;
   onDeleted: (tagId: string) => void;
+  onEditStateChange: (tagId: string, state: TagManagerEditState) => void;
   tag: TagDto;
 }>) {
   const [editing, setEditing] = useState(false);
@@ -29,6 +36,12 @@ export function TagManagerRow({
   const update = useUpdateTagMutation();
   const remove = useDeleteTagMutation();
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const dirty = editing && (name !== tag.name || colorToken !== tag.colorToken);
+
+  useEffect(() => {
+    onEditStateChange(tag.id, { dirty, pending: update.isPending });
+    return () => onEditStateChange(tag.id, { dirty: false, pending: false });
+  }, [dirty, onEditStateChange, tag.id, update.isPending]);
 
   if (editing) {
     return (
@@ -75,7 +88,7 @@ export function TagManagerRow({
             update.mutate({ tag, name: name.trim(), colorToken }, { onSuccess: () => setEditing(false) })
           }
         >
-          Save
+          {update.isPending ? "Saving…" : "Save"}
         </button>
         {update.error ? (
           <p className={styles.rowError} role="alert">

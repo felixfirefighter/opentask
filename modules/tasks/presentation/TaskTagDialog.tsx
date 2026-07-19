@@ -2,7 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { Plus, X } from "lucide-react";
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
 
 import type { ColorToken, TagDto, TaskDetailDto } from "../application/contracts";
 import { COLOR_TOKEN_OPTIONS } from "./color-token-options";
@@ -11,6 +11,7 @@ import { useTagsQuery } from "./data/use-organizer-queries";
 import { useReplaceTaskTagsMutation } from "./data/use-task-organization-mutations";
 import styles from "./TaskTagDialog.module.css";
 import { TaskTagSelectionList } from "./TaskTagSelectionList";
+import type { TagManagerEditState } from "./TagManagerRow";
 import { confirmTaskDraftNavigation, useTaskDraftGuard } from "./task-draft-guard";
 import { useTaskConflictRecovery } from "./use-task-conflict-recovery";
 
@@ -32,11 +33,16 @@ export function TaskTagDialog({
   const [createdTags, setCreatedTags] = useState<TagDto[]>([]);
   const [name, setName] = useState("");
   const [colorToken, setColorToken] = useState<ColorToken>("slate");
+  const [tagEditStates, setTagEditStates] = useState<ReadonlyMap<string, TagManagerEditState>>(
+    () => new Map(),
+  );
   const draftTagId = useRef<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const recovery = useTaskConflictRecovery(task, replace.error);
   const authoritativeTask = recovery.conflict ? recovery.latestTask : task;
-  const writePending = create.isPending || replace.isPending;
+  const tagEditDirty = [...tagEditStates.values()].some((state) => state.dirty);
+  const tagEditPending = [...tagEditStates.values()].some((state) => state.pending);
+  const writePending = create.isPending || replace.isPending || tagEditPending;
   const conflictReady = recovery.latestReady && tagsQuery.isSuccess && !tagsQuery.isFetching;
   const availableTags = useMemo(() => {
     const tags = new Map(task.tags.map((tag) => [tag.id, tag]));
@@ -50,9 +56,21 @@ export function TaskTagDialog({
   useTaskDraftGuard(
     task.id,
     "tags",
-    open &&
-      (selectedChanged || Boolean(name.trim()) || replace.isPending || replace.isError || create.isPending),
+    open && (selectedChanged || Boolean(name.trim()) || replace.isError || tagEditDirty),
+    open && writePending,
   );
+
+  const changeTagEditState = useCallback((tagId: string, state: TagManagerEditState) => {
+    setTagEditStates((current) => {
+      const existing = current.get(tagId);
+      if (existing?.dirty === state.dirty && existing.pending === state.pending) return current;
+      if (!existing && !state.dirty && !state.pending) return current;
+      const next = new Map(current);
+      if (state.dirty || state.pending) next.set(tagId, state);
+      else next.delete(tagId);
+      return next;
+    });
+  }, []);
 
   function changeOpen(nextOpen: boolean) {
     if (!nextOpen && writePending) return;
@@ -61,7 +79,7 @@ export function TaskTagDialog({
   }
 
   async function save(force = false) {
-    if (disabled || writePending || (recovery.conflict && (!force || !conflictReady))) {
+    if (disabled || writePending || tagEditDirty || (recovery.conflict && (!force || !conflictReady))) {
       return;
     }
     const selected = availableTags.filter((tag) => selectedIds.has(tag.id));
@@ -143,6 +161,7 @@ export function TaskTagDialog({
                   return next;
                 });
               }}
+              onEditStateChange={changeTagEditState}
               onLoadMore={() => void tagsQuery.fetchNextPage()}
               selectedIds={selectedIds}
             />
@@ -253,7 +272,7 @@ export function TaskTagDialog({
             <button
               className="primary-button"
               type="button"
-              disabled={disabled || writePending || (conflict && !conflictReady)}
+              disabled={disabled || writePending || tagEditDirty || (conflict && !conflictReady)}
               onClick={() => void save(conflict)}
             >
               {replace.isPending ? "Saving…" : conflict ? "Try again" : "Save tags"}
