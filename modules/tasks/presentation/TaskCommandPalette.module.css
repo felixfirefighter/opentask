@@ -1,0 +1,179 @@
+.trigger {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.trigger:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.trigger kbd,
+.inputRow kbd {
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.overlay {
+  position: fixed;
+  z-index: var(--z-dialog);
+  background: color-mix(in srgb, var(--canvas) 72%, transparent);
+  inset: 0;
+}
+
+.dialog {
+  position: fixed;
+  z-index: var(--z-dialog);
+  top: 14vh;
+  left: 50%;
+  width: min(calc(100vw - var(--space-8)), 640px);
+  max-height: calc(100dvh - var(--space-12));
+  transform: translateX(-50%);
+  overflow: hidden;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+  color: var(--text);
+}
+
+.command {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.inputRow {
+  display: grid;
+  min-height: 60px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) 0 var(--space-4);
+  border-bottom: var(--border-default) solid var(--border);
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.inputRow > svg {
+  color: var(--text-muted);
+}
+
+.inputRow :global([cmdk-input]) {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-target-desktop);
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  line-height: var(--type-row-line);
+}
+
+.inputRow :global([cmdk-input])::placeholder {
+  color: var(--text-disabled);
+}
+
+.inputRow :global([cmdk-input]):disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.close {
+  display: inline-grid;
+  width: var(--control-target-desktop);
+  min-height: var(--control-target-desktop);
+  place-items: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.footer {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding: 0 var(--space-4);
+  border-top: var(--border-default) solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+@media (any-pointer: coarse) {
+  .trigger,
+  .close {
+    min-height: var(--control-target-touch);
+  }
+
+  .close {
+    width: var(--control-target-touch);
+  }
+}
+
+@media (max-width: 767px) {
+  .trigger {
+    width: var(--control-target-touch);
+    min-height: var(--control-target-touch);
+    justify-content: center;
+    padding: 0;
+  }
+
+  .trigger > span,
+  .trigger kbd,
+  .inputRow kbd,
+  .footer {
+    display: none;
+  }
+
+  .dialog {
+    top: auto;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: calc(100dvh - var(--space-5));
+    transform: none;
+    border-radius: var(--radius-dialog) var(--radius-dialog) 0 0;
+  }
+
+  .inputRow {
+    min-height: 64px;
+    padding-left: max(var(--space-4), env(safe-area-inset-left));
+    padding-right: max(var(--space-3), env(safe-area-inset-right));
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog,
+  .overlay {
+    animation: none;
+    transition: none;
+  }
+}

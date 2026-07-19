@@ -1,0 +1,111 @@
+.composer {
+  padding: var(--space-3);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.entryRow {
+  display: grid;
+  align-items: center;
+  gap: var(--space-2);
+  grid-template-columns: auto minmax(80px, 1fr) auto auto;
+}
+
+.plus {
+  display: flex;
+  color: var(--brand);
+}
+
+.input {
+  width: 100%;
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-2);
+  border: var(--border-default) solid transparent;
+  border-radius: var(--radius-control);
+  outline: none;
+  background: transparent;
+}
+
+.input:hover,
+.input:focus {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+.input::placeholder {
+  color: var(--text-disabled);
+}
+
+.destination {
+  max-width: 148px;
+  overflow: hidden;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form button:disabled {
+  background: var(--surface-subtle);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.explanation,
+.error {
+  margin: var(--space-2) 0 0 var(--space-6);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.explanation {
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--danger);
+}
+
+@media (any-pointer: coarse) {
+  .input {
+    min-height: var(--control-target-touch);
+  }
+}
+
+@media (max-width: 767px) {
+  .composer {
+    padding: var(--space-3);
+  }
+
+  .entryRow {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .destination {
+    display: none;
+  }
+
+  .form button {
+    min-width: var(--control-target-touch);
+    padding-inline: var(--space-3);
+  }
+}
