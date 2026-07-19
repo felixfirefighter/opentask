@@ -8,7 +8,7 @@ describe("FirstRunOrientation", () => {
   beforeEach(() => window.localStorage.clear());
 
   it("points to quick add, Today, and command search without blocking the Inbox", async () => {
-    render(<FirstRunOrientation />);
+    render(<FirstRunOrientation inboxId="inbox-one" />);
 
     expect(
       await screen.findByRole("complementary", { name: "Three quick ways into your day" }),
@@ -20,7 +20,7 @@ describe("FirstRunOrientation", () => {
 
   it("dismisses locally and announces the result", async () => {
     const user = userEvent.setup();
-    render(<FirstRunOrientation />);
+    render(<FirstRunOrientation inboxId="inbox-one" />);
 
     await user.click(await screen.findByRole("button", { name: "Dismiss getting started tips" }));
     expect(

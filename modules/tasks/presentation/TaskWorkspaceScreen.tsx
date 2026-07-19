@@ -82,7 +82,7 @@ function OpenTaskWorkspace({
       }}
       showAddTask
     >
-      {isInbox ? <FirstRunOrientation /> : null}
+      {isInbox ? <FirstRunOrientation inboxId={inbox.id} /> : null}
       <TaskQuickAdd listId={destination.list.id} listName={destination.list.name} />
       {!isInbox && <CreateSectionControl listId={destination.list.id} />}
       {useSectionFallback && sectionsQuery.isPending ? (

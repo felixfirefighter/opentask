@@ -2,20 +2,21 @@
 
 import { Search, Sun, X, Zap } from "lucide-react";
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
 import styles from "./FirstRunOrientation.module.css";
 
-const dismissalKey = "opentask:first-run-orientation:v1";
+const dismissalKeyPrefix = "opentask:first-run-orientation:v1";
 const changeEvent = "opentask:first-run-orientation-change";
 
-export function FirstRunOrientation() {
-  const visible = useSyncExternalStore(subscribe, readVisible, () => false);
+export function FirstRunOrientation({ inboxId }: Readonly<{ inboxId: string }>) {
+  const readAccountVisible = useCallback(() => readVisible(inboxId), [inboxId]);
+  const visible = useSyncExternalStore(subscribe, readAccountVisible, () => false);
   const [announcement, setAnnouncement] = useState("");
 
   function dismiss() {
     try {
-      window.localStorage.setItem(dismissalKey, "dismissed");
+      window.localStorage.setItem(dismissalKey(inboxId), "dismissed");
     } catch {
       // The non-blocking orientation may still be dismissed for this render.
     }
@@ -81,10 +82,14 @@ function subscribe(onChange: () => void) {
   };
 }
 
-function readVisible() {
+function readVisible(inboxId: string) {
   try {
-    return window.localStorage.getItem(dismissalKey) !== "dismissed";
+    return window.localStorage.getItem(dismissalKey(inboxId)) !== "dismissed";
   } catch {
     return true;
   }
+}
+
+function dismissalKey(inboxId: string) {
+  return `${dismissalKeyPrefix}:${inboxId}`;
 }
