@@ -2,6 +2,7 @@
 
 import { AppearancePreferencesCard } from "./AppearancePreferencesCard";
 import { DateTimePreferencesCard } from "./DateTimePreferencesCard";
+import { DataExportCard } from "./DataExportCard";
 import styles from "./SettingsScreen.module.css";
 import { applyThemePreference } from "./theme-client";
 import { mergePreferenceDraft, usePreferencesEditor } from "./usePreferencesEditor";
@@ -56,6 +57,8 @@ export function SettingsScreen({ initialPreferences }: { initialPreferences: Use
         }
         onReviewLatest={editor.reviewLatest}
       />
+
+      <DataExportCard online={editor.online} />
     </div>
   );
 }

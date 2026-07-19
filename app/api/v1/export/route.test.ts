@@ -34,6 +34,7 @@ describe("user export route", () => {
     );
     expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("x-opentask-export-schema-version")).toBe("1");
     await expect(response.json()).resolves.toEqual(envelope);
   });
 
