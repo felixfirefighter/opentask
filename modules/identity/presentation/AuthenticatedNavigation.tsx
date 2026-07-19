@@ -59,7 +59,11 @@ export function AuthenticatedNavigation({
         </div>
       </nav>
 
-      <aside className={styles.contextSidebar} aria-label={`${current.title} navigation`}>
+      <aside
+        className={styles.contextSidebar}
+        aria-label={`${current.title} navigation`}
+        data-has-top-actions={topBarActions ? "true" : undefined}
+      >
         <header className={styles.contextHeader}>
           <p>{current.eyebrow}</p>
           <strong>{current.title}</strong>
@@ -88,11 +92,13 @@ export function AuthenticatedNavigation({
         </div>
         <div className={styles.topBarActions}>
           {topBarActions}
-          <AccountMenu
-            identity={identity}
-            placement="header"
-            settingsCurrent={currentDestination === "settings"}
-          />
+          <div className={styles.headerAccount}>
+            <AccountMenu
+              identity={identity}
+              placement="header"
+              settingsCurrent={currentDestination === "settings"}
+            />
+          </div>
         </div>
       </header>
     </>

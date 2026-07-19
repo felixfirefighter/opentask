@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthenticatedShell } from "./AuthenticatedShell";
 
+vi.mock("next/navigation", () => ({ usePathname: () => "/inbox" }));
+
 const identity = {
   actor: { userId: "user_01" },
   displayName: "Ada Lovelace",
@@ -94,6 +96,12 @@ describe("AuthenticatedShell", () => {
     act(() => window.dispatchEvent(new Event("online")));
     await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
   });
+
+  it("moves focus to the route heading after navigation content mounts", async () => {
+    renderShell();
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Release workspace" })).toHaveFocus());
+  });
 });
 
 function renderShell(currentDestination: "tasks" | "settings" = "tasks") {
@@ -105,7 +113,9 @@ function renderShell(currentDestination: "tasks" | "settings" = "tasks") {
       currentDestination={currentDestination}
       destinationTitle={currentDestination === "tasks" ? "Inbox" : undefined}
     >
-      <h1>Release workspace</h1>
+      <h1 tabIndex={-1} data-route-focus>
+        Release workspace
+      </h1>
     </AuthenticatedShell>,
   );
 }

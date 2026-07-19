@@ -1,4 +1,5 @@
 .shell {
+  position: relative;
   display: grid;
   width: 100%;
   height: 100vh;
@@ -138,9 +139,37 @@
   font-weight: var(--type-label-weight);
 }
 
-.topBar,
 .mobileNavigation {
   display: none;
+}
+
+.topBar {
+  display: contents;
+}
+
+.topBarStart,
+.headerAccount {
+  display: none;
+}
+
+.topBarActions {
+  position: absolute;
+  z-index: var(--z-sticky);
+  top: 80px;
+  left: calc(52px + var(--space-3));
+  display: flex;
+  width: calc(248px - var(--space-6));
+  align-items: center;
+}
+
+.topBarActions > button {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.contextSidebar[data-has-top-actions="true"] > nav,
+.contextSidebar[data-has-top-actions="true"] > [data-context-navigation] {
+  margin-top: 48px;
 }
 
 .main {
@@ -156,6 +185,10 @@
 @media (min-width: 1024px) and (max-width: 1279px) {
   .shell {
     grid-template-columns: 52px 240px minmax(0, 1fr);
+  }
+
+  .topBarActions {
+    width: calc(240px - var(--space-6));
   }
 }
 
@@ -187,6 +220,11 @@
     grid-row: 1;
   }
 
+  .topBarStart,
+  .headerAccount {
+    display: flex;
+  }
+
   .topBarIdentity {
     display: flex;
     min-width: 0;
@@ -208,7 +246,14 @@
   }
 
   .topBarActions {
+    position: static;
     flex: none;
+    width: auto;
+  }
+
+  .topBarActions > button {
+    width: auto;
+    justify-content: center;
   }
 
   .topBarIdentity strong {
