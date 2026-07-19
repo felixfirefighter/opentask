@@ -2,13 +2,15 @@ import { Temporal } from "temporal-polyfill";
 
 import type { PlannerInput } from "./contracts/planner-contract";
 
+type PlannerWindowInput = Pick<PlannerInput, "planningDate" | "timeZone" | "workWindow">;
+
 export type PlannerInstantRange = Readonly<{
   startAt: string;
   endAt: string;
   nextLocalDate: string;
 }>;
 
-export function resolvePlannerWorkWindow(input: PlannerInput): PlannerInstantRange | null {
+export function resolvePlannerWorkWindow(input: PlannerWindowInput): PlannerInstantRange | null {
   try {
     return {
       startAt: localDateTimeToInstant(input.planningDate, input.workWindow.start, input.timeZone),

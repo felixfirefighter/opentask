@@ -55,3 +55,5 @@ export { readPortablePlannerProposals } from "./application/export-reader";
 export type { PersistPlannerProposalInput, PlannerProposalLifecycle } from "./application/proposal-lifecycle";
 export { createPlannerProposalCreator } from "./application/create-planner-proposal";
 export type { PlannerProposalCreator } from "./application/create-planner-proposal";
+export { createPlannerProposalApplier } from "./application/apply-planner-proposal";
+export type { PlannerProposalApplier } from "./application/apply-planner-proposal";
