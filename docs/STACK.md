@@ -29,14 +29,21 @@ Next.js documents App Router as the current route model. Drizzle supports code-f
 | `@fullcalendar/react` v7 standard entrypoints | month/day/week/agenda and drag/resize | Use only bundled `/daygrid`, `/timegrid`, `/list`, and `/interaction` entrypoints; no premium Scheduler dependency. |
 | `@dnd-kit/core` + sortable | accessible list/section reorder | Must configure keyboard sensor, instructions, and menu fallback. |
 | `chrono-node` | English quick-add date/time recognition | Always show parsed tokens for confirmation. |
-| `rrule` | deferred recurrence expansion | Do not install or import under the active core; reconsider only through the scope-change protocol. |
+| `rrule` (not installed) | P2-gated, range-bounded recurrence expansion | No raw RRULE UI or direct presentation import. Installation is authorized only after the P2 dependency gate below passes. |
 | `temporal-polyfill` | explicit date/time arithmetic used by FullCalendar/domain adapters | Do not use implicit server-local timezone arithmetic. |
 | `date-fns` | display formatting and small date helpers | Temporal/domain value objects own scheduling semantics. |
 | `react-markdown` + `remark-gfm` | safe Markdown task-description rendering | Raw HTML disabled; sanitize any future HTML path. |
 | `fractional-indexing` | stable task/list sort keys | Rebalance through one application use case, not ad hoc updates. |
 | `cmdk` and Sonner (through shadcn) | command palette and undo/error toast | No parallel custom implementations. |
 
-FullCalendar's React standard package is MIT and supports React 17–19; its interaction API supports event drag/resize and it has an RRULE plugin. dnd-kit provides sortable primitives and keyboard/accessibility hooks. Sources: [FullCalendar React](https://fullcalendar.io/docs/react), [event drag/resize](https://fullcalendar.io/docs/event-dragging-resizing), [RRULE plugin](https://fullcalendar.io/docs/rrule-plugin), [dnd-kit accessibility](https://docs.dndkit.com/guides/accessibility), [Chrono](https://github.com/wanasit/chrono).
+FullCalendar's React standard package is MIT and supports React 17–19; its interaction API supports
+event drag/resize. OpenTask's P2 recurrence policy and safety cap remain in a task-owned domain
+wrapper rather than a FullCalendar plugin or presentation component. dnd-kit provides sortable
+primitives and keyboard/accessibility hooks. Sources:
+[FullCalendar React](https://fullcalendar.io/docs/react),
+[event drag/resize](https://fullcalendar.io/docs/event-dragging-resizing),
+[dnd-kit accessibility](https://docs.dndkit.com/guides/accessibility),
+[Chrono](https://github.com/wanasit/chrono).
 
 ## Server, worker, and providers
 
@@ -44,12 +51,30 @@ FullCalendar's React standard package is MIT and supports React 17–19; its int
 |---|---|---|
 | Better Auth with Drizzle adapter | email/password sessions and auth tables | Domain authorization still belongs to application use cases. |
 | `pg` | pooled PostgreSQL driver | One shared pool per process. |
-| pg-boss | zero-job worker architecture scaffold | Keep the existing boot smoke; no active-core job or queue behavior. |
-| `web-push` | deferred browser notification delivery | Do not install or import under the active core. |
+| pg-boss | Existing worker scaffold; P6 reminder queue | Keep the queue boot/shutdown smoke through P5. P6 alone may activate notification jobs; do not move task, habit, Focus, or AI workflows into jobs. |
+| `web-push` (not installed) | P6-gated browser notification delivery | Installation is authorized only after the P6 dependency gate below passes; VAPID/provider absence must remain a supported degraded state. |
 | Official `openai` JavaScript SDK | Responses API for the optional planner | Server-only, `store:false`, structured outputs, minimal context. |
 | Pino | structured application/worker logs | Mandatory redaction; no user content. |
 
 Better Auth documents current Next.js integration and PostgreSQL/Drizzle support. pg-boss is PostgreSQL-backed and supports retries, cron, transactions, and a Drizzle adapter. OpenAI recommends Structured Outputs with native Zod support for schema adherence. Sources: [Better Auth + Next.js](https://better-auth.com/docs/integrations/next), [Better Auth installation](https://better-auth.com/docs/installation), [pg-boss](https://github.com/timgit/pg-boss), [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [OpenAI data controls](https://developers.openai.com/api/docs/guides/your-data#v1responses).
+
+### Release-gated dependency decisions
+
+The active release approves the capabilities below, not an unchecked package installation. Both
+packages are absent from the current `package.json` and lockfile. The named work package must rerun
+the dependency-change gate, choose and pin an exact version, review its resolved production tree,
+update the license allowlist/notices, and add the resulting decision to the table of installed
+dependencies in the same change. Until that gate passes, production code must not import the
+package.
+
+| Package gate | Purpose | Declared upstream license | Activation requirements |
+|---|---|---|---|
+| P2 — `rrule` | Standards-based expansion behind the tasks module's bounded recurrence wrapper; OpenTask still owns presets, IANA-time semantics, occurrence identity, and safety caps. | BSD-3-Clause | Verify the selected version/license and maintenance signal; pin it; add only a task-owned adapter; prove finite range/cap and DST fixtures. Do not expose arbitrary RRULE input. |
+| P6 — `web-push` | Serialize and send standards-based Web Push messages behind the notifications provider port. | MPL-2.0 | Verify the selected version, license compatibility/notice obligations, type support, and maintenance signal; pin it; keep endpoint/key material server-only and encrypted; prove provider-absent, retry, revocation, and redaction paths. |
+
+License sources:
+[`rrule`](https://github.com/jakubroztocil/rrule/blob/master/LICENCE),
+[`web-push`](https://github.com/web-push-libs/web-push/blob/master/LICENSE).
 
 ## Quality toolchain
 
@@ -71,7 +96,7 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 |---|---|---|---|---|---|
 | `eslint-plugin-boundaries` 7.0.2 | Resolve relative, alias, export, and dynamic imports before enforcing module/layer direction; core ESLint path patterns cannot do this reliably. | Development-only lint work; no application bundle or service. | MIT | Current v7 line, ESLint 9 compatible, with an active upstream release history. | `eslint.config.mjs` and `scripts/eslint/architecture-boundaries.mjs` |
 | `next-devtools-mcp` 0.4.0 | Let future Codex tasks inspect the live Next.js route/build/runtime state through the framework-supported MCP bridge. | Development-only stdio process; optional and not required for app boot. | MIT | Exact package recommended by the official Next.js 16 MCP guide and pinned in the lockfile. | `.codex/config.toml`; no product adapter |
-| `better-auth` + `@better-auth/drizzle-adapter` 1.6.23 | Provide the approved email/password session implementation and direct Drizzle/PostgreSQL adapter instead of maintaining credential storage, cookie rotation, and session expiry in product code. | Two pinned server dependencies; the minimal server entry excludes unused auth plugins and there is no browser SDK. | MIT | Current stable release when WP01 began, with official Next.js, Drizzle, security, migration, and rate-limit documentation. | `modules/identity/infrastructure/authentication-gateway.ts` |
+| `better-auth` + `@better-auth/drizzle-adapter` 1.6.23 | Provide the approved email/password session implementation and direct Drizzle/PostgreSQL adapter instead of maintaining credential storage, cookie rotation, and session expiry in product code. | Two pinned server dependencies; the minimal server entry excludes unused auth plugins and there is no browser SDK. | MIT | Reviewed stable release at initial identity implementation, with official Next.js, Drizzle, security, migration, and rate-limit documentation. | `modules/identity/infrastructure/authentication-gateway.ts` |
 | `fractional-indexing` 4.0.0 | Generate stable sortable keys between neighboring task containers and rows without renumbering every mutation. | Zero transitive dependencies and one small server-side application adapter; bounded rebalance remains OpenTask policy. | CC0-1.0 | Active v4 release with built-in TypeScript declarations and a deliberately small API. | `modules/tasks/application/ranking.ts` |
 | `@tanstack/react-query` 5.101.2 | Cache authorized task reads and coordinate optimistic mutation rollback/invalidation without creating a second domain store. | One client cache scoped to task presentation; PostgreSQL and application DTOs remain authoritative. | MIT | Current stable v5 release with React 19 support and documented optimistic rollback patterns. | `shared/presentation/AppClientProviders.tsx` and `modules/tasks/presentation/data/` |
 | `@dnd-kit/core` 6.3.1 + `@dnd-kit/sortable` 10.0.0 + `@dnd-kit/utilities` 3.2.2 | Provide the required pointer, touch, and keyboard sortable task/checklist interactions with announcements. | Three small client packages; every drag action retains an explicit menu alternative and server-side rank validation. | MIT | Current mutually compatible releases with maintained keyboard/accessibility primitives. | `modules/tasks/presentation/TaskListSortContext.tsx`, `modules/tasks/presentation/TaskSectionSortContext.tsx`, `modules/tasks/presentation/TaskStepSortContext.tsx`, and `modules/tasks/presentation/navigation/TaskNavigationSortContext.tsx` |
@@ -85,7 +110,8 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 
 ### Direct runtime license baseline
 
-`pnpm check:licenses` is authoritative for the resolved production tree. The direct-package baseline is:
+`pnpm check:licenses` is authoritative for the resolved production tree. The direct-package baseline
+for packages currently installed is:
 
 - MIT: `@better-auth/drizzle-adapter`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`, `@fullcalendar/react`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-slot`, `@tanstack/react-query`, Better Auth, `chrono-node`, `clsx`, `cmdk`, Next.js, `pg`, pg-boss, Pino, React, React DOM, `react-markdown`, `remark-gfm`, Sonner, `tailwind-merge`, `temporal-polyfill`, and Zod.
 - Apache-2.0: class-variance-authority, Drizzle ORM, and the official `openai` JavaScript SDK.
@@ -96,6 +122,10 @@ The production-tree license gate also permits reviewed permissive transitive fam
 (`@csstools` helpers), BlueOak-1.0.0 (`lru-cache` 11; its notice must remain with distributed
 copies), and CC0-1.0 (`mdn-data`). These are compatible with the repository's AGPL distribution;
 new license identifiers still fail the allowlist until reviewed.
+
+The P2 `rrule` and P6 `web-push` candidates are intentionally absent from this baseline. Their
+BSD-3-Clause and MPL-2.0 identifiers, respectively, must not be added to the executable allowlist
+until the package-specific gate has reviewed the exact resolved version and notice obligations.
 
 The current production audit reports one moderate advisory in `esbuild` 0.18.20, reached only
 through Better Auth's Drizzle Kit tooling branch. The affected capability is an opt-in esbuild
@@ -110,12 +140,15 @@ deployed runtime path. Re-evaluate it whenever Better Auth or its dependency gra
 - Mutations include the last-seen row `version`; stale writes return HTTP 409 with current metadata.
 - Client-generated UUID/idempotency keys protect retried creates and planner apply.
 - Server Components may call application queries directly when no client refresh is required; they still do not query Drizzle from `app/*`.
-- No GraphQL/tRPC abstraction in the hackathon release. A plain versioned API keeps future CLI/MCP/native clients possible.
+- No GraphQL/tRPC abstraction in the Local-first Full Release. A plain versioned API keeps future
+  CLI/MCP/native clients possible without activating those Stage C clients now.
 
 ## Search and analytics
 
 - PostgreSQL full-text/trigram search is sufficient for active scope. No Elasticsearch/Meilisearch.
-- Active-core planning surfaces use accessible HTML/CSS/SVG primitives where a small visual summary is needed. Do not add a chart library until a later approved feature actually requires one; if it does, the default is ECharts.
+- Active-release planning, habit, and Focus surfaces use accessible HTML/CSS/SVG primitives where a
+  small visual summary is needed. Do not add a chart library unless a later approved scope change
+  actually requires one; if it does, the default candidate is ECharts subject to its own gate.
 - No third-party product analytics in the active release. Operational health comes from redacted logs and health checks.
 
 ## Deployment
@@ -125,27 +158,47 @@ deployed runtime path. Re-evaluate it whenever Better Auth or its dependency gra
 One multi-stage Docker image retains two commands:
 
 - web: production Next.js server
-- worker: zero-job pg-boss architecture smoke
+- worker: pg-boss entry point; boot/shutdown smoke through P5, active reminder delivery after P6
 
-Docker Compose runs `web`, `worker`, and `postgres` for reproducibility. The friend-test and hosted active core require only `web` and `postgres`; the worker has no product job.
+Docker Compose runs `web`, `worker`, and `postgres` for reproducibility. Web and PostgreSQL support
+the manual product throughout implementation. P6 activates the worker for reminders; the final
+self-host release rehearses all three processes. If the worker or VAPID configuration is absent,
+reminders report a degraded state while tasks, planning, recurrence, habits, Focus, export, and
+startup remain usable.
 
-### Hackathon demo
+Local/self-host operation is the release completion path. No hosted deployment is required.
 
-Railway is the recommended demo target because its official guides support a Next.js service, PostgreSQL, a separate worker from the same codebase, private networking, and pre-deploy Drizzle migrations. Configure a hard usage limit. Railway currently has a trial/free entry and usage-based paid plans; do not describe hosted operation as permanently free. Sources: [Railway Next.js + Postgres](https://docs.railway.com/guides/nextjs), [full-stack worker pattern](https://docs.railway.com/guides/fullstack-nextjs), [pricing](https://railway.com/pricing), [cost control](https://docs.railway.com/pricing/cost-control).
+### Optional hosted demo
+
+Railway remains an optional demo target because its official guides support a Next.js service,
+PostgreSQL, a separate worker from the same codebase, private networking, and pre-deploy Drizzle
+migrations. Hosted setup is not a P0-P7 completion gate. If used, configure a hard usage limit and
+do not describe trial or usage-based hosting as permanently free. Sources:
+[Railway Next.js + Postgres](https://docs.railway.com/guides/nextjs),
+[full-stack worker pattern](https://docs.railway.com/guides/fullstack-nextjs),
+[pricing](https://railway.com/pricing),
+[cost control](https://docs.railway.com/pricing/cost-control).
 
 ## Deliberate omissions
 
 - Supabase is not the application platform: it would duplicate Better Auth/provider choices and blur the self-host contract. PostgreSQL itself remains portable.
-- Redis/BullMQ is unnecessary; the retained pg-boss scaffold has no active-core jobs.
+- Redis/BullMQ is unnecessary; PostgreSQL-backed pg-boss owns the one active reminder-job family
+  after P6.
 - A monorepo is unnecessary for one web product and one worker entrypoint sharing the same modules.
-- Native/mobile frameworks and installable PWA behavior are outside active scope; the responsive web app proves the product first.
+- Native/mobile frameworks and offline synchronization remain outside active scope. P5 adds only an
+  installable static shell and content-free offline fallback; it caches no authenticated user data
+  and accepts no offline mutation.
 - Rich-text editor frameworks are deferred; Markdown keeps task content portable and implementation bounded.
 
 ## Recommended agent tooling
 
 These are development-time aids, not runtime dependencies and not permission to expose production data.
 
-1. **Install Next.js DevTools MCP before implementation.** Next.js 16 exposes a development MCP endpoint; the official `next-devtools-mcp` bridge lets an agent inspect live build/runtime errors, routes, metadata, logs, and browser state. This is the highest-value addition for an AI-driven Next.js repository. Pin/review the package during WP00 rather than allowing an unreviewed floating version in CI. Source: [official Next.js MCP guide](https://nextjs.org/docs/app/guides/mcp).
+1. **Use the installed, pinned Next.js DevTools MCP for implementation diagnostics.** Next.js 16
+   exposes a development MCP endpoint; the repository's reviewed `next-devtools-mcp` bridge lets an
+   agent inspect live build/runtime errors, routes, metadata, logs, and browser state. It remains
+   development-only and optional for product startup. Source:
+   [official Next.js MCP guide](https://nextjs.org/docs/app/guides/mcp).
 2. **Add the Better Auth documentation MCP while identity work is active.** Its remote documentation endpoint provides current auth setup/examples and reduces version-stale implementation guesses. It is documentation-only and must not be confused with adding an MCP server to this product. Source: [Better Auth documentation MCP](https://better-auth.com/docs/ai-resources/mcp).
 
 The existing browser/testing tooling is sufficient for visual QA. Do not add a database MCP with broad write access, and do not install Figma merely to recreate the text design contract. If a Figma file later becomes the approved source of truth, its connector can be reconsidered under the scope/dependency gate.

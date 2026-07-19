@@ -2,13 +2,18 @@
 
 ## Purpose and route
 
-`/matrix` is a derived prioritization view of open tasks. It never stores a quadrant, duplicate priority, or second schedule. Classification is exactly the rule in `docs/SCOPE.md`:
+`/matrix` is a derived prioritization view of open task occurrences. It never stores a quadrant,
+duplicate priority, occurrence due field, or second schedule. Classification is exactly the rule in
+`docs/SCOPE.md` and `docs/modules/planning.md`:
 
 - important = high priority;
 - urgent = its derived schedule due boundary is overdue or falls within the user's next 24 hours;
 - every task belongs to one of the remaining combinations.
 
-The due boundary is the timed end or exclusive all-day end interpreted at midnight in the user's saved IANA timezone. It is derived from the canonical schedule and never persisted as a second field; unscheduled tasks are not urgent.
+The due boundary is the timed end or exclusive all-day end interpreted at midnight in the user's
+saved IANA timezone. For a recurring series, classify its next eligible open occurrence within the
+bounded projection and do not render the series twice. The boundary is derived from the canonical
+schedule/rule and never persisted as a second field; unscheduled tasks are not urgent.
 
 Use plain secondary labels so the surface is actionable without implying collaboration:
 

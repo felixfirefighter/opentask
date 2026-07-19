@@ -2,9 +2,13 @@
 
 Checked: 2026-07-18
 
-This document records competitor behavior for product and implementation planning. It is not an implementation backlog and does not authorize work. docs/SCOPE.md is the sole authority for the Hackathon Release and post-hackathon Stages A-D.
+This document records competitor behavior for product and implementation planning. It is not an
+implementation backlog and does not authorize work. `docs/SCOPE.md` is the sole feature authority for
+the active Local-first Full Release and later Stages A-D.
 
-The repository is in planning phase at the checked date. The disposition column below identifies the approved scope destination; it does not mean the feature is implemented.
+The ledger was written under the earlier “Hackathon Release” taxonomy. That phrase remains a
+historical disposition label in the table, not an active goal name or implementation claim. A row is
+active now only when `docs/SCOPE.md` explicitly lists it; otherwise the current scope wins.
 
 ## Reading the ledger
 
@@ -18,7 +22,8 @@ Evidence labels:
 
 Scope dispositions:
 
-- Hackathon Release: committed only to the behavior stated in docs/SCOPE.md.
+- Hackathon Release (historical label): mapped only to behavior that `docs/SCOPE.md` currently
+  promotes into the Local-first Full Release.
 - Stage A: task depth and portability.
 - Stage B: project views and collaboration.
 - Stage C: integrations and agent surface.

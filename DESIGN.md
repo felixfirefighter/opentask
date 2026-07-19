@@ -1,5 +1,17 @@
 # Design contract
 
+## Active migration target — Editorial Focus
+
+The first Local-first Full Release work package migrates OpenTask to **Editorial Focus**, an original
+productivity-oriented adaptation of the editorial visual principles documented in the pinned
+[GetDesign ElevenLabs source snapshot](https://github.com/VoltAgent/awesome-design-md/blob/e06a96660396d741d0c106c8972172254dafbdc2/design-md/elevenlabs/DESIGN.md).
+The local adaptation contract is `docs/design/editorial-focus.md`.
+
+P0 is active, but this direction is not yet the implemented design system. Until the P0 visual proof
+is approved and its executable tokens and contracts change together, **Warm Precision below remains
+the executable baseline**. Do not mix the systems piecemeal, begin broad rollout before screenshot
+approval, or style later-feature screens before the P0 foundation freezes.
+
 OpenTask uses **Warm Precision**: a calm, warm-neutral interface with a restrained coral accent, compact information density, and unusually clear interaction states. The visual starting point is the warmth and approachability described in [GetDesign's Airbnb study](https://getdesign.md/airbnb/design-md), adapted into an original productivity system rather than a marketplace aesthetic.
 
 This is not an Airbnb or TickTick clone. Do not copy either product's assets, fonts, wording, icon treatment, screen composition, or trade dress. OpenTask uses original layouts, Lucide icons, open fonts, semantic tokens, and its own product voice.
@@ -32,6 +44,7 @@ Read only the files relevant to the surface being changed, after this file.
 
 | Concern | Source of truth |
 |---|---|
+| Active visual target and migration boundary | `docs/design/editorial-focus.md` |
 | Brand character, hierarchy, type, icon and motion direction | `docs/design/foundations.md` |
 | Semantic colors, spacing, type scale, radii, elevation, motion | `docs/design/tokens.md` |
 | Breakpoints, app shell, panes, navigation, responsive behavior | `docs/design/shell-responsive.md` |
@@ -45,8 +58,8 @@ Read only the files relevant to the surface being changed, after this file.
 | Inspector and mobile task-detail route | `docs/design/screens/task-details.md` |
 | Month, week, day, and agenda planning | `docs/design/screens/calendar.md` |
 | Derived Eisenhower projection | `docs/design/screens/matrix.md` |
-| Deferred habit management and history | `docs/design/screens/habits.md` |
-| Deferred Pomodoro, stopwatch, and focus history | `docs/design/screens/focus.md` |
+| Habit management and history after P3 | `docs/design/screens/habits.md` |
+| Pomodoro, stopwatch, and Focus history after P4 | `docs/design/screens/focus.md` |
 | Reality-aware planner input, review, and apply | `docs/design/screens/assistant.md` |
 
 Feature scope remains owned by `docs/SCOPE.md`; a design document cannot add a feature.

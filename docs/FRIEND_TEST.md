@@ -1,15 +1,16 @@
-# Friend candidate test
+# Friend/local candidate test
 
-Use this as the concise handoff for the hosted Deadline-safe Core.
+Use this as the concise handoff for the current green core candidate. P7 expands it with recurrence,
+Habits, Focus, PWA, and reminder steps only after those packages are fully integrated.
 
 ## Candidate
 
-- App URL: `https://<candidate-host>`
-- Health: `https://<candidate-host>/api/health/ready`
+- App URL: `http://127.0.0.1:3000` by default, or `https://<optional-candidate-host>`
+- Health: `<app-url>/api/health/ready`
 - Candidate commit: `<release-commit>`
 - Expected test time: five minutes
 
-The placeholders above must be replaced with the deployed candidate values before sharing this file.
+Replace the commit and any optional host placeholder before sharing this file.
 
 ## Five-minute path
 
@@ -40,6 +41,9 @@ Do not enter personal tasks, credentials, API keys, or private information in th
 ## Known boundaries
 
 - AI planning requires the server operator to configure an OpenAI API key; it is not entered in the browser.
-- Offline mode is read-only and does not claim cached data or background synchronization.
+- The current fallback keeps an already rendered page read-only when disconnected; the active PWA
+  package adds only an installable static shell/offline fallback and still does not claim sync.
 - Export is JSON only; import/restore is not part of this release.
-- Recurrence, habits, focus timers, reminders/push, collaboration, and billing are intentionally absent.
+- Recurrence, habits, Focus, and reminders are part of the active plan but must not be claimed in a
+  friend candidate until their complete package gates pass. Collaboration and billing remain outside
+  active scope.

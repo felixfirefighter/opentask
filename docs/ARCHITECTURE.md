@@ -5,14 +5,27 @@
 ```mermaid
 flowchart LR
     BROWSER["Browser"] --> PRES["Next.js presentation"]
+    BROWSER --> SW["P5 service worker: static shell only"]
+    SW --> STATIC["Versioned public/static assets + offline fallback"]
     PRES --> APP["Module application use cases"]
+    WORKER["P6 reminder worker"] --> APP
     APP --> DOM["Pure domain policies"]
     APP --> DBI["Drizzle repositories"]
     DBI --> PG[("PostgreSQL")]
-    APP --> OAI["OpenAI adapter"]
+    APP --> JOBS["P6 pg-boss adapter"]
+    JOBS --> PG
+    APP --> OAI["Optional OpenAI adapter"]
+    APP --> PUSH["Optional Web Push adapter"]
+    PUSH --> BROWSER
 ```
 
-The active product is one Next.js web process backed by PostgreSQL, with an optional OpenAI adapter. The repository retains a zero-job worker entry point as an architecture smoke, but the Deadline-safe Hackathon Core has no job, reminder, push, or service-worker behavior. Core task behavior remains available when OpenAI is absent.
+This is the target Local-first Full Release topology. The product remains one modular TypeScript
+application with a Next.js web process and PostgreSQL as the self-host baseline. P5 adds only the
+installable static shell boundary. Through P5, the existing worker entry point remains a zero-job
+architecture smoke; P6 alone activates it for notification jobs and Web Push delivery. OpenAI,
+browser push support, VAPID configuration, and a running reminder worker are optional capabilities:
+their absence must not prevent manual tasks, planning, recurrence, habits, Focus, export, or web
+startup.
 
 ## Boundary model
 
@@ -61,7 +74,11 @@ Smart lists, calendar events, agenda rows, and Eisenhower quadrants are projecti
 - Query application services accept a bounded filter/range and return view models.
 - Counts and aggregates execute in PostgreSQL when practical.
 - A projection may be cached in TanStack Query but PostgreSQL remains authoritative.
-- Do not create materialized projection tables during the hackathon release.
+- Recurring task instances are expanded only for the requested finite range; recorded occurrence
+  events are source state, not materialized task clones.
+- Habit streaks/heat maps and Focus totals are derived from their canonical logs/sessions; counters
+  and summary rows are not stored.
+- Do not create materialized projection tables during the Local-first Full Release.
 
 ## Time model
 
@@ -73,12 +90,34 @@ Time is a product invariant, not a formatting detail.
 - A task's derived due boundary is timed `end_at`, or the exclusive all-day `end_date` interpreted at midnight in the user's saved IANA timezone. Matrix/overdue queries compute it; no `due_at` or deadline duplicate is stored.
 - Smart-list boundaries use the user's saved timezone.
 - Presentation formatting uses the user's week start and hour-cycle preferences.
+- Recurrence is anchored to the canonical all-day or timed task schedule and expands to deterministic
+  occurrence identities inside a caller-supplied bounded range.
+- Habit check-ins persist a local `date` interpreted in the habit's stored IANA timezone. Focus and
+  explicitly started break duration are reconstructed from server timestamps and accumulated active
+  seconds, not client ticks. Break rows never contribute to focus totals.
+- Absolute reminders persist an instant. Relative reminders derive their next instant from an
+  eligible task or occurrence start; they do not add a second schedule field.
 
 Domain tests must cover spring-forward/fall-back behavior for at least one representative IANA zone.
 
-## Deferred architecture boundaries
+## Active release extension boundaries
 
-Recurrence/occurrence events, habits, Focus, browser reminders/push delivery, and installable PWA/service-worker caching are deferred. Their module documents are blueprints only. They contribute no active table, route, job, dependency, navigation item, export section, provider requirement, or release gate until promoted through the scope-change protocol.
+- `modules/tasks` owns task recurrence rules, append-only occurrence events, deterministic occurrence
+  identity, and range-bounded expansion. `modules/planning` consumes only the public bounded
+  occurrence projection and never stores recurrence state.
+- `modules/habits` owns habit definitions, schedules, local-day logs, and derived streak/heat-map
+  projections. Other modules consume narrow public ownership/snapshot contracts.
+- `modules/focus` owns authoritative active and completed focus/break session state. It accepts only
+  narrow public task/habit ownership validators; break rows have no item link, and the module never
+  persists client countdown ticks or derived totals.
+- `modules/notifications` owns the one-task-reminder policy, push subscriptions, delivery records,
+  provider adapter, and reminder worker use cases. Task changes call its injected public reconciler;
+  notifications never write task schedule, recurrence, or status tables.
+- PWA manifest, registration, update state, and content-free offline fallback are presentation/static
+  infrastructure, not a domain module or a synchronization layer.
+
+These boundaries authorize only the capabilities listed in `docs/SCOPE.md`. Stage A-D remain later
+roadmap context and contribute no dormant route, table, provider, or framework to this release.
 
 ## AI planner architecture
 
@@ -114,15 +153,48 @@ The release uses Structured Outputs because OpenAI documents schema adherence an
 - Application use cases own domain authorization; route protection alone is insufficient.
 - A regular list is currently owner-only. Future list membership is a later migration and must not be preimplemented as dormant UI.
 - Every query constrains owner/user IDs in SQL rather than loading first and filtering in memory.
-- Export enumerates records through the same authorized module query surfaces.
+- Export enumerates records through the same authorized module query surfaces, including the
+  released recurrence, habit, completed focus-only, and portable reminder records. Break rows,
+  subscription secrets, delivery records, and queue internals are never portable data.
 
-## Browser and offline boundary
+## Reminder worker and provider boundary
 
-The active release has no service worker, installability claim, or cache-backed offline shell.
+P6 is the only package that activates background product behavior.
+
+1. An authorized task/reminder mutation reconciles the next eligible logical delivery through the
+   notifications module in the owning database transaction.
+2. The transaction records an idempotent pg-boss job containing opaque identifiers and occurrence
+   identity only; it contains no task content, endpoint, or key material.
+3. The worker reloads current authorized reminder, task/occurrence, and subscription state before
+   sending. Already delivered, stale, completed, deleted, disabled, or rescheduled work is a no-op.
+4. The provider adapter decrypts subscription material only for delivery, applies bounded retry or
+   permanent revocation policy, and never exposes provider payloads to presentation code.
+
+Before P6 lands, `pnpm worker` remains the existing queue boot/shutdown smoke and no product contract
+may depend on it. After P6, the final self-host topology runs the worker for reminders, while a
+missing worker or VAPID/provider configuration is reported as an honest degraded capability rather
+than a failure of the rest of the product.
+
+The web capability endpoint reports configured, unconfigured, and known-disabled worker
+configuration. It does not use a heartbeat table or claim that a configured process is currently
+alive. Unexpected worker death is an operator concern detected by the worker check/readiness log and
+process supervision; the UI says liveness is not verified rather than showing a false healthy state.
+
+## Browser, PWA, and offline boundary
+
+P5 adds an installable web manifest, original icons, and one small versioned service worker. Its
+cache boundary is limited to fingerprinted public/static application assets and a dedicated
+content-free offline fallback.
 
 - When the running page detects lost connectivity or a network failure, keep already rendered data visible as stale and disable domain mutations with clear feedback.
-- Never describe previously rendered data as an offline cache or claim the app opens without a connection.
-- Full offline writes require the Stage D sync protocol, tombstones, idempotency, and conflict UX; do not simulate them with local-only state now.
+- Do not cache authenticated HTML, API responses, task/planner/export data, provider responses, or
+  any user-authored content in Cache Storage or IndexedDB.
+- Do not queue writes, register background sync for domain mutations, or describe read-only rendered
+  state as synchronized.
+- A cold offline navigation may open only the static fallback shell; it must not imply that protected
+  user data was loaded.
+- Full offline writes require the Stage D sync protocol, tombstones, idempotency, and conflict UX;
+  Stage D is outside this goal and must not be simulated with local-only state.
 
 ## Observability
 
@@ -163,6 +235,9 @@ Before sign-off, confirm:
 - no cross-module deep import;
 - every mutation is ownership-scoped and transactionally correct;
 - time semantics use the canonical schedule model;
-- no optional provider is required for core app startup;
+- recurrence, habit, Focus, reminder, and PWA projections store no duplicate domain facts;
+- authenticated user data is absent from service-worker caches and offline writes are impossible;
+- the worker has no product job before P6 and owns only notification jobs after activation;
+- no optional OpenAI or Web Push provider is required for web/manual product startup;
 - schema and module docs match implementation;
 - `docs/MANIFEST.md` reflects any approved boundary change.

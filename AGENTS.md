@@ -14,13 +14,21 @@ Before changing the repository:
 6. For UI work, read `DESIGN.md` and only the routed design files for that screen.
 7. For schema work, read `docs/DATA_MODEL.md` in full.
 
-If documents conflict, precedence is: `AGENTS.md` -> `docs/SCOPE.md` -> `docs/ARCHITECTURE.md` -> module contract -> implementation. Stop and repair the conflict before coding.
+If documents conflict, precedence is: `AGENTS.md` -> `docs/SCOPE.md` and `docs/GOAL.md` -> the
+concern-specific canonical document routed by `docs/MANIFEST.md` (`docs/DATA_MODEL.md` for schema,
+`docs/ARCHITECTURE.md` for dependency/system boundaries, `docs/STACK.md` for dependencies,
+`DESIGN.md` plus its routed file for UI, and `docs/QUALITY.md` for gates) -> module contract ->
+implementation. If two concern-specific documents conflict, stop and repair the conflict before
+coding rather than choosing one silently.
 
 ## Scope control
 
-- The active implementation goal is exactly the Deadline-safe Hackathon Core in `docs/SCOPE.md` and `docs/GOAL.md`.
+- The active implementation goal is exactly the Local-first Full Release in `docs/SCOPE.md` and `docs/GOAL.md`.
 - A researched TickTick feature is not automatically approved for implementation.
-- Deferred extensions and post-core roadmap features must not be started under the active goal.
+- Only capabilities explicitly promoted into the active release may be implemented. Stage A–D and
+  every item still listed outside active scope must not be started under this goal.
+- The Editorial Focus proof is an approval gate: broad restyling and later feature UI cannot pass it
+  without explicit user screenshot approval. Silence is not approval.
 - Do not add a “small improvement” outside the active work package. Record it in the appropriate later-scope section only if it is materially useful.
 - Do not silently cut a committed feature. A cut requires explicit user approval and an update to `docs/SCOPE.md` and `docs/GOAL.md` in the same change.
 - Plans are maintained in place. Do not append status diaries, session logs, or implementation history to planning documents. Git is the history.
@@ -74,8 +82,13 @@ Do not add generic JSONB, EAV/custom-field tables, duplicated status/date/owner 
 ## Product and design rules
 
 - Manual task workflows must function when `OPENAI_API_KEY` is absent.
+- Task, habit, Focus, export, and local startup paths must function when Web Push/VAPID is absent;
+  provider absence produces an honest degraded state.
 - AI output never mutates data directly. It creates a proposal; a user reviews it; the server validates and applies it transactionally.
-- Do not copy TickTick or Airbnb names, copy, screenshots, icons, proprietary fonts, or exact layouts.
+- Offline support in the active release is an installable static shell and read-only connectivity
+  behavior only. Do not queue domain writes or claim offline-first sync.
+- Do not copy TickTick, Airbnb, ElevenLabs, GetDesign, or another product's names, copy, screenshots,
+  icons, proprietary fonts, exact layouts, palettes, or trade dress.
 - Components consume semantic design tokens, never raw color literals.
 - Every drag interaction needs a keyboard/menu equivalent.
 - Every committed screen implements default, empty, loading, error, and permission/offline states defined by its screen contract.

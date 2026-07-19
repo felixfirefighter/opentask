@@ -1,6 +1,7 @@
-# Deferred habits module contract
+# Habits module contract
 
-**Status:** Deferred extension. Nothing in this document is approved for implementation under the Deadline-safe Hackathon Core. It becomes active only through the scope-change protocol after the hosted friend candidate passes.
+**Status:** Active in the Local-first Full Release. Implementation begins only in P3 after its P1
+dependency gate; this contract does not authorize later-scope habit capabilities.
 
 `modules/habits` owns personal habit definitions, supported schedules, local-day logs, and derived streak/history projections.
 
@@ -29,13 +30,27 @@
 
 - Every habit, schedule, and log query is constrained by `user_id`.
 - A habit has exactly one supported schedule row and at most one effective log per `habit_id`/`local_date`.
-- Calendar days are evaluated in the habit's stored IANA timezone and persisted as `date`, not an instant.
-- `daily`, `weekdays`, and `weekly_target` accept only their documented discriminant fields; database checks reject mixed schedule data.
+- Calendar days are evaluated in the habit's stored IANA timezone and persisted as `date`, not an
+  instant. Schedule `start_date` and optional `end_date` are inclusive local-day bounds.
+- `daily`, `weekdays`, and `weekly_target` accept only their documented discriminant fields;
+  selected weekdays are unique ISO weekday numbers and a weekly target is positive; database checks
+  reject mixed schedule data.
 - Boolean goals do not require a quantity. Numeric completion requires a valid nonnegative quantity and is successful only when it meets the positive `target_value` in the effective completed log.
 - Daily/weekday streaks advance only on scheduled successful local days; skipped/unachieved scheduled days break them. Weekly-target streaks count consecutive local weeks meeting `target_per_week`.
-- Editing a schedule increments the owning habit `version` exactly once. Log mutations increment only the log version.
+- Weekly-target weeks are ISO Monday-Sunday weeks, independent of the user's presentation week-start
+  preference. The habit appears in Today on every in-range local day. Each successful local day
+  counts once toward `target_per_week`; skip/unachieved records do not themselves close or fail the
+  week. The current week is “in progress” below target, becomes successful immediately on reaching
+  target, and fails only after Sunday closes below target. After target is reached, Today shows the
+  achieved state and still permits editing/undoing existing daily logs, but does not prompt another
+  check-in as required work. All weekly progress and streak values remain derived.
+- Editing a definition or schedule increments the owning habit `version` exactly once. Log mutations
+  increment only the log version; a concurrent second write for the same habit/local date resolves
+  through the unique key and optimistic conflict policy rather than creating another effective row.
 - Streaks and heat maps are derived; counters are never stored on `habits`.
 - Archive preserves logs and removes the habit from active Today projections.
+- Restore returns the habit to schedule without rewriting prior logs; the saved schedule determines
+  whether it appears on the current local day.
 
 ## Dependencies
 
@@ -46,6 +61,8 @@
 
 - Task recurrence, reminders, focus-session timing, AI scheduling, social sharing, gallery templates, Apple Health, mood analytics, or achievements.
 - Unsupported custom cadence rules or storing projection counters.
+- Multiple check-ins per day, subtasks/checklists for habits, social challenges, reminders, or
+  completion side effects on tasks/Focus.
 
 ## Required tests
 

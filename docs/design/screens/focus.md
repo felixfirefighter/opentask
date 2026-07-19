@@ -1,6 +1,7 @@
-# Deferred Focus screen
+# Focus screen
 
-**Status:** Not part of the Deadline-safe Hackathon Core. Do not implement this route or UI until the scope-change protocol promotes it.
+**Status:** Active in P4 of the Local-first Full Release. Do not expose the route or navigation
+before the P4 package gate.
 
 ## Purpose and route
 
@@ -21,10 +22,15 @@ Desktop centers the timer in a bounded card while summary/history use the remain
 - **Idle:** choose Pomodoro or Stopwatch, optionally link one task/habit, then Start.
 - **Running focus:** Pause or Finish; Discard is in the overflow/consequence dialog.
 - **Paused:** Resume, Finish, or Discard.
-- **Pomodoro break:** show “Break” text and the configured remaining time; “Skip break” returns to Idle. The break countdown does not create a focus session or contribute to totals.
+- **Pomodoro break:** after explicit Start break, persist/reconstruct one authoritative `kind=break`
+  row, show “Break” and remaining time, and let “Skip break” finish it and return to Idle. It has no
+  item link and never contributes to focus totals or portable focus history.
 - **Reconnect:** reconstruct from server timestamps and state; client ticks are display-only.
 
-Settings expose focus and break duration through a compact form. Starting when another active timer exists recovers that timer instead of creating another. Finishing confirms the authoritative duration and adds one recent-session row.
+Timer setup on this route exposes per-run focus and break duration through a compact form; these are
+not persisted Settings preferences. Finishing focus never starts a break automatically. Starting any
+timer when another active focus/break row exists recovers that row instead of creating another.
+Finishing focus confirms the authoritative duration and adds one recent focus-session row.
 
 Completed sessions may be corrected or deleted by their owner. Correction uses start/end or duration fields consistent with the domain contract and names the effect on totals. Deletion requires confirmation because active scope does not promise an undo.
 

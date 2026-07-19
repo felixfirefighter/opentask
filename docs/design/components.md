@@ -67,15 +67,15 @@ The palette has a labeled search input and grouped results: Navigate, Tasks, and
 
 Event blocks contain time when relevant, truncated title, status, and optional list/category context. Category background and readable paired foreground come from `tokens.md`. Selected events have a non-color outline. Drag/resize is pointer enhancement; activating an event opens the inspector, whose schedule form provides the complete alternative.
 
-## Deferred habit check-in
+## Habit check-in
 
-This primitive is not active-release implementation scope.
+This primitive becomes active with P3 and must not render before that package gate.
 
 The row/card includes icon/emoji, title, schedule/goal, current progress, streak summary, and an action whose label reflects goal type. Numeric habits open a quantity form instead of assuming one unit. Check-in success is reversible. Skip and unachieved are menu actions with explicit labels.
 
-## Deferred Focus timer
+## Focus timer
 
-This primitive is not active-release implementation scope.
+This primitive becomes active with P4 and must not render before that package gate.
 
 The timer uses tabular numerals and exposes its mode/state as text. Start is the only filled action at rest; Pause, Resume, Finish, and Discard follow the current state. A linked task/habit is optional and removable. Screen-reader announcements occur at state changes, not every second.
 

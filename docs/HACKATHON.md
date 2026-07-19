@@ -22,7 +22,8 @@ The rules, not this summary, control if wording differs.
 
 - Use an original final product name after a basic trademark/domain check; “OpenTask” is a working name only.
 - Describe the product as inspired by the category, never as an official TickTick client or endorsed replacement.
-- Do not use TickTick or Airbnb logos, screenshots, icons, copy, proprietary data, fonts, sounds, or pixel-identical screens.
+- Do not use TickTick, Airbnb, ElevenLabs, or GetDesign logos, screenshots, icons, copy, proprietary
+  data, fonts, sounds, exact palettes/layouts, or trade dress.
 - Use only project-owned, permissively licensed, or properly attributed visual/audio assets.
 - Keep a dependency and asset license inventory before submission.
 - The demo must not contain unlicensed music, private notifications, personal task content, API keys, email addresses, or browser history.
@@ -69,7 +70,7 @@ Record a backup take. Keep cursor movement deliberate, browser zoom readable, an
 ## Submission asset checklist
 
 - [ ] Original final name, short tagline, long description, category, and feature list
-- [ ] Public production URL and health check
+- [ ] Optional public production URL and health check, if a hosted candidate is used
 - [ ] Public repository or judge access, intended license, and release tag/commit
 - [ ] README quickstart tested from a fresh clone
 - [ ] Sample environment file contains placeholders only
@@ -84,8 +85,16 @@ Record a backup take. Keep cursor movement deliberate, browser zoom readable, an
 
 ## Deadline operating rules
 
-- Deliver the hosted friend candidate by **2026-07-20 20:00 GMT+8** and freeze engineering by **2026-07-21 08:00 GMT+8**.
-- Reserve the final twelve hours for feature freeze, full audit, deployment, recording, and submission.
-- Submit a complete draft as soon as the hosted demo and first recording exist; improve it before the deadline rather than waiting for the last minute.
-- Keep a local video copy, a second hosted-demo verification path, and the exact release commit hash.
-- If an external provider fails, demonstrate the self-host path and keep the non-AI application functional.
+- Preserve the last fully green core commit as the submission fallback while Local-first Full Release
+  work remains isolated.
+- Freeze the chosen submission candidate by **2026-07-21 08:00 GMT+8**. A new package may replace the
+  fallback only when its complete gate and required visual approval pass before that decision.
+- Reserve the final 24 hours for user/friend testing, full audit, recording, upload, form completion,
+  and contingency. Do not merge a mixed design or partial extension to widen the demo.
+- Submit a complete draft as soon as the repository, video, description, and any optional hosted URL
+  are ready; improve it before the deadline rather than waiting for the last hour.
+- Keep a local video copy, a reproducible local demo, and the exact release commit hash. A hosted
+  deployment is useful submission evidence but is not required to complete the local-first product
+  goal.
+- If OpenAI, hosting, or push configuration fails, disclose it exactly, demonstrate deterministic
+  fixtures/self-host behavior where appropriate, and keep manual non-provider workflows functional.

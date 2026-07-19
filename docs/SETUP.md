@@ -26,7 +26,9 @@ pnpm db:seed
 pnpm dev
 ```
 
-The app runs at `http://127.0.0.1:3000`. Start the background process separately with `pnpm worker`; WP00 intentionally registers zero jobs. Stop local PostgreSQL with `pnpm db:down`.
+The app runs at `http://127.0.0.1:3000`. Start the background process separately with `pnpm worker`;
+the current fallback registers zero product jobs, and P6 activates reminder jobs. Stop local
+PostgreSQL with `pnpm db:down`.
 
 `BETTER_AUTH_URL` is the exact browser-facing origin, not an internal service URL. OpenTask uses
 only a trusted proxy's overwritten `X-Real-IP` header for authentication and demo abuse-control
@@ -59,7 +61,7 @@ COMPOSE_PROJECT_NAME=opentask-production-audit pnpm test:production
 COMPOSE_PROJECT_NAME=opentask-production-audit docker compose down --volumes --remove-orphans
 ```
 
-`pnpm test:production` deliberately stops the web and worker with SIGTERM after checking health, a shared image, Node as PID 1, and the zero-job worker event. Run the final project-scoped cleanup even when the audit fails; it removes only the isolated audit containers, network, and fresh audit volume. The ordinary `docker compose down` path above still preserves the normal development database volume.
+`pnpm test:production` deliberately stops the web and worker with SIGTERM after checking health, a shared image, Node as PID 1, and the current zero-job worker event. P6 must extend this smoke for active reminder jobs before that package can integrate. Run the final project-scoped cleanup even when the audit fails; it removes only the isolated audit containers, network, and fresh audit volume. The ordinary `docker compose down` path above still preserves the normal development database volume.
 
 ## Database changes
 

@@ -16,9 +16,9 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose **Try demo** to create/reset a private sample workspace for that browser. The active core does not require a background worker; `pnpm worker` remains a zero-job architecture smoke.
+`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose **Try demo** to create/reset a private sample workspace for that browser. The current green candidate does not require a background worker; `pnpm worker` remains a zero-job architecture smoke until the reminder package activates jobs.
 
-## Core release
+## Current green candidate
 
 The Deadline-safe Core includes:
 
@@ -30,13 +30,17 @@ The Deadline-safe Core includes:
 
 Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
 
-The active release deliberately excludes recurrence, habits, focus timers, reminders/push, offline synchronization, collaboration, and premium/billing paths. See [docs/SCOPE.md](docs/SCOPE.md) for the exact boundary.
+The current implemented candidate does not yet include recurrence, habits, focus timers,
+reminders/push, or installability. The active Local-first Full Release plan adds those capabilities in
+audited packages after the Editorial Focus visual proof. Offline mutation synchronization,
+collaboration, and premium/billing paths remain excluded. See [docs/SCOPE.md](docs/SCOPE.md) for the
+exact target and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for package order.
 
 ## Built with Codex and GPT-5.6
 
 This project was developed through an iterative collaboration between its owner and Codex. The owner set the open-source product goal, required a scope-locked implementation plan before coding, approved the visual proof before deeper implementation, chose an original warm and precise design direction, and later prioritized the Deadline-safe Core so testing, deployment, and submission time stayed protected.
 
-Codex accelerated competitor research synthesis, specification and architecture drafting, modular implementation, and the scope, authorization, timezone, accessibility, responsive-design, dependency, and release audits. The resulting code keeps product capabilities in explicit feature modules and preserves the owner's key decisions: manual workflows work without AI, task and schedule facts have one canonical representation, and AI output is always reviewed before it can write.
+Codex accelerated competitor research synthesis, specification and architecture drafting, modular implementation, and the scope, authorization, timezone, accessibility, responsive-design, dependency, and release audits. The resulting code keeps product capabilities in explicit feature modules and preserves the owner's key decisions: manual workflows work without AI, task and schedule facts have one canonical representation, and AI output is always reviewed before it can write. The active next direction is the original Editorial Focus adaptation, beginning with a five-screen proof and explicit screenshot approval rather than an uncontrolled global restyle.
 
 GPT-5.6 powers the optional server-side planning proposal step. It converts a brain dump and selected task context into a schema-validated proposal; deterministic application code owns scheduling, ownership, conflicts, and atomic apply. Codex helped implement that boundary and its refusal, stale-data, no-write-before-apply, and idempotency tests. Git commits and the repository contracts preserve the concrete engineering and design decisions without maintaining a separate progress diary.
 

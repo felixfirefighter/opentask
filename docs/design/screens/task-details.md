@@ -18,16 +18,24 @@ Body order:
 
 1. editable title;
 2. schedule: all-day date or timed start/end and IANA timezone;
-3. priority, list, section, and tags;
-4. one-level subtasks and lightweight checklist;
-5. Markdown description with safe preview;
-6. status metadata limited to values in active scope.
+3. optional approved recurrence preset/end behavior for an eligible scheduled root task;
+4. optional one-task reminder after P6, including capability/degraded explanation;
+5. priority, list, section, and tags;
+6. one-level subtasks and lightweight checklist;
+7. Markdown description with safe preview;
+8. status/occurrence metadata limited to values in active scope.
 
-Do not show recurrence, reminders, attachments, comments, assignees, activity history, templates, estimates, or custom fields.
+Do not show recurrence/reminder controls before their package gates. Never show attachments, comments,
+assignees, activity history, templates, estimates, or custom fields.
 
 ## Actions and save behavior
 
-- Edit fields, complete/undo, cancel/restore, move, and soft-delete.
+- Edit fields, complete/undo or skip/reopen an occurrence, cancel/restore, move, and soft-delete.
+- Edit/end a recurrence series for future expansion only; no individual occurrence reschedule,
+  recurring checklist state, raw RRULE, or “this and future” fork.
+- Set/remove one absolute reminder for a non-recurring task or one relative-start reminder for any
+  eligible scheduled task. A recurring task requires relative-start; the form rejects an absolute
+  recurring combination with explicit copy. Permission enrollment remains a separate user action.
 - Field commits show Saving/Saved/Error close to the changed group. A changed row version triggers the conflict state before any overwrite.
 - Soft-delete exits the inspector/route only after confirmation and server success.
 
@@ -63,4 +71,7 @@ Subtasks reuse the full task editor at one level and display a clear “Subtasks
 
 ## Acceptance evidence
 
-Cover create/edit, all status transitions, all-day/timed timezone forms, tags/list/section, subtask depth boundary, checklist reorder, Markdown rendering, soft delete, conflict recovery, offline, and unauthorized IDs across inspector/sheet/mobile route.
+Cover create/edit, all status/occurrence transitions, all-day/timed timezone forms, recurrence
+presets/edit/end, reminder eligible/degraded/remove, tags/list/section, subtask depth boundary,
+checklist reorder, Markdown rendering, soft delete, conflict recovery, offline, and unauthorized IDs
+across inspector/sheet/mobile route.

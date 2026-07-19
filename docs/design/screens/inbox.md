@@ -22,7 +22,9 @@ The mobile route uses the shared top/bottom shell, an inline/collapsible quick a
 
 ## Primary actions
 
-- Create a task through quick add with visible editable parsed date/time chips.
+- Create a task through quick add. Inbox defaults to the current Inbox unscheduled; a regular list
+  defaults to that list unscheduled; Upcoming defaults to all-day on the next local day. Visible,
+  editable parsed date/time chips may override the default before save and never remove source text.
 - Open details, complete/undo, cancel/restore, soft-delete, edit priority/schedule, move to list/section, and manually reorder where ordering is meaningful.
 - Create, rename, and reorder folders/lists/sections; soft-delete folders/lists with immediate Undo; delete sections only when empty; preserve the immutable Inbox.
 - Search title, description, and tag name from the global palette/search control.

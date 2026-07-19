@@ -1,6 +1,7 @@
-# Deferred habits screen
+# Habits screen
 
-**Status:** Not part of the Deadline-safe Hackathon Core. Do not implement this route or UI until the scope-change protocol promotes it.
+**Status:** Active in P3 of the Local-first Full Release. Do not expose the route or navigation
+before the P3 package gate.
 
 ## Purpose and routes
 

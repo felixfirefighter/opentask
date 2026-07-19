@@ -16,6 +16,7 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 | Ordered work packages | `docs/IMPLEMENTATION_PLAN.md` |
 | Tests, audits, completion gates | `docs/QUALITY.md` |
 | Design north star and routing | `DESIGN.md` |
+| Active visual migration target | `docs/design/editorial-focus.md` |
 | Hackathon constraints/submission | `docs/HACKATHON.md` |
 | Reproducible local/container setup | `docs/SETUP.md` |
 | Hosted Railway deployment | `docs/DEPLOYMENT.md` |
@@ -32,13 +33,13 @@ modules/                 Product feature modules
   identity/
   tasks/
   planning/
-  habits/                 deferred contract; not implemented in active goal
-  focus/                  deferred contract; not implemented in active goal
-  notifications/          deferred contract; not implemented in active goal
+  habits/                 habit definitions, local-day logs, and projections
+  focus/                  authoritative timer sessions and summaries
+  notifications/          task reminders, push subscriptions, and delivery worker
   assistant/
   portability/
 shared/                  Approved stable cross-cutting surfaces
-worker/                  zero-job pg-boss runtime scaffold
+worker/                  pg-boss runtime; zero-job baseline until P6 activates reminder jobs
 drizzle/                 Generated, committed SQL migrations
 public/                  Original static assets
 docs/                    Product and engineering contracts
@@ -55,9 +56,9 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 | identity | session context, user preferences, account bootstrap | `docs/modules/identity.md` |
 | tasks | folders, lists, sections, tasks, schedules, tags, checklist, search | `docs/modules/tasks.md` |
 | planning | smart views, calendar projections, Eisenhower rules, deterministic scheduler | `docs/modules/planning.md` |
-| habits | deferred habit definitions, schedules, logs, and streak projections | `docs/modules/habits.md` |
-| focus | deferred timer policy and completed focus sessions | `docs/modules/focus.md` |
-| notifications | deferred reminder definitions, queue jobs, and web push delivery | `docs/modules/notifications.md` |
+| habits | habit definitions, schedules, logs, Today/history/streak projections | `docs/modules/habits.md` |
+| focus | authoritative timer policy, completed sessions, and derived summaries | `docs/modules/focus.md` |
+| notifications | task reminders, push subscriptions, queue jobs, and Web Push delivery | `docs/modules/notifications.md` |
 | assistant | OpenAI adapter, extraction, planner proposals, review/apply | `docs/modules/assistant.md` |
 | portability | versioned user export and future import adapters | `docs/modules/portability.md` |
 
@@ -86,7 +87,7 @@ The bootstrap work package must create these stable commands; later agents use t
 | Command | Contract |
 |---|---|
 | `pnpm dev` | web app in development |
-| `pnpm worker` | zero-job worker architecture smoke in the active core |
+| `pnpm worker` | pg-boss worker; architecture smoke before P6 and active reminder jobs after P6 |
 | `pnpm db:up` / `pnpm db:down` | local PostgreSQL lifecycle |
 | `pnpm db:generate` | generate migration from reviewed schema change |
 | `pnpm db:migrate` | apply committed migrations |
@@ -112,5 +113,7 @@ The bootstrap work package must create these stable commands; later agents use t
 - Do not copy the same rule into multiple documents; link to the owner.
 - Do not store progress history in docs. A temporary `CURRENT_WORK.md`, if ever needed, is replaced rather than appended and is deleted at release.
 - New module contracts belong in `docs/modules/`; new screen contracts belong in `docs/design/screens/`.
-- A deferred module contract is not permission to create its routes, tables, jobs, dependencies, or UI under the active goal.
+- A later-roadmap contract is not permission to create its routes, tables, jobs, dependencies, or UI
+  under the active goal. Active modules still follow the package order and cannot expose dormant
+  later-package code before their gate.
 - Architecture deviations use one short ADR in `docs/decisions/` and a manifest entry. Do not create ADRs for routine implementation choices.

@@ -2,18 +2,26 @@
 
 ## Purpose and route
 
-`/settings` edits release preferences, explains optional AI capability, and exports user-owned data. It does not add account management, billing, integration, import, analytics, notifications, or browser-side secret configuration.
+`/settings` edits release preferences, explains optional AI and browser capability, manages the
+user-controlled PWA/push surface after P5/P6, and exports user-owned data. It does not add account
+management, billing, integration, import, analytics, a notification center, or browser-side secret
+configuration.
 
 Sign out remains in the global account menu. Email/password management, account deletion, API keys, and provider credentials are not rendered because they are outside active scope.
 
+Focus and break durations are per-run inputs on `/focus`; this release stores no duration preference
+and adds no Focus Settings card.
+
 ## Layout
 
-Use one bounded column with a page `h1` and four cards:
+Use one bounded column with a page `h1` and five cards after P6:
 
 1. **Date and time:** IANA timezone search/select, week start, and 12/24-hour display.
 2. **Appearance:** light/dark/system theme and reduced motion.
 3. **Optional AI:** planner available/unavailable status and a link to manual planning.
-4. **Your data:** versioned JSON export.
+4. **App and reminders:** install/update state where supported, push capability/permission,
+   subscription enable/revoke, and provider/worker degraded explanation without secret values.
+5. **Your data:** versioned JSON export.
 
 Each editable card has its own explicit Save action and local save/error feedback. Theme may preview immediately but rolls back if the server save fails. AI status is read-only. Do not expose server environment values or operational secrets.
 
@@ -29,6 +37,12 @@ Each editable card has its own explicit Save action and local save/error feedbac
 
 Distinguish AI planner available from disabled because the server has no configured key/provider. AI is status-only here; manual task/calendar workflows remain linked and available.
 
+Distinguish unsupported browser, permission not requested, denied, subscribed, provider unconfigured,
+and known-disabled worker states. Request notification permission only after the user activates an
+explicit control. If configuration expects a worker, say that runtime liveness is not verified; do
+not invent a heartbeat or report a configured process as live. P5/P6 controls do not render before
+their package gates and never expose VAPID or encryption keys.
+
 ## Export behavior
 
 “Export my data” requests the versioned JSON export and downloads it only after authorization succeeds. Show progress, resulting filename/schema version when available, and a retryable failure. Do not preview private export content in logs, analytics, or a public URL. Import is not rendered.
@@ -37,13 +51,13 @@ Distinguish AI planner available from disabled because the server has no configu
 
 | State | Required presentation |
 |---|---|
-| Default | Current server preferences, explicit per-card Save, AI capability status, and Export my data. |
+| Default | Current server preferences, explicit per-card Save, AI/PWA/push capability status as applicable, and Export my data. |
 | Empty | Preferences always have defaults. If provider status cannot be determined, show “Status unavailable” rather than a blank card. No export-history empty state exists. |
 | Loading | Preserve card geometry; preferences and provider status may resolve independently. Save/export actions show stable progress and block duplicates only within their card. |
 | Error | Preserve edited values, identify the failed card/action, and offer Retry. Theme preview rolls back after failed save. Export error confirms that no file was generated when true. |
 | Offline | Loaded preferences/status remain readable but labeled stale. Disable Save and export under the global offline explanation; local theme preview may be viewed but not called saved. |
 | Permission | Unauthenticated access routes to sign-in with safe return. Export and provider endpoints recheck authorization; errors reveal no other user's settings/subscriptions/data. |
-| Provider unavailable | Show manual alternatives and exact capability impact. Missing AI does not look like an app failure. |
+| Provider unavailable | Show manual alternatives and exact capability impact. Missing AI, VAPID, or worker does not look like a core app failure. |
 
 ## Keyboard, touch, and accessibility
 
@@ -55,4 +69,8 @@ Distinguish AI planner available from disabled because the server has no configu
 
 ## Acceptance evidence
 
-Verify every preference, server save/failure rollback, timezone preview, AI available/unavailable, authorized JSON export success/failure, offline, unauthenticated redirect, keyboard/screen-reader behavior, and 1440/1024/390 px layouts.
+Verify every preference, server save/failure rollback, timezone preview, AI available/unavailable,
+  install/update state, every push capability/permission/subscription/configuration state including
+  the explicit “runtime liveness not verified” state, authorized JSON
+export success/failure, offline, unauthenticated redirect, keyboard/screen-reader behavior, and
+1440/1024/390 px layouts.

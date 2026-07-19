@@ -52,8 +52,12 @@ This combines model strengths with deterministic scheduling and a human approval
 
 - A new user can add a task in under 15 seconds without documentation.
 - A user can move from brain dump to an approved day plan in under 2 minutes.
-- The four demo paths in `docs/QUALITY.md` work at desktop and mobile widths.
+- The G1–G9 golden paths in `docs/QUALITY.md` work at their required desktop/mobile widths.
 - The app remains fully useful when the OpenAI integration is disabled.
+- Task, habit, Focus, export, and local startup remain useful when Web Push/VAPID or the reminder
+  worker is absent; only reminder delivery degrades.
+- The installable shell never claims offline writes or stores authenticated user content in its
+  service-worker cache.
 - A fresh self-host setup succeeds from the README without hidden services.
 
 ## Business model constraint
