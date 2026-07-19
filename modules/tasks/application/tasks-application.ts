@@ -11,6 +11,7 @@ import { createSectionApplication } from "./section-application";
 import { createTagApplication } from "./tag-application";
 import { createTaskApplication } from "./task-application";
 import { createTaskSnapshotReader } from "./task-snapshot-reader";
+import { createTaskPlanningSourceReader } from "./task-planning-source-reader";
 import type { TaskScheduleTable } from "../infrastructure/schema";
 
 export function createTasksApplication({
@@ -32,6 +33,7 @@ export function createTasksApplication({
     search: createSearchApplication({ database }),
     quickAdd: createQuickAddApplication({ clock }),
     schedules: createTaskScheduleApplication({ database, clock, taskSchedules }),
+    planningSource: createTaskPlanningSourceReader({ database, taskSchedules }),
     taskSnapshots: createTaskSnapshotReader({ database, taskSchedules }),
   } as const;
 }
