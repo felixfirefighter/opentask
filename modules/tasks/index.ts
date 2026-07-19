@@ -36,6 +36,7 @@ export {
   taskQuerySchema,
   taskScheduleRangeQuerySchema,
   taskPlanningSourceQuerySchema,
+  reviewedPlanBatchSchema,
   taskSearchQuerySchema,
   terminalTaskQuerySchema,
   transitionTaskStatusRequestSchema,
@@ -76,6 +77,9 @@ export type {
   TaskPlanningSourcePage,
   TaskPlanningSourceQuery,
   TaskPlanningSourceReader,
+  ReviewedPlanBatch,
+  ReviewedPlanTaskSnapshot,
+  ReviewedPlanTaskWriter,
   QuickAddParseResult,
   QuickAddRequest,
 } from "./application/contracts";
