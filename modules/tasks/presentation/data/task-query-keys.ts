@@ -1,0 +1,15 @@
+export const taskQueryKeys = {
+  all: ["tasks"] as const,
+  listRoot: () => ["tasks", "list"] as const,
+  terminalRoot: () => ["tasks", "terminal"] as const,
+  searchRoot: () => ["tasks", "search"] as const,
+  detailRoot: () => ["tasks", "detail"] as const,
+  lists: () => ["tasks", "lists"] as const,
+  folders: () => ["tasks", "folders"] as const,
+  sections: (listId: string) => ["tasks", "sections", listId] as const,
+  tags: () => ["tasks", "tags"] as const,
+  list: (listId: string) => ["tasks", "list", listId, "open"] as const,
+  terminal: (status: "completed" | "cancelled") => ["tasks", "terminal", status] as const,
+  detail: (taskId: string) => ["tasks", "detail", taskId] as const,
+  search: (query: string) => ["tasks", "search", query.trim().toLocaleLowerCase()] as const,
+} as const;
