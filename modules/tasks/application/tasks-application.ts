@@ -5,6 +5,7 @@ import { createChecklistApplication } from "./checklist-application";
 import { createFolderApplication } from "./folder-application";
 import { createListApplication } from "./list-application";
 import { createSearchApplication } from "./search-application";
+import { createQuickAddApplication } from "./quick-add-application";
 import { createSectionApplication } from "./section-application";
 import { createTagApplication } from "./tag-application";
 import { createTaskApplication } from "./task-application";
@@ -18,6 +19,7 @@ export function createTasksApplication({ database, clock }: { database: Database
     checklist: createChecklistApplication({ database, clock }),
     tags: createTagApplication({ database, clock }),
     search: createSearchApplication({ database }),
+    quickAdd: createQuickAddApplication({ clock }),
   } as const;
 }
 

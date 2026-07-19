@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   customType,
+  date,
   foreignKey,
   index,
   integer,
@@ -15,6 +16,9 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+
+type TaskOwnershipColumns = Readonly<{ userId: AnyPgColumn; id: AnyPgColumn }>;
+export type TaskScheduleTable = ReturnType<typeof createTaskScheduleTable>;
 
 const timestampColumn = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 const rankText = customType<{ data: string }>({
@@ -181,6 +185,8 @@ export function createTaskSchema(authUserId: () => AnyPgColumn) {
     ],
   );
 
+  const taskSchedules = createTaskScheduleTable(tasks);
+
   const checklistItems = pgTable(
     "checklist_items",
     {
@@ -260,7 +266,73 @@ export function createTaskSchema(authUserId: () => AnyPgColumn) {
     ],
   );
 
-  return { listFolders, taskLists, listSections, tasks, checklistItems, tags, taskTags };
+  return { listFolders, taskLists, listSections, tasks, taskSchedules, checklistItems, tags, taskTags };
+}
+
+function createTaskScheduleTable(tasks: TaskOwnershipColumns) {
+  return pgTable(
+    "task_schedules",
+    {
+      userId: uuid("user_id").notNull(),
+      taskId: uuid("task_id").notNull(),
+      kind: text("kind").notNull(),
+      startDate: date("start_date", { mode: "string" }),
+      endDate: date("end_date", { mode: "string" }),
+      startAt: timestampColumn("start_at"),
+      endAt: timestampColumn("end_at"),
+      timezone: text("timezone"),
+      createdAt: timestampColumn("created_at").defaultNow().notNull(),
+      updatedAt: timestampColumn("updated_at").defaultNow().notNull(),
+    },
+    (table) => [
+      primaryKey({ name: "task_schedules_pkey", columns: [table.userId, table.taskId] }),
+      foreignKey({
+        name: "task_schedules_task_owner_fk",
+        columns: [table.userId, table.taskId],
+        foreignColumns: [tasks.userId, tasks.id],
+      }).onDelete("cascade"),
+      check("task_schedules_kind_check", sql`${table.kind} in ('all_day', 'timed')`),
+      check(
+        "task_schedules_shape_check",
+        sql`(
+          ${table.kind} = 'all_day'
+          and ${table.startDate} is not null
+          and ${table.endDate} is not null
+          and ${table.startAt} is null
+          and ${table.endAt} is null
+          and ${table.timezone} is null
+        ) or (
+          ${table.kind} = 'timed'
+          and ${table.startDate} is null
+          and ${table.endDate} is null
+          and ${table.startAt} is not null
+          and ${table.endAt} is not null
+          and ${table.timezone} is not null
+        )`,
+      ),
+      check(
+        "task_schedules_bounds_check",
+        sql`(${table.kind} = 'all_day' and ${table.endDate} > ${table.startDate})
+          or (${table.kind} = 'timed' and ${table.endAt} >= ${table.startAt})`,
+      ),
+      check(
+        "task_schedules_timezone_check",
+        sql`${table.timezone} is null or char_length(${table.timezone}) between 1 and 128`,
+      ),
+      index("task_schedules_user_start_date_idx")
+        .on(table.userId, table.startDate, table.taskId)
+        .where(sql`${table.kind} = 'all_day'`),
+      index("task_schedules_user_end_date_idx")
+        .on(table.userId, table.endDate, table.taskId)
+        .where(sql`${table.kind} = 'all_day'`),
+      index("task_schedules_user_start_at_idx")
+        .on(table.userId, table.startAt, table.taskId)
+        .where(sql`${table.kind} = 'timed'`),
+      index("task_schedules_user_end_at_idx")
+        .on(table.userId, table.endAt, table.taskId)
+        .where(sql`${table.kind} = 'timed'`),
+    ],
+  );
 }
 
 function boundedTrimmed(column: AnyPgColumn, maximum: number) {
