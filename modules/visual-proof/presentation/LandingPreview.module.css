@@ -250,7 +250,7 @@
   font-weight: 800;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .composition {
     margin: 0 -4px;
     padding-bottom: 34px;
