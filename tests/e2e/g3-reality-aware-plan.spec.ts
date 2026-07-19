@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
@@ -90,6 +92,14 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
   await expect(page.getByText("Why this change:").first()).toBeVisible();
   await expect(page.getByText("Confirm the final reviewer before publishing.")).toBeVisible();
   await expect(page.getByText("No free interval was available inside the work window.")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Review every proposed change" })).toBeVisible();
+  await expect(page.getByText(proposal.proposal.summary)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Scheduled and updated" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "New tasks" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Deferred and overflow" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Apply 4 changes" })).toBeEnabled();
+  await captureReviewEvidence(page, testInfo.project.name);
 
   const updateCard = page.getByText("Update", { exact: true }).locator("xpath=ancestor::article");
   await updateCard.getByRole("button", { name: "Edit change" }).click();
@@ -292,4 +302,18 @@ async function readPlannerProposal(page: Page, proposalId: string) {
   const response = await page.context().request.get(`/api/v1/planner/proposals/${proposalId}`);
   expect(response.status()).toBe(200);
   return plannerProposalDtoSchema.parse(await response.json());
+}
+
+async function captureReviewEvidence(page: Page, projectName: string) {
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/g3");
+  await mkdir(evidenceDirectory, { recursive: true });
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+  await page.getByRole("heading", { name: "AI Review", exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: path.join(evidenceDirectory, `ai-review-${projectName}.png`),
+    animations: "disabled",
+    fullPage: true,
+  });
 }
