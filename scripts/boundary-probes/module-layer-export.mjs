@@ -3,7 +3,7 @@ export function createModuleLayerExportProbes(probeModule) {
     {
       filePath: "app/__forbidden_boundary_probe__.ts",
       source:
-        'import { drizzle } from "drizzle-orm";\nimport "@/modules/visual-proof/presentation/TodayScreen";\nexport default drizzle;\n',
+        'import { drizzle } from "drizzle-orm";\nimport "@/modules/planning/presentation/TodayScreen";\nexport default drizzle;\n',
       expected: {
         "boundaries/dependencies": 1,
         "opentask/no-data-packages": 1,
@@ -29,7 +29,7 @@ export function createModuleLayerExportProbes(probeModule) {
     },
     {
       filePath: `modules/${probeModule}/application/cross-module.ts`,
-      source: 'import "../../visual-proof/presentation/TodayScreen.tsx";\n',
+      source: 'import "../../planning/presentation/TodayScreen.tsx";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
@@ -112,7 +112,7 @@ export function createModuleLayerExportProbes(probeModule) {
     },
     {
       filePath: `modules/${probeModule}/domain/cross-module.ts`,
-      source: 'import "../../visual-proof/index.ts";\n',
+      source: 'import "../../planning/index.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
@@ -155,38 +155,38 @@ export function createModuleLayerExportProbes(probeModule) {
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: "modules/visual-proof/presentation/root-file.ts",
+      filePath: "modules/planning/presentation/root-file.ts",
       source: `import "../../${probeModule}/private.ts";\n`,
       expected: { "boundaries/dependencies": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/public-index.ts`,
-      source: 'import "../../visual-proof/index.ts";\n',
+      source: 'import "../../planning/index.ts";\n',
       expected: {},
     },
     {
       filePath: `modules/${probeModule}/infrastructure/public-index.ts`,
-      source: 'import "../../visual-proof/index.ts";\n',
+      source: 'import "../../planning/index.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
       filePath: `modules/${probeModule}/presentation/public-index.ts`,
-      source: 'import "../../visual-proof/index.ts";\n',
+      source: 'import "../../planning/index.ts";\n',
       expected: {},
     },
     {
       filePath: `modules/${probeModule}/application/presentation-index.ts`,
-      source: 'import "../../visual-proof/presentation/index.ts";\n',
+      source: 'import "../../planning/presentation/index.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
       filePath: "app/__presentation_index_control__.ts",
-      source: 'import "../modules/visual-proof/presentation/index.ts";\n',
+      source: 'import "../modules/planning/presentation/index.ts";\n',
       expected: {},
     },
     {
       filePath: "app/__presentation_alias_control__.ts",
-      source: 'import "@/modules/visual-proof/presentation/index.ts";\n',
+      source: 'import "@/modules/planning/presentation/index.ts";\n',
       expected: {},
     },
     {
@@ -201,7 +201,7 @@ export function createModuleLayerExportProbes(probeModule) {
     },
     {
       filePath: "app/__dynamic_boundary_probe__.ts",
-      source: 'void import("../modules/visual-proof/presentation/TodayScreen.tsx");\n',
+      source: 'void import("../modules/planning/presentation/TodayScreen.tsx");\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {

@@ -74,17 +74,17 @@ export function createPolicyControlProbes(probeModule) {
     },
     {
       filePath: "worker/__module_boundary_probe__.ts",
-      source: 'import "../modules/visual-proof/presentation/TodayScreen.tsx";\n',
+      source: 'import "../modules/planning/presentation/TodayScreen.tsx";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
       filePath: "worker/__presentation_index_probe__.ts",
-      source: 'import "../modules/visual-proof/presentation/index.ts";\n',
+      source: 'import "../modules/planning/presentation/index.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
       filePath: "worker/__application_index_control__.ts",
-      source: 'import "../modules/visual-proof/index.ts";\n',
+      source: 'import "../modules/planning/index.ts";\n',
       expected: {},
     },
     {
@@ -99,7 +99,7 @@ export function createPolicyControlProbes(probeModule) {
     },
     {
       filePath: "shared/presentation/__feature_boundary_probe__.tsx",
-      source: 'import "../../modules/visual-proof/index.ts";\n',
+      source: 'import "../../modules/planning/index.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
@@ -115,7 +115,7 @@ export function createPolicyControlProbes(probeModule) {
     {
       filePath: `modules/${probeModule}/domain/import-type.ts`,
       source:
-        'type Screen = typeof import("../../visual-proof/presentation/TodayScreen.tsx").TodayScreen;\nexport type { Screen };\n',
+        'type Screen = typeof import("../../planning/presentation/TodayScreen.tsx").TodayScreen;\nexport type { Screen };\n',
       expected: { "opentask/explicit-type-imports": 1 },
     },
     {
