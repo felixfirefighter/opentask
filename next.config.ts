@@ -1,6 +1,25 @@
 import type { NextConfig } from "next";
 
 const development = process.env.NODE_ENV !== "production";
+const developmentOutputWatchIgnores = [
+  "**/test-results",
+  "**/test-results/**",
+  "**/playwright-report",
+  "**/playwright-report/**",
+  "**/artifacts",
+  "**/artifacts/**",
+] as const;
+const developmentOutputPath = /[/\\](?:test-results|playwright-report|artifacts)(?:[/\\]|$)/u;
+
+function extendWatchIgnores(ignored: string | readonly string[] | RegExp | undefined) {
+  if (ignored instanceof RegExp) {
+    return new RegExp(`(?:${ignored.source})|(?:${developmentOutputPath.source})`, ignored.flags);
+  }
+
+  const existing = Array.isArray(ignored) ? ignored : ignored ? [ignored] : [];
+  return [...existing, ...developmentOutputWatchIgnores];
+}
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${development ? " 'unsafe-eval'" : ""}`,
@@ -34,6 +53,16 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   async headers() {
     return [{ source: "/(.*)", headers: [...securityHeaders] }];
+  },
+  webpack(config, { dev }) {
+    if (!dev) return config;
+
+    // Prevent browser-test evidence from invalidating the development compiler mid-run.
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: extendWatchIgnores(config.watchOptions?.ignored),
+    };
+    return config;
   },
 };
 
