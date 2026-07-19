@@ -27,7 +27,7 @@ Next.js documents App Router as the current route model. Drizzle supports code-f
 | Zod | request, environment, AI, and versioned document validation | One canonical schema per contract; infer types from it. |
 | React Hook Form | non-trivial settings/task/planner forms | Simple one-field quick add can use local state. |
 | TanStack Query | client server-state cache, optimistic mutations, invalidation | Not a second domain store; server remains authoritative. |
-| FullCalendar standard React v7 packages | month/day/week/agenda and drag/resize | Standard MIT packages only; no premium Scheduler dependency. |
+| `@fullcalendar/react` v7 standard entrypoints | month/day/week/agenda and drag/resize | Use only bundled `/daygrid`, `/timegrid`, `/list`, and `/interaction` entrypoints; no premium Scheduler dependency. |
 | `@dnd-kit/core` + sortable | accessible list/section reorder | Must configure keyboard sensor, instructions, and menu fallback. |
 | `chrono-node` | English quick-add date/time recognition | Always show parsed tokens for confirmation. |
 | `rrule` | deferred recurrence expansion | Do not install or import under the active core; reconsider only through the scope-change protocol. |
@@ -83,12 +83,13 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 | `chrono-node` 2.10.0 | Parse English date/time suggestions during quick add without maintaining an error-prone natural-language parser. | Server/application adapter only; recognized source text remains visible and no parser result writes automatically. | MIT | Current stable v2 release with TypeScript declarations and focused locale parsers. | `modules/tasks/application/quick-add/` |
 | `temporal-polyfill` 1.0.1 | Provide explicit IANA-zone date arithmetic and DST-safe conversions not available through the approved stack. | Loaded only by schedule/planning adapters; avoids implicit server-local `Date` calculations. | MIT | Current stable 1.0 release implementing the standardized Temporal API surface. | `modules/tasks/domain/schedule/` and `modules/planning/domain/` |
 | `openai` 6.48.0 | Implement the optional GPT-5.6 Responses/Structured Outputs provider through the official SDK. | Server-only optional adapter; requests use minimal context, `store:false`, bounded timeout, and no-key capability fallback. | Apache-2.0 | Current stable official JavaScript SDK with maintained Responses and Zod helpers. | `modules/assistant/infrastructure/openai-responses-provider.ts` |
+| `@fullcalendar/react` 7.0.1 | Provide the committed month, week, day, and agenda views plus pointer drag/resize through the v7 React package's standard subpath plugins. | Client-only calendar surface; keyboard/touch schedule forms remain canonical and no premium/resource package is installed. The exact package and its two official transitive v7 packages are lockfile-pinned and explicitly reviewed in `minimumReleaseAgeExclude` for the deadline build. | MIT | Current stable v7 React release, React 19 compatible, with view and interaction plugins consolidated into the connector package. | `modules/planning/presentation/calendar/` |
 
 ### Direct runtime license baseline
 
 `pnpm check:licenses` is authoritative for the resolved production tree. The direct-package baseline is:
 
-- MIT: `@better-auth/drizzle-adapter`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-slot`, `@tanstack/react-query`, Better Auth, `chrono-node`, `clsx`, `cmdk`, Next.js, `pg`, pg-boss, Pino, React, React DOM, React Hook Form, `react-markdown`, `remark-gfm`, Sonner, `tailwind-merge`, `temporal-polyfill`, and Zod.
+- MIT: `@better-auth/drizzle-adapter`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`, `@fullcalendar/react`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-slot`, `@tanstack/react-query`, Better Auth, `chrono-node`, `clsx`, `cmdk`, Next.js, `pg`, pg-boss, Pino, React, React DOM, React Hook Form, `react-markdown`, `remark-gfm`, Sonner, `tailwind-merge`, `temporal-polyfill`, and Zod.
 - Apache-2.0: class-variance-authority, Drizzle ORM, and the official `openai` JavaScript SDK.
 - ISC: Lucide React.
 - CC0-1.0: `fractional-indexing`.
