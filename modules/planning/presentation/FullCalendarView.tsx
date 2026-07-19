@@ -11,7 +11,7 @@ import dayGridPlugin from "@fullcalendar/react/daygrid";
 import interactionPlugin from "@fullcalendar/react/interaction";
 import listPlugin from "@fullcalendar/react/list";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import "@fullcalendar/react/skeleton.css";
 
@@ -60,6 +60,7 @@ export function FullCalendarView({
   readOnly,
   view,
 }: FullCalendarViewProps) {
+  const hydrationReady = useSyncExternalStore(subscribeToHydration, readHydrated, readServerHydrated);
   const calendarRef = useRef<CalendarRef>(null);
   const previousInitialDate = useRef(model.initialDate);
   const [interactionMessage, setInteractionMessage] = useState("");
@@ -122,6 +123,18 @@ export function FullCalendarView({
     }
   }
 
+  if (!hydrationReady) {
+    return (
+      <div
+        className={`${styles.calendarMount} ${styles.calendarPlaceholder}`}
+        data-ui="calendar-client-placeholder"
+        role="status"
+      >
+        Preparing calendar…
+      </div>
+    );
+  }
+
   return (
     <>
       <div className={styles.calendarMount} data-ui="fullcalendar-standard-views">
@@ -177,4 +190,16 @@ export function FullCalendarView({
       </p>
     </>
   );
+}
+
+function subscribeToHydration() {
+  return () => undefined;
+}
+
+function readHydrated() {
+  return true;
+}
+
+function readServerHydrated() {
+  return false;
 }

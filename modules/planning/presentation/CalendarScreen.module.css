@@ -145,6 +145,15 @@
   padding: var(--space-3);
 }
 
+.calendarPlaceholder {
+  display: grid;
+  place-items: center;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
 .calendarMount :global(table) {
   border-collapse: collapse;
   color: var(--text);
