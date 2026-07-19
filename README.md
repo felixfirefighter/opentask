@@ -2,8 +2,6 @@
 
 OpenTask is a self-hostable, open-source personal planning app for tasks, calendar planning, and an optional review-before-apply assistant. Core workflows remain useful without an AI key or paid feature tier.
 
-The Deadline-safe Hackathon Core is implemented through the dependency-aware workstreams in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). The approved fixture-driven visual proof remains available while product infrastructure replaces it incrementally; it is not permission to add behavior outside [docs/SCOPE.md](docs/SCOPE.md).
-
 ## Quick start
 
 Use Node 24, Corepack-pinned pnpm 11.14.0, and Docker with Compose:
@@ -18,18 +16,29 @@ pnpm db:seed
 pnpm dev
 ```
 
-The active core does not require a background worker; `pnpm worker` remains a zero-job architecture smoke. Install the Playwright browser once with `pnpm exec playwright install chromium`, then use `pnpm verify` for the complete local gate. See [docs/SETUP.md](docs/SETUP.md) for the reproducible setup, Docker path, health checks, and command contracts.
+Open `http://127.0.0.1:3000`. Create an account, or choose **Try demo** to create/reset a private sample workspace for that browser. The active core does not require a background worker; `pnpm worker` remains a zero-job architecture smoke.
 
-## Development-only visual proof routes
+## Core release
 
-The pre-implementation proof remains available under `pnpm dev` while real product slices replace it. Except for
-the real landing route, these fixture routes return not found from a production build and are never product data.
+The Deadline-safe Core includes:
 
-- `/` — landing and product composition
-- `/today` — daily task workspace
-- `/calendar` — Month, Week, Day, and Agenda views
-- `/tasks/demo` — task detail and checklist inspector
-- `/plan` — review-before-apply planning proposal
+- task, list, section, tag, checklist, subtask, search, status, priority, and Markdown workflows;
+- all-day and timed schedules, Today, Upcoming, Calendar, and a derived priority matrix;
+- an optional GPT-5.6 proposal flow whose output is editable and cannot write until explicit Apply;
+- a private versioned JSON export from **Settings → Your data**;
+- isolated demo entry, health endpoints, and reproducible Docker deployment.
+
+Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
+
+The active release deliberately excludes recurrence, habits, focus timers, reminders/push, offline synchronization, collaboration, and premium/billing paths. See [docs/SCOPE.md](docs/SCOPE.md) for the exact boundary.
+
+## Verification and deployment
+
+Install Playwright Chromium once with `pnpm exec playwright install chromium`, then run `pnpm verify` for the canonical local gate. See:
+
+- [Development setup](docs/SETUP.md) for host, PostgreSQL, Docker, health, and migration commands;
+- [Railway deployment](docs/DEPLOYMENT.md) for the hosted web/PostgreSQL path and cost controls;
+- [Friend test](docs/FRIEND_TEST.md) for the five-minute candidate checklist and feedback format.
 
 For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository-owned design tokens and contracts in [DESIGN.md](DESIGN.md) remain authoritative.
 

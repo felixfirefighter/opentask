@@ -18,6 +18,8 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 | Design north star and routing | `DESIGN.md` |
 | Hackathon constraints/submission | `docs/HACKATHON.md` |
 | Reproducible local/container setup | `docs/SETUP.md` |
+| Hosted Railway deployment | `docs/DEPLOYMENT.md` |
+| Friend candidate handoff | `docs/FRIEND_TEST.md` |
 | TickTick feature research | `docs/research/TICKTICK_FEATURES.md` |
 | Research URLs and confidence | `docs/research/SOURCES.md` |
 
