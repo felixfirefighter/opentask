@@ -316,6 +316,12 @@ async function seedPlannerProposals(
     const proposal = {
       schemaVersion: 1,
       planningDate: PLANNING_DATE,
+      planningContext: {
+        timeZone: input.timezone,
+        workWindow: { start: "09:00", end: "17:00" },
+        defaultDurationMinutes: 30,
+        bufferMinutes: 10,
+      },
       summary: `${input.marker} ${record.label} review`,
       subjects: [
         {
