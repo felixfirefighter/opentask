@@ -37,4 +37,5 @@ export type {
 export { getPlannerCapability } from "./application/planner-capability";
 export { createPlannerExtractionProvider } from "./application/planner-extraction-provider";
 export { createPlannerProposalLifecycle } from "./application/proposal-lifecycle";
+export { readPortablePlannerProposals } from "./application/export-reader";
 export type { PersistPlannerProposalInput, PlannerProposalLifecycle } from "./application/proposal-lifecycle";

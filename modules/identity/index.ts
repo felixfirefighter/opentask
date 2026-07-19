@@ -8,6 +8,7 @@ export {
   resolveActor,
   updateUserPreferences,
 } from "./application/public";
+export { readPortableIdentity } from "./application/portable-identity-reader";
 export { updateUserPreferencesRequestSchema } from "./application/preferences-contract";
 export type { UserPreferences, UserPreferencesPatch } from "./application/preferences-contract";
 export type {

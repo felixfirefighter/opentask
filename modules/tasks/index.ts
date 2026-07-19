@@ -1,6 +1,7 @@
 export { createInboxBootstrapPort, getInbox } from "./application/inbox";
 export { parseTaskApiCreateKey, parseTaskApiResourceId } from "./application/api-identifiers";
 export { getTasksApplication } from "./application/public";
+export { readPortableTasks } from "./application/task-portability-reader";
 export {
   createChecklistItemRequestSchema,
   createFolderRequestSchema,
