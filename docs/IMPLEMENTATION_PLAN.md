@@ -164,19 +164,19 @@ Turn the task engine into the fast, responsive daily workflow used in the demo.
 
 ### Deliverables
 
-- Implement Inbox, Today, Upcoming, and Completed/Cancelled navigation with shared query keys and range-bounded results.
-- Build task row, quick-add composer, task inspector/full-screen mobile detail, list/section controls, tag/priority/date controls, checklist, and subtask UI.
+- Implement Inbox, regular-list, and Completed/Cancelled navigation plus user-scoped task search with shared query keys and bounded results.
+- Build task row, unscheduled quick-add composer, task inspector/full-screen mobile detail, list/section controls, tag/priority controls, checklist, and subtask UI.
 - Add safe Markdown description editing/rendering with raw HTML disabled.
-- Add English Chrono quick parsing; show recognized schedule tokens and keep original title text editable before save.
 - Add optimistic create/edit/complete/move/reorder with rollback, undo toast, and visible conflict recovery.
 - Implement dnd-kit pointer/touch/keyboard reorder and equivalent Move actions through menus.
-- Implement global command palette for destination navigation, user-scoped search, and quick add.
+- Implement global command palette for available destination navigation, user-scoped search, and unscheduled quick add.
 - Add loading skeletons, actionable empty states, recoverable errors, permission/offline behavior, and destructive confirmations defined by screen contracts.
+
+WP03 implements only the non-time portions of the routed task-screen contracts. It must not expose dead schedule controls or Today/Upcoming destinations before WP04 provides the canonical schedule model and local-day projections. WP05 completes Today by adding its habit composition.
 
 ### Required tests
 
-- Golden path: quick add → inspect → organize → complete → undo.
-- Parser fixtures prove text is not silently removed or misapplied.
+- Golden path: unscheduled quick add → inspect → organize → complete → undo.
 - Optimistic rejection and version-conflict recovery restore authoritative state.
 - Keyboard-only and touch alternatives can perform every reorder/move action.
 - Markdown/XSS fixtures render safely.
@@ -184,7 +184,7 @@ Turn the task engine into the fast, responsive daily workflow used in the demo.
 
 ### Exit gate
 
-- The non-calendar core loop is demonstrable at desktop and mobile widths with network throttling and one forced conflict.
+- The unscheduled core loop is demonstrable at desktop and mobile widths with network throttling and one forced conflict.
 - Task screen component, accessibility, and visual checks pass.
 
 ## WP04 — Schedule, recurrence, Calendar, and Matrix (H31–H40)
@@ -197,11 +197,13 @@ Add time-aware planning as projections over the same task truth.
 
 - Add reviewed schedule, recurrence, and occurrence-event migrations.
 - Implement discriminated all-day/timed schedule values and explicit IANA timezone conversions.
+- Add task-row, quick-add, and inspector date/time controls over the canonical schedule model.
+- Add English Chrono quick parsing; show recognized schedule tokens and keep original title text editable before save.
 - Implement supported recurrence presets only: daily, weekdays, weekly selected days, and monthly day-of-month.
 - Implement bounded occurrence expansion, complete/skip current occurrence, and series editing rules.
 - Implement range-bounded Calendar query and FullCalendar month, week/day, and agenda adapters.
 - Implement drag/resize updates with optimistic version checks plus date/time forms for keyboard/touch parity.
-- Implement Today/Upcoming projections using the user's local-day boundaries.
+- Implement and activate Today/Upcoming navigation and projections using the user's local-day boundaries.
 - Implement the derived Eisenhower Matrix and accessible actions to change priority/schedule.
 - Ensure Calendar, smart views, Matrix, and inspector never persist duplicate task facts.
 
@@ -209,6 +211,7 @@ Add time-aware planning as projections over the same task truth.
 
 - Date-only tasks do not shift with UTC or browser timezone changes.
 - Timed tasks round-trip through stored instants and display timezone.
+- Parser fixtures prove source text is unchanged and recognized schedule values remain editable before save.
 - DST spring-forward/fall-back fixtures cover local-day queries and recurrence.
 - Completing/skipping one occurrence does not complete or corrupt the series.
 - Recurrence expansion is range-bounded and rejects unsupported rules.
@@ -232,7 +235,7 @@ Deliver the two execution/consistency modules without coupling their state to ta
 - Implement boolean/numeric habits with daily, selected-weekday, and target-per-week schedules.
 - Implement check-in, quantity/note edit, undo, skip, unachieved, archive, and restore.
 - Implement deterministic current/best streak, seven-day strip, and compact monthly heat-map projections.
-- Integrate due habits into Today without converting them to task rows.
+- Complete the Today surface by integrating due habits without converting them to task rows.
 - Implement Pomodoro and stopwatch start/pause/resume/finish/discard using server timestamps and one-active-timer enforcement.
 - Link an optional task or habit by stable identity; preserve readable historical context after completion/archive.
 - Implement preferences, today's/seven-day totals, recent history, and owner corrections/deletion.
@@ -373,8 +376,8 @@ Make all modules feel like one original product and establish a stable release c
 The critical path is:
 
 ```text
-bootstrap → identity/schema → task engine → schedule/recurrence
-          → task/calendar UX → integrated release → audit/submission
+bootstrap → identity/schema → task engine → core task UX
+          → schedule/recurrence/planning UX → integrated release → audit/submission
 ```
 
 Safe parallel lanes after their dependencies stabilize:
@@ -392,7 +395,8 @@ Do not parallel-edit shared schema aggregators, root tokens, route maps, or migr
 |---|---|---|
 | Auth, preferences, first run | WP01 | identity integration + two-user denial E2E |
 | Organization/task lifecycle/search | WP02–WP03 | domain/DB/API suites + core-loop E2E |
-| Quick add and command palette | WP03 | parser fixtures + keyboard E2E |
+| Unscheduled quick add and command palette | WP03 | core-loop + keyboard E2E |
+| Natural-language scheduled quick add | WP04 | parser fixtures + planning E2E |
 | Schedule/recurrence/smart views | WP04 | DST/occurrence tests + planning E2E |
 | Calendar and Matrix | WP04 | range/API tests + drag/form/keyboard E2E |
 | Habits | WP05 | streak fixtures + check-in E2E |
