@@ -37,7 +37,9 @@ export function MatrixScreen({ condition, model, onAddTask, onRetry, taskActions
       <header className={styles.pageHeader}>
         <div>
           <p className={styles.eyebrow}>Derived from saved priority and schedule</p>
-          <h1 tabIndex={-1}>Priority matrix</h1>
+          <h1 tabIndex={-1} data-route-focus>
+            Priority matrix
+          </h1>
           <p>{model.boundaryLabel}</p>
         </div>
         <Button type="button" disabled={readOnly} onClick={onAddTask}>

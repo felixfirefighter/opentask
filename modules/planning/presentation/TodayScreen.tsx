@@ -50,7 +50,9 @@ export function TodayScreen(props: TodayScreenProps) {
           <p className={styles.eyebrow}>
             {model.localWeekdayLabel} · {model.timeZoneLabel}
           </p>
-          <h1 tabIndex={-1}>Today</h1>
+          <h1 tabIndex={-1} data-route-focus>
+            Today
+          </h1>
           <p className={styles.subtitle}>{model.localDateLabel}</p>
         </div>
         <Button asChild variant="secondary">

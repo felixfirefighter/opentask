@@ -70,7 +70,9 @@ export function CalendarScreen(props: CalendarScreenProps) {
       <header className={styles.pageHeader}>
         <div>
           <p className={styles.eyebrow}>Schedule projection · {props.model.timeZoneLabel}</p>
-          <h1 tabIndex={-1}>Calendar</h1>
+          <h1 tabIndex={-1} data-route-focus>
+            Calendar
+          </h1>
         </div>
       </header>
       <PlanningConditionBanner condition={props.condition} onRetry={props.onRetry} />
