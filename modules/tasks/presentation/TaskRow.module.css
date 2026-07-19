@@ -112,7 +112,7 @@
 }
 
 .quietMetadata {
-  color: var(--text-disabled);
+  color: var(--text-muted);
 }
 
 .tag {
