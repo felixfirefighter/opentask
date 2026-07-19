@@ -6,6 +6,7 @@ import styles from "./TaskCommandPaletteResults.module.css";
 export function TaskCommandPaletteConditions({
   createError,
   listsError,
+  listsLoading,
   noTaskResults,
   offline,
   searchError,
@@ -16,6 +17,7 @@ export function TaskCommandPaletteConditions({
 }: Readonly<{
   createError: boolean;
   listsError: boolean;
+  listsLoading: boolean;
   noTaskResults: boolean;
   offline: boolean;
   searchError: boolean;
@@ -27,6 +29,7 @@ export function TaskCommandPaletteConditions({
   return (
     <div className={styles.conditions}>
       {offline ? <p role="status">Search and quick add need a connection. Destinations still work.</p> : null}
+      {listsLoading ? <p role="status">Loading lists…</p> : null}
       {searchTooLong ? (
         <p role="status">Task search supports 120 characters. You can still add this title.</p>
       ) : null}

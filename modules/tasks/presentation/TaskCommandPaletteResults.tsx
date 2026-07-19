@@ -72,6 +72,7 @@ export function TaskCommandPaletteResults({
       <TaskCommandPaletteConditions
         createError={createError}
         listsError={listsError}
+        listsLoading={listsLoading}
         offline={offline}
         searchError={searchError}
         searchLoading={searchLoading}
@@ -111,9 +112,6 @@ export function TaskCommandPaletteResults({
               onSelect={() => onNavigate(`/lists/${list.id}`)}
             />
           ))}
-          {listsLoading ? (
-            <Command.Loading label="Loading destinations">Loading lists…</Command.Loading>
-          ) : null}
           {listsMore ? (
             <ResultItem
               disabled={listsMoreLoading}

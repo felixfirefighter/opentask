@@ -105,15 +105,13 @@
 }
 
 .resultText span,
-.empty,
-.results :global([cmdk-loading]) {
+.empty {
   color: var(--text-muted);
   font-size: var(--type-compact-size);
   line-height: var(--type-compact-line);
 }
 
-.empty,
-.results :global([cmdk-loading]) {
+.empty {
   padding: var(--space-5) var(--space-3);
 }
 

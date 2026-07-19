@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -238,6 +238,20 @@ describe("TaskCommandPalette", () => {
     await user.click(screen.getByRole("button", { name: /Search tasks and commands/u }));
     await user.type(searchInput(), "Missing");
     expect(screen.getByText("Searching tasks…")).toHaveAttribute("role", "status");
+  });
+
+  it("keeps the list-loading status outside the command listbox", async () => {
+    const user = userEvent.setup();
+    mocks.lists.mockReturnValue({ ...listQueryState(), lists: [], isPending: true });
+    renderPalette();
+
+    await user.click(screen.getByRole("button", { name: /Search tasks and commands/u }));
+
+    const listbox = screen.getByRole("listbox", { name: "Commands and task results" });
+    const loadingStatus = screen.getByText("Loading lists…");
+    expect(loadingStatus).toHaveAttribute("role", "status");
+    expect(listbox).not.toContainElement(loadingStatus);
+    expect(within(listbox).queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
   it("names an empty task search while preserving the create path", async () => {
