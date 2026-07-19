@@ -194,7 +194,8 @@ test("landing demo creates and then resets the same isolated demo actor", async 
 
 test("authenticated shell keyboard order and responsive frame remain usable", async ({ page }, testInfo) => {
   await signUpThroughUi(page, testInfo);
-  await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
+  const routeHeading = page.getByRole("heading", { name: "Inbox", exact: true });
+  await expect(routeHeading).toBeVisible();
 
   const viewport = page.viewportSize();
   expect(viewport).not.toBeNull();
@@ -247,10 +248,20 @@ test("authenticated shell keyboard order and responsive frame remain usable", as
     await expect(mobileNavigation).toBeVisible();
   }
 
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await expect(routeHeading).toBeFocused();
+  const focusedDocumentStart = await page.evaluate(() => {
+    const focusStart = document.createElement("span");
+    focusStart.tabIndex = -1;
+    focusStart.dataset.testFocusStart = "true";
+    document.body.prepend(focusStart);
+    focusStart.focus();
+    return document.activeElement === focusStart;
+  });
+  expect(focusedDocumentStart).toBe(true);
   await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "Skip to main content" });
   await expect(skipLink).toBeFocused();
+  await page.evaluate(() => document.querySelector("[data-test-focus-start]")?.remove());
   await skipLink.press("Enter");
   await expect(page.getByRole("main")).toBeFocused();
 
