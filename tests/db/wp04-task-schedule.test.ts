@@ -7,7 +7,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTaskScheduleApplication } from "../../modules/tasks/application/schedule-application.ts";
 import { createTaskSnapshotReader } from "../../modules/tasks/application/task-snapshot-reader.ts";
 import { createTasksApplication } from "../../modules/tasks/application/tasks-application.ts";
-import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 import type { AuthenticatedActor } from "../../shared/auth/actor.ts";
 import type { Database } from "../../shared/db/client.ts";
 import { schema } from "../../shared/db/schema.ts";
@@ -18,7 +17,7 @@ import { createWp02SchemaFixture, expectPostgresError, insertUser } from "./wp02
 const now = new Date("2026-07-19T01:00:00.000Z");
 const clock: Clock = { now: () => new Date(now) };
 const fixture = createWp02SchemaFixture("task_schedule");
-const taskSchedules = createTaskSchema(() => schema.user.id).taskSchedules;
+const taskSchedules = schema.taskSchedules;
 
 let pool: Pool;
 let database: Database;
@@ -33,7 +32,7 @@ describe("task schedule PostgreSQL integration", () => {
     database = drizzle(pool, { schema });
     ownerA = { userId: await insertUser(pool, "schedule-owner-a") };
     ownerB = { userId: await insertUser(pool, "schedule-owner-b") };
-    tasks = createTasksApplication({ database, clock });
+    tasks = createTasksApplication({ database, clock, taskSchedules });
     schedules = createTaskScheduleApplication({ database, clock, taskSchedules });
   });
 
@@ -88,6 +87,27 @@ describe("task schedule PostgreSQL integration", () => {
       code: "CONFLICT",
       currentVersion: 3,
     });
+  });
+
+  it("rolls back the schedule write when the task-version increment fails", async () => {
+    const list = await createList(ownerA, "Schedule rollback");
+    const task = await createTask(ownerA, list.id, "Atomic schedule target");
+    const maximumVersion = 2_147_483_647;
+    await pool.query(`update tasks set version = $1 where user_id = $2 and id = $3`, [
+      maximumVersion,
+      ownerA.userId,
+      task.id,
+    ]);
+
+    await expect(
+      schedules.setSchedule(ownerA, task.id, {
+        expectedVersion: maximumVersion,
+        schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
+      }),
+    ).rejects.toBeDefined();
+
+    expect(await storedTaskVersion(ownerA.userId, task.id)).toBe(maximumVersion);
+    expect(await storedSchedule(ownerA.userId, task.id)).toBeNull();
   });
 
   it("enforces exact all-day/timed shapes, bounds, and tenant-leading ownership in PostgreSQL", async () => {

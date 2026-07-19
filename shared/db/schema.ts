@@ -16,6 +16,7 @@ export const listFolders = taskSchema.listFolders;
 export const taskLists = taskSchema.taskLists;
 export const listSections = taskSchema.listSections;
 export const tasks = taskSchema.tasks;
+export const taskSchedules = taskSchema.taskSchedules;
 export const checklistItems = taskSchema.checklistItems;
 export const tags = taskSchema.tags;
 export const taskTags = taskSchema.taskTags;
@@ -31,6 +32,7 @@ export const schema = {
   taskLists,
   listSections,
   tasks,
+  taskSchedules,
   checklistItems,
   tags,
   taskTags,

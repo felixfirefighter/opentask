@@ -4,8 +4,8 @@ import { ianaTimeZoneSchema } from "@/shared/validation/time-zone";
 
 import {
   assertAllDayScheduleBounds,
+  assertScheduleQueryBounds,
   assertTimedScheduleBounds,
-  compareInstants,
 } from "../../domain/schedule/schedule-bounds";
 import {
   databaseSafeTextSchema,
@@ -74,10 +74,12 @@ export const taskScheduleRangeQuerySchema = z
   })
   .superRefine((range, context) => {
     try {
-      assertAllDayScheduleBounds(range.rangeStartDate, range.rangeEndDate);
-      if (compareInstants(range.rangeEndAt, range.rangeStartAt) <= 0) {
-        throw new RangeError("A schedule query must have a non-empty instant range.");
-      }
+      assertScheduleQueryBounds(
+        range.rangeStartDate,
+        range.rangeEndDate,
+        range.rangeStartAt,
+        range.rangeEndAt,
+      );
     } catch (error) {
       context.addIssue({
         code: "custom",

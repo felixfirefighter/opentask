@@ -43,6 +43,7 @@ No public contract exposes a Drizzle row or an unscoped repository method.
 - The active release exposes at most one subtask level; subtasks remain full tasks in the same user and list.
 - `status` is the sole current task-state field; `status_changed_at` records its transition time.
 - All-day schedules use inclusive `start_date` and exclusive `end_date`; a one-day task ends on the following local date. Timed schedules use UTC `start_at`/`end_at` plus the intent timezone. Representations never mix.
+- Schedule range queries require both representations, cap the local-date span at 62 days and the elapsed instant span at 63 days, and return at most 500 rows plus a truncation signal.
 - A schedule mutation increments the owning task `version` exactly once in the same transaction.
 - Soft-deleted tasks are absent from normal projections and search. Purge is not exposed.
 - Create commands use the client-generated UUIDv4 resource ID as their idempotency key. While a

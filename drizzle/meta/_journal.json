@@ -64,6 +64,13 @@
       "when": 1784411108986,
       "tag": "0008_wp02-actor-scoped-identities",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784454066310,
+      "tag": "0009_wp04-task-schedules",
+      "breakpoints": true
     }
   ]
 }

@@ -31,7 +31,7 @@ describe("WP03 terminal task projection", () => {
     const inboxes = createInboxUseCases({ database, clock });
     await inboxes.ensureInbox(ownerA.userId);
     await inboxes.ensureInbox(ownerB.userId);
-    application = createTasksApplication({ database, clock });
+    application = createTasksApplication({ database, clock, taskSchedules: schema.taskSchedules });
   });
 
   afterAll(async () => fixture.teardown());

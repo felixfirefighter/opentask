@@ -32,7 +32,7 @@ describe("WP02 actor-scoped create IDs", () => {
     const inboxes = createInboxUseCases({ database, clock: testClock });
     await inboxes.ensureInbox(ownerA.userId);
     await inboxes.ensureInbox(ownerB.userId);
-    application = createTasksApplication({ database, clock: testClock });
+    application = createTasksApplication({ database, clock: testClock, taskSchedules: schema.taskSchedules });
   });
 
   afterAll(async () => fixture.teardown());

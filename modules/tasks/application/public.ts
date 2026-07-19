@@ -1,4 +1,5 @@
 import { getDatabase } from "@/shared/db/client";
+import { taskSchedules } from "@/shared/db/schema";
 import { systemClock } from "@/shared/time/clock";
 
 import { createTasksApplication } from "./tasks-application";
@@ -6,6 +7,10 @@ import { createTasksApplication } from "./tasks-application";
 let application: ReturnType<typeof createTasksApplication> | undefined;
 
 export function getTasksApplication() {
-  application ??= createTasksApplication({ database: getDatabase(), clock: systemClock });
+  application ??= createTasksApplication({
+    database: getDatabase(),
+    clock: systemClock,
+    taskSchedules,
+  });
   return application;
 }

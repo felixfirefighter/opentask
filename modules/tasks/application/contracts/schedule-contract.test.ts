@@ -106,6 +106,22 @@ describe("schedule contracts", () => {
         rangeEndAt: "2026-07-02T00:00:00Z",
       }),
     ).toThrow();
+    expect(() =>
+      taskScheduleRangeQuerySchema.parse({
+        rangeStartDate: "2026-07-01",
+        rangeEndDate: "2026-09-02",
+        rangeStartAt: "2026-07-01T00:00:00Z",
+        rangeEndAt: "2026-07-02T00:00:00Z",
+      }),
+    ).toThrow();
+    expect(() =>
+      taskScheduleRangeQuerySchema.parse({
+        rangeStartDate: "2026-07-01",
+        rangeEndDate: "2026-07-02",
+        rangeStartAt: "2026-07-01T00:00:00Z",
+        rangeEndAt: "2026-09-04T00:00:00Z",
+      }),
+    ).toThrow();
   });
 
   it("retains source text and exposes recognized offsets with editable values", () => {
