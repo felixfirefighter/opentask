@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const plannerFixtureMode = process.env.PLAYWRIGHT_PLANNER_FIXTURE === "1";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -17,6 +19,7 @@ export default defineConfig({
     env: {
       BETTER_AUTH_SECRET: "opentask-playwright-only-auth-secret-000000000000000000",
       BETTER_AUTH_URL: "http://127.0.0.1:3107",
+      OPENAI_API_KEY: plannerFixtureMode ? "opentask-playwright-fixture-key" : "",
     },
     url: "http://127.0.0.1:3107",
     reuseExistingServer: false,
