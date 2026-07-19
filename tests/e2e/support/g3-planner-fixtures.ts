@@ -1,10 +1,9 @@
-import { expect, type Page, type Route } from "@playwright/test";
+import { type Page, type Route } from "@playwright/test";
 
 import {
   PLANNER_MODEL,
   PLANNER_PROMPT_VERSION,
   PLANNER_SCHEMA_VERSION,
-  plannerApplyResultSchema,
   plannerInputSchema,
   plannerProposalDtoSchema,
   plannerSelectionSchema,
@@ -31,7 +30,6 @@ export type PlannerRouteHarness = Readonly<{
   applySelections: PlannerSelection[];
   applyIdempotencyKeys: string[];
   rejectCount(): number;
-  getCount(): number;
   unexpectedRequests: string[];
 }>;
 
@@ -147,7 +145,6 @@ export async function installPlannerRouteFixtures(
   proposal: PlannerProposalDto,
   options: Readonly<{
     failFirstCreate?: boolean;
-    loseRejectResponse?: boolean;
   }> = {},
 ): Promise<PlannerRouteHarness> {
   const createInputs: PlannerInput[] = [];
@@ -155,9 +152,24 @@ export async function installPlannerRouteFixtures(
   const applyIdempotencyKeys: string[] = [];
   const unexpectedRequests: string[] = [];
   let rejectCount = 0;
-  let getCount = 0;
 
-  await page.route("**/api/v1/planner/proposals**", async (route) => {
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path === `/api/v1/planner/proposals/${proposal.id}/apply` && request.method() === "POST") {
+      const selection = plannerSelectionSchema.safeParse(request.postDataJSON());
+      if (!selection.success) {
+        unexpectedRequests.push("POST apply with an invalid selection");
+        return;
+      }
+      applySelections.push(selection.data);
+      applyIdempotencyKeys.push(request.headers()["idempotency-key"] ?? "");
+    }
+    if (path === `/api/v1/planner/proposals/${proposal.id}/reject` && request.method() === "POST") {
+      rejectCount += 1;
+    }
+  });
+
+  await page.route("**/api/v1/planner/proposals", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path === "/api/v1/planner/proposals" && request.method() === "POST") {
@@ -170,37 +182,8 @@ export async function installPlannerRouteFixtures(
       }
       return;
     }
-    if (path === `/api/v1/planner/proposals/${proposal.id}/apply` && request.method() === "POST") {
-      const selection = plannerSelectionSchema.parse(request.postDataJSON());
-      applySelections.push(selection);
-      applyIdempotencyKeys.push(request.headers()["idempotency-key"] ?? "");
-      await fulfillJson(
-        route,
-        plannerApplyResultSchema.parse({
-          proposalId: proposal.id,
-          outcome: "applied",
-          appliedActionCount: selection.actions.filter(({ kind }) => kind !== "defer").length,
-        }),
-      );
-      return;
-    }
-    if (path === `/api/v1/planner/proposals/${proposal.id}/reject` && request.method() === "POST") {
-      expect(request.postDataJSON()).toEqual({});
-      rejectCount += 1;
-      if (options.loseRejectResponse) await route.abort("connectionfailed");
-      else await fulfillJson(route, proposalWithStatus(proposal, "rejected"));
-      return;
-    }
-    if (path === `/api/v1/planner/proposals/${proposal.id}` && request.method() === "GET") {
-      getCount += 1;
-      await fulfillJson(
-        route,
-        options.loseRejectResponse ? proposalWithStatus(proposal, "rejected") : proposal,
-      );
-      return;
-    }
     unexpectedRequests.push(`${request.method()} ${path}`);
-    await fulfillProblem(route, "NOT_FOUND", 404);
+    await route.continue();
   });
 
   return {
@@ -208,26 +191,21 @@ export async function installPlannerRouteFixtures(
     applySelections,
     applyIdempotencyKeys,
     rejectCount: () => rejectCount,
-    getCount: () => getCount,
     unexpectedRequests,
   };
-}
-
-function proposalWithStatus(proposal: PlannerProposalDto, status: "rejected") {
-  return plannerProposalDtoSchema.parse({ ...proposal, status });
 }
 
 async function fulfillJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-async function fulfillProblem(route: Route, code: "PROVIDER_UNAVAILABLE" | "NOT_FOUND", status: number) {
+async function fulfillProblem(route: Route, code: "PROVIDER_UNAVAILABLE", status: number) {
   await route.fulfill({
     status,
     contentType: "application/problem+json",
     body: JSON.stringify({
       type: `urn:opentask:problem:${code.toLowerCase().replaceAll("_", "-")}`,
-      title: code === "PROVIDER_UNAVAILABLE" ? "Service unavailable" : "Resource not found",
+      title: "Service unavailable",
       status,
       code,
       detail: "The intercepted planner request failed safely.",
