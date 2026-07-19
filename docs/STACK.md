@@ -80,13 +80,16 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 | `react-markdown` 10.1.0 + `remark-gfm` 4.0.1 | Render portable task Markdown with GFM semantics and raw HTML disabled. | Rendering-only dependency chain; no rich-text document model or HTML execution path. | MIT | Current stable releases with an AST-based default that does not execute raw HTML. | `modules/tasks/presentation/task-detail/TaskMarkdown.tsx` |
 | `cmdk` 1.1.1 + Sonner 2.0.7 | Implement the required keyboard command palette plus actionable Undo/error notifications. | Client-only UI primitives; palette results remain API-authorized and persistent errors remain inline. | MIT | Current stable releases with React 19 support and maintained accessible interaction primitives. | `modules/tasks/presentation/command/` and `modules/tasks/presentation/TaskToastHost.tsx` |
 | Radix Dialog 1.1.19 + Alert Dialog 1.1.19 + Dropdown Menu 2.1.20 | Supply focus-contained task/container forms, destructive confirmation, and keyboard-complete action menus. | Commodity interaction primitives styled exclusively through OpenTask tokens; no second design system. | MIT | Current stable Radix releases with React 19 compatibility and maintained ARIA behavior. | `modules/tasks/presentation/primitives/` |
+| `chrono-node` 2.10.0 | Parse English date/time suggestions during quick add without maintaining an error-prone natural-language parser. | Server/application adapter only; recognized source text remains visible and no parser result writes automatically. | MIT | Current stable v2 release with TypeScript declarations and focused locale parsers. | `modules/tasks/application/quick-add/` |
+| `temporal-polyfill` 1.0.1 | Provide explicit IANA-zone date arithmetic and DST-safe conversions not available through the approved stack. | Loaded only by schedule/planning adapters; avoids implicit server-local `Date` calculations. | MIT | Current stable 1.0 release implementing the standardized Temporal API surface. | `modules/tasks/domain/schedule/` and `modules/planning/domain/` |
+| `openai` 6.48.0 | Implement the optional GPT-5.6 Responses/Structured Outputs provider through the official SDK. | Server-only optional adapter; requests use minimal context, `store:false`, bounded timeout, and no-key capability fallback. | Apache-2.0 | Current stable official JavaScript SDK with maintained Responses and Zod helpers. | `modules/assistant/infrastructure/openai-responses-provider.ts` |
 
 ### Direct runtime license baseline
 
 `pnpm check:licenses` is authoritative for the resolved production tree. The direct-package baseline is:
 
-- MIT: `@better-auth/drizzle-adapter`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-slot`, `@tanstack/react-query`, Better Auth, `clsx`, `cmdk`, Next.js, `pg`, pg-boss, Pino, React, React DOM, React Hook Form, `react-markdown`, `remark-gfm`, Sonner, `tailwind-merge`, and Zod.
-- Apache-2.0: class-variance-authority and Drizzle ORM.
+- MIT: `@better-auth/drizzle-adapter`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-slot`, `@tanstack/react-query`, Better Auth, `chrono-node`, `clsx`, `cmdk`, Next.js, `pg`, pg-boss, Pino, React, React DOM, React Hook Form, `react-markdown`, `remark-gfm`, Sonner, `tailwind-merge`, `temporal-polyfill`, and Zod.
+- Apache-2.0: class-variance-authority, Drizzle ORM, and the official `openai` JavaScript SDK.
 - ISC: Lucide React.
 - CC0-1.0: `fractional-indexing`.
 
