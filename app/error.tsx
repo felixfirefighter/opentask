@@ -2,7 +2,7 @@
 
 import { WorkspaceRouteError } from "@/modules/identity/presentation";
 
-export default function WorkspaceError({
+export default function ApplicationError({
   error,
   reset,
 }: Readonly<{ error: Error & { digest?: string }; reset: () => void }>) {
