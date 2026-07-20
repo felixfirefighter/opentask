@@ -6,7 +6,11 @@ import { getDatabase, type Database, type DatabaseTransaction } from "@/shared/d
 import { ApplicationError } from "@/shared/http/application-error";
 import { systemClock, type Clock } from "@/shared/time/clock";
 
-import { PORTABLE_SECTION_SCHEMA_VERSION, USER_EXPORT_SCHEMA_VERSION } from "./export-contract-primitives";
+import {
+  PORTABLE_SECTION_SCHEMA_VERSION,
+  PORTABLE_TASKS_SECTION_SCHEMA_VERSION,
+  USER_EXPORT_SCHEMA_VERSION,
+} from "./export-contract-primitives";
 import { userExportEnvelopeSchema, type UserExportEnvelope } from "./export-envelope-contract";
 import { findExportRelationshipErrors } from "./export-relationship-validation";
 
@@ -40,7 +44,7 @@ export function createPortabilityApplication(
           schemaVersion: USER_EXPORT_SCHEMA_VERSION,
           exportedAt: clock.now().toISOString(),
           identity: { schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION, ...asObject(identity) },
-          tasks: { schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION, ...asObject(tasks) },
+          tasks: { schemaVersion: PORTABLE_TASKS_SECTION_SCHEMA_VERSION, ...asObject(tasks) },
           assistant: {
             schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION,
             proposals,

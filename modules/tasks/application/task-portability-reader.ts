@@ -55,6 +55,16 @@ export async function readPortableTasks(actor: AuthenticatedActor, executor: Dat
       ...softDeleted(row),
     })),
     schedules: rows.schedules.map(mapSchedule),
+    recurrenceDefinitions: rows.recurrenceDefinitions.map(mapRecurrenceDefinition),
+    occurrenceEvents: rows.occurrenceEvents.map((row) => ({
+      id: row.id,
+      taskId: row.taskId,
+      occurrenceKey: row.occurrenceKey,
+      state: row.state,
+      taskVersion: row.taskVersion,
+      effectiveAt: row.effectiveAt.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    })),
     checklistItems: rows.checklistItems.map((row) => ({
       id: row.id,
       taskId: row.taskId,
@@ -72,4 +82,51 @@ export async function readPortableTasks(actor: AuthenticatedActor, executor: Dat
     })),
     taskTags: rows.taskTags.map(({ taskId, tagId }) => ({ taskId, tagId })),
   } as const;
+}
+
+function mapRecurrenceDefinition(
+  row: Readonly<{
+    taskId: string;
+    rrule: string;
+    timezone: string;
+    generationMode: string;
+    projectionStartDate: string | null;
+    projectionStartAt: Date | null;
+    projectionEndDate: string | null;
+    projectionEndAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }>,
+) {
+  const common = {
+    taskId: row.taskId,
+    rrule: row.rrule,
+    timezone: row.timezone,
+    generationMode: row.generationMode,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+  if (row.projectionStartDate !== null) {
+    if (row.projectionStartAt !== null || row.projectionEndAt !== null) throw invalidRecurrenceCutover();
+    return {
+      ...common,
+      kind: "all_day" as const,
+      projectionStartDate: row.projectionStartDate,
+      projectionEndDate: row.projectionEndDate,
+    };
+  }
+  if (row.projectionStartAt !== null) {
+    if (row.projectionStartDate !== null || row.projectionEndDate !== null) throw invalidRecurrenceCutover();
+    return {
+      ...common,
+      kind: "timed" as const,
+      projectionStartAt: row.projectionStartAt.toISOString(),
+      projectionEndAt: row.projectionEndAt?.toISOString() ?? null,
+    };
+  }
+  throw invalidRecurrenceCutover();
+}
+
+function invalidRecurrenceCutover() {
+  return new Error("A stored recurrence has an invalid projection cutover shape.");
 }

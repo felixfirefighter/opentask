@@ -73,19 +73,53 @@ describe("portable export PostgreSQL snapshot", () => {
     if (mutationError !== undefined) throw mutationError;
 
     const rootDuringMutation = duringMutation.tasks.tasks.find(({ id }) => id === portableEntityIds.rootTask);
+    const allDayDuringMutation = duringMutation.tasks.tasks.find(
+      ({ id }) => id === portableEntityIds.allDayTask,
+    );
+    const recurrenceDuringMutation = duringMutation.tasks.recurrenceDefinitions.find(
+      ({ taskId }) => taskId === portableEntityIds.allDayTask,
+    );
     expect(duringMutation.identity.profile.name).toBe(seed.ownerName);
     expect(rootDuringMutation).toMatchObject({ title: seed.rootTaskTitle, version: 1 });
+    expect(allDayDuringMutation?.version).toBe(3);
+    expect(recurrenceDuringMutation).toMatchObject({
+      kind: "all_day",
+      projectionEndDate: null,
+    });
+    expect(
+      duringMutation.tasks.occurrenceEvents.some(
+        ({ id }) => id === portableEntityIds.concurrentOccurrenceEvent,
+      ),
+    ).toBe(false);
 
     const afterCommit = await createPortabilityApplication({
       snapshot: createPostgresExportSnapshot(database),
       clock: { now: () => new Date(EXPORT_INSTANT) },
     }).exportUserData(owner);
     const rootAfterCommit = afterCommit.tasks.tasks.find(({ id }) => id === portableEntityIds.rootTask);
+    const allDayAfterCommit = afterCommit.tasks.tasks.find(({ id }) => id === portableEntityIds.allDayTask);
+    const recurrenceAfterCommit = afterCommit.tasks.recurrenceDefinitions.find(
+      ({ taskId }) => taskId === portableEntityIds.allDayTask,
+    );
     expect(afterCommit.identity.profile.name).toBe("SNAPSHOT_AFTER owner");
     expect(rootAfterCommit).toMatchObject({
       title: seed.updatedRootTaskTitle,
       version: 2,
       updatedAt: "2026-07-19T16:30:45.678Z",
+    });
+    expect(allDayAfterCommit).toMatchObject({ version: 4, updatedAt: "2026-07-19T16:30:45.678Z" });
+    expect(recurrenceAfterCommit).toMatchObject({
+      kind: "all_day",
+      projectionEndDate: "2026-07-21",
+      updatedAt: "2026-07-19T16:30:45.678Z",
+    });
+    expect(
+      afterCommit.tasks.occurrenceEvents.find(({ id }) => id === portableEntityIds.concurrentOccurrenceEvent),
+    ).toMatchObject({
+      taskId: portableEntityIds.allDayTask,
+      occurrenceKey: "o1.Y29uY3VycmVudA",
+      state: "skipped",
+      taskVersion: 4,
     });
   });
 });
@@ -104,6 +138,29 @@ async function commitConcurrentMutation() {
           set title = $1, version = version + 1, updated_at = $2
         where user_id = $3 and id = $4`,
       [seed.updatedRootTaskTitle, "2026-07-19T16:30:45.678Z", owner.userId, portableEntityIds.rootTask],
+    );
+    await client.query(
+      `update tasks
+          set version = version + 1, updated_at = $1
+        where user_id = $2 and id = $3`,
+      ["2026-07-19T16:30:45.678Z", owner.userId, portableEntityIds.allDayTask],
+    );
+    await client.query(
+      `update task_recurrences
+          set projection_end_date = $1, updated_at = $2
+        where user_id = $3 and task_id = $4`,
+      ["2026-07-21", "2026-07-19T16:30:45.678Z", owner.userId, portableEntityIds.allDayTask],
+    );
+    await client.query(
+      `insert into task_occurrence_events
+         (id, user_id, task_id, occurrence_key, state, task_version, effective_at, created_at)
+       values ($1, $2, $3, 'o1.Y29uY3VycmVudA', 'skipped', 4, $4, $4)`,
+      [
+        portableEntityIds.concurrentOccurrenceEvent,
+        owner.userId,
+        portableEntityIds.allDayTask,
+        "2026-07-19T16:30:45.678Z",
+      ],
     );
     await client.query("commit");
   } catch (error) {

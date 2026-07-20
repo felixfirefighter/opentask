@@ -30,6 +30,10 @@ export const portableEntityIds = {
   secondAction: "71000000-0000-4000-8000-000000000002",
   firstApplyToken: "80000000-0000-4000-8000-000000000001",
   secondApplyToken: "80000000-0000-4000-8000-000000000002",
+  allDayCompletedEvent: "90000000-0000-4000-8000-000000000001",
+  allDayReopenedEvent: "90000000-0000-4000-8000-000000000002",
+  timedSkippedEvent: "90000000-0000-4000-8000-000000000003",
+  concurrentOccurrenceEvent: "90000000-0000-4000-8000-000000000004",
 } as const;
 
 type TenantSeedInput = Readonly<{
@@ -189,6 +193,7 @@ async function seedTasks(
       `${input.marker} private root description`,
       "high",
       "d0",
+      1,
     ],
     [
       portableEntityIds.allDayTask,
@@ -199,6 +204,7 @@ async function seedTasks(
       "",
       "medium",
       "c0",
+      3,
     ],
     [
       portableEntityIds.timedTask,
@@ -209,6 +215,7 @@ async function seedTasks(
       "",
       "low",
       "b0",
+      2,
     ],
     [
       portableEntityIds.childTask,
@@ -219,6 +226,7 @@ async function seedTasks(
       "",
       "none",
       "a0",
+      1,
     ],
   ] as const;
   for (const task of taskValues) {
@@ -226,7 +234,7 @@ async function seedTasks(
       `insert into tasks
          (id, user_id, list_id, section_id, parent_task_id, title, description_md, status,
           priority, rank, status_changed_at, version, created_at, updated_at)
-       values ($1, $2, $3, $4, $5, $6, $7, 'open', $8, $9, $10, 1, $10, $10)`,
+       values ($1, $2, $3, $4, $5, $6, $7, 'open', $8, $9, $11, $10, $11, $11)`,
       [task[0], input.actor.userId, ...task.slice(1), RECORD_INSTANT],
     );
   }
@@ -246,6 +254,37 @@ async function seedTasks(
       input.timedStartInput,
       input.timedEndInput,
       input.timezone,
+      RECORD_INSTANT,
+    ],
+  );
+  await client.query(
+    `insert into task_recurrences
+       (user_id, task_id, rrule, timezone, generation_mode,
+        projection_start_date, projection_end_date, created_at, updated_at)
+     values ($1, $2, 'FREQ=DAILY;INTERVAL=1', $3, 'schedule', $4, null, $5, $5)`,
+    [input.actor.userId, portableEntityIds.allDayTask, input.timezone, ALL_DAY_START_DATE, RECORD_INSTANT],
+  );
+  await client.query(
+    `insert into task_recurrences
+       (user_id, task_id, rrule, timezone, generation_mode,
+        projection_start_at, projection_end_at, created_at, updated_at)
+     values ($1, $2, 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE;COUNT=5', $3, 'schedule', $4, $4, $5, $5)`,
+    [input.actor.userId, portableEntityIds.timedTask, input.timezone, input.timedStartInput, RECORD_INSTANT],
+  );
+  await client.query(
+    `insert into task_occurrence_events
+       (id, user_id, task_id, occurrence_key, state, task_version, effective_at, created_at)
+     values
+       ($1, $4, $5, 'o1.YWxsLWRheQ', 'completed', 2, $7, $7),
+       ($2, $4, $5, 'o1.YWxsLWRheQ', 'open', 3, $7, $7),
+       ($3, $4, $6, 'o1.dGltZWQ', 'skipped', 2, $7, $7)`,
+    [
+      portableEntityIds.allDayCompletedEvent,
+      portableEntityIds.allDayReopenedEvent,
+      portableEntityIds.timedSkippedEvent,
+      input.actor.userId,
+      portableEntityIds.allDayTask,
+      portableEntityIds.timedTask,
       RECORD_INSTANT,
     ],
   );

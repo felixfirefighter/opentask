@@ -29,10 +29,10 @@ describe("user export application", () => {
 
     expect(userExportEnvelopeSchema.parse(envelope)).toEqual(envelope);
     expect(envelope).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: instant,
       identity: { schemaVersion: 1, profile: { id: userId } },
-      tasks: { schemaVersion: 1, tasks: [{ id: taskId }] },
+      tasks: { schemaVersion: 2, tasks: [{ id: taskId }] },
       assistant: { schemaVersion: 1, proposals: [] },
     });
     for (const reader of [readIdentity, readTasks, readProposals]) {
@@ -126,6 +126,8 @@ function tasksSource() {
       },
     ],
     schedules: [],
+    recurrenceDefinitions: [],
+    occurrenceEvents: [],
     checklistItems: [],
     tags: [],
     taskTags: [],

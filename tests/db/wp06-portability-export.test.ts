@@ -77,7 +77,12 @@ describe("portable PostgreSQL export", () => {
 
     expect(userExportEnvelopeSchema.parse(firstA)).toEqual(firstA);
     expect(firstA).toEqual(secondA);
-    expect(firstA.schemaVersion).toBe(1);
+    expect(firstA).toMatchObject({
+      schemaVersion: 2,
+      identity: { schemaVersion: 1 },
+      tasks: { schemaVersion: 2 },
+      assistant: { schemaVersion: 1 },
+    });
     expect(firstA.identity.profile).toMatchObject({
       id: ownerA.userId,
       name: ownerASeed.ownerName,
@@ -107,6 +112,23 @@ describe("portable PostgreSQL export", () => {
       portableEntityIds.timedTask,
       portableEntityIds.allDayTask,
     ]);
+    expect(firstA.tasks.recurrenceDefinitions.map(({ taskId }) => taskId)).toEqual([
+      portableEntityIds.timedTask,
+      portableEntityIds.allDayTask,
+    ]);
+    expect(firstA.tasks.occurrenceEvents.map(({ id }) => id)).toEqual([
+      portableEntityIds.timedSkippedEvent,
+      portableEntityIds.allDayCompletedEvent,
+      portableEntityIds.allDayReopenedEvent,
+    ]);
+    expect(
+      firstA.tasks.occurrenceEvents
+        .filter(({ taskId }) => taskId === portableEntityIds.allDayTask)
+        .map(({ occurrenceKey, state, taskVersion }) => ({ occurrenceKey, state, taskVersion })),
+    ).toEqual([
+      { occurrenceKey: "o1.YWxsLWRheQ", state: "completed", taskVersion: 2 },
+      { occurrenceKey: "o1.YWxsLWRheQ", state: "open", taskVersion: 3 },
+    ]);
     expect(firstA.tasks.tags.map(({ id }) => id)).toEqual([
       portableEntityIds.firstTag,
       portableEntityIds.secondTag,
@@ -121,6 +143,12 @@ describe("portable PostgreSQL export", () => {
       portableEntityIds.secondProposal,
     ]);
     expect(exportB.tasks.tasks.map(({ id }) => id)).toEqual(firstA.tasks.tasks.map(({ id }) => id));
+    expect(firstA.tasks.recurrenceDefinitions.find(({ kind }) => kind === "timed")?.timezone).toBe(
+      "Asia/Singapore",
+    );
+    expect(exportB.tasks.recurrenceDefinitions.find(({ kind }) => kind === "timed")?.timezone).toBe(
+      "America/New_York",
+    );
     expect(exportB.assistant.proposals.map(({ id }) => id)).toEqual(
       firstA.assistant.proposals.map(({ id }) => id),
     );
@@ -177,6 +205,8 @@ describe("portable PostgreSQL export", () => {
     const exported = await createExporter().exportUserData(ownerA);
     const allDay = exported.tasks.schedules.find(({ kind }) => kind === "all_day");
     const timed = exported.tasks.schedules.find(({ kind }) => kind === "timed");
+    const allDayRecurrence = exported.tasks.recurrenceDefinitions.find(({ kind }) => kind === "all_day");
+    const timedRecurrence = exported.tasks.recurrenceDefinitions.find(({ kind }) => kind === "timed");
     const applied = exported.assistant.proposals.find(({ status }) => status === "applied");
     const proposalSchedule = exported.assistant.proposals[0]?.proposal.actions[0];
 
@@ -200,6 +230,28 @@ describe("portable PostgreSQL export", () => {
       startAt: ownerASeed.timedStartUtc,
       endAt: ownerASeed.timedEndUtc,
       timezone: "Asia/Singapore",
+      createdAt: RECORD_INSTANT,
+      updatedAt: RECORD_INSTANT,
+    });
+    expect(allDayRecurrence).toEqual({
+      taskId: portableEntityIds.allDayTask,
+      rrule: "FREQ=DAILY;INTERVAL=1",
+      timezone: "Asia/Singapore",
+      generationMode: "schedule",
+      kind: "all_day",
+      projectionStartDate: ALL_DAY_START_DATE,
+      projectionEndDate: null,
+      createdAt: RECORD_INSTANT,
+      updatedAt: RECORD_INSTANT,
+    });
+    expect(timedRecurrence).toEqual({
+      taskId: portableEntityIds.timedTask,
+      rrule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE;COUNT=5",
+      timezone: "Asia/Singapore",
+      generationMode: "schedule",
+      kind: "timed",
+      projectionStartAt: ownerASeed.timedStartUtc,
+      projectionEndAt: ownerASeed.timedStartUtc,
       createdAt: RECORD_INSTANT,
       updatedAt: RECORD_INSTANT,
     });
@@ -247,14 +299,31 @@ function createExporter() {
 }
 
 async function readMutationSentinels(userId: string) {
-  const [tasks, proposals, preferences] = await Promise.all([
+  const [tasks, recurrences, occurrenceEvents, proposals, preferences] = await Promise.all([
     pool.query(`select id, title, version from tasks where user_id = $1 order by id`, [userId]),
+    pool.query(
+      `select task_id, rrule, projection_start_date, projection_start_at,
+              projection_end_date, projection_end_at
+         from task_recurrences where user_id = $1 order by task_id`,
+      [userId],
+    ),
+    pool.query(
+      `select id, task_id, occurrence_key, state, task_version
+         from task_occurrence_events where user_id = $1 order by task_id, task_version`,
+      [userId],
+    ),
     pool.query(`select id, status, idempotency_key from planner_proposals where user_id = $1 order by id`, [
       userId,
     ]),
     pool.query(`select version, preferences from user_preferences where user_id = $1`, [userId]),
   ]);
-  return { tasks: tasks.rows, proposals: proposals.rows, preferences: preferences.rows };
+  return {
+    tasks: tasks.rows,
+    recurrences: recurrences.rows,
+    occurrenceEvents: occurrenceEvents.rows,
+    proposals: proposals.rows,
+    preferences: preferences.rows,
+  };
 }
 
 function expectRelationshipIntegrity(envelope: UserExportEnvelope) {
@@ -262,6 +331,7 @@ function expectRelationshipIntegrity(envelope: UserExportEnvelope) {
   const lists = new Map(envelope.tasks.lists.map((list) => [list.id, list]));
   const sections = new Map(envelope.tasks.sections.map((section) => [section.id, section]));
   const tasks = new Map(envelope.tasks.tasks.map((task) => [task.id, task]));
+  const schedules = new Map(envelope.tasks.schedules.map((schedule) => [schedule.taskId, schedule]));
   const tagIds = new Set(envelope.tasks.tags.map(({ id }) => id));
   for (const list of envelope.tasks.lists) {
     expect(list.folderId === null || folderIds.has(list.folderId)).toBe(true);
@@ -273,6 +343,24 @@ function expectRelationshipIntegrity(envelope: UserExportEnvelope) {
     if (task.parentTaskId !== null) expect(tasks.get(task.parentTaskId)?.listId).toBe(task.listId);
   }
   for (const schedule of envelope.tasks.schedules) expect(tasks.has(schedule.taskId)).toBe(true);
+  for (const recurrence of envelope.tasks.recurrenceDefinitions) {
+    const owner = tasks.get(recurrence.taskId);
+    const schedule = schedules.get(recurrence.taskId);
+    expect(owner?.parentTaskId).toBeNull();
+    expect(schedule?.kind).toBe(recurrence.kind);
+    if (recurrence.kind === "timed" && schedule?.kind === "timed") {
+      expect(recurrence.timezone).toBe(schedule.timezone);
+    }
+  }
+  const eventVersions = new Set<string>();
+  for (const event of envelope.tasks.occurrenceEvents) {
+    const owner = tasks.get(event.taskId);
+    expect(owner?.parentTaskId).toBeNull();
+    expect(event.taskVersion).toBeLessThanOrEqual(owner?.version ?? 0);
+    const versionKey = `${event.taskId}:${event.taskVersion}`;
+    expect(eventVersions.has(versionKey)).toBe(false);
+    eventVersions.add(versionKey);
+  }
   for (const item of envelope.tasks.checklistItems) expect(tasks.has(item.taskId)).toBe(true);
   for (const link of envelope.tasks.taskTags) {
     expect(tasks.has(link.taskId)).toBe(true);
@@ -314,6 +402,16 @@ function allInstantValues(envelope: UserExportEnvelope): string[] {
   for (const schedule of envelope.tasks.schedules) {
     values.push(schedule.createdAt, schedule.updatedAt);
     if (schedule.kind === "timed") values.push(schedule.startAt, schedule.endAt);
+  }
+  for (const recurrence of envelope.tasks.recurrenceDefinitions) {
+    values.push(recurrence.createdAt, recurrence.updatedAt);
+    if (recurrence.kind === "timed") {
+      values.push(recurrence.projectionStartAt);
+      if (recurrence.projectionEndAt !== null) values.push(recurrence.projectionEndAt);
+    }
+  }
+  for (const event of envelope.tasks.occurrenceEvents) {
+    values.push(event.effectiveAt, event.createdAt);
   }
   for (const record of envelope.assistant.proposals) {
     values.push(record.createdAt, record.expiresAt);
