@@ -313,6 +313,71 @@ test("mobile authenticated surfaces preserve the touch and readable-range contra
   await assertMobileTouchContracts(page, "50000000-0000-4000-8000-000000000001");
 });
 
+test("every released route reflows at the tablet and minimum-width boundaries", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    !["boundary-768-chromium", "boundary-320-chromium"].includes(testInfo.project.name),
+    "The boundary projects own the complete-route reflow audit.",
+  );
+  test.setTimeout(120_000);
+  await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/p0/final-boundaries");
+  await mkdir(evidenceDirectory, { recursive: true });
+
+  for (const route of [
+    { path: "/", heading: "Make room for what matters.", slug: "landing", display: true },
+    { path: "/sign-in", heading: "Welcome back", slug: "sign-in", display: false },
+    { path: "/sign-up", heading: "Create your account", slug: "sign-up", display: false },
+  ] as const) {
+    await page.goto(route.path);
+    const heading = page.getByRole("heading", { level: 1, name: route.heading, exact: true });
+    await expect(heading).toBeVisible();
+    if (!route.display) await expectUsesSans(heading, `${route.slug} heading`);
+    await captureBoundaryRoute(page, testInfo.project.name, evidenceDirectory, route.slug);
+  }
+
+  await page.goto("/");
+  const demoResponse = page.waitForResponse(
+    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Try demo" }).click();
+  expect((await demoResponse).status()).toBe(200);
+  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
+  if (await dismissTips.isVisible()) await dismissTips.click();
+
+  for (const route of [
+    { path: "/inbox", heading: "Inbox", slug: "inbox" },
+    {
+      path: "/lists/20000000-0000-4000-8000-000000000001",
+      heading: "Hackathon launch",
+      slug: "list",
+    },
+    { path: "/completed", heading: "Completed / cancelled", slug: "completed" },
+    { path: "/today", heading: "Today", slug: "today" },
+    { path: "/upcoming", heading: "Upcoming", slug: "upcoming" },
+    { path: "/calendar", heading: "Calendar", slug: "calendar" },
+    { path: "/matrix", heading: "Priority matrix", slug: "matrix" },
+    { path: "/plan", heading: "AI Review", slug: "ai-review" },
+    { path: "/settings", heading: "Settings", slug: "settings" },
+  ] as const) {
+    await page.goto(route.path);
+    const heading = page
+      .getByRole("main")
+      .getByRole("heading", { level: 1, name: route.heading, exact: true });
+    await expect(heading).toBeVisible();
+    await expectUsesSans(heading, `${route.slug} heading`);
+    await captureBoundaryRoute(page, testInfo.project.name, evidenceDirectory, route.slug);
+  }
+
+  await page.goto("/tasks/50000000-0000-4000-8000-000000000001");
+  const taskTitle = page.getByLabel("Task title", { exact: true });
+  await expect(taskTitle).toHaveValue("Record the two-minute demo");
+  await expectUsesSans(taskTitle, "task detail title");
+  await captureBoundaryRoute(page, testInfo.project.name, evidenceDirectory, "task-details");
+});
+
 test("the five proof surfaces reflow at a 200% zoom equivalent and honor reduced motion", async ({
   page,
 }, testInfo) => {
@@ -406,6 +471,31 @@ async function auditZoomSurface(page: Page, evidenceDirectory: string, slug: str
   expect(contract.maximumMotionDuration).toBeLessThanOrEqual(0.02);
   await page.screenshot({
     path: path.join(evidenceDirectory, `zoom-200-${slug}.png`),
+    animations: "disabled",
+    fullPage: true,
+  });
+}
+
+async function captureBoundaryRoute(
+  page: Page,
+  projectName: string,
+  evidenceDirectory: string,
+  slug: string,
+) {
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.scrollTo(0, 0);
+  });
+  const frame = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(frame.clientWidth).toBe(page.viewportSize()?.width);
+  expect(frame.scrollWidth, `${slug} horizontal overflow`).toBeLessThanOrEqual(frame.clientWidth + 1);
+  await page.screenshot({
+    path: path.join(evidenceDirectory, `${slug}-${projectName}.png`),
     animations: "disabled",
     fullPage: true,
   });

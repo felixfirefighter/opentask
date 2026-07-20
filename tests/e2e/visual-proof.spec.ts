@@ -8,12 +8,20 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 const DEMO_TASK_ID = "50000000-0000-4000-8000-000000000001";
 const DEMO_LIST_ID = "20000000-0000-4000-8000-000000000001";
 
+const publicAuthRoutes = [
+  { slug: "sign-in", path: "/sign-in", heading: "Welcome back" },
+  { slug: "sign-up", path: "/sign-up", heading: "Create your account" },
+] as const;
+
 const authenticatedRoutes = [
   { slug: "inbox", path: "/inbox", heading: "Inbox" },
+  { slug: "list", path: `/lists/${DEMO_LIST_ID}`, heading: "Hackathon launch" },
+  { slug: "completed", path: "/completed", heading: "Completed / cancelled" },
   { slug: "today", path: "/today", heading: "Today" },
   { slug: "upcoming", path: "/upcoming", heading: "Upcoming" },
   { slug: "calendar", path: "/calendar", heading: "Calendar" },
   { slug: "matrix", path: "/matrix", heading: "Priority matrix" },
+  { slug: "settings", path: "/settings", heading: "Settings" },
 ] as const;
 
 test("the friend-candidate journey renders at every approved viewport", async ({ page }, testInfo) => {
@@ -33,6 +41,20 @@ test("the friend-candidate journey renders at every approved viewport", async ({
   await captureRoute(page, testInfo, captureDirectory, "landing-dark");
   await page.getByRole("button", { name: "Use light theme" }).click();
 
+  for (const route of publicAuthRoutes) {
+    await page.goto(route.path);
+    await expect(page.getByRole("heading", { name: route.heading, exact: true })).toBeVisible();
+    await captureRoute(page, testInfo, captureDirectory, route.slug);
+    if (route.slug === "sign-in") {
+      await setDocumentTheme(page, "dark");
+      await captureRoute(page, testInfo, captureDirectory, "sign-in-dark");
+      await setDocumentTheme(page, "light");
+    }
+  }
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
+
   await page.getByRole("button", { name: "Try demo" }).click();
   await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
@@ -45,9 +67,9 @@ test("the friend-candidate journey renders at every approved viewport", async ({
     await page.goto(route.path);
     await expect(page.getByRole("heading", { name: route.heading, exact: true }).first()).toBeVisible();
     await captureRoute(page, testInfo, captureDirectory, route.slug);
-    if (route.slug === "today") {
+    if (route.slug === "today" || route.slug === "settings") {
       await setDocumentTheme(page, "dark");
-      await captureRoute(page, testInfo, captureDirectory, "today-dark");
+      await captureRoute(page, testInfo, captureDirectory, `${route.slug}-dark`);
       await setDocumentTheme(page, "light");
     }
   }
@@ -77,6 +99,13 @@ test("the friend-candidate journey renders at every approved viewport", async ({
     page.getByRole("heading", { name: "Planning is unavailable because no AI key is configured" }),
   ).toBeVisible();
   await captureRoute(page, testInfo, captureDirectory, "ai-review-no-key");
+
+  await page.goto("/inbox");
+  await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
+  await page.context().setOffline(true);
+  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
+  await captureRoute(page, testInfo, captureDirectory, "inbox-offline");
+  await page.context().setOffline(false);
   await page.close();
   await publishEvidence(captureDirectory, evidenceDirectory);
 });

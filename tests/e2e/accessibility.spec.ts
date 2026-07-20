@@ -185,6 +185,45 @@ test("one isolated demo covers the deadline-safe core accessibility surface", as
   await auditOfflineWorkspace(context, page);
 });
 
+test("every released route keeps its accessibility contract in the dark theme", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    !["desktop-chromium", "mobile-chromium"].includes(testInfo.project.name),
+    "Desktop and mobile own the complete dark-theme route audit.",
+  );
+  test.setTimeout(180_000);
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+
+  for (const route of publicRoutes) {
+    await auditRoute(page, route);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expectNoPageOverflow(page, route.path);
+  }
+
+  await enterIsolatedDemo(page, testInfo);
+  const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
+  if (await dismissTips.isVisible()) await dismissTips.click();
+
+  for (const route of [
+    { path: "/inbox", heading: "Inbox" },
+    ...additionalTaskRoutes,
+    ...planningRoutes,
+    { path: "/calendar", heading: "Calendar" },
+    { path: "/plan", heading: "AI Review" },
+  ] as const) {
+    await auditRoute(page, route);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expectNoPageOverflow(page, route.path);
+  }
+
+  await page.goto(`/tasks/${demo.scheduledTaskId}`);
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(demo.scheduledTaskTitle);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "/tasks/[taskId]");
+});
+
 async function auditRoute(page: Page, route: Readonly<{ path: string; heading: string }>) {
   await openRoute(page, route);
   await expectNoSevereViolations(page);
@@ -324,6 +363,14 @@ async function expectNoSevereViolations(page: Page, activeOverlay?: string) {
     (violation) => violation.impact === "serious" || violation.impact === "critical",
   );
   expect(severeViolations).toEqual([]);
+}
+
+async function expectNoPageOverflow(page: Page, route: string) {
+  const frame = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(frame.scrollWidth, `${route} horizontal overflow`).toBeLessThanOrEqual(frame.clientWidth + 1);
 }
 
 function maximumCssTimeMs(value: string) {

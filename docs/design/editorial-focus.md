@@ -2,10 +2,10 @@
 
 ## Status and authority
 
-Editorial Focus is the active visual target for P0 of the Local-first Full Release. P0.1 installs its
-shared font/token foundation and the five proof surfaces; it is not a claim that the broad product
-migration is approved or complete. `DESIGN.md`, this contract, `foundations.md`, `tokens.md`, and
-their executable checks change together. P0.2 remains blocked until the user approves the proof.
+Editorial Focus is the active visual target for P0 of the Local-first Full Release. The approved
+P0.1 proof freezes its shared font/token foundation and five proof surfaces for the broad P0.2
+product migration. `DESIGN.md`, this contract, `foundations.md`, `tokens.md`, and their executable
+checks change together.
 
 This file cannot add product behavior. Feature scope remains owned by `docs/SCOPE.md`.
 
