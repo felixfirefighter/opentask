@@ -23,7 +23,6 @@ vi.mock("../infrastructure/task-occurrence-event-repository", () => ({
 }));
 
 import { createOccurrenceCommand } from "./occurrence-command";
-import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import { createOccurrenceKey } from "../domain/recurrence/occurrence-key";
 import type { TaskScheduleTable } from "../infrastructure/schema";
 
@@ -40,13 +39,6 @@ const database = {
 } as unknown as Database;
 const clock: Clock = { now: () => now };
 const taskSchedules = {} as TaskScheduleTable;
-const expansion: RecurrenceExpansionPort = {
-  expand: vi.fn(() => ({
-    candidates: [{ kind: "all_day" as const, startDate: "2026-07-21" }],
-    truncated: false,
-  })),
-  next: vi.fn(),
-};
 
 function storedTask(overrides: Record<string, unknown> = {}) {
   return {
@@ -118,7 +110,6 @@ function application() {
     database,
     clock,
     taskSchedules,
-    expansion,
     createEventId: () => eventId,
   });
 }
@@ -205,14 +196,10 @@ describe("occurrence command", () => {
 
   it("undoes a recorded key without requiring the current rule to emit it", async () => {
     repositories.events.findLatest.mockResolvedValue(storedEvent("skipped", 4));
-    vi.mocked(expansion.expand).mockImplementationOnce(() => {
-      throw new Error("undo must not expand the current rule");
-    });
 
     await expect(
       application()(actor, taskId, { action: "undo", occurrenceKey, expectedVersion: 4 }),
     ).resolves.toMatchObject({ outcome: "applied", occurrenceState: "open", eventTaskVersion: 5 });
-    expect(expansion.expand).not.toHaveBeenCalled();
     expect(repositories.events.append).toHaveBeenCalledWith(
       expect.objectContaining({ state: "open", taskVersion: 5 }),
       transaction,
@@ -233,4 +220,42 @@ describe("occurrence command", () => {
     expect(repositories.tasks.incrementVersion).not.toHaveBeenCalled();
     expect(repositories.events.append).not.toHaveBeenCalled();
   });
+
+  it("rejects an extreme client-controlled timed key before opening a transaction", async () => {
+    const extremeKey = encodedOccurrenceKey(`${taskId}|t|8640000000000000`);
+
+    await expect(
+      application()(actor, taskId, {
+        action: "complete",
+        occurrenceKey: extremeKey,
+        expectedVersion: 4,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
+    expect(database.transaction).not.toHaveBeenCalled();
+  }, 500);
+
+  it("rejects a distant count-exhausted occurrence through direct membership without scanning", async () => {
+    repositories.recurrences.lockByTaskId.mockResolvedValue({
+      ...storedRecurrence(),
+      rrule: "FREQ=DAILY;INTERVAL=1;COUNT=999",
+    });
+    const distantKey = createOccurrenceKey(taskId, {
+      kind: "all_day",
+      startDate: "9999-12-31",
+    });
+
+    await expect(
+      application()(actor, taskId, {
+        action: "complete",
+        occurrenceKey: distantKey,
+        expectedVersion: 4,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
+    expect(repositories.tasks.incrementVersion).not.toHaveBeenCalled();
+    expect(repositories.events.append).not.toHaveBeenCalled();
+  }, 500);
 });
+
+function encodedOccurrenceKey(payload: string): string {
+  return `o1.${btoa(payload).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")}`;
+}

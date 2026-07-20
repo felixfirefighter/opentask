@@ -52,4 +52,27 @@ describe("occurrence identity codec", () => {
       createOccurrenceKey(taskId, { kind: "timed", startAt: "2026-07-20T01:30:00.000000001Z" }),
     ).toThrow(RangeError);
   });
+
+  it("preserves distant recurrence semantics while reserving maximum-duration projection headroom", () => {
+    expect(
+      decodeOccurrenceKey(createOccurrenceKey(taskId, { kind: "all_day", startDate: "+100826-01-01" })),
+    ).toMatchObject({ kind: "all_day", startDate: "+100826-01-01" });
+    expect(() => createOccurrenceKey(taskId, { kind: "all_day", startDate: "+275760-08-13" })).not.toThrow();
+    expect(() =>
+      createOccurrenceKey(taskId, { kind: "timed", startAt: "+275760-08-13T00:00:00Z" }),
+    ).not.toThrow();
+    expect(() => createOccurrenceKey(taskId, { kind: "all_day", startDate: "+275760-09-13" })).toThrow(
+      "supported recurrence bounds",
+    );
+    expect(() => createOccurrenceKey(taskId, { kind: "timed", startAt: "+275760-09-13T00:00:00Z" })).toThrow(
+      "supported recurrence bounds",
+    );
+
+    const extremeKey = encodedOccurrenceKey(`${taskId}|t|8640000000000000`);
+    expect(() => decodeOccurrenceKey(extremeKey)).toThrow("supported instant bounds");
+  });
 });
+
+function encodedOccurrenceKey(payload: string): string {
+  return `o1.${btoa(payload).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")}`;
+}

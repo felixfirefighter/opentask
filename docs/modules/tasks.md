@@ -34,8 +34,9 @@ projections through its public application contracts.
   recurrence rule.
 - Occurrence commands: complete, skip, and undo/reopen one authorized occurrence using its opaque
   deterministic identity and the owning task's expected version.
-- Queries: get task detail, list Inbox/regular/terminal tasks, search tasks, load selected open
-  unscheduled tasks, and range-bounded schedule/occurrence reads.
+- Queries: get task detail, resolve one actor-scoped opaque occurrence identity for canonical task
+  details, list Inbox/regular/terminal tasks, search tasks, load selected open unscheduled tasks, and
+  range-bounded schedule/occurrence reads.
 - Parsing: `parseQuickAdd(text, timezone)` returns the unchanged source text plus explicit editable suggestions; it performs no write.
 - Public contracts: the existing folder/list/section/tag/task DTO and tag-enriched task-list item/page types,
   `ReplaceTaskTagsOutput`, `TaskQuery`, `TerminalTaskQuery`, `TaskVersionRef`, `TaskScheduleDto`,
@@ -133,15 +134,19 @@ No public contract exposes a Drizzle row or an unscoped repository method.
   `|d|YYYY-MM-DD` or `|t|epochMilliseconds`. The server decodes and verifies task/kind/start before a
   first transition; clients never parse it. It is not a task row and owns no copied schedule,
   status, checklist, or subtask state. The same canonical start retains the same key across views
-  and rule edits.
+  and rule edits. A key start must leave the frozen maximum 31-day occurrence duration inside
+  Temporal's supported upper bound, so every accepted identity can be projected safely.
 - Occurrence transitions append immutable `completed`, `skipped`, or `open` events. The effective
   state is the event with the greatest immutable post-command `task_version`; timestamps and UUIDs do
   not order causality. Complete/skip first validates a candidate under the current rule and cutover;
-  undo may reopen a recorded key that a later rule no longer emits. Commands serialize on the owning
-  task, reject stale different-state writes, append nothing for a same-state no-op, and increment the
-  task version once for an accepted change. A response-lost retry is recognized only when the latest
-  event for that key/state has `task_version = expectedVersion + 1`; otherwise a stale version remains
-  a conflict.
+  because that key is untrusted, validation uses direct preset membership rather than expanding from
+  the series anchor to the supplied start. Daily and weekly membership are constant-time; monthly
+  and yearly count ordinals inspect at most one 400-year Gregorian cycle (4,800 month positions or
+  400 year positions), independent of key distance. Undo may reopen a recorded key that a later rule
+  no longer emits. Commands serialize on the owning task, reject stale different-state writes, append
+  nothing for a same-state no-op, and increment the task version once for an accepted change. A
+  response-lost retry is recognized only when the latest event for that key/state has a task version
+  equal to `expectedVersion + 1`; otherwise a stale version remains a conflict.
 - Aggregate commands use one lock order: owning task row, recurrence row when present, schedule row
   when present, then occurrence-event reads/appends. Schedule edits, occurrence transitions,
   cancel/reopen, and delete/restore never acquire those resources in another order.

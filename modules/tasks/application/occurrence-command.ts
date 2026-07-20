@@ -13,7 +13,6 @@ import {
 import { entityIdSchema } from "./contracts/contract-primitives";
 import { isEligibleOccurrence } from "./occurrence-projection-support";
 import { parseStoredRecurrence } from "./recurrence-application-support";
-import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import { requireAppliedTask } from "./task-application-support";
 import { staleTaskResource, taskConflict, taskResourceNotFound, taskValidationFailure } from "./task-errors";
 import { decodeOccurrenceKey } from "../domain/recurrence/occurrence-key";
@@ -37,7 +36,6 @@ export function createOccurrenceCommand(
     database: Database;
     clock: Clock;
     taskSchedules: TaskScheduleTable;
-    expansion: RecurrenceExpansionPort;
     createEventId: OccurrenceEventIdFactory;
   }>,
 ) {
@@ -86,7 +84,6 @@ export function createOccurrenceCommand(
           ? false
           : domainValidation(() =>
               isEligibleOccurrence({
-                expansion: dependencies.expansion,
                 rule: parsed.definition,
                 anchor: parsed.anchor,
                 projection: parsed.projection,

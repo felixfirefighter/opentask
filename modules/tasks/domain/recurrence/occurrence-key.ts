@@ -2,10 +2,16 @@ import { Temporal } from "temporal-polyfill";
 
 import type { RecurrenceOccurrenceStart } from "./recurrence-cutover-policy";
 import { assertCanonicalLocalDate } from "./recurrence-policy";
+import { MAX_RECURRENCE_DURATION_DAYS } from "./recurrence-time-policy";
 
 export const OCCURRENCE_KEY_MAX_LENGTH = 80;
 const OCCURRENCE_KEY_PREFIX = "o1.";
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const MAX_RECURRENCE_DURATION_MILLISECONDS = MAX_RECURRENCE_DURATION_DAYS * 24 * 60 * 60 * 1_000;
+const MAX_OCCURRENCE_START_EPOCH_MILLISECONDS = 8_640_000_000_000_000 - MAX_RECURRENCE_DURATION_MILLISECONDS;
+const MAX_OCCURRENCE_START_DATE = Temporal.PlainDate.from("+275760-09-13")
+  .subtract({ days: MAX_RECURRENCE_DURATION_DAYS })
+  .toString();
 
 export type DecodedOccurrenceKey =
   | Readonly<{ taskId: string; kind: "all_day"; startDate: string }>
@@ -65,7 +71,9 @@ export function decodeOccurrenceKey(key: string, expectedTaskId?: string): Decod
   }
   let startAt: string;
   try {
-    startAt = Temporal.Instant.fromEpochMilliseconds(epochMilliseconds).toString();
+    const instant = Temporal.Instant.fromEpochMilliseconds(epochMilliseconds);
+    assertOccurrenceInstantBounds(instant);
+    startAt = instant.toString();
   } catch {
     throw new RangeError("The occurrence start is outside supported instant bounds.");
   }
@@ -81,6 +89,9 @@ function canonicalTaskId(taskId: string): string {
 
 function canonicalDate(value: string): string {
   assertCanonicalLocalDate(value, "Occurrence start date");
+  if (Temporal.PlainDate.compare(value, MAX_OCCURRENCE_START_DATE) > 0) {
+    throw new RangeError("The occurrence start is outside supported recurrence bounds.");
+  }
   return value;
 }
 
@@ -94,7 +105,14 @@ function epochMillisecondsFor(startAt: string): string {
   if (instant.epochNanoseconds % 1_000_000n !== 0n) {
     throw new RangeError("Occurrence identity requires a whole-millisecond start instant.");
   }
+  assertOccurrenceInstantBounds(instant);
   return (instant.epochNanoseconds / 1_000_000n).toString();
+}
+
+function assertOccurrenceInstantBounds(instant: Temporal.Instant): void {
+  if (instant.epochMilliseconds > MAX_OCCURRENCE_START_EPOCH_MILLISECONDS) {
+    throw new RangeError("The occurrence start is outside supported recurrence bounds.");
+  }
 }
 
 function encodeBase64Url(value: string): string {

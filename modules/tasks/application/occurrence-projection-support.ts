@@ -7,6 +7,7 @@ import type {
 } from "./contracts/occurrence-contract";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import { createOccurrenceKey, type DecodedOccurrenceKey } from "../domain/recurrence/occurrence-key";
+import { recurrenceIncludesCandidate } from "../domain/recurrence/recurrence-candidate-membership";
 import {
   occurrenceStartsWithinProjection,
   type RecurrenceOccurrenceStart,
@@ -16,6 +17,7 @@ import type { RecurrenceRule } from "../domain/recurrence/recurrence-policy";
 import type { RecurrenceLocalRange } from "../domain/recurrence/recurrence-expansion";
 import {
   projectRecurrenceCandidate,
+  recurrenceAnchorLocalStart,
   type LocalRecurrenceStart,
   type RecurrenceOccurrenceSchedule,
   type RecurrenceScheduleAnchor,
@@ -107,7 +109,6 @@ export function projectRecordedOccurrence(
 
 export function isEligibleOccurrence(
   input: Readonly<{
-    expansion: RecurrenceExpansionPort;
     rule: RecurrenceRule;
     anchor: RecurrenceScheduleAnchor;
     projection: RecurrenceProjectionWindow;
@@ -116,19 +117,11 @@ export function isEligibleOccurrence(
 ): boolean {
   const candidate = decodedLocalCandidate(input.anchor, input.decoded);
   if (!candidate) return false;
-  const result = input.expansion.expand({
-    rule: input.rule,
-    anchor: input.anchor,
-    range: singleCandidateRange(candidate),
-    candidateLimit: 2,
-  });
-  return result.candidates.some((emitted) => {
-    const start = occurrenceStart(projectRecurrenceCandidate(input.anchor, emitted));
-    return (
-      sameOccurrenceStart(start, decodedStart(input.decoded)) &&
-      occurrenceStartsWithinProjection(input.projection, start)
-    );
-  });
+  const decodedOccurrenceStart = decodedStart(input.decoded);
+  if (!occurrenceStartsWithinProjection(input.projection, decodedOccurrenceStart)) return false;
+  if (!recurrenceIncludesCandidate(input.rule, input.anchor, candidate)) return false;
+  const start = occurrenceStart(projectRecurrenceCandidate(input.anchor, candidate));
+  return sameOccurrenceStart(start, decodedOccurrenceStart);
 }
 
 export function occurrenceOverlapsRange(
@@ -215,28 +208,13 @@ function decodedLocalCandidate(
     return { kind: "all_day", startDate: decoded.startDate };
   }
   if (anchor.kind !== "timed" || decoded.kind !== "timed") return null;
+  const localDate = Temporal.Instant.from(decoded.startAt).toZonedDateTimeISO(anchor.timezone).toPlainDate();
+  const anchorLocalStart = recurrenceAnchorLocalStart(anchor);
+  if (anchorLocalStart.kind !== "timed") return null;
+  const anchorTime = Temporal.PlainDateTime.from(anchorLocalStart.startLocalDateTime).toPlainTime();
   return {
     kind: "timed",
-    startLocalDateTime: minuteString(
-      Temporal.Instant.from(decoded.startAt).toZonedDateTimeISO(anchor.timezone).toPlainDateTime(),
-    ),
-  };
-}
-
-function singleCandidateRange(candidate: LocalRecurrenceStart): RecurrenceLocalRange {
-  if (candidate.kind === "all_day") {
-    return {
-      kind: "all_day",
-      rangeStartDate: candidate.startDate,
-      rangeEndDate: Temporal.PlainDate.from(candidate.startDate).add({ days: 1 }).toString(),
-    };
-  }
-  return {
-    kind: "timed",
-    rangeStartLocalDateTime: candidate.startLocalDateTime,
-    rangeEndLocalDateTime: minuteString(
-      Temporal.PlainDateTime.from(candidate.startLocalDateTime).add({ minutes: 1 }),
-    ),
+    startLocalDateTime: minuteString(localDate.toPlainDateTime(anchorTime)),
   };
 }
 
