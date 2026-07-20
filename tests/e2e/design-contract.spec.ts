@@ -155,6 +155,29 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
   expect(layout.clientWidth).toBe(page.viewportSize()?.width);
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
 
+  const ctaLayout = await page.evaluate(() => {
+    const main = document.querySelector("main");
+    const createAccount = main?.querySelector('a[href="/sign-up"]');
+    const tryDemo = Array.from(main?.querySelectorAll("button") ?? []).find((button) =>
+      button.textContent?.includes("Try demo"),
+    );
+    if (!(createAccount instanceof HTMLElement) || !(tryDemo instanceof HTMLElement)) {
+      throw new Error("Landing hero actions are missing");
+    }
+    const createAccountRect = createAccount.getBoundingClientRect();
+    const tryDemoRect = tryDemo.getBoundingClientRect();
+    const targetSize = Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue("--control-target-touch"),
+    );
+    return {
+      createAccountHeight: createAccountRect.height,
+      targetSize,
+      tryDemoHeight: tryDemoRect.height,
+    };
+  });
+  expect(ctaLayout.createAccountHeight).toBe(ctaLayout.targetSize);
+  expect(ctaLayout.tryDemoHeight).toBe(ctaLayout.targetSize);
+
   const typography = await heroHeading.evaluate((heading) => {
     const rootStyle = getComputedStyle(document.documentElement);
     const headingStyle = getComputedStyle(heading);
