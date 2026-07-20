@@ -5,6 +5,8 @@ import { expect, test, type BrowserContext, type Page, type TestInfo } from "@pl
 
 const demo = {
   listId: "20000000-0000-4000-8000-000000000001",
+  recurringTaskId: "50000000-0000-4000-8000-000000000011",
+  recurringTaskTitle: "Review workshop progress",
   scheduledTaskId: "50000000-0000-4000-8000-000000000001",
   scheduledTaskTitle: "Outline the workshop agenda",
 } as const;
@@ -181,6 +183,7 @@ test("one isolated demo covers the implemented baseline accessibility surface", 
 
   await auditCalendar(page);
   await auditSeededTaskDetails(page);
+  await auditSeededRecurrenceDetails(context, page);
   await auditNoKeyPlanner(page);
   await auditOfflineWorkspace(context, page);
 });
@@ -342,6 +345,36 @@ async function auditSeededTaskDetails(page: Page) {
   await expect(page.getByRole("radio", { name: "Specific time" })).toBeChecked();
   await expectNoSevereViolations(page);
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
+}
+
+async function auditSeededRecurrenceDetails(context: BrowserContext, page: Page) {
+  await page.goto(`/tasks/${demo.recurringTaskId}`);
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(demo.recurringTaskTitle);
+  const recurrence = page.locator('section[aria-labelledby^="recurrence-title-"]');
+  await expect(recurrence.getByRole("heading", { name: "Recurrence", exact: true })).toBeVisible();
+  await expect(recurrence.getByRole("button", { name: "Edit recurrence" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(recurrence.getByText("Active", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open", exact: true })).toBeDisabled();
+  await expectNoSevereViolations(page);
+
+  await recurrence.getByRole("button", { name: "Edit recurrence" }).click();
+  await expect(recurrence.getByRole("combobox", { name: "Cadence", exact: true })).toHaveValue("daily");
+  await expectNoSevereViolations(page);
+  await recurrence.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  await recurrence.getByRole("button", { name: "End recurrence…" }).click();
+  const dialog = page.getByRole("alertdialog", { name: "End future recurrence?" });
+  await expect(dialog.getByRole("button", { name: "Keep current series" })).toBeFocused();
+  await expectNoSevereViolations(page, '[role="alertdialog"]');
+  await dialog.getByRole("button", { name: "Keep current series" }).click();
+
+  await context.setOffline(true);
+  await expect(page.getByText("Task details are read-only while you’re offline.")).toBeVisible();
+  await expect(recurrence.getByRole("button", { name: "Edit recurrence" })).toBeDisabled();
+  await expectNoSevereViolations(page);
+  await context.setOffline(false);
 }
 
 async function auditNoKeyPlanner(page: Page) {
