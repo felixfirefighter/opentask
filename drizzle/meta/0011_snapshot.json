@@ -133,12 +133,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -252,12 +248,8 @@
           "name": "checklist_items_user_id_user_id_fk",
           "tableFrom": "checklist_items",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -265,14 +257,8 @@
           "name": "checklist_items_task_owner_fk",
           "tableFrom": "checklist_items",
           "tableTo": "tasks",
-          "columnsFrom": [
-            "user_id",
-            "task_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -280,10 +266,7 @@
       "compositePrimaryKeys": {
         "checklist_items_pkey": {
           "name": "checklist_items_pkey",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -395,12 +378,8 @@
           "name": "list_folders_user_id_user_id_fk",
           "tableFrom": "list_folders",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -408,10 +387,7 @@
       "compositePrimaryKeys": {
         "list_folders_pkey": {
           "name": "list_folders_pkey",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -528,12 +504,8 @@
           "name": "list_sections_user_id_user_id_fk",
           "tableFrom": "list_sections",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -541,14 +513,8 @@
           "name": "list_sections_list_owner_fk",
           "tableFrom": "list_sections",
           "tableTo": "task_lists",
-          "columnsFrom": [
-            "user_id",
-            "list_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "list_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -556,21 +522,14 @@
       "compositePrimaryKeys": {
         "list_sections_pkey": {
           "name": "list_sections_pkey",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {
         "list_sections_user_id_list_unique": {
           "name": "list_sections_user_id_list_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "id",
-            "list_id"
-          ]
+          "columns": ["user_id", "id", "list_id"]
         }
       },
       "policies": {},
@@ -729,12 +688,8 @@
           "name": "planner_proposals_user_id_user_id_fk",
           "tableFrom": "planner_proposals",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -742,10 +697,7 @@
       "compositePrimaryKeys": {
         "planner_proposals_pkey": {
           "name": "planner_proposals_pkey",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -815,9 +767,7 @@
         "rate_limit_key_unique": {
           "name": "rate_limit_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -902,12 +852,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -917,9 +863,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1049,12 +993,8 @@
           "name": "tags_user_id_user_id_fk",
           "tableFrom": "tags",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1062,10 +1002,7 @@
       "compositePrimaryKeys": {
         "tags_pkey": {
           "name": "tags_pkey",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1238,12 +1175,8 @@
           "name": "task_lists_user_id_user_id_fk",
           "tableFrom": "task_lists",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1251,14 +1184,8 @@
           "name": "task_lists_folder_owner_fk",
           "tableFrom": "task_lists",
           "tableTo": "list_folders",
-          "columnsFrom": [
-            "user_id",
-            "folder_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "folder_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1266,10 +1193,7 @@
       "compositePrimaryKeys": {
         "task_lists_pkey": {
           "name": "task_lists_pkey",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1397,14 +1321,8 @@
           "name": "task_occurrence_events_task_owner_fk",
           "tableFrom": "task_occurrence_events",
           "tableTo": "tasks",
-          "columnsFrom": [
-            "user_id",
-            "task_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1412,21 +1330,14 @@
       "compositePrimaryKeys": {
         "task_occurrence_events_pkey": {
           "name": "task_occurrence_events_pkey",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {
         "task_occurrence_events_user_task_version_unique": {
           "name": "task_occurrence_events_user_task_version_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "task_id",
-            "task_version"
-          ]
+          "columns": ["user_id", "task_id", "task_version"]
         }
       },
       "policies": {},
@@ -1595,14 +1506,8 @@
           "name": "task_recurrences_task_owner_fk",
           "tableFrom": "task_recurrences",
           "tableTo": "tasks",
-          "columnsFrom": [
-            "user_id",
-            "task_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1610,10 +1515,7 @@
       "compositePrimaryKeys": {
         "task_recurrences_pkey": {
           "name": "task_recurrences_pkey",
-          "columns": [
-            "user_id",
-            "task_id"
-          ]
+          "columns": ["user_id", "task_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1824,14 +1726,8 @@
           "name": "task_schedules_task_owner_fk",
           "tableFrom": "task_schedules",
           "tableTo": "tasks",
-          "columnsFrom": [
-            "user_id",
-            "task_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1839,10 +1735,7 @@
       "compositePrimaryKeys": {
         "task_schedules_pkey": {
           "name": "task_schedules_pkey",
-          "columns": [
-            "user_id",
-            "task_id"
-          ]
+          "columns": ["user_id", "task_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1918,12 +1811,8 @@
           "name": "task_tags_user_id_user_id_fk",
           "tableFrom": "task_tags",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1931,14 +1820,8 @@
           "name": "task_tags_task_owner_fk",
           "tableFrom": "task_tags",
           "tableTo": "tasks",
-          "columnsFrom": [
-            "user_id",
-            "task_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1946,14 +1829,8 @@
           "name": "task_tags_tag_owner_fk",
           "tableFrom": "task_tags",
           "tableTo": "tags",
-          "columnsFrom": [
-            "user_id",
-            "tag_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "tag_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1961,11 +1838,7 @@
       "compositePrimaryKeys": {
         "task_tags_pk": {
           "name": "task_tags_pk",
-          "columns": [
-            "user_id",
-            "task_id",
-            "tag_id"
-          ]
+          "columns": ["user_id", "task_id", "tag_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2308,12 +2181,8 @@
           "name": "tasks_user_id_user_id_fk",
           "tableFrom": "tasks",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2321,14 +2190,8 @@
           "name": "tasks_list_owner_fk",
           "tableFrom": "tasks",
           "tableTo": "task_lists",
-          "columnsFrom": [
-            "user_id",
-            "list_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id"
-          ],
+          "columnsFrom": ["user_id", "list_id"],
+          "columnsTo": ["user_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2336,16 +2199,8 @@
           "name": "tasks_section_owner_list_fk",
           "tableFrom": "tasks",
           "tableTo": "list_sections",
-          "columnsFrom": [
-            "user_id",
-            "section_id",
-            "list_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id",
-            "list_id"
-          ],
+          "columnsFrom": ["user_id", "section_id", "list_id"],
+          "columnsTo": ["user_id", "id", "list_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2353,16 +2208,8 @@
           "name": "tasks_parent_owner_list_fk",
           "tableFrom": "tasks",
           "tableTo": "tasks",
-          "columnsFrom": [
-            "user_id",
-            "parent_task_id",
-            "list_id"
-          ],
-          "columnsTo": [
-            "user_id",
-            "id",
-            "list_id"
-          ],
+          "columnsFrom": ["user_id", "parent_task_id", "list_id"],
+          "columnsTo": ["user_id", "id", "list_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2370,21 +2217,14 @@
       "compositePrimaryKeys": {
         "tasks_pkey": {
           "name": "tasks_pkey",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {
         "tasks_user_id_list_unique": {
           "name": "tasks_user_id_list_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "id",
-            "list_id"
-          ]
+          "columns": ["user_id", "id", "list_id"]
         }
       },
       "policies": {},
@@ -2478,9 +2318,7 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -2537,12 +2375,8 @@
           "name": "user_preferences_user_id_user_id_fk",
           "tableFrom": "user_preferences",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
