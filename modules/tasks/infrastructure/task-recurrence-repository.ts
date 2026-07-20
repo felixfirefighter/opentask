@@ -1,9 +1,15 @@
+import { Temporal } from "temporal-polyfill";
+
 import { and, asc, eq, gt, inArray, isNull, lt, or } from "drizzle-orm";
 
 import { getDatabase, type DatabaseExecutor } from "@/shared/db/client";
 import { schema } from "@/shared/db/schema";
 
-import { MAX_RECURRENCE_ROWS_PER_REQUEST } from "../domain/recurrence/recurrence-limits";
+import {
+  MAX_OCCURRENCE_EVENTS_PER_REQUEST,
+  MAX_RECURRENCE_ROWS_PER_REQUEST,
+} from "../domain/recurrence/recurrence-limits";
+import { MAX_RECURRENCE_DURATION_DAYS } from "../domain/recurrence/recurrence-time-policy";
 
 import type { StoredTaskSchedule } from "./task-schedule-repository";
 
@@ -48,6 +54,12 @@ type RecurrenceRangeReadOptions = Readonly<{
   lockForUpdate?: boolean;
   serializeReads?: boolean;
 }>;
+
+type PaddedRecurrenceRange = RecurrenceRange &
+  Readonly<{
+    paddedRangeStartDate: string;
+    paddedRangeStartAt: Date;
+  }>;
 
 export function createTaskRecurrenceRepository(defaultExecutor: DatabaseExecutor = getDatabase()) {
   return {
@@ -172,14 +184,15 @@ export function createTaskRecurrenceRepository(defaultExecutor: DatabaseExecutor
       options: RecurrenceRangeReadOptions = {},
     ): Promise<StoredRecurrenceSourcePage> {
       assertSourceLimit(range.limit);
+      const paddedRange = withCanonicalDurationPadding(range);
       const [allDayRows, timedRows] = options.serializeReads
         ? [
-            await listSourcesByCutover(executor, userId, range, "all_day", options),
-            await listSourcesByCutover(executor, userId, range, "timed", options),
+            await listSourcesByCutover(executor, userId, paddedRange, "all_day", options),
+            await listSourcesByCutover(executor, userId, paddedRange, "timed", options),
           ]
         : await Promise.all([
-            listSourcesByCutover(executor, userId, range, "all_day", options),
-            listSourcesByCutover(executor, userId, range, "timed", options),
+            listSourcesByCutover(executor, userId, paddedRange, "all_day", options),
+            listSourcesByCutover(executor, userId, paddedRange, "timed", options),
           ]);
       const rows = [...allDayRows, ...timedRows].sort(compareSourceTaskId);
       return {
@@ -188,13 +201,41 @@ export function createTaskRecurrenceRepository(defaultExecutor: DatabaseExecutor
           allDayRows.length > range.limit || timedRows.length > range.limit || rows.length > range.limit,
       };
     },
+
+    async listActiveOpenSourcesForTaskIds(
+      userId: string,
+      taskIds: readonly string[],
+      limit: number,
+      executor: DatabaseExecutor = defaultExecutor,
+    ): Promise<StoredRecurrenceSourcePage> {
+      if (taskIds.length === 0) return { items: [], truncated: false };
+      if (taskIds.length > MAX_OCCURRENCE_EVENTS_PER_REQUEST || new Set(taskIds).size !== taskIds.length) {
+        throw new RangeError(
+          `Historical recurrence source selection must contain at most ${MAX_OCCURRENCE_EVENTS_PER_REQUEST} unique IDs.`,
+        );
+      }
+      assertSourceLimit(limit);
+      const rows = await defaultSourceSelection(executor)
+        .where(
+          and(
+            eq(schema.taskRecurrences.userId, userId),
+            eq(schema.tasks.userId, userId),
+            eq(schema.tasks.status, "open"),
+            isNull(schema.tasks.deletedAt),
+            inArray(schema.taskRecurrences.taskId, [...taskIds]),
+          ),
+        )
+        .orderBy(asc(schema.taskRecurrences.taskId))
+        .limit(limit + 1);
+      return { items: rows.slice(0, limit), truncated: rows.length > limit };
+    },
   } as const;
 }
 
 async function listSourcesByCutover(
   executor: DatabaseExecutor,
   userId: string,
-  range: RecurrenceRange,
+  range: PaddedRecurrenceRange,
   kind: "all_day" | "timed",
   options: RecurrenceRangeReadOptions,
 ): Promise<readonly StoredTaskRecurrenceSource[]> {
@@ -204,27 +245,7 @@ async function listSourcesByCutover(
       : schema.taskRecurrences.projectionStartAt;
   const endColumn =
     kind === "all_day" ? schema.taskRecurrences.projectionEndDate : schema.taskRecurrences.projectionEndAt;
-  const selection = executor
-    .select({
-      task: schema.tasks,
-      schedule: schema.taskSchedules,
-      recurrence: schema.taskRecurrences,
-    })
-    .from(schema.taskRecurrences)
-    .innerJoin(
-      schema.tasks,
-      and(
-        eq(schema.tasks.userId, schema.taskRecurrences.userId),
-        eq(schema.tasks.id, schema.taskRecurrences.taskId),
-      ),
-    )
-    .innerJoin(
-      schema.taskSchedules,
-      and(
-        eq(schema.taskSchedules.userId, schema.taskRecurrences.userId),
-        eq(schema.taskSchedules.taskId, schema.taskRecurrences.taskId),
-      ),
-    )
+  const selection = defaultSourceSelection(executor)
     .where(
       and(
         eq(schema.taskRecurrences.userId, userId),
@@ -260,24 +281,60 @@ function cutoverValues(cutover: RecurrenceCutoverWrite) {
       };
 }
 
-function dateCutoverOverlap(range: RecurrenceRange) {
+function dateCutoverOverlap(range: PaddedRecurrenceRange) {
   return and(
     lt(schema.taskRecurrences.projectionStartDate, range.rangeEndDate),
     or(
       isNull(schema.taskRecurrences.projectionEndDate),
-      gt(schema.taskRecurrences.projectionEndDate, range.rangeStartDate),
+      gt(schema.taskRecurrences.projectionEndDate, range.paddedRangeStartDate),
     ),
   );
 }
 
-function instantCutoverOverlap(range: RecurrenceRange) {
+function instantCutoverOverlap(range: PaddedRecurrenceRange) {
   return and(
     lt(schema.taskRecurrences.projectionStartAt, range.rangeEndAt),
     or(
       isNull(schema.taskRecurrences.projectionEndAt),
-      gt(schema.taskRecurrences.projectionEndAt, range.rangeStartAt),
+      gt(schema.taskRecurrences.projectionEndAt, range.paddedRangeStartAt),
     ),
   );
+}
+
+function defaultSourceSelection(executor: DatabaseExecutor) {
+  return executor
+    .select({
+      task: schema.tasks,
+      schedule: schema.taskSchedules,
+      recurrence: schema.taskRecurrences,
+    })
+    .from(schema.taskRecurrences)
+    .innerJoin(
+      schema.tasks,
+      and(
+        eq(schema.tasks.userId, schema.taskRecurrences.userId),
+        eq(schema.tasks.id, schema.taskRecurrences.taskId),
+      ),
+    )
+    .innerJoin(
+      schema.taskSchedules,
+      and(
+        eq(schema.taskSchedules.userId, schema.taskRecurrences.userId),
+        eq(schema.taskSchedules.taskId, schema.taskRecurrences.taskId),
+      ),
+    );
+}
+
+function withCanonicalDurationPadding(range: RecurrenceRange): PaddedRecurrenceRange {
+  return {
+    ...range,
+    paddedRangeStartDate: Temporal.PlainDate.from(range.rangeStartDate)
+      .subtract({ days: MAX_RECURRENCE_DURATION_DAYS })
+      .toString(),
+    paddedRangeStartAt: new Date(
+      range.rangeStartAt.getTime() - MAX_RECURRENCE_DURATION_DAYS * 24 * 60 * 60 * 1_000,
+    ),
+  };
 }
 
 function assertSourceLimit(limit: number) {

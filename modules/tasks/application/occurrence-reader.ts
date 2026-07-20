@@ -15,6 +15,7 @@ import {
   type OccurrenceTruncation,
   type TaskOccurrenceRangeQuery,
 } from "./contracts/occurrence-contract";
+import { selectPotentiallyOverlappingHistoricalEvents } from "./occurrence-history-selection";
 import {
   createOccurrenceProjection,
   expandOccurrenceSchedules,
@@ -26,7 +27,6 @@ import { parseStoredRecurrence, type UserTimezoneResolver } from "./recurrence-a
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import { mapSchedule } from "./schedule-application";
 import { mapTask } from "./task-application-support";
-import { decodeOccurrenceKey } from "../domain/recurrence/occurrence-key";
 import type { RecurrenceOccurrenceSchedule } from "../domain/recurrence/recurrence-time-policy";
 import { createTaskOccurrenceEventRepository } from "../infrastructure/task-occurrence-event-repository";
 import {
@@ -75,25 +75,46 @@ export function createBoundedOccurrenceReader(
         dependencies.database,
         { serializeReads: true },
       );
+      const eventPage = await events.listLatestForUser(actor.userId, OCCURRENCE_EVENT_SOURCE_LIMIT);
       const userTimezone = await dependencies.resolveUserTimezone(actor, dependencies.database);
-      return [oneOffPage, recurrencePage, userTimezone] as const;
+      return [oneOffPage, recurrencePage, eventPage, userTimezone] as const;
     }
 
-    const [oneOffPage, recurrencePage, userTimezone] = dependencies.serializeSourceReads
+    const [oneOffPage, recurrencePage, eventPage, userTimezone] = dependencies.serializeSourceReads
       ? await loadSourcesSequentially()
       : await Promise.all([
           schedules.listActiveOpenOneOffsInRange(actor.userId, range),
           recurrences.listActiveOpenSourcesInRange(actor.userId, range),
+          events.listLatestForUser(actor.userId, OCCURRENCE_EVENT_SOURCE_LIMIT),
           dependencies.resolveUserTimezone(actor, dependencies.database),
         ]);
-    const recurrenceTaskIds = recurrencePage.items.map(({ task }) => task.id);
-    const eventPage = await events.listLatestForTasks(
-      actor.userId,
-      recurrenceTaskIds,
-      OCCURRENCE_EVENT_SOURCE_LIMIT,
-    );
+    const historicalEvents = selectPotentiallyOverlappingHistoricalEvents(eventPage.items, query);
+    const currentSourceTaskIds = new Set(recurrencePage.items.map(({ task }) => task.id));
+    const historicalTaskIds = [
+      ...new Set(
+        historicalEvents.flatMap(({ event }) =>
+          currentSourceTaskIds.has(event.taskId) ? [] : [event.taskId],
+        ),
+      ),
+    ].sort();
+    const historicalSourcePage =
+      historicalTaskIds.length === 0
+        ? { items: [], truncated: false }
+        : await recurrences.listActiveOpenSourcesForTaskIds(
+            actor.userId,
+            historicalTaskIds,
+            RECURRENCE_SOURCE_LIMIT,
+          );
+    const recurrenceSources = mergeRecurrenceSources(recurrencePage.items, historicalSourcePage.items);
     const reasons = new Set<OccurrenceTruncation["reasons"][number]>();
-    if (oneOffPage.truncated || recurrencePage.truncated) reasons.add("source_limit");
+    if (
+      oneOffPage.truncated ||
+      recurrencePage.truncated ||
+      historicalSourcePage.truncated ||
+      recurrenceSources.truncated
+    ) {
+      reasons.add("source_limit");
+    }
     if (eventPage.truncated) reasons.add("event_source_limit");
 
     const projections = new Map<string, SortableProjection>();
@@ -103,7 +124,7 @@ export function createBoundedOccurrenceReader(
     }
 
     const latestEvents = new Map(
-      eventPage.items.map((event) => [
+      historicalEvents.map(({ event }) => [
         eventIdentity(event.taskId, event.occurrenceKey),
         occurrenceStateSchema.parse(event.state),
       ]),
@@ -158,15 +179,14 @@ export function createBoundedOccurrenceReader(
       }
     }
 
-    const recurrenceByTask = new Map(recurrencePage.items.map((source) => [source.task.id, source]));
-    for (const event of eventPage.items) {
+    const recurrenceByTask = new Map(recurrenceSources.items.map((source) => [source.task.id, source]));
+    for (const { event, decoded } of historicalEvents) {
       const source = recurrenceByTask.get(event.taskId);
       if (!source) continue;
       if (event.taskVersion > source.task.version) {
         throw new Error("An occurrence event cannot be newer than its owning task.");
       }
       const parsed = parseStoredRecurrence(source.recurrence, source.schedule);
-      const decoded = decodeOccurrenceKey(event.occurrenceKey, source.task.id);
       const schedule = projectRecordedOccurrence(parsed.anchor, decoded);
       if (!schedule || !occurrenceOverlapsRange(schedule, query)) continue;
       addRecurringProjection(
@@ -185,12 +205,25 @@ export function createBoundedOccurrenceReader(
       truncation: {
         truncated: reasons.size > 0,
         reasons: orderedReasons(reasons),
-        recurrenceRowsEvaluated: recurrencePage.items.length,
+        recurrenceRowsEvaluated: recurrenceSources.items.length,
         occurrenceEventsEvaluated: eventPage.items.length,
         candidateEvaluations,
       },
     });
   };
+}
+
+function mergeRecurrenceSources(
+  current: readonly StoredTaskRecurrenceSource[],
+  historical: readonly StoredTaskRecurrenceSource[],
+) {
+  const currentIds = new Set(current.map(({ task }) => task.id));
+  const historicalOnly = historical.filter(({ task }) => !currentIds.has(task.id));
+  const available = Math.max(0, RECURRENCE_SOURCE_LIMIT - current.length);
+  return {
+    items: [...current, ...historicalOnly.slice(0, available)],
+    truncated: historicalOnly.length > available,
+  } as const;
 }
 
 function addRecurringProjection(

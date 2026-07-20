@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const repositories = vi.hoisted(() => ({
   schedules: { listActiveOpenOneOffsInRange: vi.fn() },
-  recurrences: { listActiveOpenSourcesInRange: vi.fn() },
-  events: { listLatestForTasks: vi.fn() },
+  recurrences: {
+    listActiveOpenSourcesInRange: vi.fn(),
+    listActiveOpenSourcesForTaskIds: vi.fn(),
+  },
+  events: { listLatestForUser: vi.fn() },
 }));
 
 vi.mock("../infrastructure/task-schedule-repository", () => ({
@@ -97,6 +100,14 @@ function recurrence() {
   };
 }
 
+function recurringSource() {
+  return {
+    task: storedTask(recurringTaskId),
+    schedule: recurringSchedule(),
+    recurrence: recurrence(),
+  };
+}
+
 function oneOffSchedule() {
   return {
     userId,
@@ -152,16 +163,14 @@ describe("bounded occurrence reader", () => {
       truncated: false,
     });
     repositories.recurrences.listActiveOpenSourcesInRange.mockResolvedValue({
-      items: [
-        {
-          task: storedTask(recurringTaskId),
-          schedule: recurringSchedule(),
-          recurrence: recurrence(),
-        },
-      ],
+      items: [recurringSource()],
       truncated: false,
     });
-    repositories.events.listLatestForTasks.mockResolvedValue({
+    repositories.recurrences.listActiveOpenSourcesForTaskIds.mockResolvedValue({
+      items: [],
+      truncated: false,
+    });
+    repositories.events.listLatestForUser.mockResolvedValue({
       items: [event(recordedPriorKey, "completed", 2), event(currentKey, "skipped", 3)],
       truncated: false,
     });
@@ -171,6 +180,13 @@ describe("bounded occurrence reader", () => {
     const page = await reader()(actor, query());
 
     expect(page.items).toHaveLength(3);
+    expect(
+      new Set(
+        page.items.map((item) =>
+          item.projectionKind === "recurring" ? item.occurrence.occurrenceKey : item.task.id,
+        ),
+      ).size,
+    ).toBe(3);
     expect(page.items.map((item) => item.projectionKind)).toEqual(["recurring", "recurring", "one_off"]);
     expect(page.items[0]).toMatchObject({
       occurrence: { occurrenceKey: recordedPriorKey, occurrenceState: "completed" },
@@ -185,7 +201,56 @@ describe("bounded occurrence reader", () => {
       occurrenceEventsEvaluated: 2,
       candidateEvaluations: 1,
     });
-    expect(repositories.events.listLatestForTasks).toHaveBeenCalledWith(userId, [recurringTaskId], 50_000);
+    expect(repositories.events.listLatestForUser).toHaveBeenCalledWith(userId, 50_000);
+    expect(repositories.recurrences.listActiveOpenSourcesForTaskIds).not.toHaveBeenCalled();
+  });
+
+  it("recovers a recorded occurrence after its mutable lower cutover advances beyond the range", async () => {
+    repositories.schedules.listActiveOpenOneOffsInRange.mockResolvedValueOnce({
+      items: [],
+      truncated: false,
+    });
+    repositories.recurrences.listActiveOpenSourcesInRange.mockResolvedValueOnce({
+      items: [],
+      truncated: false,
+    });
+    repositories.recurrences.listActiveOpenSourcesForTaskIds.mockResolvedValueOnce({
+      items: [recurringSource()],
+      truncated: false,
+    });
+    repositories.events.listLatestForUser.mockResolvedValueOnce({
+      items: [event(recordedPriorKey, "completed", 2)],
+      truncated: false,
+    });
+
+    const page = await reader()(actor, {
+      ...query(),
+      rangeEndDate: "2026-07-21",
+      rangeEndAt: "2026-07-20T16:00:00.000Z",
+    });
+
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        projectionKind: "recurring",
+        occurrence: expect.objectContaining({
+          occurrenceKey: recordedPriorKey,
+          occurrenceState: "completed",
+        }),
+      }),
+    ]);
+    expect(page.truncation).toEqual({
+      truncated: false,
+      reasons: [],
+      recurrenceRowsEvaluated: 1,
+      occurrenceEventsEvaluated: 1,
+      candidateEvaluations: 0,
+    });
+    expect(repositories.recurrences.listActiveOpenSourcesForTaskIds).toHaveBeenCalledWith(
+      userId,
+      [recurringTaskId],
+      500,
+    );
+    expect(expansion.expand).not.toHaveBeenCalled();
   });
 
   it("reports output, source, event, and series cap truncation explicitly", async () => {
@@ -193,7 +258,7 @@ describe("bounded occurrence reader", () => {
       items: [{ task: storedTask(oneOffTaskId), schedule: oneOffSchedule() }],
       truncated: true,
     });
-    repositories.events.listLatestForTasks.mockResolvedValueOnce({
+    repositories.events.listLatestForUser.mockResolvedValueOnce({
       items: [event(currentKey, "skipped", 3)],
       truncated: true,
     });
@@ -211,5 +276,34 @@ describe("bounded occurrence reader", () => {
       "series_candidate_limit",
       "output_limit",
     ]);
+  });
+
+  it("reports historical-source truncation without expanding historical-only sources", async () => {
+    repositories.schedules.listActiveOpenOneOffsInRange.mockResolvedValueOnce({
+      items: [],
+      truncated: false,
+    });
+    repositories.recurrences.listActiveOpenSourcesInRange.mockResolvedValueOnce({
+      items: [],
+      truncated: false,
+    });
+    repositories.recurrences.listActiveOpenSourcesForTaskIds.mockResolvedValueOnce({
+      items: [recurringSource()],
+      truncated: true,
+    });
+    repositories.events.listLatestForUser.mockResolvedValueOnce({
+      items: [event(recordedPriorKey, "completed", 2)],
+      truncated: false,
+    });
+
+    const page = await reader()(actor, {
+      ...query(),
+      rangeEndDate: "2026-07-21",
+      rangeEndAt: "2026-07-20T16:00:00.000Z",
+    });
+
+    expect(page.items).toHaveLength(1);
+    expect(page.truncation.reasons).toEqual(["source_limit"]);
+    expect(expansion.expand).not.toHaveBeenCalled();
   });
 });

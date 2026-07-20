@@ -60,6 +60,8 @@ describe("P2 recurrence query plans", () => {
     const instantQuery = queryContaining(queries, '"task_recurrences"."projection_start_at" <');
     expect(dateQuery.sql).toContain('"task_recurrences"."user_id" =');
     expect(instantQuery.sql).toContain('"task_recurrences"."user_id" =');
+    expect(dateQuery.params).toContain("2026-06-17");
+    expect(instantQuery.params).toContain("2026-06-17T00:00:00.000Z");
 
     const dateIndexes = indexNames(await explain(pool, dateQuery));
     const instantIndexes = indexNames(await explain(pool, instantQuery));
@@ -67,24 +69,39 @@ describe("P2 recurrence query plans", () => {
     expect(instantIndexes).toContain("task_recurrences_instant_cutover_idx");
   });
 
-  it("uses the tenant/task/key/version index for bounded latest-event reads", async () => {
-    const taskIds = [taskId(datePrefix, 0)];
+  it("uses the tenant/task/key/version index for bounded tenant latest-event reads", async () => {
     const capture = createQueryCapture(pool);
-    const page = await createTaskOccurrenceEventRepository(capture.database).listLatestForTasks(
-      owner,
-      taskIds,
-      50_000,
-    );
+    const page = await createTaskOccurrenceEventRepository(capture.database).listLatestForUser(owner, 50_000);
 
-    expect(page.items).toHaveLength(1);
+    expect(page.items).toHaveLength(100);
     expect(page.items.every(({ userId, taskVersion }) => userId === owner && taskVersion === 3)).toBe(true);
     expect(page.truncated).toBe(false);
     const query = capture.lastQuery();
     expect(query.sql).toContain('"task_occurrence_events"."user_id" =');
-    expect(query.sql).toContain('"task_occurrence_events"."task_id" in');
 
-    const indexNames = new Set(flattenPlan(await explain(pool, query)).map((node) => node["Index Name"]));
+    const eventPlan = await explain(pool, query, { disableBitmapScan: true });
+    const indexNames = new Set(flattenPlan(eventPlan).map((node) => node["Index Name"]));
     expect(indexNames).toContain("task_occurrence_events_latest_state_idx");
+  });
+
+  it("uses tenant-leading keys for cutover-independent historical source hydration", async () => {
+    const selectedTaskId = taskId(datePrefix, 0);
+    const capture = createQueryCapture(pool);
+    const page = await createTaskRecurrenceRepository(capture.database).listActiveOpenSourcesForTaskIds(
+      owner,
+      [selectedTaskId],
+      100,
+    );
+
+    expect(page).toMatchObject({ truncated: false });
+    expect(page.items.map(({ task }) => task.id)).toEqual([selectedTaskId]);
+    expect(page.items.every(({ task }) => task.userId === owner)).toBe(true);
+    const query = capture.lastQuery();
+    expect(query.sql).toContain('"task_recurrences"."user_id" =');
+    expect(query.sql).toContain('"task_recurrences"."task_id" in');
+
+    const indexes = indexNames(await explain(pool, query));
+    expect(indexes).toContain("task_recurrences_pkey");
   });
 });
 
@@ -111,11 +128,16 @@ function createQueryCapture(databasePool: Pool) {
   };
 }
 
-async function explain(databasePool: Pool, query: CapturedQuery): Promise<ExplainNode> {
+async function explain(
+  databasePool: Pool,
+  query: CapturedQuery,
+  options: Readonly<{ disableBitmapScan?: boolean }> = {},
+): Promise<ExplainNode> {
   const client = await databasePool.connect();
   try {
     await client.query("begin");
     await client.query("set local enable_seqscan = off");
+    if (options.disableBitmapScan) await client.query("set local enable_bitmapscan = off");
     const result = await client.query<{ "QUERY PLAN": readonly ExplainDocument[] }>(
       `explain (analyze, buffers, costs off, timing off, summary off, format json) ${query.sql}`,
       [...query.params],

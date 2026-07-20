@@ -92,33 +92,79 @@ describe("P2 recurring task lifecycle integration", () => {
       }),
     ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 1 });
 
+    const historicalRange = {
+      rangeStartDate: "2026-07-10",
+      rangeEndDate: "2026-07-11",
+      rangeStartAt: "2026-07-10T00:00:00.000Z",
+      rangeEndAt: "2026-07-11T00:00:00.000Z",
+      limit: 50,
+    } as const;
+    const initialPage = await application.occurrences.readBoundedOccurrences(owner, historicalRange);
+    const historicalOccurrence = initialPage.items.find(
+      (item) => item.projectionKind === "recurring" && item.task.id === task.id,
+    );
+    if (!historicalOccurrence || historicalOccurrence.projectionKind !== "recurring") {
+      throw new Error("Expected the historical recurring occurrence.");
+    }
+    const historicalKey = historicalOccurrence.occurrence.occurrenceKey;
+    await expect(
+      application.occurrences.transitionOccurrence(owner, task.id, {
+        expectedVersion: 1,
+        occurrenceKey: historicalKey,
+        action: "complete",
+      }),
+    ).resolves.toMatchObject({ task: { version: 2 }, occurrenceState: "completed" });
+
     await expect(
       application.tasks.transitionTaskStatus(owner, task.id, {
-        expectedVersion: 1,
+        expectedVersion: 2,
         status: "cancelled",
       }),
-    ).resolves.toMatchObject({ status: "cancelled", version: 2 });
+    ).resolves.toMatchObject({ status: "cancelled", version: 3 });
     expect(await storedRecurrence(task.id)).toMatchObject({ projection_start_date: "2026-07-10" });
 
     currentInstant = new Date("2026-07-25T10:00:00.000Z");
     await expect(
       application.tasks.transitionTaskStatus(owner, task.id, {
-        expectedVersion: 2,
+        expectedVersion: 3,
         status: "open",
       }),
-    ).resolves.toMatchObject({ status: "open", version: 3 });
+    ).resolves.toMatchObject({ status: "open", version: 4 });
     expect(await storedRecurrence(task.id)).toMatchObject({ projection_start_date: "2026-07-26" });
 
+    const resumedHistory = await application.occurrences.readBoundedOccurrences(owner, historicalRange);
+    expect(resumedHistory.items).toHaveLength(1);
+    expect(resumedHistory.items[0]).toMatchObject({
+      projectionKind: "recurring",
+      task: { id: task.id, version: 4 },
+      occurrence: { occurrenceKey: historicalKey, occurrenceState: "completed" },
+    });
+    await expect(
+      application.occurrences.readBoundedOccurrences(stranger, historicalRange),
+    ).resolves.toMatchObject({ items: [] });
+    await expect(
+      application.occurrences.transitionOccurrence(owner, task.id, {
+        expectedVersion: 4,
+        occurrenceKey: historicalKey,
+        action: "undo",
+      }),
+    ).resolves.toMatchObject({ task: { version: 5 }, occurrenceState: "open" });
+    const undoneHistory = await application.occurrences.readBoundedOccurrences(owner, historicalRange);
+    expect(undoneHistory.items).toHaveLength(1);
+    expect(undoneHistory.items[0]).toMatchObject({
+      occurrence: { occurrenceKey: historicalKey, occurrenceState: "open" },
+    });
+
     currentInstant = new Date("2026-07-27T10:00:00.000Z");
-    await expect(application.tasks.deleteTask(owner, task.id, { expectedVersion: 3 })).resolves.toMatchObject(
-      { deletedAt: currentInstant.toISOString(), version: 4 },
+    await expect(application.tasks.deleteTask(owner, task.id, { expectedVersion: 5 })).resolves.toMatchObject(
+      { deletedAt: currentInstant.toISOString(), version: 6 },
     );
     expect(await storedRecurrence(task.id)).toMatchObject({ projection_start_date: "2026-07-26" });
 
     currentInstant = new Date("2026-07-30T10:00:00.000Z");
     await expect(
-      application.tasks.restoreTask(owner, task.id, { expectedVersion: 4 }),
-    ).resolves.toMatchObject({ deletedAt: null, version: 5 });
+      application.tasks.restoreTask(owner, task.id, { expectedVersion: 6 }),
+    ).resolves.toMatchObject({ deletedAt: null, version: 7 });
     expect(await storedRecurrence(task.id)).toMatchObject({ projection_start_date: "2026-07-31" });
 
     await database
@@ -129,16 +175,16 @@ describe("P2 recurring task lifecycle integration", () => {
       );
     await expect(
       application.tasks.transitionTaskStatus(owner, task.id, {
-        expectedVersion: 5,
+        expectedVersion: 7,
         status: "completed",
       }),
-    ).resolves.toMatchObject({ status: "completed", version: 6 });
+    ).resolves.toMatchObject({ status: "completed", version: 8 });
     await expect(
       application.tasks.transitionTaskStatus(owner, task.id, {
-        expectedVersion: 6,
+        expectedVersion: 8,
         status: "open",
       }),
-    ).resolves.toMatchObject({ status: "open", version: 7 });
+    ).resolves.toMatchObject({ status: "open", version: 9 });
     expect(await storedRecurrence(task.id)).toMatchObject({
       projection_start_date: "2026-07-31",
       projection_end_date: "2026-07-31",
