@@ -80,7 +80,7 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
     expect(context.busyIntervals).toBeNull();
   });
 
-  it("does not lock schedules before recurrence validation", async () => {
+  it("locks task then recurrence without taking the schedule lock early", async () => {
     const list = await createList(ownerA, "Planner lock order");
     const scheduled = await createScheduled(
       ownerA,
@@ -88,27 +88,49 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
       "Schedule stays behind recurrence in lock order",
       "2026-07-25T09:00:00Z",
     );
-    let releasePlanner!: () => void;
-    let signalLoaded!: () => void;
-    const plannerReleased = new Promise<void>((resolve) => {
-      releasePlanner = resolve;
+    const recurrence = await application.recurrences.setRecurrence(ownerA, scheduled.id, {
+      expectedVersion: scheduled.version,
+      definition: dailyDefinition(),
     });
-    const contextLoaded = new Promise<void>((resolve) => {
-      signalLoaded = resolve;
-    });
-    const heldPlanner = database.transaction(async (transaction) => {
-      await application.reviewedPlanWrites.loadApplyContextForUpdate(
-        ownerA,
-        [scheduled.id],
-        null,
-        transaction,
-      );
-      signalLoaded();
-      await plannerReleased;
-    });
-
-    await contextLoaded;
+    const blocker = await pool.connect();
+    let blockerOpen = false;
+    let applyCompletion: Promise<void> | undefined;
     try {
+      await blocker.query("begin");
+      blockerOpen = true;
+      await blocker.query(
+        `select task_id from task_recurrences where user_id = $1 and task_id = $2 for update`,
+        [ownerA.userId, scheduled.id],
+      );
+      const applyResult = database
+        .transaction((transaction) =>
+          application.reviewedPlanWrites.applyBatch(
+            ownerA,
+            {
+              creates: [],
+              updates: [
+                {
+                  id: scheduled.id,
+                  expectedVersion: recurrence.task.version,
+                  schedule: {
+                    kind: "timed",
+                    startAt: "2026-07-25T11:00:00Z",
+                    endAt: "2026-07-25T11:30:00Z",
+                    timezone: "UTC",
+                  },
+                },
+              ],
+            },
+            transaction,
+          ),
+        )
+        .then(
+          (value) => ({ status: "fulfilled" as const, value }),
+          (reason: unknown) => ({ status: "rejected" as const, reason }),
+        );
+      applyCompletion = applyResult.then(() => undefined);
+      await waitForBlockedLock(pool, "opentask-wp02-reviewed_plan_write-isolated");
+
       await expect(
         pool.query(
           `select task_id from task_schedules where user_id = $1 and task_id = $2 for update nowait`,
@@ -121,9 +143,20 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
           scheduled.id,
         ]),
       ).rejects.toMatchObject({ code: "55P03" });
+
+      await blocker.query("commit");
+      blockerOpen = false;
+      const result = await applyResult;
+      expect(result.status).toBe("rejected");
+      if (result.status !== "rejected") throw new Error("Recurring planner edit unexpectedly succeeded.");
+      expect(result.reason).toMatchObject({
+        code: "CONFLICT",
+        currentVersion: recurrence.task.version,
+      });
     } finally {
-      releasePlanner();
-      await heldPlanner;
+      if (blockerOpen) await blocker.query("rollback");
+      blocker.release();
+      await applyCompletion;
     }
   });
 
@@ -486,6 +519,20 @@ function dailyDefinition() {
 async function storedTask(userId: string, taskId: string) {
   const result = await pool.query(`select * from tasks where user_id = $1 and id = $2`, [userId, taskId]);
   return result.rows[0] as Record<string, unknown> | undefined;
+}
+
+async function waitForBlockedLock(databasePool: Pool, applicationName: string): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const result = await databasePool.query<{ count: number }>(
+      `select count(*)::int as count
+         from pg_stat_activity
+        where application_name = $1 and wait_event_type = 'Lock'`,
+      [applicationName],
+    );
+    if ((result.rows[0]?.count ?? 0) >= 1) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error("Timed out waiting for the planner transaction to reach the recurrence lock.");
 }
 
 async function storedSchedule(userId: string, taskId: string) {
