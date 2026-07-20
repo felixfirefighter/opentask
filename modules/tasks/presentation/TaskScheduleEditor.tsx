@@ -105,13 +105,13 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
             taskId={task.id}
             draft={editor.draft}
             disabled={editor.scheduleEditDisabled}
+            kindLockReason={
+              editor.recurrence
+                ? `This recurring series stays ${editor.draft.kind === "all_day" ? "all day" : "at a specific time"} so recorded occurrence history remains stable. Saving other schedule changes restarts future occurrences.`
+                : undefined
+            }
             onChange={editor.changeDraft}
           />
-          {editor.recurrence ? (
-            <p className={styles.seriesNote}>
-              Saving changes restarts future occurrences while preserving recorded history.
-            </p>
-          ) : null}
           <p className={styles.interpretation}>
             {editor.interpretation?.valid
               ? `Interpreted as: ${editor.interpretation.summary}`

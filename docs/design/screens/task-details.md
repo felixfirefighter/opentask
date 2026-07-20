@@ -33,6 +33,8 @@ assignees, activity history, templates, estimates, or custom fields.
 - Edit fields, complete/undo or skip/reopen an occurrence, cancel/restore, move, and soft-delete.
 - Edit/end a recurrence series for future expansion only; no individual occurrence reschedule,
   recurring checklist state, raw RRULE, or “this and future” fork.
+- The recurring schedule editor keeps its all-day or specific-time type fixed. To change type, end
+  recurrence and clear the ended definition with its schedule before adding a new schedule.
 - Recurrence offers only Daily, Weekdays, selected-weekday Weekly, anchor-day Monthly, and
   anchor-month/day Yearly, with interval, inclusive end date, or count inside the documented bounds.
   The interpreted cadence/timezone/end is visible before commit. Weekday mismatch, recurring

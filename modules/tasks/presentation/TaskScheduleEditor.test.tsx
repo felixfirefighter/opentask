@@ -144,9 +144,9 @@ describe("TaskScheduleEditor", () => {
     renderEditor();
 
     await user.click(await screen.findByRole("button", { name: "Edit recurring schedule" }));
-    expect(
-      screen.getByText(/restarts future occurrences while preserving recorded history/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/recorded occurrence history remains stable/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("All day")).toBeDisabled();
+    expect(screen.getByLabelText("Specific time")).toBeDisabled();
     fireEvent.change(screen.getByLabelText("End date (exclusive)"), {
       target: { value: "2026-07-23" },
     });
@@ -161,6 +161,18 @@ describe("TaskScheduleEditor", () => {
     );
     expect(scheduleApi.setTaskSchedule).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "Clear schedule" })).not.toBeInTheDocument();
+  });
+
+  it("keeps schedule-kind switching available for a non-recurring root task", async () => {
+    savedSchedule = allDaySchedule();
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Edit schedule" }));
+
+    expect(screen.getByLabelText("All day")).toBeEnabled();
+    expect(screen.getByLabelText("Specific time")).toBeEnabled();
+    expect(screen.queryByText(/recorded occurrence history remains stable/i)).not.toBeInTheDocument();
   });
 
   it("moves keyboard focus into the recurring schedule form when it opens", async () => {

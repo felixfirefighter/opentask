@@ -119,6 +119,11 @@ export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicat
       if (!locked.recurrence) {
         throw taskConflict("This task does not have a recurrence rule.", locked.task.version);
       }
+      if (input.schedule.kind !== locked.schedule.kind) {
+        throw taskValidationFailure(
+          "A recurring schedule must keep its all-day or specific-time type to preserve occurrence history.",
+        );
+      }
       const timezone =
         input.schedule.kind === "all_day"
           ? await resolveUserTimezone(actor, transaction)

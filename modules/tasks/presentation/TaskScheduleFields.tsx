@@ -8,25 +8,31 @@ const timeZones = ["UTC", ...Intl.supportedValuesOf("timeZone")];
 export function TaskScheduleFields({
   disabled,
   draft,
+  kindLockReason,
   onChange,
   taskId,
 }: Readonly<{
   disabled: boolean;
   draft: TaskScheduleDraft;
+  kindLockReason?: string | undefined;
   onChange: (draft: TaskScheduleDraft) => void;
   taskId: string;
 }>) {
   const helpId = `schedule-timezone-help-${taskId}`;
+  const kindLockHelpId = `schedule-kind-lock-help-${taskId}`;
   return (
     <div className={styles.fields}>
-      <fieldset className={styles.kindFieldset}>
+      <fieldset
+        className={styles.kindFieldset}
+        aria-describedby={kindLockReason ? kindLockHelpId : undefined}
+      >
         <legend>Schedule type</legend>
         <label>
           <input
             type="radio"
             name={`schedule-kind-${taskId}`}
             checked={draft.kind === "all_day"}
-            disabled={disabled}
+            disabled={disabled || kindLockReason !== undefined}
             onChange={() => onChange({ ...draft, kind: "all_day" })}
           />
           All day
@@ -36,12 +42,17 @@ export function TaskScheduleFields({
             type="radio"
             name={`schedule-kind-${taskId}`}
             checked={draft.kind === "timed"}
-            disabled={disabled}
+            disabled={disabled || kindLockReason !== undefined}
             onChange={() => onChange({ ...draft, kind: "timed" })}
           />
           Specific time
         </label>
       </fieldset>
+      {kindLockReason ? (
+        <p id={kindLockHelpId} className={styles.seriesNote}>
+          {kindLockReason}
+        </p>
+      ) : null}
 
       {draft.kind === "all_day" ? (
         <div className={styles.fieldGrid}>

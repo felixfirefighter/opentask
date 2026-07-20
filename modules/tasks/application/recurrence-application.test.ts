@@ -85,6 +85,22 @@ function timedSchedule(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function allDaySchedule(overrides: Record<string, unknown> = {}) {
+  return {
+    userId,
+    taskId,
+    kind: "all_day",
+    startDate: "2026-07-21",
+    endDate: "2026-07-22",
+    startAt: null,
+    endAt: null,
+    timezone: null,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
 function storedRecurrence(overrides: Record<string, unknown> = {}) {
   return {
     userId,
@@ -233,6 +249,58 @@ describe("recurrence application", () => {
       repositories.recurrences.replace.mock.invocationCallOrder[0]!,
     );
     expect(repositories.tasks.incrementVersion).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    {
+      direction: "all-day to timed",
+      currentSchedule: allDaySchedule(),
+      currentRecurrence: storedRecurrence({
+        projectionStartDate: "2026-07-21",
+        projectionStartAt: null,
+      }),
+      nextSchedule: {
+        kind: "timed" as const,
+        startAt: "2026-07-21T01:00:00.000Z",
+        endAt: "2026-07-21T02:00:00.000Z",
+        timezone: "Asia/Singapore",
+      },
+    },
+    {
+      direction: "timed to all-day",
+      currentSchedule: timedSchedule(),
+      currentRecurrence: storedRecurrence(),
+      nextSchedule: {
+        kind: "all_day" as const,
+        startDate: "2026-07-21",
+        endDate: "2026-07-22",
+      },
+    },
+  ])("rejects a $direction recurring schedule kind change before persistence", async (fixture) => {
+    repositories.schedules.lockByTaskId.mockResolvedValue(fixture.currentSchedule);
+    repositories.recurrences.lockByTaskId.mockResolvedValue(fixture.currentRecurrence);
+
+    await expect(
+      createTaskRecurrenceApplication({
+        database,
+        clock,
+        taskSchedules,
+        expansion,
+        resolveUserTimezone,
+      }).editRecurringSchedule(actor, taskId, {
+        expectedVersion: 4,
+        definition: { preset: { kind: "daily", interval: 1 }, end: { kind: "never" } },
+        schedule: fixture.nextSchedule,
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION_FAILED",
+      message:
+        "A recurring schedule must keep its all-day or specific-time type to preserve occurrence history.",
+    });
+
+    expect(repositories.schedules.upsert).not.toHaveBeenCalled();
+    expect(repositories.recurrences.replace).not.toHaveBeenCalled();
+    expect(repositories.tasks.incrementVersion).not.toHaveBeenCalled();
   });
 
   it("ends with the documented no-candidate fallback and rejects cross-user guesses", async () => {

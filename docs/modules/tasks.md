@@ -91,6 +91,9 @@ No public contract exposes a Drizzle row or an unscoped repository method.
   zone, resolves a spring gap to the later valid instant and a fold to the earlier instant, and ends
   after the canonical schedule's exact elapsed duration. All-day occurrences preserve their
   calendar-day duration. An ambiguous anchor that selected the later fold instant is not eligible.
+  While a recurrence definition exists, its schedule kind is fixed: all-day remains all-day and
+  timed remains timed. Changing kind requires ending recurrence and clearing its ended definition
+  with the schedule first; non-recurring root tasks retain ordinary schedule-kind editing.
 - The task-owned RRULE adapter accepts only the typed domain preset, never presentation or arbitrary
   text. It stores a canonical uppercase ASCII property list of 1-512 characters with no prefix,
   `DTSTART`, line break, `RDATE`, or exclusion rule. `task_schedules` remains the only series anchor;
