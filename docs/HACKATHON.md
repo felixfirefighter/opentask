@@ -57,7 +57,7 @@ Do not create a running Markdown diary. Select a few meaningful commits and the 
 
 | Time | Story beat | Visible proof |
 |---:|---|---|
-| 0:00–0:12 | Problem and promise | Original landing page; open-source/self-host message |
+| 0:00–0:12 | Problem and promise | Direct app launch; open-source/self-host message |
 | 0:12–0:34 | Capture | Enter a natural-language task; recognized date remains editable |
 | 0:34–0:56 | Organize | Add list, priority, tag, checklist item, and Markdown context |
 | 0:56–1:16 | Plan across views | Schedule on Calendar; show the same task in Today and Matrix |

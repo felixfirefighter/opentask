@@ -30,7 +30,6 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 ```text
 app/                     Next.js routes and composition only
 modules/                 Product feature modules
-  landing/                public landing presentation only
   identity/
   tasks/
   planning/
@@ -53,8 +52,7 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 
 | Module | Owns | Contract |
 |---|---|---|
-| landing | public landing presentation and original product preview | `docs/modules/landing.md` |
-| identity | session context, user preferences, account bootstrap | `docs/modules/identity.md` |
+| identity | local profile setup, internal session context, user preferences, workspace bootstrap | `docs/modules/identity.md` |
 | tasks | folders, lists, sections, tasks, schedules, tags, checklist, search | `docs/modules/tasks.md` |
 | planning | smart views, calendar projections, Eisenhower rules, deterministic scheduler | `docs/modules/planning.md` |
 | habits | habit definitions, schedules, logs, Today/history/streak projections | `docs/modules/habits.md` |
@@ -67,8 +65,8 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 
 - `shared/presentation`: shadcn primitives, generic layout primitives, generic hooks.
 - `shared/design`: tokens and theme plumbing.
-- `shared/auth`: provider-neutral actor/session contracts and authentication errors; no provider
-  implementation or feature authorization policies.
+- `shared/auth`: provider-neutral actor/session contracts and authorization errors; no provider
+  implementation or feature authorization policies. Credential entry is not a product surface.
 - `shared/db`: connection, transaction type, schema aggregation, and generic entity-ID generation
   only.
 - `shared/logging`: structured logger and redaction.

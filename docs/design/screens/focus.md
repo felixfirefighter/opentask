@@ -43,7 +43,7 @@ Completed sessions may be corrected or deleted by their owner. Correction uses s
 | Loading | Show stable timer geometry with a status, not a guessed countdown. Load summary/history independently after authoritative active-state resolution. |
 | Error | If active-state lookup fails, do not expose Start until uniqueness is known; show Retry. Failed pause/finish/discard keeps the last authoritative state and says the timer may still be running. History error does not disable the timer. |
 | Offline | A previously loaded running timer may continue its display projection from the last server timestamp, labeled “Not connected; timer may still be running”. Disable start/pause/resume/finish/discard/correction/delete until online; never record a local duration. |
-| Permission | Unauthenticated access routes to sign-in. Foreign session IDs and inaccessible linked items reveal no private content; historical rows may show “Linked item unavailable”. |
+| Permission | Missing internal session routes to direct app launch. Foreign session IDs and inaccessible linked items reveal no private content; historical rows may show “Linked item unavailable”. |
 | Conflict/reconnect | Replace duplicate/stale local timer state with the one authoritative server timer, announce the recovered mode/status, and preserve no false local session. |
 
 ## Keyboard, touch, and accessibility

@@ -63,7 +63,7 @@ a strong accent.
 
 ## Atmospheric decoration
 
-These tokens are decorative only and may appear on landing, first-run, major empty states, or
+These tokens are decorative only and may appear on app launch, first-run, major empty states, or
 restrained planner framing. Use no more than two fields in one composition, at `0.72` light/`0.55`
 dark opacity and `64px` blur. They cannot encode state or appear in task rows, calendar cells,
 Matrix quadrants, controls, alerts, or status fills.
@@ -86,9 +86,9 @@ keep rendering usable if a font asset fails.
 
 | Token | Size / line | Weight | Use |
 |---|---|---:|---|
-| `text-display-mega` | 64 px / `1.05` | 400 | Wide landing hero; `-1.92px` tracking |
-| `text-display-xl` | 48 px / `1.08` | 400 | Tablet/compact landing hero; `-0.96px` tracking |
-| `text-display-lg` | 36 px / `1.17` | 400 | Mobile landing hero or approved major empty moment; `-0.36px` tracking |
+| `text-display-mega` | 64 px / `1.05` | 400 | Wide app-launch heading; `-1.92px` tracking |
+| `text-display-xl` | 48 px / `1.08` | 400 | Tablet/compact app-launch heading; `-0.96px` tracking |
+| `text-display-lg` | 36 px / `1.17` | 400 | Mobile app-launch heading or approved major empty moment; `-0.36px` tracking |
 | `text-display-sm` | 24 px / `1.2` | 400 | Approved small editorial heading; zero tracking |
 | `text-page-title` | 26 / 32 px | 600 | Compact workspace title, sans by default |
 | `text-section-title` | 20 / 26 px | 600 | Major section/card heading |

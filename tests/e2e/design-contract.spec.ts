@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { signUpThroughUi } from "./support/wp01-auth";
+import { enterWorkspaceThroughUi } from "./support/wp01-auth";
 import { assertPriorityMarkers, readBaseTaskRowContract } from "./support/task-row-contract";
 import { addTagToTask, quickAddTask, taskRow, updateTask } from "./support/wp03-tasks";
 
@@ -12,7 +12,7 @@ test("production TaskRow preserves the approved density, typography, and action 
   page,
 }, testInfo) => {
   test.setTimeout(60_000);
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   await page.evaluate(() => document.fonts.ready);
   const created = await quickAddTask(page, "Review production task row");
   const prioritized = await updateTask(page, created, { priority: "high" });
@@ -137,16 +137,15 @@ test("production TaskRow preserves the approved density, typography, and action 
   });
 });
 
-test("the public landing keeps labeled entry actions inside every boundary viewport", async ({
+test("direct app launch keeps profile setup usable inside every boundary viewport", async ({
   page,
 }, testInfo) => {
   await page.goto("/");
   await page.evaluate(() => document.fonts.ready);
-  const heroHeading = page.getByRole("heading", { name: "Make room for what matters." });
+  const heroHeading = page.getByRole("heading", { name: "Set up your profile" });
   await expect(heroHeading).toBeVisible();
-  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Create account" }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Try demo" })).toBeVisible();
+  await expect(page.getByLabel("Profile username", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open workspace" })).toBeVisible();
 
   const layout = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -156,34 +155,22 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
 
   const ctaLayout = await page.evaluate(() => {
-    const main = document.querySelector("main");
-    const createAccount = main?.querySelector('a[href="/sign-up"]');
-    const tryDemo = Array.from(main?.querySelectorAll("button") ?? []).find((button) =>
-      button.textContent?.includes("Try demo"),
-    );
-    if (!(createAccount instanceof HTMLElement) || !(tryDemo instanceof HTMLElement)) {
-      throw new Error("Landing hero actions are missing");
-    }
-    const createAccountRect = createAccount.getBoundingClientRect();
-    const tryDemoRect = tryDemo.getBoundingClientRect();
+    const action = document.querySelector('button[type="submit"]');
+    if (!(action instanceof HTMLElement)) throw new Error("Profile setup action is missing");
+    const actionRect = action.getBoundingClientRect();
     const targetSize = Number.parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue("--control-target-touch"),
     );
     return {
-      createAccountHeight: createAccountRect.height,
+      actionHeight: actionRect.height,
       targetSize,
-      tryDemoHeight: tryDemoRect.height,
     };
   });
-  expect(ctaLayout.createAccountHeight).toBe(ctaLayout.targetSize);
-  expect(ctaLayout.tryDemoHeight).toBe(ctaLayout.targetSize);
+  expect(ctaLayout.actionHeight).toBe(ctaLayout.targetSize);
 
   const typography = await heroHeading.evaluate((heading) => {
     const rootStyle = getComputedStyle(document.documentElement);
     const headingStyle = getComputedStyle(heading);
-    const sectionHeading = document.querySelector("h2");
-    if (!(sectionHeading instanceof HTMLElement)) throw new Error("Landing section heading is missing");
-    const sectionHeadingStyle = getComputedStyle(sectionHeading);
     const token = (name: string) => rootStyle.getPropertyValue(name).trim();
     const normalizeFontFamily = (value: string) =>
       value.split(",").map((family) => family.trim().replace(/^['"]|['"]$/g, ""));
@@ -223,27 +210,13 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
           line: token("--type-display-sm-line"),
         },
       },
-      sectionHeading: {
-        families: normalizeFontFamily(sectionHeadingStyle.fontFamily),
-        fontSize: sectionHeadingStyle.fontSize,
-        fontWeight: sectionHeadingStyle.fontWeight,
-        letterSpacing: sectionHeadingStyle.letterSpacing,
-        lineHeight: sectionHeadingStyle.lineHeight,
-        textWrap: sectionHeadingStyle.textWrap,
-      },
       editorialFaces: Array.from(document.fonts)
         .filter((face) => /editorialFont/i.test(face.family))
         .map((face) => ({ family: face.family, status: face.status })),
     };
   });
   expect(typography.headingFamilies).toEqual(typography.displayFamilies);
-  const viewportWidth = page.viewportSize()!.width;
-  const expectedScale =
-    viewportWidth >= 1280
-      ? typography.scales.mega
-      : viewportWidth >= 768
-        ? typography.scales.xl
-        : typography.scales.lg;
+  const expectedScale = typography.scales.sm;
   expect(typography.heading).toMatchObject({
     fontSize: expectedScale.size,
     fontWeight: expectedScale.weight,
@@ -257,17 +230,6 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
     Number.parseFloat(expectedScale.size) * Number.parseFloat(expectedScale.line),
     1,
   );
-  expect(typography.sectionHeading).toMatchObject({
-    families: typography.displayFamilies,
-    fontSize: typography.scales.sm.size,
-    fontWeight: typography.scales.sm.weight,
-    letterSpacing: "normal",
-    textWrap: "balance",
-  });
-  expect(Number.parseFloat(typography.sectionHeading.lineHeight)).toBeCloseTo(
-    Number.parseFloat(typography.scales.sm.size) * Number.parseFloat(typography.scales.sm.line),
-    1,
-  );
   expect(typography.editorialFaces).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ family: expect.stringMatching(/editorialFont/i), status: "loaded" }),
@@ -277,7 +239,7 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
   const evidenceDirectory = path.resolve("artifacts/visual-proof/boundaries");
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({
-    path: path.join(evidenceDirectory, `landing-${testInfo.project.name}.png`),
+    path: path.join(evidenceDirectory, `app-launch-${testInfo.project.name}.png`),
     animations: "disabled",
     fullPage: true,
   });
@@ -287,7 +249,7 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
     document.documentElement.dataset.theme = "dark";
   });
   await page.screenshot({
-    path: path.join(evidenceDirectory, `landing-dark-${testInfo.project.name}.png`),
+    path: path.join(evidenceDirectory, `app-launch-dark-${testInfo.project.name}.png`),
     animations: "disabled",
     fullPage: true,
   });
@@ -306,7 +268,8 @@ test("mobile authenticated surfaces preserve the touch and readable-range contra
   const demoResponse = page.waitForResponse(
     (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Try demo" }).click();
+  await page.getByLabel("Profile username", { exact: true }).fill("Boundary user");
+  await page.getByRole("button", { name: "Open workspace" }).click();
   expect((await demoResponse).status()).toBe(200);
   await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
 
@@ -326,9 +289,7 @@ test("every released route reflows at the tablet and minimum-width boundaries", 
   await mkdir(evidenceDirectory, { recursive: true });
 
   for (const route of [
-    { path: "/", heading: "Make room for what matters.", slug: "landing", display: true },
-    { path: "/sign-in", heading: "Welcome back", slug: "sign-in", display: false },
-    { path: "/sign-up", heading: "Create your account", slug: "sign-up", display: false },
+    { path: "/", heading: "Set up your profile", slug: "app-launch", display: true },
   ] as const) {
     await page.goto(route.path);
     const heading = page.getByRole("heading", { level: 1, name: route.heading, exact: true });
@@ -341,7 +302,8 @@ test("every released route reflows at the tablet and minimum-width boundaries", 
   const demoResponse = page.waitForResponse(
     (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Try demo" }).click();
+  await page.getByLabel("Profile username", { exact: true }).fill("Boundary user");
+  await page.getByRole("button", { name: "Open workspace" }).click();
   expect((await demoResponse).status()).toBe(200);
   await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
   const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
@@ -397,22 +359,20 @@ test("the five proof surfaces reflow at a 200% zoom equivalent and honor reduced
   await mkdir(evidenceDirectory, { recursive: true });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
-  await expectUsesSans(
-    page.getByText("Capture tasks quickly, plan them against real time,", { exact: false }),
-    "landing body copy",
-  );
-  const createAccount = page.getByRole("link", { name: "Create account" }).first();
-  await createAccount.focus();
-  await expect(createAccount).toBeFocused();
-  const focusStyle = await createAccount.evaluate((element) => {
+  await expect(page.getByRole("heading", { name: "Set up your profile" })).toBeVisible();
+  await expectUsesSans(page.getByLabel("Profile username", { exact: true }), "profile username field");
+  const profileInput = page.getByLabel("Profile username", { exact: true });
+  await profileInput.focus();
+  await expect(profileInput).toBeFocused();
+  const focusStyle = await profileInput.evaluate((element) => {
     const style = getComputedStyle(element);
     return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
   });
   expect(focusStyle).toEqual({ outlineStyle: "solid", outlineWidth: "2px" });
-  await auditZoomSurface(page, evidenceDirectory, "landing");
+  await auditZoomSurface(page, evidenceDirectory, "app-launch");
 
-  await page.getByRole("button", { name: "Try demo" }).click();
+  await profileInput.fill("Zoom user");
+  await page.getByRole("button", { name: "Open workspace" }).click();
   await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
   const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
   if (await dismissTips.isVisible()) await dismissTips.click();

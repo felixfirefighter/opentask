@@ -7,7 +7,9 @@ user-controlled PWA/push surface after P5/P6, and exports user-owned data. It do
 management, billing, integration, import, analytics, a notification center, or browser-side secret
 configuration.
 
-Sign out remains in the global account menu. Email/password management, account deletion, API keys, and provider credentials are not rendered because they are outside active scope.
+The global profile menu shows the locally cached username and Settings. There is no sign-out or
+email/password management surface. Account deletion, API keys, and provider credentials are not
+rendered because they are outside active scope.
 
 Focus and break durations are per-run inputs on `/focus`; this release stores no duration preference
 and adds no Focus Settings card.
@@ -56,7 +58,7 @@ their package gates and never expose VAPID or encryption keys.
 | Loading | Preserve card geometry; preferences and provider status may resolve independently. Save/export actions show stable progress and block duplicates only within their card. |
 | Error | Preserve edited values, identify the failed card/action, and offer Retry. Theme preview rolls back after failed save. Export error confirms that no file was generated when true. |
 | Offline | Loaded preferences/status remain readable but labeled stale. Disable Save and export under the global offline explanation; local theme preview may be viewed but not called saved. |
-| Permission | Unauthenticated access routes to sign-in with safe return. Export and provider endpoints recheck authorization; errors reveal no other user's settings/subscriptions/data. |
+| Permission | Missing internal session routes to direct app launch with safe resume. Export and provider endpoints recheck authorization; errors reveal no other user's settings/subscriptions/data. |
 | Provider unavailable | Show manual alternatives and exact capability impact. Missing AI, VAPID, or worker does not look like a core app failure. |
 
 ## Keyboard, touch, and accessibility

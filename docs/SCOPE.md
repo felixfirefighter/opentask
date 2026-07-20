@@ -25,7 +25,7 @@ gates in `docs/QUALITY.md`.
   status colors, 44 px touch targets, dark/system themes, and keyboard equivalence.
 - Use atmospheric decoration only on public, first-run, empty, and restrained planner-framing
   surfaces; never as task/calendar/status decoration.
-- The first implementation checkpoint is a deterministic Landing, Today, Calendar, task-details,
+- The first implementation checkpoint is a deterministic App launch, Today, Calendar, task-details,
   and populated AI Review proof at desktop/mobile widths. Broad migration stops for explicit user
   screenshot approval.
 
@@ -40,8 +40,9 @@ Acceptance:
 
 ### 2. Stable personal-planning core
 
-- Email/password identity, isolated demo entry, preferences, protected routes, and cross-user
-  authorization from the existing core remain committed.
+- Direct app launch, a locally cached profile username, internal workspace bootstrap, preferences,
+  protected routes, and cross-user authorization from the existing core remain committed. Public
+  email/password account creation, sign-in, sign-out, and the marketing landing page are removed.
 - Folder/list/section/tag/task/checklist/one-level-subtask CRUD; search; Markdown; optimistic
   conflict recovery; soft-delete/restore; completion/cancel/undo; manual reorder; and command palette.
 - All-day/timed schedules, quick-add recognition, Today, Upcoming, Calendar month/week/day/agenda,
@@ -62,7 +63,8 @@ Acceptance:
 
 Acceptance:
 
-- G1–G4 pass locally at required desktop/mobile widths with two-user denial coverage.
+- G1–G4 pass locally at required desktop/mobile widths with local-profile bootstrap and ownership
+  denial coverage.
 - A task created with a schedule is either fully committed or not created; partial create/schedule
   failure is impossible.
 - Today/Upcoming/Matrix boundaries refresh after local midnight and a preference timezone change
@@ -276,3 +278,11 @@ Any addition, cut, or substitution requires all five in one reviewable change:
 
 Without all five, active scope is unchanged. Time pressure, an available agent, or a researched
 competitor feature is not authorization.
+
+### Authorized substitution: direct local-profile launch
+
+The user explicitly authorized replacing the public landing and email/password entry flow with a
+direct app launch. The first visit requires a profile username, stores only that username in browser
+local storage, and uses the existing isolated workspace bootstrap internally so current server-side
+ownership boundaries remain intact. No credential form, account CTA, or sign-out control is part of
+the product surface after this substitution.

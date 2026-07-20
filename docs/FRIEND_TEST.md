@@ -14,12 +14,12 @@ Replace the commit and any optional host placeholder before sharing this file.
 
 ## Five-minute path
 
-1. Open the app in a private browser window and choose **Try demo**. Confirm the text says the sample workspace is isolated for this visitor.
+1. Open the app in a private browser window. Enter a profile username and confirm it opens the workspace without account creation or sign-in.
 2. In Inbox, add one task, open its details, and change its priority, schedule, checklist, and Markdown notes.
 3. Open Today, Upcoming, Calendar, and Priority matrix. Confirm the scheduled task represents the same title and that a non-drag schedule editor is available.
 4. Open Plan. Paste a short brain dump, select one unscheduled sample task, create a proposal, edit or deselect one change, and press Apply. Confirm nothing changed before Apply and the result links back to Today/Calendar.
-5. Open Settings, export the JSON file, then sign out. Confirm protected pages and export are no longer accessible.
-6. Return to `/`, choose **Try demo** again, and confirm the deterministic sample workspace resets without asking for shared credentials.
+5. Open Settings and export the JSON file. Confirm the export contains the expected private workspace data and no credentials.
+6. Clear the browser session while retaining local storage, return to `/`, and confirm the cached username resumes the workspace without asking for credentials.
 
 Repeat the navigation and primary action once at desktop width and once on a phone. If AI is marked unavailable, record that exact state; manual tasks, schedules, Calendar, Matrix, and export must still work.
 

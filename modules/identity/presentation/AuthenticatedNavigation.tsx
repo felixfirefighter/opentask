@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 import type { SessionIdentity } from "@/modules/identity";
 import { BrandMark } from "@/shared/presentation";
 
-import { AccountMenu } from "./AccountMenu";
 import styles from "./AuthenticatedShell.module.css";
 import { MobileMoreMenu } from "./MobileMoreMenu";
+import { ProfileMenu } from "./ProfileMenu";
 
 export type AuthenticatedDestination = "today" | "tasks" | "calendar" | "plan" | "settings";
 
@@ -63,7 +63,7 @@ export function AuthenticatedNavigation({
           })}
         </div>
         <div className={styles.railAccount}>
-          <AccountMenu
+          <ProfileMenu
             identity={identity}
             placement="rail"
             settingsCurrent={currentDestination === "settings"}
@@ -105,7 +105,7 @@ export function AuthenticatedNavigation({
         <div className={styles.topBarActions}>
           {topBarActions}
           <div className={styles.headerAccount}>
-            <AccountMenu
+            <ProfileMenu
               identity={identity}
               placement="header"
               settingsCurrent={currentDestination === "settings"}

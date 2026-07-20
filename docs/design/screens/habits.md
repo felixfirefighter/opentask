@@ -46,7 +46,7 @@ Status changes use text and icon plus color. A streak is informative, never a sc
 | Loading | Preserve header/view control and use summary-shaped skeletons. History loads independently after core detail and has its own status. |
 | Error | Identify whether definitions, history, or a mutation failed. Preserve valid form/quantity/note input, restore failed optimistic status, and offer a scoped retry. |
 | Offline | Cached habits/history remain visible and labeled read-only. Disable create/edit/archive/restore/check-in mutations; do not queue local logs. |
-| Permission | Unauthenticated access routes to sign-in. Missing/foreign habit IDs show generic unavailable and reveal no title/history. |
+| Permission | Missing internal session routes to direct app launch. Missing/foreign habit IDs show generic unavailable and reveal no title/history. |
 | Conflict | Reload the effective local-date log or definition, preserve typed quantity/note, and offer Review latest/Retry instead of creating a second log. |
 
 ## Keyboard, touch, and accessibility

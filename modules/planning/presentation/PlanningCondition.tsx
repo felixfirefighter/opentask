@@ -53,9 +53,9 @@ export function PermissionState() {
     <section className={styles.statePanel} aria-labelledby="planning-unavailable-heading">
       <ShieldAlert size={24} aria-hidden="true" />
       <h2 id="planning-unavailable-heading">This planning view is unavailable</h2>
-      <p>Sign in again or return to a planning destination you can access.</p>
+      <p>Open the app again or return to a planning destination you can access.</p>
       <Button asChild variant="secondary">
-        <Link href="/sign-in">Go to sign in</Link>
+        <Link href="/">Open the app</Link>
       </Button>
     </section>
   );

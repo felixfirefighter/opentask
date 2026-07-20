@@ -116,7 +116,7 @@ pinned research source through the application contract in `docs/design/editoria
 
 Deliverables:
 
-- Capture the current Landing, Today, Calendar, task-detail, and populated AI Review baselines before
+- Capture the current App launch, Today, Calendar, task-detail, and populated AI Review baselines before
   changing executable tokens.
 - Finalize original light/dark semantic tokens, contrast pairs, type scale, density, radii,
   elevation, focus, and motion in docs, CSS, and computed design tests together.
@@ -145,7 +145,7 @@ Gate:
 
 After the shared foundation freezes, run three non-overlapping presentation lanes:
 
-1. Landing, authentication, Settings, loading/offline surfaces, and responsive shell.
+1. Direct app launch, local profile setup, Settings, loading/offline surfaces, and responsive shell.
 2. Task navigation, rows, quick add, details, editors, overlays, dialogs, and every task state.
 3. Today/Upcoming, Calendar, Matrix, and planner Describe/Processing/Review/Result states.
 
@@ -443,7 +443,7 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 | Active capability | Package | Primary evidence |
 |---|---|---|
 | Editorial Focus | P0 | approved proof/final screenshots + design/a11y gates |
-| Existing identity/tasks/planning/AI | P1 | G1–G4 + authorization/atomicity/freshness tests |
+| Existing local-profile/tasks/planning/AI | P1 | G1–G4 + authorization/atomicity/freshness tests |
 | Recurrence/occurrences | P2 | recurrence golden path + range/DST/ownership suites |
 | Habits | P3 | Habits golden path + log/streak/time suites |
 | Focus | P4 | Focus golden path + state/race/clock suites |

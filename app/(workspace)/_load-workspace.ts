@@ -5,7 +5,7 @@ import { getOptionalSessionIdentity, getUserPreferences } from "@/modules/identi
 
 export async function loadWorkspace(returnTo: `/${string}`) {
   const identity = await getOptionalSessionIdentity(await headers());
-  if (!identity) redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
+  if (!identity) redirect(`/?resume=${encodeURIComponent(returnTo)}`);
 
   return {
     identity,

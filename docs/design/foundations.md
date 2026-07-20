@@ -35,7 +35,7 @@ provider-unavailable states may interrupt the quiet hierarchy because they requi
 
 - Inter Variable is the self-hosted working face for body text, tasks, forms, menus, navigation,
   calendar labels, metadata, and planner diffs.
-- EB Garamond Variable at its genuine 400 endpoint is limited to landing, first-run, selected major
+- EB Garamond Variable at its genuine 400 endpoint is limited to app launch, first-run, selected major
   empty-state headings, and explicitly approved editorial moments. It is never a blanket
   workspace-heading rule.
 - Workspace page titles stay compact and sans-serif so the work remains dominant.
@@ -64,7 +64,7 @@ provider-unavailable states may interrupt the quiet hierarchy because they requi
 
 Atmospheric fields are low-contrast decoration, not a universal product signature.
 
-- Use at most two token-backed fields in one landing, first-run, major empty-state, or restrained
+- Use at most two token-backed fields in one app-launch, first-run, major empty-state, or restrained
   planner-framing composition.
 - Keep them behind solid readable content and hidden from assistive technology.
 - Never place them in task rows, calendar cells, Matrix quadrants, form controls, banners, alerts,
@@ -79,7 +79,7 @@ Atmospheric fields are low-contrast decoration, not a universal product signatur
 - Priority and status never depend on icon or color alone.
 - Workspace screens avoid stock photography and generic AI illustration. Empty states need no image
   unless a small original geometric element materially improves comprehension.
-- The landing page may compose original product UI, never competitor screenshots.
+- The app-launch surface may compose original product UI, never competitor screenshots.
 
 ## Content voice
 

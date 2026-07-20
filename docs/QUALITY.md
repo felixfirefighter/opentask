@@ -73,11 +73,11 @@ evidence separate from presentation-clean comparison captures.
 
 ### G1 — First run and core task loop
 
-1. Create an account or enter a fresh isolated demo; Inbox/preferences exist.
+1. Enter a fresh isolated workspace through the profile setup dialog; Inbox/preferences exist.
 2. Contextually quick-add and inspect a task.
 3. Add priority, Markdown, tag, checklist item, subtask, organization, and schedule.
 4. Reorder through keyboard-accessible controls; search; complete/undo; cancel/restore.
-5. Sign out; protected data and export are unreachable.
+5. Clear the internal browser session; protected data and export require the direct-launch bootstrap.
 
 Forced: invalid input, stale update, atomic create/schedule failure, network/offline write, and User B
 guessing User A identifiers.
@@ -110,7 +110,7 @@ proposal, duplicate apply, and concurrent task change. Every pre-apply failure w
 1. Reset isolated demo twice without shared state.
 2. Export and validate the current versioned document.
 3. Lose connectivity in an open page; rendered data stays visible/read-only and writes are disabled.
-4. Sign out; private routes/export are inaccessible.
+4. Clear the internal browser session; private routes/export require the direct-launch bootstrap.
 5. Repeat local health, migration, demo, and critical paths in a clean browser.
 
 Forced: export failure, second-user fixture, database unavailable, missing providers, and duplicate
@@ -210,7 +210,7 @@ offline AI request, and attempted remote navigation from the renderer.
 
 ### Visual-proof gate
 
-P0 broad rollout is blocked until the user approves deterministic Landing, Today, Calendar, task
+P0 broad rollout is blocked until the user approves deterministic App launch, Today, Calendar, task
 detail, and populated AI Review evidence. Required light captures are 1440 and 390; include
 representative dark and 768/320 boundary evidence. A requested revision is work, not approval.
 
@@ -258,12 +258,12 @@ Failure: bypassed layer, ambiguous ownership, duplicate rule, shared feature wid
 Failure: synonymous fact, missing constraint/index/tenant key, unreviewed migration, or projection
 persisted as truth.
 
-### 4. Authentication and authorization
+### 4. Entry and authorization
 
-- Test unauthenticated and cross-user access to identity, all task/occurrence, habit/log, Focus,
-  reminder/subscription, proposal, demo, and export surfaces.
-- Review cookies, exact origin/CSRF, rate limits, sign-out/demo-reset cache clearing, push enrollment,
-  and existence-safe errors.
+- Test local profile bootstrap and cross-user access to identity, all task/occurrence, habit/log,
+  Focus, reminder/subscription, proposal, demo, and export surfaces.
+- Review internal session cookies, exact origin/CSRF, rate limits, workspace bootstrap cache behavior,
+  push enrollment, and existence-safe errors.
 
 Failure: horizontal/vertical access, shared demo/cache leak, cookie-only authorization, or endpoint
 existence disclosure.

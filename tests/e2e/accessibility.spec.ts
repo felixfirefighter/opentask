@@ -9,11 +9,7 @@ const demo = {
   scheduledTaskTitle: "Record the two-minute demo",
 } as const;
 
-const publicRoutes = [
-  { path: "/", heading: "Make room for what matters." },
-  { path: "/sign-in", heading: "Welcome back" },
-  { path: "/sign-up", heading: "Create your account" },
-] as const;
+const publicRoutes = [{ path: "/", heading: "Set up your profile" }] as const;
 
 const additionalTaskRoutes = [
   { path: `/lists/${demo.listId}`, heading: "Hackathon launch" },
@@ -31,7 +27,7 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
-test("public landing and authentication routes pass the serious accessibility gate", async ({ page }) => {
+test("direct app launch passes the serious accessibility gate", async ({ page }) => {
   for (const route of publicRoutes) await auditRoute(page, route);
 });
 
@@ -41,15 +37,13 @@ test("a theme switch never exposes transitional primary-action contrast", async 
   await page.addInitScript(() => localStorage.setItem("opentask-theme-preference", "light"));
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(
-    page.getByRole("navigation", { name: "Public navigation" }).getByRole("link", { name: "Create account" }),
-  ).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Set up your profile" })).toBeVisible();
 
   const result = await page.evaluate(async () => {
     const toggle = document.querySelector('[aria-label="Use dark theme"]');
-    const primaryAction = document.querySelector('header a[href="/sign-up"].primary-button');
+    const primaryAction = document.querySelector("button.primary-button");
     if (!(toggle instanceof HTMLButtonElement) || !(primaryAction instanceof HTMLElement)) {
-      throw new Error("The landing theme controls are unavailable.");
+      throw new Error("The app-launch theme controls are unavailable.");
     }
 
     function contrastRatio(foreground: string, background: string) {
@@ -245,7 +239,8 @@ async function enterIsolatedDemo(page: Page, testInfo: TestInfo) {
   const responsePromise = page.waitForResponse(
     (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Try demo" }).click();
+  await page.getByLabel("Profile username", { exact: true }).fill("Accessibility user");
+  await page.getByRole("button", { name: "Open workspace" }).click();
   expect((await responsePromise).status(), `${testInfo.project.name} demo entry`).toBe(200);
   await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
   await expect(page.getByRole("main").getByRole("heading", { level: 1, name: "Inbox" })).toBeVisible();

@@ -168,7 +168,7 @@ pnpm electron:smoke -- --app-dir release/mac-arm64/OpenTask.app
 ```
 
 `electron:runtime-smoke` is headless-safe and verifies the packaged runtime, database initialization,
-migrations, readiness, local account creation/sign-in, session persistence across a second cold start,
+migrations, local profile setup, internal session persistence across a second cold start,
 and shutdown. `electron:smoke` additionally launches the native Electron window and must be run from
 an interactive desktop session; the runtime smoke does not replace that native GUI check.
 
@@ -258,7 +258,7 @@ pnpm db:migrate
 pnpm test:db
 ```
 
-Review and commit generated SQL. `drizzle-kit push` is not an approved migration path. `pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Isolated sample data is created or reset only through the app's **Try demo** entry.
+Review and commit generated SQL. `drizzle-kit push` is not an approved migration path. `pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. The app creates or resets its isolated workspace internally after the first local profile setup.
 
 ## Verification
 

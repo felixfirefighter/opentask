@@ -48,7 +48,7 @@ After atomic success, show the exact applied counts and links to Today/Calendar.
 | Loading | Processing stages keep submitted constraints visible in read-only summary. Apply shows a stable in-progress state and blocks duplicate idempotency requests. |
 | Error | Refusal, timeout, invalid schema, provider error, deterministic constraint failure, and atomic apply failure each use specific recoverable copy. Preserve input/proposal edits when safe, offer Retry/Edit, and confirm that no changes were applied. |
 | Offline | Describe/review content already present may be read, but Create proposal and Apply are disabled under the global offline message. Never queue an AI request or apply locally. |
-| Permission | Unauthenticated access routes to sign-in. Selected task IDs are re-authorized server-side; removed/foreign tasks become generic stale actions without exposing their content. |
+| Permission | Missing internal session routes to direct app launch. Selected task IDs are re-authorized server-side; removed/foreign tasks become generic stale actions without exposing their content. |
 | Provider unavailable | When `OPENAI_API_KEY` is absent or the provider is disabled, show a calm explanation and direct links to manual Today/Calendar planning. Do not show a broken empty form. |
 | Stale proposal | Mark affected cards, show latest safe before-values, require regeneration or revalidation, and prevent atomic Apply until every selected action is valid. |
 | Overflow/conflict | Keep items visible with explanation and editable duration/window/selection where supported; never silently overlap or schedule outside the window. |

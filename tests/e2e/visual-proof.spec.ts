@@ -8,11 +8,6 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 const DEMO_TASK_ID = "50000000-0000-4000-8000-000000000001";
 const DEMO_LIST_ID = "20000000-0000-4000-8000-000000000001";
 
-const publicAuthRoutes = [
-  { slug: "sign-in", path: "/sign-in", heading: "Welcome back" },
-  { slug: "sign-up", path: "/sign-up", heading: "Create your account" },
-] as const;
-
 const authenticatedRoutes = [
   { slug: "inbox", path: "/inbox", heading: "Inbox" },
   { slug: "list", path: `/lists/${DEMO_LIST_ID}`, heading: "Hackathon launch" },
@@ -36,26 +31,16 @@ test("the friend-candidate journey renders at every approved viewport", async ({
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
-  await captureRoute(page, testInfo, captureDirectory, "landing");
+  await captureRoute(page, testInfo, captureDirectory, "app-launch");
   await page.getByRole("button", { name: "Use dark theme" }).click();
-  await captureRoute(page, testInfo, captureDirectory, "landing-dark");
+  await captureRoute(page, testInfo, captureDirectory, "app-launch-dark");
   await page.getByRole("button", { name: "Use light theme" }).click();
 
-  for (const route of publicAuthRoutes) {
-    await page.goto(route.path);
-    await expect(page.getByRole("heading", { name: route.heading, exact: true })).toBeVisible();
-    await captureRoute(page, testInfo, captureDirectory, route.slug);
-    if (route.slug === "sign-in") {
-      await setDocumentTheme(page, "dark");
-      await captureRoute(page, testInfo, captureDirectory, "sign-in-dark");
-      await setDocumentTheme(page, "light");
-    }
-  }
-
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Set up your profile" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Try demo" }).click();
+  await page.getByLabel("Profile username", { exact: true }).fill("Visual proof user");
+  await page.getByRole("button", { name: "Open workspace" }).click();
   await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
   const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });

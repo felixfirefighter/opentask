@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 
-import { expect, test, type APIResponse, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-import { openVisibleAccountMenu, signUpThroughUi } from "./support/wp01-auth";
+import { enterWorkspaceThroughUi } from "./support/wp01-auth";
 import { addTagToTask, createRegularList, createSection, createTask, updateTask } from "./support/wp03-tasks";
 
 const appOrigin = "http://127.0.0.1:3107";
@@ -22,16 +22,14 @@ const forbiddenExportKeys = [
   "token",
 ] as const;
 
-test("a private versioned export is downloadable, owner-scoped, and revoked on sign-out", async ({
-  page,
-}, testInfo) => {
+test("a private versioned export is downloadable and excludes credentials", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   test.skip(
     !goldenPathProjects.has(testInfo.project.name),
     "The G4 export and privacy path runs at desktop and mobile widths.",
   );
 
-  const owner = await signUpThroughUi(page, testInfo);
+  const owner = await enterWorkspaceThroughUi(page, testInfo);
   const list = await createRegularList(page, "G4 private release list");
   const section = await createSection(page, list.id, "Owner-only section");
   let task = await createTask(page, {
@@ -115,31 +113,6 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
     expect(serializedOwnerExport).not.toContain(cookie.value);
   const exportedKeys = new Set(allKeys(envelope));
   for (const key of forbiddenExportKeys) expect(exportedKeys.has(key)).toBe(false);
-
-  const { menu } = await openVisibleAccountMenu(page);
-  await menu.getByRole("menuitem", { name: "Sign out" }).click();
-  await expect(page).toHaveURL("/sign-in");
-
-  const signedOutExport = await page.context().request.get("/api/v1/export");
-  expect(signedOutExport.status()).toBe(401);
-  expect(await signedOutExport.text()).not.toContain(task.title);
-  await page.goto("/settings");
-  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
-  expect(new URL(page.url()).searchParams.get("returnTo")).toBe("/settings");
-
-  const otherUser = await signUpThroughUi(page, testInfo, { returnTo: "/settings" });
-  const otherExportResponse = await page.context().request.get("/api/v1/export");
-  const otherEnvelope = await readSuccessfulExport(otherExportResponse);
-  const serializedOtherExport = JSON.stringify(otherEnvelope);
-  expect(otherEnvelope.identity.profile.email).toBe(otherUser.email);
-  expect(serializedOtherExport).not.toContain(owner.email);
-  expect(serializedOtherExport).not.toContain(task.id);
-  expect(serializedOtherExport).not.toContain(task.title);
-  expect(serializedOtherExport).not.toContain(list.id);
-
-  const crossUserTask = await page.context().request.get(`/api/v1/tasks/${task.id}`);
-  expect(crossUserTask.status()).toBe(404);
-  expect(await crossUserTask.text()).not.toContain(task.title);
 });
 
 test("export failure and offline state remain explicit without producing a file", async ({
@@ -148,7 +121,7 @@ test("export failure and offline state remain explicit without producing a file"
 }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "One desktop recovery path is sufficient.");
 
-  await signUpThroughUi(page, testInfo, { returnTo: "/settings" });
+  await enterWorkspaceThroughUi(page, testInfo, { returnTo: "/settings" });
   await page.route("**/api/v1/export", async (route) => {
     await route.fulfill({
       status: 503,
@@ -205,12 +178,6 @@ async function setAllDaySchedule(page: Page, taskId: string, version: number) {
     headers: { origin: appOrigin },
   });
   expect(response.status()).toBe(200);
-}
-
-async function readSuccessfulExport(response: APIResponse): Promise<PortableExportEnvelope> {
-  expect(response.status()).toBe(200);
-  expect(response.headers()["cache-control"]).toBe("private, no-store");
-  return (await response.json()) as PortableExportEnvelope;
 }
 
 function allKeys(value: unknown): string[] {

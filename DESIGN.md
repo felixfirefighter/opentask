@@ -59,8 +59,7 @@ Read only the files relevant to the surface being changed, after this file.
 | Breakpoints, app shell, panes, navigation, responsive behavior | `docs/design/shell-responsive.md` |
 | Shared component anatomy and interaction contracts | `docs/design/components.md` |
 | WCAG, keyboard, touch, focus, announcements, charts | `docs/design/accessibility.md` |
-| Public landing, first-run orientation, demo CTA | `docs/design/screens/landing.md` |
-| Sign in and sign up | `docs/design/screens/auth.md` |
+| Direct launch and local profile setup | `docs/design/screens/app-launch.md` |
 | Preferences, AI provider status, JSON export | `docs/design/screens/settings.md` |
 | Inbox and regular task-list behavior | `docs/design/screens/inbox.md` |
 | Today task projection | `docs/design/screens/today.md` |

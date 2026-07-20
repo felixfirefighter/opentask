@@ -64,6 +64,6 @@ curl --fail --silent --show-error https://<candidate-host>/api/health/live
 curl --fail --silent --show-error https://<candidate-host>/api/health/ready
 ```
 
-Then complete [FRIEND_TEST.md](FRIEND_TEST.md) twice: once with `OPENAI_API_KEY` configured and once after confirming the no-key explanatory state in a separate local environment. Verify the landing and health endpoints signed out, demo reset twice, export/sign-out privacy, desktop 1440 px, and mobile 390 px.
+Then complete [FRIEND_TEST.md](FRIEND_TEST.md) twice: once with `OPENAI_API_KEY` configured and once after confirming the no-key explanatory state in a separate local environment. Verify direct launch/profile setup, health endpoints, workspace isolation, export privacy, desktop 1440 px, and mobile 390 px.
 
 Do not designate a friend candidate until migrations, health, demo isolation, G1–G4, and the release commit all refer to the same deployment.

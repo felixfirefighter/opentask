@@ -43,12 +43,12 @@ Editorial Focus should feel:
 | Research principle | OpenTask adaptation | Boundary |
 |---|---|---|
 | Warm off-white canvas and near-black ink | Original warm paper/ink semantic tokens with separately tested light and dark themes | Do not copy exact external palette values |
-| Editorial display typography | An OFL-licensed variable serif for landing, first-run, empty-state, and selected high-level headings | Task rows, forms, menus, calendar labels, metadata, and working prose remain UI sans |
+| Editorial display typography | An OFL-licensed variable serif for app launch, first-run, empty-state, and selected high-level headings | Task rows, forms, menus, calendar labels, metadata, and working prose remain UI sans |
 | Restrained hierarchy and one dominant action | Ink-first primary CTA at each decision surface; neutral secondary and quiet utility controls | Routine compact workspace controls are not all promoted to pills |
 | Hairlines and soft elevation | Neutral dividers plus one restrained elevation tier | Inputs and focus boundaries remain strong enough for WCAG 2.2 AA |
 | Rounded cards and pill CTAs | Softer cards/dialogs, pills for major CTAs, chips, status, and segmented controls | Task rows remain light divided rows; menus and form controls keep efficient geometry |
-| Pastel atmospheric fields | Original low-contrast fields on landing, onboarding, empty states, or restrained planner framing | No orbs/gradients in task rows, calendar cells, Matrix, alerts, controls, or status encoding |
-| Generous public section rhythm | Roomy landing and onboarding composition | Marketing-scale spacing is not imported into the authenticated workspace |
+| Pastel atmospheric fields | Original low-contrast fields on app launch, onboarding, empty states, or restrained planner framing | No orbs/gradients in task rows, calendar cells, Matrix, alerts, controls, or status encoding |
+| Generous entry rhythm | Roomy app-launch and onboarding composition | Marketing-scale spacing is not imported into the workspace |
 
 ## Typography and density target
 
@@ -59,7 +59,7 @@ Editorial Focus should feel:
   and its OFL notice committed.
 - Serif is a display voice, not a universal product font. Dense information, input, task, calendar,
   and planner-diff content stays sans-serif.
-- The responsive landing hero follows the reference's 64/1.05/-1.92 px, 48/1.08/-0.96 px, and
+- The responsive app-launch heading follows the reference's 64/1.05/-1.92 px, 48/1.08/-0.96 px, and
   36/1.17/-0.36 px display tiers. Small editorial headings use 24/1.2/0. The weight is 400 only for
   the verified EB Garamond axis caveat above.
 - P0.1 uses 15/22 px task titles, 13/18 px metadata, 64 px fine-pointer rows, and 68 px coarse-pointer
@@ -108,13 +108,13 @@ anatomy, screen contracts, and planning-specific interaction model.
 
 Before the broad migration, render real components with deterministic data for:
 
-1. Landing.
+1. App launch and local profile setup.
 2. Today.
 3. Calendar.
 4. Task inspector and mobile task details.
 5. Populated AI Review.
 
-Capture each at 1440 and 390 CSS px in light theme, representative dark-theme proofs, and task/landing
+Capture each at 1440 and 390 CSS px in light theme, representative dark-theme proofs, and task/app-launch
 boundary evidence at 768 and 320 px. Include default and one meaningful non-default state where it
 materially changes the visual system. Compare against the current implementation and stop for
 explicit user approval.

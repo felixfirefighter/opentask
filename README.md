@@ -16,7 +16,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose **Try demo** to create/reset a private sample workspace for that browser. The current green candidate does not require a background worker; `pnpm worker` remains a zero-job architecture smoke until the reminder package activates jobs.
+`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`; OpenTask launches directly and asks for a profile username, which is cached locally before it opens a private workspace for that browser. The current green candidate does not require a background worker; `pnpm worker` remains a zero-job architecture smoke until the reminder package activates jobs.
 
 ## Current green candidate
 
