@@ -49,6 +49,20 @@ export function createTaskScheduleRepository(
       return row ?? null;
     },
 
+    async lockByTaskId(
+      userId: string,
+      taskId: string,
+      executor: DatabaseExecutor = defaultExecutor,
+    ): Promise<StoredTaskSchedule | null> {
+      const [row] = await executor
+        .select()
+        .from(taskSchedules)
+        .where(and(eq(taskSchedules.userId, userId), eq(taskSchedules.taskId, taskId)))
+        .limit(1)
+        .for("update");
+      return row ?? null;
+    },
+
     async upsert(
       input: Readonly<{
         userId: string;
