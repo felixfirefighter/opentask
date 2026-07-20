@@ -13,7 +13,7 @@
 .overlay {
   position: fixed;
   z-index: var(--z-dialog);
-  background: color-mix(in srgb, var(--text) 24%, transparent);
+  background: color-mix(in srgb, var(--canvas) 72%, transparent);
   inset: 0;
 }
 

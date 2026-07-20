@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   z-index: var(--z-dialog);
-  background: color-mix(in srgb, var(--text) 24%, transparent);
+  background: color-mix(in srgb, var(--canvas) 72%, transparent);
   inset: 0;
 }
 
@@ -193,5 +193,16 @@
   .editRow button,
   .createForm button {
     grid-column: span 1;
+  }
+}
+
+@media (any-pointer: coarse) {
+  .loadMore,
+  .editRow input,
+  .editRow select,
+  .createForm input,
+  .createForm select,
+  .dangerButton {
+    min-height: var(--control-target-touch);
   }
 }

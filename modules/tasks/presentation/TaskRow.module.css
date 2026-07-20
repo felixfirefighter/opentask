@@ -175,7 +175,15 @@
 }
 
 .dragHandle {
+  opacity: 0;
   touch-action: none;
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.row:hover .dragHandle,
+.row:focus-within .dragHandle,
+.dragHandle:focus-visible {
+  opacity: 1;
 }
 
 .menu {
@@ -246,6 +254,10 @@
     height: var(--control-target-touch);
   }
 
+  .dragHandle {
+    opacity: 1;
+  }
+
   .menuItem {
     min-height: var(--control-target-touch);
   }
@@ -255,5 +267,12 @@
   .tag,
   .dragHandle {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .dragHandle {
+    transition: none;
   }
 }

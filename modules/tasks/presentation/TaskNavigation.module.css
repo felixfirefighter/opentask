@@ -1,6 +1,6 @@
 .navigation {
   min-width: 0;
-  padding: 0 var(--space-3) var(--space-5);
+  padding: var(--space-1) var(--space-3) var(--space-5);
 }
 
 .destinationList,
@@ -44,6 +44,7 @@
 .destinationLink[aria-current="page"],
 .listLink[aria-current="page"] {
   background: var(--surface-selected);
+  box-shadow: inset var(--space-1) 0 var(--brand);
   color: var(--text-selected);
   font-weight: var(--type-label-weight);
 }
@@ -56,6 +57,7 @@
   gap: var(--space-2);
   margin-top: var(--space-5);
   padding-left: var(--space-3);
+  border-top: var(--border-default) solid var(--border);
   color: var(--text-muted);
   font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);

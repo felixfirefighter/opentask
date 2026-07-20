@@ -1,7 +1,7 @@
 .composer {
   padding: var(--space-3);
   border: var(--border-default) solid var(--border);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-control);
   background: var(--surface);
 }
 
@@ -33,16 +33,15 @@
 .input {
   width: 100%;
   min-height: var(--control-target-desktop);
-  padding: 0 var(--space-2);
-  border: var(--border-default) solid transparent;
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
   border-radius: var(--radius-control);
   outline: none;
-  background: transparent;
+  background: var(--surface);
 }
 
 .input:hover,
 .input:focus {
-  border-color: var(--border-strong);
   background: var(--surface-subtle);
 }
 

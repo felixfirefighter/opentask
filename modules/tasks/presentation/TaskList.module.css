@@ -1,9 +1,12 @@
 .list {
   overflow: hidden;
-  padding: 0 var(--space-3);
-  border: var(--border-default) solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
+  border-top: var(--border-default) solid var(--border);
+  border-bottom: var(--border-default) solid var(--border);
+  background: transparent;
+}
+
+.list:empty {
+  border-bottom: 0;
 }
 
 .errorBanner {
@@ -15,10 +18,4 @@
   color: var(--text);
   font-size: var(--type-body-size);
   line-height: var(--type-body-line);
-}
-
-@media (max-width: 767px) {
-  .list {
-    padding: 0 var(--space-2);
-  }
 }
