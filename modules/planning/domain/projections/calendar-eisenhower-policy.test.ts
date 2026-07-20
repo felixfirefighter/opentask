@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { projectAgendaTasks, projectCalendarTasks } from "./calendar-policy";
 import { projectEisenhower } from "./eisenhower-policy";
 import { buildLocalRange, formatInstant } from "./local-time-policy";
-import type { ProjectionSchedule, ProjectionSourceTask } from "./projection-model";
+import type { OneOffProjectionTask, ProjectionSchedule, ProjectionSourceTask } from "./projection-model";
 
 describe("Calendar and Agenda projection policies", () => {
   const range = buildLocalRange("2026-07-20", "2026-07-21", "Asia/Singapore");
@@ -29,6 +29,27 @@ describe("Calendar and Agenda projection policies", () => {
     expect(projectCalendarTasks([], range)).toEqual([]);
   });
 
+  it("keeps terminal recurring occurrences visible for state and Undo", () => {
+    const completed = recurringOccurrence(
+      "completed-occurrence",
+      "o1.completed",
+      allDay("2026-07-20", "2026-07-21"),
+      "completed",
+    );
+    const skipped = recurringOccurrence(
+      "skipped-occurrence",
+      "o1.skipped",
+      timed("2026-07-19T17:00:00Z", "2026-07-19T18:00:00Z"),
+      "skipped",
+    );
+
+    expect(
+      projectCalendarTasks([completed, skipped], range).map((row) =>
+        row.projectionLifecycle === "recurring_occurrence" ? row.occurrenceState : null,
+      ),
+    ).toEqual(["completed", "skipped"]);
+  });
+
   it("groups spanning Agenda events at the visible range start", () => {
     const agenda = projectAgendaTasks(
       [
@@ -39,7 +60,7 @@ describe("Calendar and Agenda projection policies", () => {
       "Asia/Singapore",
     );
 
-    expect(agenda.map((row) => [row.groupDate, row.task.id])).toEqual([
+    expect(agenda.map((row) => [row.groupDate, row.task.taskId])).toEqual([
       ["2026-07-20", "spanning-all-day"],
       ["2026-07-20", "spanning-timed"],
     ]);
@@ -128,10 +149,12 @@ describe("Eisenhower projection policy", () => {
 function task(
   id: string,
   schedule: ProjectionSchedule | null,
-  overrides: Partial<ProjectionSourceTask> = {},
-): ProjectionSourceTask {
+  overrides: Partial<Pick<OneOffProjectionTask, "status" | "priority" | "deletedAt" | "rank">> = {},
+): OneOffProjectionTask {
   return {
-    id,
+    projectionId: `task:${id}`,
+    taskId: id,
+    projectionLifecycle: "one_off",
     listId: "list",
     title: id,
     status: "open",
@@ -144,6 +167,21 @@ function task(
   };
 }
 
+function recurringOccurrence(
+  taskId: string,
+  occurrenceKey: string,
+  schedule: ProjectionSchedule,
+  occurrenceState: "open" | "completed" | "skipped",
+): ProjectionSourceTask {
+  return {
+    ...task(taskId, schedule),
+    projectionId: `occurrence:${taskId}:${occurrenceKey}`,
+    projectionLifecycle: "recurring_occurrence",
+    occurrenceKey,
+    occurrenceState,
+  };
+}
+
 function timed(startAt: string, endAt: string): ProjectionSchedule {
   return { kind: "timed", startAt, endAt, timezone: "Asia/Singapore" };
 }
@@ -152,6 +190,6 @@ function allDay(startDate: string, endDate: string): ProjectionSchedule {
   return { kind: "all_day", startDate, endDate };
 }
 
-function ids(rows: readonly Readonly<{ id: string }>[]): string[] {
-  return rows.map((row) => row.id);
+function ids(rows: readonly Readonly<{ taskId: string }>[]): string[] {
+  return rows.map((row) => row.taskId);
 }

@@ -2,7 +2,7 @@ import { compareInstants, compareLocalDates, dueBoundary } from "./local-time-po
 import type { OpenProjectionTask } from "./projection-model";
 
 export function compareByRankThenId(left: OpenProjectionTask, right: OpenProjectionTask): number {
-  return compareText(left.rank, right.rank) || compareText(left.id, right.id);
+  return compareText(left.rank, right.rank) || compareText(left.projectionId, right.projectionId);
 }
 
 export function compareByDueBoundary(

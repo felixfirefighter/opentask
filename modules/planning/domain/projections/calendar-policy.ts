@@ -5,22 +5,22 @@ import {
   type LocalRange,
 } from "./local-time-policy";
 import {
-  activeOpenScheduledTasks,
+  activeScheduledTaskProjections,
   type ProjectionSourceTask,
-  type ScheduledOpenProjectionTask,
+  type ScheduledProjectionTask,
 } from "./projection-model";
 import { compareAllDayTasks, compareTimedTasks } from "./task-ordering";
 
 export type AgendaProjectionRow = Readonly<{
   groupDate: string;
-  task: ScheduledOpenProjectionTask;
+  task: ScheduledProjectionTask;
 }>;
 
 export function projectCalendarTasks(
   rows: readonly ProjectionSourceTask[],
   range: LocalRange,
-): readonly ScheduledOpenProjectionTask[] {
-  return activeOpenScheduledTasks(rows)
+): readonly ScheduledProjectionTask[] {
+  return activeScheduledTaskProjections(rows)
     .filter((task) => scheduleOverlapsLocalRange(task.schedule, range))
     .sort(compareCalendarTasks);
 }
@@ -42,7 +42,7 @@ export function projectAgendaTasks(
     });
 }
 
-function compareCalendarTasks(left: ScheduledOpenProjectionTask, right: ScheduledOpenProjectionTask): number {
+function compareCalendarTasks(left: ScheduledProjectionTask, right: ScheduledProjectionTask): number {
   if (left.schedule.kind === "all_day" && right.schedule.kind === "timed") return -1;
   if (left.schedule.kind === "timed" && right.schedule.kind === "all_day") return 1;
   return left.schedule.kind === "all_day" ? compareAllDayTasks(left, right) : compareTimedTasks(left, right);

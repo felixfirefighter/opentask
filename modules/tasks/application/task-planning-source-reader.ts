@@ -46,9 +46,10 @@ export function createTaskPlanningSourceReader({
             : await repository.listAllOpen(actor.userId, query.limit);
 
       return taskPlanningSourcePageSchema.parse({
-        items: page.items.map(({ task, schedule }) => ({
+        items: page.items.map(({ task, schedule, recurrenceRoot }) => ({
           task: mapTask(task),
           schedule: schedule ? mapSchedule(schedule) : null,
+          recurrenceRoot,
         })),
         truncated: page.truncated,
       });

@@ -14,13 +14,23 @@ import {
   type TodayProjection,
   type UpcomingProjection,
 } from "./projection-dto-contract";
-import { mapCanonicalSourcePage, toCalendarEvent, toPlanningTaskRow } from "./projection-mapper";
+import {
+  mapCanonicalSourcePage,
+  mapOccurrenceSourcePage,
+  toCalendarEvent,
+  toPlanningTaskRow,
+} from "./projection-mapper";
 import {
   planningRangeQuerySchema,
   projectionLimitQuerySchema,
   smartDestinationSchema,
 } from "./projection-query-contract";
-import type { PlanningTaskSourceReader, PlanningTimeZoneReader } from "./planning-source-reader";
+import type {
+  PlanningOccurrenceRangeQuery,
+  PlanningOccurrenceSourceReader,
+  PlanningTaskSourceReader,
+  PlanningTimeZoneReader,
+} from "./planning-source-reader";
 import { projectAgendaTasks, projectCalendarTasks } from "../domain/projections/calendar-policy";
 import { projectEisenhower } from "../domain/projections/eisenhower-policy";
 import {
@@ -29,11 +39,16 @@ import {
   formatInstant,
   localDateForInstant,
 } from "../domain/projections/local-time-policy";
+import { selectMatrixRecurrenceRows } from "../domain/projections/matrix-recurrence-policy";
 import { projectToday } from "../domain/projections/today-policy";
 import { projectUpcoming } from "../domain/projections/upcoming-policy";
 
+const RECURRENCE_MAX_DURATION_DAYS = 31;
+const MATRIX_FORWARD_DAYS = 62;
+
 type PlanningProjectionDependencies = Readonly<{
   tasks: PlanningTaskSourceReader;
+  occurrences: PlanningOccurrenceSourceReader;
   timeZones: PlanningTimeZoneReader;
   clock: Clock;
 }>;
@@ -42,27 +57,34 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
   async function getToday(actor: AuthenticatedActor, rawQuery: unknown = {}): Promise<TodayProjection> {
     const query = projectionLimitQuerySchema.parse(rawQuery);
     const context = await loadTimeContext(actor, dependencies);
-    const endDate = addLocalDays(context.localDate, 1);
-    const range = buildLocalRange(context.localDate, endDate, context.timeZone);
-    const page = await dependencies.tasks.readOpenTasks(actor, {
-      kind: "scheduled_through",
-      exclusiveEndDate: endDate,
-      exclusiveEndAt: range.endAt,
-      limit: query.limit,
-    });
-    const rows = mapCanonicalSourcePage(page, { limit: query.limit, schedulesRequired: true });
-    const projection = projectToday(rows, context);
-    const overdue = projection.overdue.map(toPlanningTaskRow);
-    const timed = projection.timed.map(toPlanningTaskRow);
-    const anytime = projection.anytime.map(toPlanningTaskRow);
+    const dayRange = buildLocalRange(context.localDate, addLocalDays(context.localDate, 1), context.timeZone);
+    const [oneOffPage, occurrencePage] = await Promise.all([
+      dependencies.tasks.readOpenTasks(actor, {
+        kind: "scheduled_through",
+        exclusiveEndDate: dayRange.endDate,
+        exclusiveEndAt: dayRange.endAt,
+        limit: query.limit,
+      }),
+      dependencies.occurrences.readBoundedOccurrences(
+        actor,
+        toOccurrenceRangeReadQuery(dayRange, query.limit),
+      ),
+    ]);
+    const rows = [
+      ...mapCanonicalSourcePage(oneOffPage, { limit: query.limit, schedulesRequired: true }),
+      ...mapOccurrenceSourcePage(occurrencePage, query.limit).filter(
+        (row) => row.projectionLifecycle === "recurring_occurrence",
+      ),
+    ];
+    const capped = capToday(projectToday(rows, context), query.limit);
 
     return todayProjectionSchema.parse({
       ...context,
-      overdue,
-      timed,
-      anytime,
-      remainingCount: overdue.length + timed.length + anytime.length,
-      truncated: page.truncated,
+      overdue: capped.overdue.map(toPlanningTaskRow),
+      timed: capped.timed.map(toPlanningTaskRow),
+      anytime: capped.anytime.map(toPlanningTaskRow),
+      remainingCount: capped.total,
+      truncated: oneOffPage.truncated || occurrencePage.truncation.truncated || capped.outputTruncated,
     });
   }
 
@@ -70,9 +92,13 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
     const query = projectionLimitQuerySchema.parse(rawQuery);
     const context = await loadTimeContext(actor, dependencies);
     const range = buildLocalRange(context.localDate, addLocalDays(context.localDate, 7), context.timeZone);
-    const page = await dependencies.tasks.readOpenTasks(actor, toRangeReadQuery(range, query.limit));
-    const rows = mapCanonicalSourcePage(page, { limit: query.limit, schedulesRequired: true });
-    const days = projectUpcoming(rows, { range, ...context }).map((day) => ({
+    const page = await dependencies.occurrences.readBoundedOccurrences(
+      actor,
+      toOccurrenceRangeReadQuery(range, query.limit),
+    );
+    const rows = mapOccurrenceSourcePage(page, query.limit);
+    const capped = capUpcoming(projectUpcoming(rows, { range, ...context }), query.limit);
+    const days = capped.days.map((day) => ({
       localDate: day.localDate,
       items: day.tasks.map(toPlanningTaskRow),
     }));
@@ -83,8 +109,8 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
       timeZone: context.timeZone,
       nowAt: context.nowAt,
       days,
-      remainingCount: days.reduce((total, day) => total + day.items.length, 0),
-      truncated: page.truncated,
+      remainingCount: capped.total,
+      truncated: page.truncation.truncated || capped.outputTruncated,
     });
   }
 
@@ -126,11 +152,37 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
   ): Promise<EisenhowerProjection> {
     const query = projectionLimitQuerySchema.parse(rawQuery);
     const context = await loadTimeContext(actor, dependencies);
-    const page = await dependencies.tasks.readOpenTasks(actor, {
-      kind: "all_open",
+    const overlapRange = buildLocalRange(
+      addLocalDays(context.localDate, -RECURRENCE_MAX_DURATION_DAYS),
+      context.localDate,
+      context.timeZone,
+    );
+    const forwardRange = buildLocalRange(
+      context.localDate,
+      addLocalDays(context.localDate, MATRIX_FORWARD_DAYS),
+      context.timeZone,
+    );
+    const [allOpenPage, overlapPage, forwardPage] = await Promise.all([
+      dependencies.tasks.readOpenTasks(actor, { kind: "all_open", limit: query.limit }),
+      dependencies.occurrences.readBoundedOccurrences(
+        actor,
+        toOccurrenceRangeReadQuery(overlapRange, query.limit),
+      ),
+      dependencies.occurrences.readBoundedOccurrences(
+        actor,
+        toOccurrenceRangeReadQuery(forwardRange, query.limit),
+      ),
+    ]);
+    const allOpenRows = mapCanonicalSourcePage(allOpenPage, {
       limit: query.limit,
+      schedulesRequired: false,
     });
-    const rows = mapCanonicalSourcePage(page, { limit: query.limit, schedulesRequired: false });
+    const overlapRows = mapOccurrenceSourcePage(overlapPage, query.limit);
+    const forwardRows = mapOccurrenceSourcePage(forwardPage, query.limit);
+    const rows = selectMatrixRecurrenceRows(allOpenRows, overlapRows, forwardRows, {
+      todayStartAt: forwardRange.startAt,
+      timeZone: context.timeZone,
+    });
     const projection = projectEisenhower(rows, context);
 
     return eisenhowerProjectionSchema.parse({
@@ -141,7 +193,8 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
       plan: projection.plan.map(toPlanningTaskRow),
       timeSensitive: projection.timeSensitive.map(toPlanningTaskRow),
       later: projection.later.map(toPlanningTaskRow),
-      truncated: page.truncated,
+      truncated:
+        allOpenPage.truncated || overlapPage.truncation.truncated || forwardPage.truncation.truncated,
     });
   }
 
@@ -165,12 +218,15 @@ async function loadRange(
   const query = planningRangeQuerySchema.parse(rawQuery);
   const context = await loadTimeContext(actor, dependencies);
   const range = buildLocalRange(query.rangeStartDate, query.rangeEndDate, context.timeZone);
-  const page = await dependencies.tasks.readOpenTasks(actor, toRangeReadQuery(range, query.limit));
+  const page = await dependencies.occurrences.readBoundedOccurrences(
+    actor,
+    toOccurrenceRangeReadQuery(range, query.limit),
+  );
   return {
     context,
     range,
-    rows: mapCanonicalSourcePage(page, { limit: query.limit, schedulesRequired: true }),
-    truncated: page.truncated,
+    rows: mapOccurrenceSourcePage(page, query.limit),
+    truncated: page.truncation.truncated,
   };
 }
 
@@ -184,12 +240,11 @@ async function loadTimeContext(actor: AuthenticatedActor, dependencies: Planning
   } as const;
 }
 
-function toRangeReadQuery(
+function toOccurrenceRangeReadQuery(
   range: ReturnType<typeof buildLocalRange>,
   limit: number,
-): Parameters<PlanningTaskSourceReader["readOpenTasks"]>[1] {
+): PlanningOccurrenceRangeQuery {
   return {
-    kind: "scheduled_range",
     rangeStartDate: range.startDate,
     rangeEndDate: range.endDate,
     rangeStartAt: range.startAt,
@@ -205,4 +260,40 @@ function toRangeDto(range: ReturnType<typeof buildLocalRange>) {
     rangeStartAt: range.startAt,
     rangeEndAt: range.endAt,
   } as const;
+}
+
+function capToday(projection: ReturnType<typeof projectToday>, limit: number) {
+  let remaining = limit;
+  const overdue = projection.overdue.slice(0, remaining);
+  remaining -= overdue.length;
+  const timed = projection.timed.slice(0, remaining);
+  remaining -= timed.length;
+  const anytime = projection.anytime.slice(0, remaining);
+  const total = overdue.length + timed.length + anytime.length;
+  return {
+    overdue,
+    timed,
+    anytime,
+    total,
+    outputTruncated: projection.overdue.length + projection.timed.length + projection.anytime.length > total,
+  };
+}
+
+function capUpcoming(
+  days: ReturnType<typeof projectUpcoming>,
+  limit: number,
+): Readonly<{
+  days: ReturnType<typeof projectUpcoming>;
+  total: number;
+  outputTruncated: boolean;
+}> {
+  let remaining = limit;
+  const cappedDays = days.map((day) => {
+    const tasks = day.tasks.slice(0, remaining);
+    remaining -= tasks.length;
+    return { ...day, tasks };
+  });
+  const sourceTotal = days.reduce((total, day) => total + day.tasks.length, 0);
+  const total = cappedDays.reduce((count, day) => count + day.tasks.length, 0);
+  return { days: cappedDays, total, outputTruncated: sourceTotal > total };
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildLocalRange } from "./local-time-policy";
-import type { ProjectionSchedule, ProjectionSourceTask } from "./projection-model";
+import type { OneOffProjectionTask, ProjectionSchedule, ProjectionSourceTask } from "./projection-model";
 import { projectToday } from "./today-policy";
 import { projectUpcoming } from "./upcoming-policy";
 
@@ -44,6 +44,22 @@ describe("Today projection policy", () => {
     expect(ids(projection.overdue)).toEqual(["ended-all-day"]);
     expect(projection.timed).toEqual([]);
     expect(projection.anytime).toEqual([]);
+  });
+
+  it("does not turn historical recurring occurrences into a Today backlog", () => {
+    const projection = projectToday(
+      [
+        recurringOccurrence(
+          "ended-yesterday",
+          "o1.ended",
+          timed("2026-07-18T01:00:00Z", "2026-07-19T01:00:00Z"),
+        ),
+        recurringOccurrence("ends-today", "o1.today", timed("2026-07-19T14:00:00Z", "2026-07-19T17:00:00Z")),
+      ],
+      singaporeContext,
+    );
+
+    expect(ids(projection.overdue)).toEqual(["ends-today"]);
   });
 
   it("filters terminal and deleted records defensively", () => {
@@ -137,10 +153,12 @@ describe("Upcoming projection policy", () => {
 function task(
   id: string,
   schedule: ProjectionSchedule | null,
-  overrides: Partial<ProjectionSourceTask> = {},
-): ProjectionSourceTask {
+  overrides: Partial<Pick<OneOffProjectionTask, "status" | "priority" | "deletedAt" | "rank">> = {},
+): OneOffProjectionTask {
   return {
-    id,
+    projectionId: `task:${id}`,
+    taskId: id,
+    projectionLifecycle: "one_off",
     listId: "list",
     title: id,
     status: "open",
@@ -153,6 +171,20 @@ function task(
   };
 }
 
+function recurringOccurrence(
+  taskId: string,
+  occurrenceKey: string,
+  schedule: ProjectionSchedule,
+): ProjectionSourceTask {
+  return {
+    ...task(taskId, schedule),
+    projectionId: `occurrence:${taskId}:${occurrenceKey}`,
+    projectionLifecycle: "recurring_occurrence",
+    occurrenceKey,
+    occurrenceState: "open",
+  };
+}
+
 function timed(startAt: string, endAt: string): ProjectionSchedule {
   return { kind: "timed", startAt, endAt, timezone: "Asia/Singapore" };
 }
@@ -161,6 +193,6 @@ function allDay(startDate: string, endDate: string): ProjectionSchedule {
   return { kind: "all_day", startDate, endDate };
 }
 
-function ids(rows: readonly Readonly<{ id: string }>[]): string[] {
-  return rows.map((row) => row.id);
+function ids(rows: readonly Readonly<{ taskId: string }>[]): string[] {
+  return rows.map((row) => row.taskId);
 }

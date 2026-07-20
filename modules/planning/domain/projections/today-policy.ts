@@ -40,6 +40,13 @@ export function projectToday(
   const anytime: ScheduledOpenProjectionTask[] = [];
 
   for (const task of activeOpenScheduledTasks(rows)) {
+    if (
+      task.projectionLifecycle === "recurring_occurrence" &&
+      !scheduleOverlapsLocalRange(task.schedule, range)
+    ) {
+      continue;
+    }
+
     if (dueBoundary(task.schedule, input.timeZone) <= now) {
       overdue.push(task);
       continue;

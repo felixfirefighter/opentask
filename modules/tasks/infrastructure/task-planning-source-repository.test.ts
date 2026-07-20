@@ -47,8 +47,13 @@ describe("task planning source repository SQL", () => {
     }
     expect(recorder.queries[0]?.sql).toContain('"task_schedules"."start_date" <');
     expect(recorder.queries[0]?.sql).toContain('"task_schedules"."start_at" <');
+    expect(recorder.queries[0]?.sql).toContain('left join "task_recurrences"');
+    expect(recorder.queries[0]?.sql).toContain('"task_recurrences"."task_id" is null');
     expect(recorder.queries[1]?.sql).toContain('"task_schedules"."end_date" >');
     expect(recorder.queries[1]?.sql).toContain('"task_schedules"."start_at" = "task_schedules"."end_at"');
+    expect(recorder.queries[1]?.sql).toContain('left join "task_recurrences"');
+    expect(recorder.queries[1]?.sql).toContain('"task_recurrences"."task_id" is null');
     expect(recorder.queries[2]?.sql).toContain('left join "task_schedules"');
+    expect(recorder.queries[2]?.sql).toContain('left join "task_recurrences"');
   });
 });
