@@ -48,6 +48,7 @@ import { createChecklistRepository } from "../infrastructure/checklist-repositor
 import { createSectionRepository } from "../infrastructure/section-repository";
 import { createTagRepository } from "../infrastructure/tag-repository";
 import { createTaskRepository, type StoredTask } from "../infrastructure/task-repository";
+import { createTaskRecurrenceRepository } from "../infrastructure/task-recurrence-repository";
 import {
   createTaskScheduleRepository,
   type StoredTaskSchedule,
@@ -76,6 +77,7 @@ export function createTaskApplication({
   const checklist = createChecklistRepository(database);
   const tags = createTagRepository(database);
   const schedules = createTaskScheduleRepository(taskSchedules, database);
+  const recurrences = createTaskRecurrenceRepository(database);
   const placementRepositories = { tasks, lists, sections };
   const lifecycleCommands = createTaskLifecycleCommands({ database, clock });
   const terminalQuery = createTerminalTaskQuery({ database });
@@ -167,12 +169,13 @@ export function createTaskApplication({
         ...(after ? { after } : {}),
       });
       const page = pageFromRows(rows, query.limit);
-      const taskTags = await tags.listActiveForTasks(
-        actor.userId,
-        page.items.map(({ id }) => id),
-      );
+      const pageTaskIds = page.items.map(({ id }) => id);
+      const [taskTags, pageRecurrences] = await Promise.all([
+        tags.listActiveForTasks(actor.userId, pageTaskIds),
+        recurrences.listForTaskIds(actor.userId, pageTaskIds),
+      ]);
       return taskPageSchema.parse({
-        items: mapTaskListItems(page.items, taskTags),
+        items: mapTaskListItems(page.items, taskTags, pageRecurrences),
         nextCursor: page.nextCursor,
       });
     },

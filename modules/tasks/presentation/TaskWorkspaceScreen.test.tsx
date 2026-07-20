@@ -154,6 +154,7 @@ function task(): TaskListItemDto {
     rank: "a",
     statusChangedAt: "2026-07-19T00:00:00.000Z",
     tags: [],
+    recurrence: null,
     version: 1,
     createdAt: "2026-07-19T00:00:00.000Z",
     updatedAt: "2026-07-19T00:00:00.000Z",

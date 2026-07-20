@@ -67,7 +67,7 @@ export function TaskSubtaskEditor({ disabled, task }: Readonly<{ disabled: boole
     if (disabled || status.isPending) return;
     status.mutate(
       {
-        task: { ...subtask, tags: [] },
+        task: { ...subtask, tags: [], recurrence: null },
         status: subtask.status === "open" ? "completed" : "open",
       },
       {

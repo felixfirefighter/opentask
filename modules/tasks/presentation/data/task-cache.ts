@@ -10,8 +10,12 @@ import type {
 
 export type TaskPageCache = InfiniteData<TaskPage, string | undefined>;
 
-export function taskListItem(task: TaskDto, tags: TagDto[] = []): TaskListItemDto {
-  return { ...task, tags };
+export function taskListItem(
+  task: TaskDto,
+  tags: TagDto[] = [],
+  recurrence: TaskListItemDto["recurrence"] = null,
+): TaskListItemDto {
+  return { ...task, tags, recurrence };
 }
 
 export function optimisticTask(resourceId: string, input: CreateTaskRequest): TaskListItemDto {
@@ -32,6 +36,7 @@ export function optimisticTask(resourceId: string, input: CreateTaskRequest): Ta
     statusChangedAt: now,
     rank: "z0",
     tags: [],
+    recurrence: null,
   };
 }
 

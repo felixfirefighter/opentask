@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Circle, Flag, GripVertical, RotateCcw } from "lucide-react";
+import { Check, Circle, Flag, GripVertical, Repeat2, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import type { ComponentPropsWithRef, MouseEvent } from "react";
 
@@ -41,8 +41,14 @@ export function TaskRow({
   task,
 }: TaskRowProps) {
   const restore = task.status !== "open";
+  const hasActiveRecurrence = task.recurrence?.status === "active";
+  const activeRecurrence = task.status === "open" && hasActiveRecurrence;
   const tags = task.tags.slice(0, 2);
-  const statusLabel = restore ? `Restore ${task.title}` : `Complete ${task.title}`;
+  const statusLabel = activeRecurrence
+    ? `Open recurring task ${task.title}`
+    : restore
+      ? `Restore ${task.title}`
+      : `Complete ${task.title}`;
 
   return (
     <div
@@ -52,27 +58,39 @@ export function TaskRow({
       data-selected={selected || undefined}
       data-status={task.status}
     >
-      <button
-        type="button"
-        className={styles.status}
-        data-ui-part="status"
-        aria-label={statusLabel}
-        disabled={disabled}
-        onClick={() => onStatusChange(restore ? "open" : "completed")}
-        title={disabled ? "Reconnect to change task status" : statusLabel}
-      >
-        {task.status === "completed" ? (
-          <span className={styles.statusDone} data-ui-part="status-indicator">
-            <Check size={13} aria-hidden="true" />
-          </span>
-        ) : task.status === "cancelled" ? (
-          <span className={styles.statusCancelled} data-ui-part="status-indicator">
-            <RotateCcw size={13} aria-hidden="true" />
-          </span>
-        ) : (
-          <Circle data-ui-part="status-indicator" aria-hidden="true" />
-        )}
-      </button>
+      {activeRecurrence ? (
+        <Link
+          className={styles.status}
+          data-ui-part="status"
+          aria-label={statusLabel}
+          href={detailsHref}
+          title={statusLabel}
+        >
+          <Repeat2 data-ui-part="status-indicator" aria-hidden="true" />
+        </Link>
+      ) : (
+        <button
+          type="button"
+          className={styles.status}
+          data-ui-part="status"
+          aria-label={statusLabel}
+          disabled={disabled}
+          onClick={() => onStatusChange(restore ? "open" : "completed")}
+          title={disabled ? "Reconnect to change task status" : statusLabel}
+        >
+          {task.status === "completed" ? (
+            <span className={styles.statusDone} data-ui-part="status-indicator">
+              <Check size={13} aria-hidden="true" />
+            </span>
+          ) : task.status === "cancelled" ? (
+            <span className={styles.statusCancelled} data-ui-part="status-indicator">
+              <RotateCcw size={13} aria-hidden="true" />
+            </span>
+          ) : (
+            <Circle data-ui-part="status-indicator" aria-hidden="true" />
+          )}
+        </button>
+      )}
 
       <Link
         className={styles.content}
@@ -86,13 +104,15 @@ export function TaskRow({
         </span>
         <span className={styles.metadata} data-ui-part="metadata">
           {contextLabel && <span>{contextLabel}</span>}
+          {!contextLabel && hasActiveRecurrence && <span>Repeats</span>}
+          {!contextLabel && task.recurrence?.status === "ended" && <span>Repeat ended</span>}
           {task.status === "cancelled" && !contextLabel && <span>Cancelled</span>}
           {tags.map((tag) => (
             <span className={styles.tag} data-accent={tag.colorToken} data-ui-part="tag" key={tag.id}>
               {tag.name}
             </span>
           ))}
-          {!contextLabel && task.status === "open" && tags.length === 0 && (
+          {!contextLabel && task.status === "open" && tags.length === 0 && task.recurrence === null && (
             <span className={styles.quietMetadata}>Unscheduled</span>
           )}
         </span>
@@ -127,6 +147,7 @@ export function TaskRow({
           disabled={disabled}
           restore={restore}
           task={task}
+          activeRecurrence={activeRecurrence}
           onMove={onMove}
           onMoveEarlier={onMoveEarlier}
           onMoveLater={onMoveLater}

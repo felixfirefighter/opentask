@@ -28,6 +28,7 @@ const repositories = vi.hoisted(() => ({
   sections: { findById: vi.fn(), lockById: vi.fn() },
   checklist: { listByTask: vi.fn() },
   tags: { listActiveForTask: vi.fn(), listActiveForTasks: vi.fn() },
+  recurrences: { listForTaskIds: vi.fn() },
   lockRankScope: vi.fn(),
   lockRankScopes: vi.fn(),
 }));
@@ -46,6 +47,9 @@ vi.mock("../infrastructure/checklist-repository", () => ({
 }));
 vi.mock("../infrastructure/tag-repository", () => ({
   createTagRepository: () => repositories.tags,
+}));
+vi.mock("../infrastructure/task-recurrence-repository", () => ({
+  createTaskRecurrenceRepository: () => repositories.recurrences,
 }));
 vi.mock("../infrastructure/rank-scope-lock", () => ({
   lockRankScope: repositories.lockRankScope,
@@ -130,6 +134,7 @@ describe("task application", () => {
     repositories.checklist.listByTask.mockResolvedValue([]);
     repositories.tags.listActiveForTask.mockResolvedValue([]);
     repositories.tags.listActiveForTasks.mockResolvedValue([]);
+    repositories.recurrences.listForTaskIds.mockResolvedValue([]);
     repositories.lockRankScope.mockResolvedValue(undefined);
     repositories.lockRankScopes.mockResolvedValue(undefined);
   });
@@ -165,6 +170,9 @@ describe("task application", () => {
 
   it("enriches a bounded task page with one bulk tag read", async () => {
     repositories.tasks.listActivePage.mockResolvedValue([storedTask()]);
+    repositories.recurrences.listForTaskIds.mockResolvedValue([
+      { taskId, projectionEndDate: null, projectionEndAt: null },
+    ]);
     repositories.tags.listActiveForTasks.mockResolvedValue([
       {
         taskId,
@@ -192,11 +200,13 @@ describe("task application", () => {
       expect.objectContaining({
         id: taskId,
         tags: [expect.objectContaining({ id: tagId, name: "Launch" })],
+        recurrence: { status: "active" },
       }),
     ]);
     expect(page.items[0]).not.toHaveProperty("userId");
     expect(page.items[0]?.tags[0]).not.toHaveProperty("userId");
     expect(repositories.tags.listActiveForTasks).toHaveBeenCalledOnce();
+    expect(repositories.recurrences.listForTaskIds).toHaveBeenCalledWith(userId, [taskId]);
   });
 
   it("assembles active checklist, tag, and subtask detail without exposing owner columns", async () => {

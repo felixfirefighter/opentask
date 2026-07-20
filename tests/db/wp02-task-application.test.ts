@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -309,6 +310,73 @@ describe("WP02 task and checklist application integration", () => {
         limit: 100,
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("projects tenant-scoped recurrence lifecycle metadata onto task rows", async () => {
+    const listA = await createList(ownerA, "Recurring rows A");
+    const listB = await createList(ownerB, "Recurring rows B");
+    const recurringA = (await createTask(ownerA, { listId: listA.id, title: "Owner A series" })).value;
+    const ordinaryA = (await createTask(ownerA, { listId: listA.id, title: "Owner A one-off" })).value;
+    const recurringB = (await createTask(ownerB, { listId: listB.id, title: "Owner B series" })).value;
+
+    await database.insert(schema.taskRecurrences).values([
+      {
+        userId: ownerA.userId,
+        taskId: recurringA.id,
+        rrule: "FREQ=DAILY;INTERVAL=1",
+        timezone: "Asia/Singapore",
+        generationMode: "schedule",
+        projectionStartDate: "2026-07-19",
+        createdAt: testInstant,
+        updatedAt: testInstant,
+      },
+      {
+        userId: ownerB.userId,
+        taskId: recurringB.id,
+        rrule: "FREQ=DAILY;INTERVAL=1",
+        timezone: "Asia/Singapore",
+        generationMode: "schedule",
+        projectionStartDate: "2026-07-19",
+        createdAt: testInstant,
+        updatedAt: testInstant,
+      },
+    ]);
+
+    const activePage = await application.tasks.listTasks(ownerA, {
+      listId: listA.id,
+      parentTaskId: null,
+      status: "open",
+      limit: 100,
+    });
+    expect(activePage.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: recurringA.id, recurrence: { status: "active" } }),
+        expect.objectContaining({ id: ordinaryA.id, recurrence: null }),
+      ]),
+    );
+    expect(activePage.items).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: recurringB.id })]),
+    );
+
+    await database
+      .update(schema.taskRecurrences)
+      .set({ projectionEndDate: "2026-07-20", updatedAt: testInstant })
+      .where(
+        and(
+          eq(schema.taskRecurrences.userId, ownerA.userId),
+          eq(schema.taskRecurrences.taskId, recurringA.id),
+        ),
+      );
+
+    const endedPage = await application.tasks.listTasks(ownerA, {
+      listId: listA.id,
+      parentTaskId: null,
+      status: "open",
+      limit: 100,
+    });
+    expect(endedPage.items.find(({ id }) => id === recurringA.id)?.recurrence).toEqual({
+      status: "ended",
+    });
   });
 });
 

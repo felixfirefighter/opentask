@@ -42,6 +42,7 @@ export const taskDetailDtoSchema = taskDtoSchema.extend({
 
 export const taskListItemDtoSchema = taskDtoSchema.extend({
   tags: z.array(tagDtoSchema),
+  recurrence: z.strictObject({ status: z.enum(["active", "ended"]) }).nullable(),
 });
 
 export const taskPageSchema = z.strictObject({

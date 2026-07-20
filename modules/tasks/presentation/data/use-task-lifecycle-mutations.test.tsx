@@ -172,7 +172,9 @@ describe("task status cache recovery", () => {
       client.setQueryData<TaskDetailDto>(taskQueryKeys.detail(TASK_ID), detail(from));
       const { result } = renderHook(() => useTaskStatusMutation(), { wrapper: queryWrapper(client) });
 
-      await act(() => result.current.mutateAsync({ task: { ...subtaskDto(from), tags: [] }, status: to }));
+      await act(() =>
+        result.current.mutateAsync({ task: { ...subtaskDto(from), tags: [], recurrence: null }, status: to }),
+      );
 
       expect(cachedTasks(client, taskQueryKeys.list(LIST_ID)).map(({ id }) => id)).toEqual([TASK_ID]);
       expect(client.getQueryData<TaskDetailDto>(taskQueryKeys.detail(TASK_ID))?.subtasks[0]).toMatchObject({
@@ -226,6 +228,7 @@ function task(): TaskListItemDto {
     rank: "a0",
     statusChangedAt: "2026-07-19T00:00:00.000Z",
     tags: [],
+    recurrence: null,
   };
 }
 

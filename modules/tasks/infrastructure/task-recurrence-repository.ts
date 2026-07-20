@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, lt, or } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lt, or } from "drizzle-orm";
 
 import { getDatabase, type DatabaseExecutor } from "@/shared/db/client";
 import { schema } from "@/shared/db/schema";
@@ -69,6 +69,27 @@ export function createTaskRecurrenceRepository(defaultExecutor: DatabaseExecutor
         .limit(1)
         .for("update");
       return row ?? null;
+    },
+
+    async listForTaskIds(
+      userId: string,
+      taskIds: readonly string[],
+      executor: DatabaseExecutor = defaultExecutor,
+    ): Promise<readonly StoredTaskRecurrence[]> {
+      if (taskIds.length === 0) return [];
+      if (taskIds.length > 100 || new Set(taskIds).size !== taskIds.length) {
+        throw new RangeError("Recurrence task selection must contain at most 100 unique IDs.");
+      }
+      return executor
+        .select()
+        .from(schema.taskRecurrences)
+        .where(
+          and(
+            eq(schema.taskRecurrences.userId, userId),
+            inArray(schema.taskRecurrences.taskId, [...taskIds]),
+          ),
+        )
+        .orderBy(asc(schema.taskRecurrences.taskId));
     },
 
     async insert(

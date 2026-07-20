@@ -8,6 +8,7 @@ import type { TaskRowProps } from "./TaskRow";
 import styles from "./TaskRow.module.css";
 
 export function TaskRowMenu({
+  activeRecurrence,
   disabled,
   onMove,
   onMoveEarlier,
@@ -29,6 +30,7 @@ export function TaskRowMenu({
   | "task"
 > & {
   restore: boolean;
+  activeRecurrence: boolean;
 }) {
   return (
     <DropdownMenu.Root>
@@ -45,13 +47,15 @@ export function TaskRowMenu({
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content className={styles.menu} sideOffset={6} align="end">
-          <DropdownMenu.Item
-            className={styles.menuItem}
-            disabled={Boolean(disabled)}
-            onSelect={() => onStatusChange(restore ? "open" : "completed")}
-          >
-            {restore ? "Restore task" : "Complete task"}
-          </DropdownMenu.Item>
+          {!activeRecurrence && (
+            <DropdownMenu.Item
+              className={styles.menuItem}
+              disabled={Boolean(disabled)}
+              onSelect={() => onStatusChange(restore ? "open" : "completed")}
+            >
+              {restore ? "Restore task" : "Complete task"}
+            </DropdownMenu.Item>
+          )}
           {!restore && (
             <DropdownMenu.Item
               className={styles.menuItem}

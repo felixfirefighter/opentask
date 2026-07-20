@@ -194,5 +194,6 @@ function task(): TaskListItemDto {
     rank: "a0",
     statusChangedAt: "2026-07-19T00:00:00.000Z",
     tags: [],
+    recurrence: null,
   };
 }

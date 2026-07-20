@@ -46,6 +46,7 @@ export function useTaskStatusMutation() {
       const optimistic = taskListItem(
         { ...task, status, statusChangedAt: new Date().toISOString() },
         task.tags,
+        "recurrence" in task ? task.recurrence : null,
       );
       if (listKey) {
         queryClient.setQueryData<TaskPageCache>(listKey, (cache) =>
@@ -123,12 +124,12 @@ export function useTaskStatusMutation() {
       }
       if (status !== "open") {
         queryClient.setQueryData<TaskPageCache>(taskQueryKeys.terminal(status), (cache) =>
-          patchTask(cache, task.id, (row) => taskListItem(updated, row.tags)),
+          patchTask(cache, task.id, (row) => taskListItem(updated, row.tags, row.recurrence)),
         );
         showStatusUndo(queryClient, updated, status);
       } else if (task.status !== "open" && task.parentTaskId === null) {
         queryClient.setQueryData<TaskPageCache>(taskQueryKeys.list(updated.listId), (cache) =>
-          patchTask(cache, task.id, (row) => taskListItem(updated, row.tags)),
+          patchTask(cache, task.id, (row) => taskListItem(updated, row.tags, row.recurrence)),
         );
       }
     },

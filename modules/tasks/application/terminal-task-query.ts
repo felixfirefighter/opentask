@@ -5,11 +5,13 @@ import { taskPageSchema, terminalTaskQuerySchema, type TaskPage, type TerminalTa
 import { decodeTerminalTaskCursor, encodeTerminalTaskCursor } from "./terminal-task-cursor";
 import { mapTaskListItems } from "./task-list-item-projection";
 import { createTagRepository } from "../infrastructure/tag-repository";
+import { createTaskRecurrenceRepository } from "../infrastructure/task-recurrence-repository";
 import { createTaskRepository } from "../infrastructure/task-repository";
 
 export function createTerminalTaskQuery({ database }: { database: Database }) {
   const tasks = createTaskRepository(database);
   const tags = createTagRepository(database);
+  const recurrences = createTaskRecurrenceRepository(database);
 
   return {
     async listTerminalTasks(actor: AuthenticatedActor, rawQuery: TerminalTaskQuery): Promise<TaskPage> {
@@ -22,12 +24,13 @@ export function createTerminalTaskQuery({ database }: { database: Database }) {
       });
       const items = rows.slice(0, query.limit);
       const last = items.at(-1);
-      const taskTags = await tags.listActiveForTasks(
-        actor.userId,
-        items.map(({ id }) => id),
-      );
+      const taskIds = items.map(({ id }) => id);
+      const [taskTags, taskRecurrences] = await Promise.all([
+        tags.listActiveForTasks(actor.userId, taskIds),
+        recurrences.listForTaskIds(actor.userId, taskIds),
+      ]);
       return taskPageSchema.parse({
-        items: mapTaskListItems(items, taskTags),
+        items: mapTaskListItems(items, taskTags, taskRecurrences),
         nextCursor:
           rows.length > query.limit && last
             ? encodeTerminalTaskCursor({
