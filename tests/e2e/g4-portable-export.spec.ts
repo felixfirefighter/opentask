@@ -44,7 +44,10 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
     descriptionMd: "## Private export proof\n\nOwner-only portable description.",
   });
   task = await addTagToTask(page, task, "G4 private tag");
-  await setAllDaySchedule(page, task.id, task.version);
+  const scheduled = await setAllDaySchedule(page, task.id, task.version);
+  const recurrence = await setDailyRecurrence(page, task.id, scheduled.task.version);
+  const occurrence = await readRecurringOccurrence(page, task.id);
+  await completeOccurrence(page, task.id, occurrence.occurrenceKey, recurrence.task.version);
 
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
@@ -65,7 +68,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   expect(exportResponse.headers()["content-type"]).toContain("application/json");
   expect(exportResponse.headers()["pragma"]).toBe("no-cache");
   expect(exportResponse.headers()["x-content-type-options"]).toBe("nosniff");
-  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("1");
+  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("2");
 
   const downloadedPath = await download.path();
   expect(downloadedPath).not.toBeNull();
@@ -73,15 +76,15 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   const expectedFilename = `opentask-export-${new Date(envelope.exportedAt).toISOString().slice(0, 10)}.json`;
   expect(exportResponse.headers()["content-disposition"]).toBe(`attachment; filename="${expectedFilename}"`);
   expect(download.suggestedFilename()).toBe(expectedFilename);
-  await expect(page.getByText(`Downloaded ${expectedFilename} · schema v1.`)).toBeVisible();
+  await expect(page.getByText(`Downloaded ${expectedFilename} · schema v2.`)).toBeVisible();
   expect(envelope).toMatchObject({
-    schemaVersion: 1,
+    schemaVersion: 2,
     identity: {
       schemaVersion: 1,
       profile: { email: owner.email },
       preferences: { schemaVersion: 1, timezone: expect.any(String) },
     },
-    tasks: { schemaVersion: 1 },
+    tasks: { schemaVersion: 2 },
     assistant: { schemaVersion: 1, proposals: expect.any(Array) },
   });
   expect(Number.isNaN(Date.parse(envelope.exportedAt))).toBe(false);
@@ -108,6 +111,24 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
     updatedAt: expect.any(String),
   });
   expect(envelope.tasks.tags).toContainEqual(expect.objectContaining({ name: "G4 private tag" }));
+  expect(envelope.tasks.recurrenceDefinitions).toContainEqual(
+    expect.objectContaining({
+      taskId: task.id,
+      kind: "all_day",
+      generationMode: "schedule",
+      rrule: "FREQ=DAILY;INTERVAL=1",
+      projectionStartDate: "2026-07-21",
+      projectionEndDate: null,
+    }),
+  );
+  expect(envelope.tasks.occurrenceEvents).toContainEqual(
+    expect.objectContaining({
+      taskId: task.id,
+      occurrenceKey: occurrence.occurrenceKey,
+      state: "completed",
+      taskVersion: recurrence.task.version + 1,
+    }),
+  );
 
   const serializedOwnerExport = JSON.stringify(envelope);
   expect(serializedOwnerExport).not.toContain(owner.password);
@@ -191,6 +212,8 @@ type PortableExportEnvelope = Readonly<{
     sections: ReadonlyArray<{ id: string; listId: string; name: string }>;
     tasks: ReadonlyArray<Record<string, unknown>>;
     schedules: ReadonlyArray<Record<string, unknown>>;
+    recurrenceDefinitions: ReadonlyArray<Record<string, unknown>>;
+    occurrenceEvents: ReadonlyArray<Record<string, unknown>>;
     tags: ReadonlyArray<Record<string, unknown>>;
   };
   assistant: { schemaVersion: number; proposals: readonly unknown[] };
@@ -205,7 +228,61 @@ async function setAllDaySchedule(page: Page, taskId: string, version: number) {
     headers: { origin: appOrigin },
   });
   expect(response.status()).toBe(200);
+  return (await response.json()) as MutationResult;
 }
+
+async function setDailyRecurrence(page: Page, taskId: string, version: number) {
+  const response = await page.context().request.patch(`/api/v1/tasks/${taskId}/recurrence`, {
+    data: {
+      expectedVersion: version,
+      definition: {
+        preset: { kind: "daily", interval: 1 },
+        end: { kind: "never" },
+      },
+    },
+    headers: { origin: appOrigin },
+  });
+  expect(response.status()).toBe(200);
+  return (await response.json()) as MutationResult;
+}
+
+async function readRecurringOccurrence(page: Page, taskId: string) {
+  const response = await page
+    .context()
+    .request.get("/api/v1/planning/calendar?rangeStartDate=2026-07-21&rangeEndDate=2026-07-22&limit=20");
+  expect(response.status()).toBe(200);
+  const projection = (await response.json()) as CalendarProjection;
+  const occurrence = projection.events.find(
+    (event) => event.taskId === taskId && event.projectionLifecycle === "recurring_occurrence",
+  );
+  const occurrenceKey = occurrence?.occurrenceKey;
+  if (!occurrence || !occurrenceKey) throw new Error("The export fixture recurrence did not project.");
+  return { ...occurrence, occurrenceKey };
+}
+
+async function completeOccurrence(
+  page: Page,
+  taskId: string,
+  occurrenceKey: string,
+  expectedVersion: number,
+) {
+  const response = await page.context().request.post(`/api/v1/tasks/${taskId}/occurrences/transition`, {
+    data: { action: "complete", occurrenceKey, expectedVersion },
+    headers: { origin: appOrigin },
+  });
+  expect(response.status()).toBe(200);
+}
+
+type MutationResult = Readonly<{ task: Readonly<{ id: string; version: number }> }>;
+type CalendarProjection = Readonly<{
+  events: ReadonlyArray<
+    Readonly<{
+      taskId: string;
+      projectionLifecycle: "one_off" | "recurring_occurrence";
+      occurrenceKey: string | null;
+    }>
+  >;
+}>;
 
 async function readSuccessfulExport(response: APIResponse): Promise<PortableExportEnvelope> {
   expect(response.status()).toBe(200);
