@@ -7,6 +7,7 @@ import {
 } from "./recurrence-application-support";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import {
+  fallbackEndCutover,
   restartRecurrenceProjection,
   type RecurrenceProjectionWindow,
 } from "../domain/recurrence/recurrence-cutover-policy";
@@ -32,14 +33,14 @@ export async function advanceDormantRecurrenceCutover(
   const parsed = parseStoredRecurrence(input.recurrence, input.schedule);
   if (hasUpperCutover(parsed.projection)) return input.recurrence;
 
-  const nextStart = nextFutureOccurrenceStart(
-    input.expansion,
-    parsed.definition,
-    parsed.anchor,
-    parsed.projection,
-    input.now,
-  );
-  if (nextStart === null) return input.recurrence;
+  const nextStart =
+    nextFutureOccurrenceStart(
+      input.expansion,
+      parsed.definition,
+      parsed.anchor,
+      parsed.projection,
+      input.now,
+    ) ?? fallbackEndCutover(parsed.projection.kind, input.now.toISOString(), parsed.anchor.timezone);
 
   const restarted = restartRecurrenceProjection(parsed.projection, nextStart);
   if (sameProjection(parsed.projection, restarted)) return input.recurrence;

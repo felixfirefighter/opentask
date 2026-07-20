@@ -53,6 +53,15 @@ export function createTaskRecurrenceLifecycle({
       }
     },
 
+    assertSubtaskMoveAllowed(recurrence: StoredTaskRecurrence | null, currentVersion: number): void {
+      if (recurrence) {
+        throw taskConflict(
+          "Clear this task's recurring schedule before moving it under another task.",
+          currentVersion,
+        );
+      }
+    },
+
     async advanceForResume(
       userId: string,
       resources: LockedRecurrenceResources,

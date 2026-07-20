@@ -56,6 +56,15 @@ describe("recurring task lifecycle coordinator", () => {
     expect(() => lifecycle.assertCompletionAllowed(null, 7)).not.toThrow();
   });
 
+  it("requires every stored recurrence definition to be cleared before a subtask move", () => {
+    for (const recurrence of [storedRecurrence(), storedRecurrence({ projectionEndDate: "2026-07-19" })]) {
+      expect(() => lifecycle.assertSubtaskMoveAllowed(recurrence, 7)).toThrow(
+        expect.objectContaining({ code: "CONFLICT", currentVersion: 7 }),
+      );
+    }
+    expect(() => lifecycle.assertSubtaskMoveAllowed(null, 7)).not.toThrow();
+  });
+
   it("advances only an active dormant recurrence to the first strict future occurrence", async () => {
     const recurrence = storedRecurrence();
     const schedule = storedSchedule();
@@ -85,6 +94,54 @@ describe("recurring task lifecycle coordinator", () => {
       transaction,
     );
     expect(repositories.recurrences.replace).not.toHaveBeenCalled();
+  });
+
+  it("advances exhausted finite rules to the all-day or timed dormant fallback", async () => {
+    repositories.recurrences.replace.mockResolvedValue(storedRecurrence());
+
+    await lifecycle.advanceForResume(
+      userId,
+      {
+        recurrence: storedRecurrence({ rrule: "FREQ=DAILY;INTERVAL=1;COUNT=1" }),
+        schedule: storedSchedule(),
+      },
+      now,
+      transaction,
+    );
+    expect(repositories.recurrences.replace).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        recurrence: expect.objectContaining({
+          cutover: { kind: "all_day", projectionStartDate: "2026-07-20", projectionEndDate: null },
+        }),
+      }),
+      transaction,
+    );
+
+    repositories.recurrences.replace.mockClear();
+    repositories.recurrences.replace.mockResolvedValue(
+      storedRecurrence({ projectionStartDate: null, projectionStartAt: now }),
+    );
+    await lifecycle.advanceForResume(
+      userId,
+      {
+        recurrence: storedRecurrence({
+          rrule: "FREQ=DAILY;INTERVAL=1;COUNT=1",
+          projectionStartDate: null,
+          projectionStartAt: new Date("2026-07-10T01:00:00.000Z"),
+        }),
+        schedule: storedTimedSchedule(),
+      },
+      now,
+      transaction,
+    );
+    expect(repositories.recurrences.replace).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        recurrence: expect.objectContaining({
+          cutover: { kind: "timed", projectionStartAt: now, projectionEndAt: null },
+        }),
+      }),
+      transaction,
+    );
   });
 
   it("fails closed when recurrence storage has lost its canonical schedule", async () => {
@@ -122,6 +179,21 @@ function storedSchedule() {
     startAt: null,
     endAt: null,
     timezone: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function storedTimedSchedule() {
+  return {
+    userId,
+    taskId,
+    kind: "timed",
+    startDate: null,
+    endDate: null,
+    startAt: new Date("2026-07-10T01:00:00.000Z"),
+    endAt: new Date("2026-07-10T02:00:00.000Z"),
+    timezone: "Asia/Singapore",
     createdAt: now,
     updatedAt: now,
   };

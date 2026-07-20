@@ -356,6 +356,47 @@ describe("task application", () => {
     );
   });
 
+  it.each([
+    ["active", null],
+    ["ended", "2026-07-20"],
+  ] as const)(
+    "rejects an %s recurring root becoming a subtask under task-recurrence-schedule lock order",
+    async (_lifecycle, projectionEndDate) => {
+      const root = storedTask();
+      const parent = storedTask({ id: parentId, title: "Parent task" });
+      repositories.tasks.findById.mockResolvedValue(root);
+      repositories.tasks.lockById.mockImplementation(async (_userId: string, id: string) =>
+        id === parentId ? parent : root,
+      );
+      repositories.recurrences.lockByTaskId.mockResolvedValue({
+        taskId,
+        projectionEndDate,
+        projectionEndAt: null,
+      });
+      repositories.schedules.lockByTaskId.mockResolvedValue({ taskId, kind: "all_day" });
+
+      await expect(
+        createTaskApplication({ database, clock, taskSchedules }).moveTask(actor, taskId, {
+          expectedVersion: 1,
+          listId,
+          sectionId: null,
+          parentTaskId: parentId,
+          placement: { kind: "end" },
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 1 });
+
+      expect(repositories.tasks.move).not.toHaveBeenCalled();
+      expect(repositories.tasks.listActiveRankScope).not.toHaveBeenCalled();
+      const finalTaskLock = Math.max(...repositories.tasks.lockById.mock.invocationCallOrder);
+      expect(finalTaskLock).toBeLessThan(
+        repositories.recurrences.lockByTaskId.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+      );
+      expect(repositories.recurrences.lockByTaskId.mock.invocationCallOrder[0]).toBeLessThan(
+        repositories.schedules.lockByTaskId.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+      );
+    },
+  );
+
   it("returns a safe stale conflict when move, position, or restore waits on an old container", async () => {
     const application = createTaskApplication({ database, clock, taskSchedules });
     const activeObserved = storedTask();

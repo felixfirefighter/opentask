@@ -97,6 +97,14 @@ export function createTaskLifecycleCommands({
         if (input.parentTaskId !== null && (!parent || parent.deletedAt !== null))
           throw taskResourceNotFound();
         assertAllowedParent({ id: taskId, userId: actor.userId, listId: input.listId }, parent);
+        if (input.parentTaskId !== null) {
+          const recurrenceResources = await recurrenceLifecycle.lockResources(
+            actor.userId,
+            taskId,
+            transaction,
+          );
+          recurrenceLifecycle.assertSubtaskMoveAllowed(recurrenceResources.recurrence, current.version);
+        }
         if (input.parentTaskId !== null && children.length > 0) {
           throw taskConflict("A task with subtasks cannot become a subtask.", current.version);
         }
