@@ -1,13 +1,27 @@
 export type PlanningPriority = "none" | "low" | "medium" | "high";
 export type PlanningTaskStatus = "open" | "completed" | "cancelled";
 export type PlanningCategory = "coral" | "amber" | "mint" | "sky" | "violet" | "slate";
+export type PlanningProjectionLifecycle = "one_off" | "recurring_occurrence" | "recurrence_summary";
+export type PlanningOccurrenceState = "open" | "completed" | "skipped";
+export type PlanningOccurrenceAction = "complete" | "skip" | "undo";
+export type PlanningScheduleInteraction = Readonly<{
+  editScope: "task" | "series";
+  dragEnabled: boolean;
+  dragDisabledReason: string | null;
+}>;
 
 export type PlanningTaskRowModel = Readonly<{
-  id: string;
+  projectionId: string;
+  taskId: string;
   title: string;
   detailsHref: string;
   status: PlanningTaskStatus;
   priority: PlanningPriority;
+  projectionLifecycle: PlanningProjectionLifecycle;
+  occurrenceKey: string | null;
+  occurrenceState: PlanningOccurrenceState | null;
+  recurrenceSummary: string | null;
+  scheduleInteraction: PlanningScheduleInteraction;
   scheduleLabel: string;
   contextLabel?: string | undefined;
   category?: PlanningCategory | undefined;
@@ -17,8 +31,17 @@ export type PlanningTaskRowModel = Readonly<{
 export type PlanningTaskActions = Readonly<{
   onOpenTask?: ((taskId: string) => void) | undefined;
   onStatusChange?: ((taskId: string, status: PlanningTaskStatus) => void) | undefined;
+  onOccurrenceTransition?:
+    | ((
+        taskId: string,
+        occurrenceKey: string,
+        action: PlanningOccurrenceAction,
+        projectionId?: string,
+      ) => void)
+    | undefined;
   onPriorityChange?: ((taskId: string, priority: PlanningPriority) => void) | undefined;
   onEditSchedule?: ((taskId: string) => void) | undefined;
+  onEditSeriesSchedule?: ((taskId: string) => void) | undefined;
 }>;
 
 export type PlanningScreenCondition =
@@ -73,13 +96,18 @@ export type UpcomingPlanningModel = Readonly<{
 export type CalendarView = "month" | "week" | "day" | "agenda";
 
 export type PlanningCalendarEventModel = Readonly<{
-  id: string;
+  projectionId: string;
   taskId: string;
   title: string;
   detailsHref: string;
   start: string;
   end: string;
   allDay: boolean;
+  projectionLifecycle: PlanningProjectionLifecycle;
+  occurrenceKey: string | null;
+  occurrenceState: PlanningOccurrenceState | null;
+  recurrenceSummary: string | null;
+  scheduleInteraction: PlanningScheduleInteraction;
   scheduleLabel: string;
   statusLabel: string;
   categoryLabel: string;

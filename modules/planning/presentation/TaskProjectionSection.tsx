@@ -29,7 +29,7 @@ export function TaskProjectionSection({
       </header>
       <div className={styles.rows} role="list" aria-label={`${label}, ${countLabel}`}>
         {tasks.map((task) => (
-          <div role="listitem" key={task.id}>
+          <div role="listitem" key={task.projectionId}>
             <ProjectionTaskRow actions={actions} disabled={disabled || task.conflicted} task={task} />
           </div>
         ))}

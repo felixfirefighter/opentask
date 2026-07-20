@@ -113,13 +113,19 @@ function toTaskRowModel(
   options: FormatOptions,
 ): PlanningTaskRowModel {
   return {
-    id: task.id,
+    projectionId: task.projectionId,
+    taskId: task.id,
     title: task.title,
     detailsHref: planningTaskDetailsHref(task.id, options.taskReturnTo),
     status: task.status,
     priority: task.priority,
+    projectionLifecycle: task.projectionLifecycle,
+    occurrenceKey: task.occurrenceKey,
+    occurrenceState: task.occurrenceState,
+    recurrenceSummary: task.recurrenceSummary,
+    scheduleInteraction: task.scheduleInteraction,
     scheduleLabel: scheduleLabel(task.schedule, timeZone, options.hourCycle),
-    contextLabel: "Task",
+    contextLabel: projectionContextLabel(task),
     category: categoryFor(task.listId),
     conflicted: options.conflictedTaskId === task.id || undefined,
   };
@@ -136,17 +142,41 @@ function toCalendarEventModel(
       ? { start: event.startDate, end: event.endDate, allDay: true }
       : { start: event.startAt, end: event.endAt, allDay: false };
   return {
-    id: event.taskId,
+    projectionId: event.projectionId,
     taskId: event.taskId,
     title: event.title,
     detailsHref: planningTaskDetailsHref(event.taskId, options.taskReturnTo),
     ...bounds,
-    scheduleLabel: scheduleLabel(event, timeZone, options.hourCycle),
-    statusLabel: "Open",
-    categoryLabel: "Task",
+    projectionLifecycle: event.projectionLifecycle,
+    occurrenceKey: event.occurrenceKey,
+    occurrenceState: event.occurrenceState,
+    recurrenceSummary: event.recurrenceSummary,
+    scheduleInteraction: event.scheduleInteraction,
+    scheduleLabel: calendarScheduleLabel(event, timeZone, options.hourCycle),
+    statusLabel: eventStatusLabel(event),
+    categoryLabel: event.projectionLifecycle === "one_off" ? "Task" : "Recurring task",
     category,
     conflicted: options.conflictedTaskId === event.taskId || undefined,
   };
+}
+
+function projectionContextLabel(task: PlanningTaskRow): string {
+  if (task.projectionLifecycle === "recurrence_summary") {
+    return task.recurrenceSummary ?? "Recurring series";
+  }
+  if (task.projectionLifecycle === "recurring_occurrence") {
+    if (task.occurrenceState === "completed") return "Recurring occurrence · Completed";
+    if (task.occurrenceState === "skipped") return "Recurring occurrence · Skipped";
+    return "Recurring occurrence";
+  }
+  return "Task";
+}
+
+function eventStatusLabel(event: CalendarEventDto): string {
+  if (event.projectionLifecycle === "one_off") return "Open";
+  if (event.occurrenceState === "completed") return "Completed occurrence";
+  if (event.occurrenceState === "skipped") return "Skipped occurrence";
+  return "Open occurrence";
 }
 
 function quadrant<TId extends "do-now" | "plan" | "time-sensitive" | "later">(
@@ -178,6 +208,19 @@ function scheduleLabel(
     timeZone,
   });
   return `${formatter.format(new Date(start))}–${formatter.format(new Date(end))}`;
+}
+
+function calendarScheduleLabel(event: CalendarEventDto, timeZone: string, hourCycle: "12" | "24"): string {
+  if (event.kind === "all_day") {
+    return `${formatLocalDate(event.startDate, { weekday: "long", month: "long", day: "numeric" })}, all day`;
+  }
+  const date = new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone,
+  }).format(new Date(event.startAt));
+  return `${date}, ${scheduleLabel(event, timeZone, hourCycle)}`;
 }
 
 function formatInstant(instant: string, timeZone: string, hourCycle: "12" | "24") {

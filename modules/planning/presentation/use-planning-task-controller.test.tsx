@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
   setSchedule: vi.fn(),
+  transitionOccurrence: vi.fn(),
   transition: vi.fn(),
   updatePriority: vi.fn(),
 }));
@@ -23,6 +24,7 @@ vi.mock("./planning-client-api", async (importOriginal) => {
   return {
     ...original,
     setPlanningTaskSchedule: mocks.setSchedule,
+    transitionPlanningOccurrence: mocks.transitionOccurrence,
     transitionPlanningTask: mocks.transition,
     updatePlanningTaskPriority: mocks.updatePriority,
   };
@@ -33,6 +35,7 @@ const TASK_ID = "352493c8-1e29-4dc1-bde7-bffac1c190d2";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.updatePriority.mockResolvedValue({ id: TASK_ID, version: 2 });
+  mocks.transitionOccurrence.mockResolvedValue({ task: { id: TASK_ID, version: 2 } });
 });
 
 describe("usePlanningTaskController", () => {
@@ -121,6 +124,25 @@ describe("usePlanningTaskController", () => {
     );
     expect(calendarTrigger).toHaveFocus();
   });
+
+  it("transitions an occurrence and never substitutes a whole-task status mutation", async () => {
+    const client = queryClient();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const view = renderWithClient(client, <Harness task={task(1)} destination="Do now" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Skip occurrence" }));
+
+    await waitFor(() =>
+      expect(mocks.transitionOccurrence).toHaveBeenCalledWith(TASK_ID, 1, "occurrence-key", "skip"),
+    );
+    expect(mocks.transition).not.toHaveBeenCalled();
+    expect(invalidate).toHaveBeenCalledOnce();
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+
+    view.rerender(withClient(client, <Harness task={task(2)} destination="Do now" />));
+    await waitFor(() => expect(screen.getByRole("link", { name: "Open Alpha" })).toHaveFocus());
+    expect(screen.getByTestId("announcement")).toHaveTextContent("occurrence was updated");
+  });
 });
 
 function Harness({
@@ -142,12 +164,28 @@ function Harness({
       <h2 id="source-heading" tabIndex={-1}>
         Source
       </h2>
-      <article data-planning-task-id={task.id}>
+      <article
+        data-planning-projection-id={`occurrence:${task.id}:occurrence-key`}
+        data-planning-task-id={task.id}
+      >
         <button type="button" onClick={() => controller.taskActions.onOpenTask?.(task.id)}>
           Open task
         </button>
         <button type="button" onClick={() => controller.taskActions.onPriorityChange?.(task.id, "low")}>
           Change priority
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            controller.taskActions.onOccurrenceTransition?.(
+              task.id,
+              "occurrence-key",
+              "skip",
+              `occurrence:${task.id}:occurrence-key`,
+            )
+          }
+        >
+          Skip occurrence
         </button>
         <button
           type="button"

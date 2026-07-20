@@ -30,7 +30,9 @@
   `BusyInterval`, `SchedulingInput`, and `SchedulingResult`. A projected recurring row/event carries
   its series task ID, opaque `occurrenceKey`, and effective `occurrenceState`; a recurrence-summary
   Matrix row with no occurrence in the bounded horizon omits only the key/state. Non-recurring rows
-  omit all recurrence fields.
+  omit all recurrence fields. `PlanningTaskRow.id` is the one canonical series task ID and
+  `projectionId` is the distinct render identity; rows do not duplicate `id` under a `taskId` alias.
+  Calendar events use `taskId` because their `projectionId` is the event identity.
 
 ## Invariants
 

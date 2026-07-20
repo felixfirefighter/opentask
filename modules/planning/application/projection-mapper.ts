@@ -20,6 +20,7 @@ import type {
   ProjectionSourceTask,
   ScheduledProjectionTask,
 } from "../domain/projections/projection-model";
+import { PLANNING_PROJECTION_MAX_ROWS } from "./projection-query-contract";
 
 export function mapCanonicalSourcePage(
   page: PlanningTaskSourcePage,
@@ -71,7 +72,6 @@ export function mapOccurrenceSourcePage(
 export function toPlanningTaskRow(task: OpenProjectionTask): PlanningTaskRow {
   return {
     id: task.taskId,
-    taskId: task.taskId,
     projectionId: task.projectionId,
     ...projectionMetadata(task),
     listId: task.listId,
@@ -234,7 +234,7 @@ function projectionMetadata(task: ProjectionSourceTask) {
 }
 
 function assertSourceLength(length: number, limit: number, label: string) {
-  if (length > limit || length > 500) {
+  if (length > limit || length > PLANNING_PROJECTION_MAX_ROWS) {
     throw new RangeError(`The ${label} source reader exceeded its requested row limit.`);
   }
 }

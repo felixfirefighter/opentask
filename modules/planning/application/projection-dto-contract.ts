@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ianaTimeZoneSchema } from "@/shared/validation/time-zone";
 
 import { compareInstants, compareLocalDates } from "../domain/projections/local-time-policy";
+import { PLANNING_PROJECTION_MAX_ROWS } from "./projection-query-contract";
 
 export const RECURRENCE_DRAG_DISABLED_REASON =
   "Recurring occurrences must be edited through the series schedule.";
@@ -58,7 +59,6 @@ const scheduleInteractionSchema = z.strictObject({
 
 const planningTaskFields = {
   id: entityIdSchema,
-  taskId: entityIdSchema,
   projectionId: projectionIdSchema,
   projectionLifecycle: projectionLifecycleSchema,
   occurrenceKey: occurrenceKeySchema.nullable(),
@@ -106,10 +106,10 @@ export const todayProjectionSchema = z
     localDate: localDateSchema,
     timeZone: ianaTimeZoneSchema,
     nowAt: instantSchema,
-    overdue: z.array(scheduledPlanningTaskRowSchema).max(500),
-    timed: z.array(timedPlanningTaskRowSchema).max(500),
-    anytime: z.array(allDayPlanningTaskRowSchema).max(500),
-    remainingCount: z.number().int().nonnegative().max(500),
+    overdue: z.array(scheduledPlanningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
+    timed: z.array(timedPlanningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
+    anytime: z.array(allDayPlanningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
+    remainingCount: z.number().int().nonnegative().max(PLANNING_PROJECTION_MAX_ROWS),
     truncated: z.boolean(),
   })
   .superRefine((projection, context) => {
@@ -122,7 +122,7 @@ export const todayProjectionSchema = z
 
 export const upcomingDaySchema = z.strictObject({
   localDate: localDateSchema,
-  items: z.array(scheduledPlanningTaskRowSchema).max(500),
+  items: z.array(scheduledPlanningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
 });
 
 export const upcomingProjectionSchema = z
@@ -132,7 +132,7 @@ export const upcomingProjectionSchema = z
     timeZone: ianaTimeZoneSchema,
     nowAt: instantSchema,
     days: z.array(upcomingDaySchema).length(7),
-    remainingCount: z.number().int().nonnegative().max(500),
+    remainingCount: z.number().int().nonnegative().max(PLANNING_PROJECTION_MAX_ROWS),
     truncated: z.boolean(),
   })
   .superRefine((projection, context) => {
@@ -203,7 +203,7 @@ export const calendarProjectionSchema = z
     rangeStartAt: instantSchema,
     rangeEndAt: instantSchema,
     timeZone: ianaTimeZoneSchema,
-    events: z.array(calendarEventDtoSchema).max(500),
+    events: z.array(calendarEventDtoSchema).max(PLANNING_PROJECTION_MAX_ROWS),
     truncated: z.boolean(),
   })
   .superRefine((projection, context) => validateUniqueProjectionRows(projection.events, "Calendar", context));
@@ -220,7 +220,7 @@ export const agendaProjectionSchema = z
     rangeStartAt: instantSchema,
     rangeEndAt: instantSchema,
     timeZone: ianaTimeZoneSchema,
-    items: z.array(agendaRowSchema).max(500),
+    items: z.array(agendaRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
     truncated: z.boolean(),
   })
   .superRefine((projection, context) =>
@@ -236,10 +236,10 @@ export const eisenhowerProjectionSchema = z
     timeZone: ianaTimeZoneSchema,
     nowAt: instantSchema,
     urgentThroughAt: instantSchema,
-    doNow: z.array(planningTaskRowSchema).max(500),
-    plan: z.array(planningTaskRowSchema).max(500),
-    timeSensitive: z.array(planningTaskRowSchema).max(500),
-    later: z.array(planningTaskRowSchema).max(500),
+    doNow: z.array(planningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
+    plan: z.array(planningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
+    timeSensitive: z.array(planningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
+    later: z.array(planningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
     truncated: z.boolean(),
   })
   .superRefine((projection, context) => {
@@ -274,7 +274,6 @@ export function recurrenceSummaryProjectionId(taskId: string): string {
 
 function validateProjectionMetadata(
   value: Readonly<{
-    id?: string;
     taskId: string;
     projectionId: string;
     projectionLifecycle: ProjectionLifecycle;
@@ -289,10 +288,6 @@ function validateProjectionMetadata(
   }>,
   context: z.RefinementCtx,
 ) {
-  if (value.id !== undefined && value.id !== value.taskId) {
-    context.addIssue({ code: "custom", path: ["id"], message: "The row ID must equal its task ID." });
-  }
-
   const recurrenceInteraction =
     value.scheduleInteraction.editScope === "series" &&
     !value.scheduleInteraction.dragEnabled &&
@@ -338,10 +333,11 @@ function validateProjectionMetadata(
 }
 
 function validatePlanningTaskMetadata(
-  value: Parameters<typeof validateProjectionMetadata>[0] & Readonly<{ schedule: unknown | null }>,
+  value: Omit<Parameters<typeof validateProjectionMetadata>[0], "taskId"> &
+    Readonly<{ id: string; schedule: unknown | null }>,
   context: z.RefinementCtx,
 ) {
-  validateProjectionMetadata(value, context);
+  validateProjectionMetadata({ ...value, taskId: value.id }, context);
   if (value.projectionLifecycle === "recurring_occurrence" && value.schedule === null) {
     context.addIssue({ code: "custom", path: ["schedule"], message: "An occurrence must be scheduled." });
   }
@@ -369,8 +365,11 @@ function validateUniqueProjectionRows(
   surface: string,
   context: z.RefinementCtx,
 ) {
-  if (rows.length > 500) {
-    context.addIssue({ code: "custom", message: `A ${surface} projection cannot exceed 500 rows.` });
+  if (rows.length > PLANNING_PROJECTION_MAX_ROWS) {
+    context.addIssue({
+      code: "custom",
+      message: `A ${surface} projection cannot exceed ${PLANNING_PROJECTION_MAX_ROWS} rows.`,
+    });
   }
   if (new Set(rows.map((row) => row.projectionId)).size !== rows.length) {
     context.addIssue({ code: "custom", message: `${surface} projection identities must be unique.` });

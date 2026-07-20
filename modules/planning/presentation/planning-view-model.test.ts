@@ -17,7 +17,6 @@ describe("planning conflict view models", () => {
       anytime: [
         {
           id: TASK_ID,
-          taskId: TASK_ID,
           projectionId: `task:${TASK_ID}`,
           projectionLifecycle: "one_off",
           occurrenceKey: null,
@@ -44,7 +43,8 @@ describe("planning conflict view models", () => {
     });
 
     expect(model.anytime[0]).toMatchObject({
-      id: TASK_ID,
+      projectionId: `task:${TASK_ID}`,
+      taskId: TASK_ID,
       conflicted: true,
       detailsHref: `/tasks/${TASK_ID}?returnTo=%2Ftoday`,
     });
@@ -94,5 +94,95 @@ describe("planning conflict view models", () => {
       conflicted: true,
       detailsHref: `/tasks/${TASK_ID}?returnTo=%2Fcalendar%3Fview%3Dweek%26date%3D2026-07-20`,
     });
+  });
+
+  it("keeps same-series calendar occurrences distinct while routing both to the canonical task", () => {
+    const firstOccurrenceKey = "o1.first";
+    const secondOccurrenceKey = "o1.second";
+    const seriesInteraction = {
+      editScope: "series" as const,
+      dragEnabled: false,
+      dragDisabledReason: "Recurring occurrences must be edited through the series schedule.",
+    };
+    const projection: CalendarProjection = {
+      rangeStartDate: "2026-07-20",
+      rangeEndDate: "2026-07-27",
+      rangeStartAt: "2026-07-19T16:00:00.000Z",
+      rangeEndAt: "2026-07-26T16:00:00.000Z",
+      timeZone: "Asia/Singapore",
+      events: [
+        {
+          taskId: TASK_ID,
+          projectionId: `occurrence:${TASK_ID}:${firstOccurrenceKey}`,
+          projectionLifecycle: "recurring_occurrence",
+          occurrenceKey: firstOccurrenceKey,
+          occurrenceState: "completed",
+          recurrenceSummary: null,
+          scheduleInteraction: seriesInteraction,
+          listId: LIST_ID,
+          title: "Alpha",
+          status: "open",
+          priority: "high",
+          version: 2,
+          kind: "timed",
+          startAt: "2026-07-20T01:00:00.000Z",
+          endAt: "2026-07-20T02:00:00.000Z",
+          timezone: "Asia/Singapore",
+        },
+        {
+          taskId: TASK_ID,
+          projectionId: `occurrence:${TASK_ID}:${secondOccurrenceKey}`,
+          projectionLifecycle: "recurring_occurrence",
+          occurrenceKey: secondOccurrenceKey,
+          occurrenceState: "skipped",
+          recurrenceSummary: null,
+          scheduleInteraction: seriesInteraction,
+          listId: LIST_ID,
+          title: "Alpha",
+          status: "open",
+          priority: "high",
+          version: 2,
+          kind: "timed",
+          startAt: "2026-07-21T01:00:00.000Z",
+          endAt: "2026-07-21T02:00:00.000Z",
+          timezone: "Asia/Singapore",
+        },
+      ],
+      truncated: false,
+    };
+
+    const model = toCalendarPlanningModel(projection, {
+      conflictedTaskId: null,
+      hasSavedView: true,
+      hourCycle: "12",
+      initialDate: "2026-07-20",
+      taskReturnTo: "/calendar",
+      view: "week",
+      weekStartsOn: 1,
+    });
+
+    expect(model.events).toMatchObject([
+      {
+        projectionId: `occurrence:${TASK_ID}:${firstOccurrenceKey}`,
+        taskId: TASK_ID,
+        occurrenceState: "completed",
+        statusLabel: "Completed occurrence",
+      },
+      {
+        projectionId: `occurrence:${TASK_ID}:${secondOccurrenceKey}`,
+        taskId: TASK_ID,
+        occurrenceState: "skipped",
+        statusLabel: "Skipped occurrence",
+      },
+    ]);
+    expect(new Set(model.events.map((event) => event.projectionId))).toHaveLength(2);
+    expect(model.events.map((event) => event.scheduleLabel)).toEqual([
+      "Monday, July 20, 9:00 AM–10:00 AM",
+      "Tuesday, July 21, 9:00 AM–10:00 AM",
+    ]);
+    expect(model.events.map((event) => event.detailsHref)).toEqual([
+      `/tasks/${TASK_ID}?returnTo=%2Fcalendar`,
+      `/tasks/${TASK_ID}?returnTo=%2Fcalendar`,
+    ]);
   });
 });

@@ -38,7 +38,7 @@ export function MatrixQuadrant({
       ) : (
         <div role="list" aria-label={`${quadrant.title}, ${quadrant.ruleLabel}`}>
           {quadrant.tasks.map((task) => (
-            <div role="listitem" key={task.id}>
+            <div role="listitem" key={task.projectionId}>
               <ProjectionTaskRow actions={actions} disabled={disabled || task.conflicted} task={task} />
             </div>
           ))}

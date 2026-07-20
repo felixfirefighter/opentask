@@ -62,7 +62,7 @@ describe("planning projection application", () => {
       rangeEndAt: "2026-03-09T04:00:00Z",
       limit: 25,
     });
-    expect(projection.anytime.map((task) => task.taskId)).toEqual([taskId]);
+    expect(projection.anytime.map((task) => task.id)).toEqual([taskId]);
     expect(projection.truncated).toBe(true);
   });
 
@@ -183,11 +183,11 @@ describe("planning projection application", () => {
       limit: 30,
     });
     expect(projection.doNow[0]).toMatchObject({
-      taskId,
+      id: taskId,
       occurrenceKey: "o1.spanning",
       projectionLifecycle: "recurring_occurrence",
     });
-    expect(projection.later[0]).toMatchObject({ taskId: secondTaskId, projectionLifecycle: "one_off" });
+    expect(projection.later[0]).toMatchObject({ id: secondTaskId, projectionLifecycle: "one_off" });
     expect(projection.truncated).toBe(true);
   });
 
@@ -206,7 +206,7 @@ describe("planning projection application", () => {
 
     expect(projection.plan).toHaveLength(1);
     expect(projection.plan[0]).toMatchObject({
-      taskId,
+      id: taskId,
       projectionLifecycle: "recurrence_summary",
       recurrenceSummary: "No occurrence in the next 62 days",
       occurrenceKey: null,

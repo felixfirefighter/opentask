@@ -9,6 +9,7 @@ import { markWorkspaceRoutesStale, useOnlineStatus } from "@/shared/presentation
 import {
   PlanningClientError,
   setPlanningTaskSchedule,
+  transitionPlanningOccurrence,
   transitionPlanningTask,
   updatePlanningTaskPriority,
   type PlanningSchedule,
@@ -28,7 +29,7 @@ export type MutablePlanningTask = Readonly<{
   schedule: PlanningSchedule | null;
 }>;
 
-type PlanningMutationKind = "priority" | "schedule" | "status";
+type PlanningMutationKind = "occurrence" | "priority" | "schedule" | "status";
 
 type PlanningTaskControllerOptions = Readonly<{
   authoritativeSource?: object | undefined;
@@ -43,6 +44,7 @@ type MutationRecovery = Readonly<{
   restoreFocus: boolean;
   sourceProjection: object | undefined;
   sourceHeadingId: string | null;
+  projectionId: string | null;
   taskId: string;
   title: string;
 }>;
@@ -90,7 +92,7 @@ export function usePlanningTaskController(
         setFailure((current) => (current?.taskId === recovery.taskId ? null : current));
       }
       if (recovery.restoreFocus) {
-        restorePlanningFocus(recovery.taskId, recovery.sourceHeadingId);
+        restorePlanningFocus(recovery.taskId, recovery.sourceHeadingId, recovery.projectionId);
       }
       setRecovery(null);
     }, 0);
@@ -108,12 +110,13 @@ export function usePlanningTaskController(
     kind: PlanningMutationKind,
     operation: (task: MutablePlanningTask) => Promise<unknown>,
     restoreFocus = true,
+    projectionId: string | null = null,
   ) {
     const task = byId.get(taskId);
     if (!task || !online || inFlight.current.has(taskId)) {
       return { saved: false, conflict: false, unconfirmed: false } as const;
     }
-    const sourceHeadingId = restoreFocus ? sourceHeadingForTask(taskId) : null;
+    const sourceHeadingId = restoreFocus ? sourceHeadingForTask(taskId, projectionId) : null;
     inFlight.current.add(taskId);
     setFailure(null);
     setAnnouncement("");
@@ -126,6 +129,7 @@ export function usePlanningTaskController(
         restoreFocus,
         sourceProjection: options.authoritativeSource,
         sourceHeadingId,
+        projectionId,
         taskId,
         title: task.title,
       });
@@ -155,6 +159,7 @@ export function usePlanningTaskController(
         restoreFocus,
         sourceProjection: options.authoritativeSource,
         sourceHeadingId,
+        projectionId,
         taskId,
         title: task.title,
       });
@@ -170,10 +175,20 @@ export function usePlanningTaskController(
     onStatusChange: (taskId, status) => {
       void run(taskId, "status", (task) => transitionPlanningTask(taskId, task.version, status));
     },
+    onOccurrenceTransition: (taskId, occurrenceKey, action, projectionId) => {
+      void run(
+        taskId,
+        "occurrence",
+        (task) => transitionPlanningOccurrence(taskId, task.version, occurrenceKey, action),
+        true,
+        projectionId ?? null,
+      );
+    },
     onPriorityChange: (taskId, priority) => {
       void run(taskId, "priority", (task) => updatePlanningTaskPriority(taskId, task.version, priority));
     },
     onEditSchedule: setScheduleTaskId,
+    onEditSeriesSchedule: (taskId) => router.push(planningTaskDetailsHref(taskId, options.taskReturnTo)),
   };
 
   async function saveSchedule(taskId: string, schedule: PlanningSchedule, restoreFocus = true) {
@@ -240,14 +255,14 @@ function resultVersion(result: unknown) {
   return null;
 }
 
-function sourceHeadingForTask(taskId: string) {
-  const row = planningTaskRow(taskId);
+function sourceHeadingForTask(taskId: string, projectionId: string | null) {
+  const row = planningTaskRow(taskId, projectionId);
   return row?.closest("section[aria-labelledby]")?.getAttribute("aria-labelledby") ?? null;
 }
 
-function restorePlanningFocus(taskId: string, sourceHeadingId: string | null) {
+function restorePlanningFocus(taskId: string, sourceHeadingId: string | null, projectionId: string | null) {
   if (document.querySelector('[role="dialog"]')) return;
-  const row = planningTaskRow(taskId);
+  const row = planningTaskRow(taskId, projectionId);
   const rowTarget = row?.querySelector<HTMLElement>("[data-planning-task-open]");
   const sourceHeading = sourceHeadingId ? document.getElementById(sourceHeadingId) : null;
   const fallback =
@@ -257,13 +272,20 @@ function restorePlanningFocus(taskId: string, sourceHeadingId: string | null) {
   (rowTarget ?? sourceHeading ?? fallback)?.focus();
 }
 
-function planningTaskRow(taskId: string) {
+function planningTaskRow(taskId: string, projectionId: string | null = null) {
+  if (projectionId) {
+    const projectionRow = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-planning-projection-id]"),
+    ).find((row) => row.dataset.planningProjectionId === projectionId);
+    if (projectionRow) return projectionRow;
+  }
   return Array.from(document.querySelectorAll<HTMLElement>("[data-planning-task-id]")).find(
     (row) => row.dataset.planningTaskId === taskId,
   );
 }
 
 function mutationResultLabel(kind: PlanningMutationKind) {
+  if (kind === "occurrence") return "occurrence was updated";
   if (kind === "priority") return "priority was updated";
   if (kind === "schedule") return "schedule was updated";
   return "status was updated";
@@ -281,7 +303,7 @@ function recoveryAnnouncement(recovery: MutationRecovery, destination: string | 
   if (recovery.outcome === "unconfirmed") {
     return `${recovery.title}'s change could not be confirmed. The latest planning view was loaded.`;
   }
-  return destination && recovery.kind !== "status"
+  return destination && recovery.kind !== "status" && recovery.kind !== "occurrence"
     ? `${recovery.title} moved to ${destination}.`
     : `${recovery.title} ${mutationResultLabel(recovery.kind)}.`;
 }

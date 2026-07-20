@@ -6,9 +6,21 @@ import type {
   UpcomingPlanningModel,
 } from "./planning-screen-model";
 
+function oneOffIdentity(taskId: string) {
+  return {
+    projectionId: `task:${taskId}`,
+    taskId,
+    projectionLifecycle: "one_off" as const,
+    occurrenceKey: null,
+    occurrenceState: null,
+    recurrenceSummary: null,
+    scheduleInteraction: { editScope: "task" as const, dragEnabled: true, dragDisabledReason: null },
+  };
+}
+
 const taskBase: Readonly<Record<string, PlanningTaskRowModel>> = {
   story: {
-    id: "task-story",
+    ...oneOffIdentity("task-story"),
     title: "Confirm the workshop goals",
     detailsHref: "/tasks/task-story",
     status: "open",
@@ -18,7 +30,7 @@ const taskBase: Readonly<Record<string, PlanningTaskRowModel>> = {
     category: "coral",
   },
   demo: {
-    id: "task-demo",
+    ...oneOffIdentity("task-demo"),
     title: "Outline the workshop agenda",
     detailsHref: "/tasks/task-demo",
     status: "open",
@@ -28,7 +40,7 @@ const taskBase: Readonly<Record<string, PlanningTaskRowModel>> = {
     category: "violet",
   },
   review: {
-    id: "task-review",
+    ...oneOffIdentity("task-review"),
     title: "Review the event page on mobile",
     detailsHref: "/tasks/task-review",
     status: "open",
@@ -38,7 +50,7 @@ const taskBase: Readonly<Record<string, PlanningTaskRowModel>> = {
     category: "sky",
   },
   seed: {
-    id: "task-seed",
+    ...oneOffIdentity("task-seed"),
     title: "Prepare attendee notes",
     detailsHref: "/tasks/task-seed",
     status: "open",
@@ -84,26 +96,36 @@ export const calendarFixture: CalendarPlanningModel = {
   selectedEventId: null,
   events: [
     {
-      id: "event-demo",
-      taskId: task("demo").id,
+      projectionId: task("demo").projectionId,
+      taskId: task("demo").taskId,
       title: task("demo").title,
       detailsHref: task("demo").detailsHref,
       start: "2026-07-20T10:30:00+08:00",
       end: "2026-07-20T11:30:00+08:00",
       allDay: false,
+      projectionLifecycle: "one_off",
+      occurrenceKey: null,
+      occurrenceState: null,
+      recurrenceSummary: null,
+      scheduleInteraction: { editScope: "task", dragEnabled: true, dragDisabledReason: null },
       scheduleLabel: "Monday, 20 July, 10:30–11:30 AM",
       statusLabel: "Open",
       categoryLabel: "Event",
       category: "violet",
     },
     {
-      id: "event-seed",
-      taskId: task("seed").id,
+      projectionId: task("seed").projectionId,
+      taskId: task("seed").taskId,
       title: task("seed").title,
       detailsHref: task("seed").detailsHref,
       start: "2026-07-21",
       end: "2026-07-22",
       allDay: true,
+      projectionLifecycle: "one_off",
+      occurrenceKey: null,
+      occurrenceState: null,
+      recurrenceSummary: null,
+      scheduleInteraction: { editScope: "task", dragEnabled: true, dragDisabledReason: null },
       scheduleLabel: "Tuesday, 21 July, all day",
       statusLabel: "Open",
       categoryLabel: "Planning",

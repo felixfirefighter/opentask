@@ -13,6 +13,7 @@ import type {
   CalendarEventChange,
   CalendarPlanningModel,
   CalendarView,
+  PlanningOccurrenceAction,
   PlanningScreenCondition,
   VisibleCalendarRange,
 } from "./planning-screen-model";
@@ -25,6 +26,12 @@ export type CalendarScreenProps = Readonly<{
   onAddTask: () => void;
   onOpenTask: (taskId: string) => void;
   onEditSchedule: (taskId: string) => void;
+  onOccurrenceTransition: (
+    taskId: string,
+    occurrenceKey: string,
+    action: PlanningOccurrenceAction,
+    projectionId?: string,
+  ) => void;
   onSelectEvent: (eventId: string) => void;
   onViewChange: (view: CalendarView) => void;
   onVisibleRangeChange: (range: VisibleCalendarRange) => void;
@@ -44,7 +51,7 @@ export function CalendarScreen(props: CalendarScreenProps) {
   const effectiveView =
     isMobile && !props.model.hasSavedView && !userSelectedView ? "agenda" : props.model.view;
   const requestedEventId = props.model.selectedEventId ?? localSelectedEventId;
-  const selectedEventId = props.model.events.some((event) => event.id === requestedEventId)
+  const selectedEventId = props.model.events.some((event) => event.projectionId === requestedEventId)
     ? requestedEventId
     : "";
   const readOnly =
@@ -98,6 +105,7 @@ export function CalendarScreen(props: CalendarScreenProps) {
             events={props.model.events}
             selectedEventId={selectedEventId}
             onEditSchedule={props.onEditSchedule}
+            onOccurrenceTransition={props.onOccurrenceTransition}
             onOpenTask={props.onOpenTask}
             onSelectEvent={chooseEvent}
           />

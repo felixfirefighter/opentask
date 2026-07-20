@@ -64,7 +64,10 @@ export function FullCalendarView({
   const calendarRef = useRef<CalendarRef>(null);
   const previousInitialDate = useRef(model.initialDate);
   const [interactionMessage, setInteractionMessage] = useState("");
-  const eventsById = useMemo(() => new Map(model.events.map((event) => [event.id, event])), [model.events]);
+  const eventsById = useMemo(
+    () => new Map(model.events.map((event) => [event.projectionId, event])),
+    [model.events],
+  );
 
   useEffect(() => {
     const api = calendarRef.current?.getApi();
@@ -105,6 +108,14 @@ export function FullCalendarView({
     const original = eventsById.get(info.event.id);
     if (!original) {
       info.revert();
+      return;
+    }
+    if (!original.scheduleInteraction.dragEnabled) {
+      info.revert();
+      info.el.focus();
+      setInteractionMessage(
+        `${original.title} stayed at its saved time. ${original.scheduleInteraction.dragDisabledReason ?? "Open task details to edit the future series."}`,
+      );
       return;
     }
     try {
@@ -157,7 +168,12 @@ export function FullCalendarView({
           eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: model.hourCycle === "12" }}
           datesSet={handleRange}
           eventContent={renderEvent}
-          eventAfterClass={(info) => (info.isEndResizable ? eventStyles.resizeHandle : "")}
+          eventAfterClass={(info) => {
+            const event = eventsById.get(info.event.id);
+            return info.isEndResizable && event?.scheduleInteraction.dragEnabled
+              ? eventStyles.resizeHandle
+              : "";
+          }}
           eventClass={(info) => {
             const event = eventsById.get(info.event.id);
             return event?.conflicted
@@ -178,7 +194,7 @@ export function FullCalendarView({
             info.jsEvent.preventDefault();
             const event = eventsById.get(info.event.id);
             if (!event) return;
-            onSelectEvent(event.id);
+            onSelectEvent(event.projectionId);
             onOpenTask(event.taskId);
           }}
           eventDrop={(info) => void applyChange(info, onEventMove)}

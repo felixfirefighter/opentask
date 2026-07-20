@@ -103,6 +103,9 @@ export function CalendarRouteScreen({
         }}
         onOpenTask={(taskId) => router.push(planningTaskDetailsHref(taskId, returnTo))}
         onEditSchedule={editSchedule}
+        onOccurrenceTransition={(taskId, occurrenceKey, action, projectionId) =>
+          controller.taskActions.onOccurrenceTransition?.(taskId, occurrenceKey, action, projectionId)
+        }
         onSelectEvent={() => undefined}
         onViewChange={(nextView) => replaceRoute({ view: nextView })}
         onVisibleRangeChange={changeRange}

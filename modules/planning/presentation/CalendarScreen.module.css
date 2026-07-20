@@ -91,24 +91,31 @@
   border: var(--border-default) solid var(--border);
   border-radius: var(--radius-card);
   background: var(--surface);
-  grid-template-columns: minmax(210px, 1fr) minmax(220px, 1fr) auto auto;
+  grid-template-columns: minmax(210px, 1fr) minmax(220px, 1fr) minmax(220px, auto);
 }
 
-.scheduleFallback > div,
-.scheduleFallback > div > span {
+.scheduleIntro,
+.scheduleIntro > span {
   display: flex;
 }
 
-.scheduleFallback > div {
+.scheduleIntro {
   min-width: 0;
   align-items: center;
   gap: var(--space-2);
   color: var(--text-muted);
 }
 
-.scheduleFallback > div > span {
+.scheduleIntro > span {
   min-width: 0;
   flex-direction: column;
+}
+
+.scheduleActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 .scheduleFallback strong {
@@ -237,10 +244,10 @@
   }
 
   .scheduleFallback {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
   }
 
-  .scheduleFallback > div {
+  .scheduleIntro {
     grid-column: 1 / -1;
   }
 }
@@ -288,7 +295,7 @@
   }
 
   .scheduleFallback {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .scheduleFallback select {
@@ -296,7 +303,11 @@
     grid-column: 1 / -1;
   }
 
-  .scheduleFallback > button {
+  .scheduleActions {
+    justify-content: flex-start;
+  }
+
+  .scheduleActions > button {
     min-height: var(--control-target-touch);
   }
 

@@ -47,7 +47,8 @@
 }
 
 .statusDone,
-.statusCancelled {
+.statusCancelled,
+.statusSkipped {
   display: flex;
   width: var(--task-status-indicator-size);
   height: var(--task-status-indicator-size);
@@ -63,6 +64,11 @@
 
 .statusCancelled {
   background: var(--text-muted);
+}
+
+.statusSkipped {
+  background: var(--surface-selected);
+  color: var(--text-selected);
 }
 
 .content {

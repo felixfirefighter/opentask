@@ -101,7 +101,7 @@ export function UpcomingScreen(props: UpcomingScreenProps) {
                   </header>
                   <div className={styles.rows} role="list" aria-label={`${group.dateLabel} tasks`}>
                     {group.tasks.map((task) => (
-                      <div role="listitem" key={task.id}>
+                      <div role="listitem" key={task.projectionId}>
                         <ProjectionTaskRow
                           actions={taskActions}
                           disabled={readOnly || task.conflicted}

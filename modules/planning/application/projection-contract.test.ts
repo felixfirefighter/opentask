@@ -16,7 +16,6 @@ const listId = "20000000-0000-4000-8000-000000000002";
 
 const task = {
   id: taskId,
-  taskId,
   projectionId: `task:${taskId}`,
   projectionLifecycle: "one_off",
   occurrenceKey: null,
@@ -89,6 +88,7 @@ describe("planning projection DTO contracts", () => {
       }),
     ).toThrow();
     expect(() => planningTaskRowSchema.parse({ ...task, dueAt: null })).toThrow();
+    expect(() => planningTaskRowSchema.parse({ ...task, taskId })).toThrow();
   });
 
   it("requires exactly seven Upcoming day buckets", () => {

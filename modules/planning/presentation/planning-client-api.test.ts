@@ -4,6 +4,7 @@ import {
   createPlanningTaskWithSchedule,
   listPlanningTaskLists,
   setPlanningTaskSchedule,
+  transitionPlanningOccurrence,
 } from "./planning-client-api";
 
 const TASK_ID = "658ec0d3-6afd-4e42-bc86-a50dd90c330d";
@@ -125,6 +126,38 @@ describe("planning client API", () => {
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/lists?limit=100&cursor=current-page",
       expect.objectContaining({ credentials: "same-origin" }),
+    );
+  });
+
+  it("sends an occurrence transition with task identity, opaque key, and expected version", async () => {
+    const occurrenceKey = "occurrence-key-1";
+    const responseBody = {
+      outcome: "applied",
+      action: "skip",
+      occurrenceKey,
+      expectedVersion: 2,
+      task: { id: TASK_ID, version: 3 },
+      occurrenceState: "skipped",
+      eventTaskVersion: 3,
+    };
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(responseBody), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(transitionPlanningOccurrence(TASK_ID, 2, occurrenceKey, "skip")).resolves.toEqual(
+      responseBody,
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      `/api/v1/tasks/${TASK_ID}/occurrences/transition`,
+      expect.objectContaining({
+        method: "POST",
+        credentials: "same-origin",
+        body: JSON.stringify({ action: "skip", occurrenceKey, expectedVersion: 2 }),
+      }),
     );
   });
 });

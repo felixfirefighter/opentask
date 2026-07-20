@@ -44,10 +44,13 @@ describe("planning projection mapper", () => {
     });
     const [openRow] = activeOpenTasks(row === undefined ? [] : [row]);
     if (openRow === undefined) throw new Error("Expected an open source row.");
-    expect(toPlanningTaskRow(openRow)).toMatchObject({
+    const projectedRow = toPlanningTaskRow(openRow);
+    expect(projectedRow).toMatchObject({
+      id: taskId,
       occurrenceKey: null,
       scheduleInteraction: { editScope: "series", dragEnabled: false },
     });
+    expect(projectedRow).not.toHaveProperty("taskId");
   });
 
   it("carries terminal occurrence identity through Calendar DTO mapping", () => {

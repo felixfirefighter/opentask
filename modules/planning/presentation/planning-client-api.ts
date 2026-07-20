@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { PlanningPriority, PlanningTaskStatus } from "./planning-screen-model";
+import type { PlanningOccurrenceAction, PlanningPriority, PlanningTaskStatus } from "./planning-screen-model";
 
 const entityRefSchema = z.object({ id: z.uuidv4(), version: z.number().int().positive() });
 const allDayScheduleSchema = z.strictObject({
@@ -58,6 +58,15 @@ const problemSchema = z.object({
   detail: z.string(),
   currentVersion: z.number().int().positive().optional(),
 });
+const occurrenceCommandResultSchema = z.object({
+  outcome: z.enum(["applied", "idempotent_retry", "no_op"]),
+  action: z.enum(["complete", "skip", "undo"]),
+  occurrenceKey: z.string().min(1),
+  expectedVersion: z.number().int().positive(),
+  task: entityRefSchema,
+  occurrenceState: z.enum(["open", "completed", "skipped"]),
+  eventTaskVersion: z.number().int().positive().nullable(),
+});
 
 export type PlanningSchedule = z.infer<typeof scheduleSchema>;
 export type PlanningQuickAddSuggestion = z.infer<typeof quickAddSchema>["suggestions"][number];
@@ -78,6 +87,20 @@ export class PlanningClientError extends Error {
 
 export function transitionPlanningTask(taskId: string, expectedVersion: number, status: PlanningTaskStatus) {
   return mutate(`/api/v1/tasks/${taskId}/status`, "POST", { expectedVersion, status }, entityRefSchema);
+}
+
+export function transitionPlanningOccurrence(
+  taskId: string,
+  expectedVersion: number,
+  occurrenceKey: string,
+  action: PlanningOccurrenceAction,
+) {
+  return mutate(
+    `/api/v1/tasks/${taskId}/occurrences/transition`,
+    "POST",
+    { action, occurrenceKey, expectedVersion },
+    occurrenceCommandResultSchema,
+  );
 }
 
 export function updatePlanningTaskPriority(
