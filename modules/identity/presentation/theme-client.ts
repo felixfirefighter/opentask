@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useEffect } from "react";
+import { useEffect } from "react";
 
 import { withThemeTransitionSuppressed } from "@/shared/presentation";
 
@@ -67,11 +67,7 @@ export function ThemePreferenceSync({
     return () => colorScheme.removeEventListener("change", synchronizeSystemTheme);
   }, [reducedMotion, theme]);
 
-  return createElement("script", {
-    "data-theme-bootstrap": "",
-    suppressHydrationWarning: true,
-    dangerouslySetInnerHTML: { __html: createThemeBootstrapScript(theme, reducedMotion) },
-  });
+  return null;
 }
 
 function resolveTheme(theme: ThemePreference): ResolvedTheme {
@@ -82,9 +78,4 @@ function resolveTheme(theme: ThemePreference): ResolvedTheme {
 
 function isThemePreference(value: string | undefined): value is ThemePreference {
   return value === "light" || value === "dark" || value === "system";
-}
-
-function createThemeBootstrapScript(theme: ThemePreference, reducedMotion: boolean) {
-  const preference = JSON.stringify({ theme, reducedMotion });
-  return `(()=>{const p=${preference};const r=document.documentElement;const v=r.dataset.themeTransition;r.dataset.themeTransition="suppressed";const t=p.theme==="system"?(window.matchMedia("${darkThemeQuery}").matches?"dark":"light"):p.theme;r.dataset.theme=t;r.dataset.themePreference=p.theme;r.dataset.reducedMotion=String(p.reducedMotion);try{localStorage.setItem("opentask-theme-preference",p.theme)}catch{}void r.offsetHeight;v===undefined?delete r.dataset.themeTransition:r.dataset.themeTransition=v})()`;
 }

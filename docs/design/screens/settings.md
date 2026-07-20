@@ -18,7 +18,8 @@ and adds no Focus Settings card.
 
 Use one bounded column with a page `h1` and five cards after P6:
 
-1. **Date and time:** IANA timezone search/select, week start, and 12/24-hour display.
+1. **Date and time:** week start and 12/24-hour display. The timezone is detected from the device
+   automatically and is not user-selectable here.
 2. **Appearance:** light/dark/system theme and reduced motion.
 3. **Optional AI:** planner available/unavailable status and a link to manual planning.
 4. **App and reminders:** install/update state where supported, push capability/permission,
@@ -29,7 +30,8 @@ Each editable card has its own explicit Save action and local save/error feedbac
 
 ## Preference behavior
 
-- Timezone search displays canonical IANA names and a current local-time preview. Changing timezone names the effect on Today/calendar interpretation before save; it does not silently rewrite stored instants.
+- The device's canonical IANA timezone is detected automatically and used for Today/calendar
+  interpretation. Saved timed instants are not rewritten when the device timezone changes.
 - Week start choices are explicit day labels.
 - Hour cycle uses “1:30 PM” and “13:30” examples.
 - Theme controls show labels as well as visual previews.
@@ -64,7 +66,7 @@ their package gates and never expose VAPID or encryption keys.
 ## Keyboard, touch, and accessibility
 
 - Cards follow document order; Save actions are named by card where ambiguity exists.
-- Timezone search uses the combobox pattern and exposes canonical name plus local-time preview.
+- The date/time card explains that timezone follows the device automatically.
 - Theme previews and provider indicators include text, not color/icon alone.
 - Save and export results use polite live status; blocking auth loss uses an alert and safe redirect.
 - All controls meet shared target, contrast, zoom, reduced-motion, and error-summary rules.

@@ -10,6 +10,7 @@ import {
 import styles from "./AuthenticatedShell.module.css";
 import { OfflineBanner } from "./OfflineBanner";
 import { RouteFocus } from "./RouteFocus";
+import { SystemTimeZoneSync } from "./SystemTimeZoneSync";
 import { type ThemePreference, ThemePreferenceSync } from "./theme-client";
 
 export type AuthenticatedShellProps = Readonly<{
@@ -42,6 +43,7 @@ export function AuthenticatedShell({
   return (
     <div className={styles.shell} data-mobile-navigation={showMobileNavigation}>
       <ThemePreferenceSync theme={theme} reducedMotion={reducedMotion} />
+      <SystemTimeZoneSync />
       <RouteFocus />
       <a className="skip-link" href="#main-content">
         Skip to main content

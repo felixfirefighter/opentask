@@ -67,7 +67,8 @@ Acceptance:
   denial coverage.
 - A task created with a schedule is either fully committed or not created; partial create/schedule
   failure is impossible.
-- Today/Upcoming/Matrix boundaries refresh after local midnight and a preference timezone change
+- Today/Upcoming/Matrix boundaries refresh after local midnight and a detected system timezone
+  change
   without requiring a full browser restart.
 - Planning surfaces open the same authorized task details and recover from stale/network/offline
   writes without losing user input.

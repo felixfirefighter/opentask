@@ -47,9 +47,7 @@ export function TodayScreen(props: TodayScreenProps) {
     <div className={styles.page}>
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>
-            {model.localWeekdayLabel} · {model.timeZoneLabel}
-          </p>
+          <p className={styles.eyebrow}>{model.localWeekdayLabel}</p>
           <h1 tabIndex={-1} data-route-focus>
             Today
           </h1>

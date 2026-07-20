@@ -48,7 +48,7 @@ describe("SettingsScreen", () => {
     const [, request] = fetchMock.mock.calls[0] ?? [];
     expect(JSON.parse(String(request?.body))).toEqual({
       expectedVersion: 1,
-      patch: { timezone: "UTC", weekStart: 0, hourCycle: "h23" },
+      patch: { weekStart: 0, hourCycle: "h23" },
     });
   });
 

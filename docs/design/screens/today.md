@@ -6,7 +6,8 @@
 habit check-ins in the user's saved timezone. It does not store a separate daily plan, duplicate task
 state, or habit streak counters.
 
-The title includes the local weekday/date and, when useful, a compact timezone indicator. A date-boundary refresh updates the projection without discarding open input.
+The title includes the local weekday/date. A date-boundary or system-timezone refresh updates the
+projection without discarding open input.
 
 ## Layout
 

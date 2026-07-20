@@ -191,7 +191,7 @@ schema/control may appear.
 ### Gate
 
 - Focused domain/application/component/API/database tests for atomicity, ownership, idempotency,
-  stale versions, midnight/timezone changes, query freshness, and origin policy.
+  stale versions, midnight/system-timezone changes, query freshness, and origin policy.
 - G1–G4 and forced variants at desktop/mobile, no-key workflow, affected a11y/design checks.
 - `pnpm verify`; no extension table/dependency/route/control exists.
 

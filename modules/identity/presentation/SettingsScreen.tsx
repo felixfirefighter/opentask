@@ -35,7 +35,6 @@ export function SettingsScreen({ initialPreferences }: { initialPreferences: Use
         onChange={editor.updateDraft}
         onSave={() =>
           editor.save("date-time", {
-            timezone: editor.draft.timezone,
             weekStart: editor.draft.weekStart,
             hourCycle: editor.draft.hourCycle,
           })

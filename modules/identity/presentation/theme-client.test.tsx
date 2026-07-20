@@ -53,6 +53,7 @@ describe("theme-client", () => {
 
     render(<ThemePreferenceSync theme="system" reducedMotion={false} />);
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe("light"));
+    expect(document.querySelector("script[data-theme-bootstrap]")).not.toBeInTheDocument();
 
     dark = true;
     act(() => notifyChange?.());

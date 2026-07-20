@@ -94,6 +94,9 @@ Time is a product invariant, not a formatting detail.
 - A task schedule is either all-day or timed; database constraints prevent mixed representations.
 - A task's derived due boundary is timed `end_at`, or the exclusive all-day `end_date` interpreted at midnight in the user's saved IANA timezone. Matrix/overdue queries compute it; no `due_at` or deadline duplicate is stored.
 - Smart-list boundaries use the user's saved timezone.
+- The authenticated browser detects its system IANA timezone and synchronizes that value to the
+  saved preference before refreshing server-rendered projections; synchronization failure leaves
+  the workspace usable with its last saved value.
 - Presentation formatting uses the user's week start and hour-cycle preferences.
 - Recurrence is anchored to the canonical all-day or timed task schedule and expands to deterministic
   occurrence identities inside a caller-supplied bounded range.

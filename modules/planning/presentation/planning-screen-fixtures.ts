@@ -54,7 +54,6 @@ const task = (key: keyof typeof taskBase) => taskBase[key]!;
 export const todayFixture: TodayPlanningModel = {
   localDateLabel: "20 July 2026",
   localWeekdayLabel: "Monday",
-  timeZoneLabel: "Singapore time",
   remainingLabel: "4 tasks remaining",
   overdue: [task("story")],
   timed: [task("demo"), task("review")],
@@ -63,7 +62,6 @@ export const todayFixture: TodayPlanningModel = {
 
 export const upcomingFixture: UpcomingPlanningModel = {
   rangeLabel: "20–26 July 2026",
-  timeZoneLabel: "Singapore time",
   totalLabel: "4 tasks in the next 7 days",
   groups: [
     { id: "2026-07-20", dateLabel: "Monday, 20 July", tasks: [task("demo"), task("review")] },

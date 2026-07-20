@@ -12,7 +12,8 @@ to preserve server-side ownership and authorization for the current PostgreSQL-b
   the user to create an account, sign in, or sign out.
 - Resolve the internal provider-neutral actor for protected application routes and APIs.
 - Atomically bootstrap one personal Inbox and one preferences row for a workspace actor.
-- Read and update timezone, week start, hour cycle, theme, and reduced-motion preferences.
+- Apply the browser-detected system timezone and read/update week start, hour cycle, theme, and
+  reduced-motion preferences.
 
 ## Owned persistence
 
@@ -42,6 +43,8 @@ identity or copied into the server auth tables.
   succeeds.
 - An internal workspace actor has exactly one preferences row and exactly one active Inbox after
   bootstrap.
+- The authenticated browser synchronizes its canonical IANA system timezone to the preferences row;
+  a missing or unsupported browser timezone never blocks workspace startup.
 - Inbox and preferences creation either both commit or both roll back.
 - An unauthenticated internal actor cannot read or mutate domain data; a browser-local username never
   bypasses this rule.
