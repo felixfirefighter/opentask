@@ -59,7 +59,12 @@ export function createTasksApplication({
       createEventId: randomUUID,
     }),
     planningSource: createTaskPlanningSourceReader({ database, taskSchedules }),
-    reviewedPlanWrites: createReviewedPlanTaskWriter({ clock, taskSchedules }),
+    reviewedPlanWrites: createReviewedPlanTaskWriter({
+      clock,
+      taskSchedules,
+      recurrenceExpansion: expansion,
+      resolveUserTimezone,
+    }),
     taskSnapshots: createTaskSnapshotReader({ database, taskSchedules }),
   } as const;
 }

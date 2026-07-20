@@ -57,14 +57,15 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
       status: "completed",
     });
 
-    const snapshots = await database.transaction((transaction) =>
-      application.reviewedPlanWrites.loadOwnedOpenForUpdate(
+    const context = await database.transaction((transaction) =>
+      application.reviewedPlanWrites.loadApplyContextForUpdate(
         ownerA,
         [owned.id, completed.id, foreign.id],
+        null,
         transaction,
       ),
     );
-    expect(snapshots).toEqual([
+    expect(context.tasks).toEqual([
       expect.objectContaining({
         id: owned.id,
         version: 2,
@@ -76,6 +77,7 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
         },
       }),
     ]);
+    expect(context.busyIntervals).toBeNull();
   });
 
   it("creates in Inbox and applies grouped detail/priority/schedule updates once per task", async () => {
@@ -160,35 +162,198 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
       "2026-07-20T10:00:00Z",
     );
 
-    const page = await database.transaction((transaction) =>
-      application.reviewedPlanWrites.loadBusySchedulesForUpdate(
+    const context = await database.transaction((transaction) =>
+      application.reviewedPlanWrites.loadApplyContextForUpdate(
         ownerA,
-        {
-          rangeStartDate: "2026-07-20",
-          rangeEndDate: "2026-07-21",
-          rangeStartAt: "2026-07-20T09:00:00Z",
-          rangeEndAt: "2026-07-20T11:00:00Z",
-          limit: 500,
-        },
         [selected.id],
+        {
+          query: {
+            rangeStartDate: "2026-07-20",
+            rangeEndDate: "2026-07-21",
+            rangeStartAt: "2026-07-20T09:00:00Z",
+            rangeEndAt: "2026-07-20T11:00:00Z",
+            limit: 500,
+          },
+          excludedTaskIds: [selected.id],
+        },
         transaction,
       ),
     );
-    expect(page.truncated).toBe(false);
-    expect(page.items.filter(({ schedule }) => schedule.kind === "timed")).toEqual([
+    expect(context.busyIntervals?.truncation.truncated).toBe(false);
+    expect(context.busyIntervals?.items).toEqual([
       {
-        schedule: {
-          kind: "timed",
-          startAt: "2026-07-20T10:00:00.000Z",
-          endAt: "2026-07-20T10:30:00.000Z",
-          timezone: "UTC",
-        },
+        startAt: "2026-07-20T10:00:00.000Z",
+        endAt: "2026-07-20T10:30:00.000Z",
       },
     ]);
-    expect(page.items).not.toContainEqual({
-      schedule: expect.objectContaining({ startAt: "2026-07-20T09:00:00.000Z" }),
-    });
+    expect(context.busyIntervals?.items).not.toContainEqual(
+      expect.objectContaining({ startAt: "2026-07-20T09:00:00.000Z" }),
+    );
     expect(busy.id).not.toBe(selected.id);
+  });
+
+  it("loads only open timed recurring occurrences into reviewed-plan busy context", async () => {
+    const list = await createList(ownerA, "Recurring busy context");
+    const recurring = await createScheduled(ownerA, list.id, "Daily timed focus", "2026-07-20T13:00:00Z");
+    await application.recurrences.setRecurrence(ownerA, recurring.id, {
+      expectedVersion: recurring.version,
+      definition: dailyDefinition(),
+    });
+    const allDay = await application.tasks.createTaskWithSchedule(ownerA, randomUUID(), {
+      title: "All-day recurring note",
+      descriptionMd: "",
+      priority: "none",
+      listId: list.id,
+      sectionId: null,
+      parentTaskId: null,
+      placement: { kind: "end" },
+      schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
+    });
+    await application.recurrences.setRecurrence(ownerA, allDay.value.task.id, {
+      expectedVersion: allDay.value.task.version,
+      definition: dailyDefinition(),
+    });
+    const foreignList = await createList(ownerB, "Foreign recurring context");
+    const foreign = await createScheduled(
+      ownerB,
+      foreignList.id,
+      "Foreign daily focus",
+      "2026-07-20T14:00:00Z",
+    );
+    await application.recurrences.setRecurrence(ownerB, foreign.id, {
+      expectedVersion: foreign.version,
+      definition: dailyDefinition(),
+    });
+    const range = {
+      rangeStartDate: "2026-07-20",
+      rangeEndDate: "2026-07-23",
+      rangeStartAt: "2026-07-20T00:00:00Z",
+      rangeEndAt: "2026-07-23T00:00:00Z",
+      limit: 500,
+    } as const;
+    const occurrences = await application.occurrences.readBoundedOccurrences(ownerA, range);
+    const timed = occurrences.items.filter(
+      (item) => item.projectionKind === "recurring" && item.occurrence.schedule.kind === "timed",
+    );
+    const completed = timed[1];
+    const skipped = timed[2];
+    if (!completed || completed.projectionKind !== "recurring") {
+      throw new Error("Expected the second timed occurrence.");
+    }
+    if (!skipped || skipped.projectionKind !== "recurring") {
+      throw new Error("Expected the third timed occurrence.");
+    }
+    const completedResult = await application.occurrences.transitionOccurrence(ownerA, recurring.id, {
+      action: "complete",
+      occurrenceKey: completed.occurrence.occurrenceKey,
+      expectedVersion: 3,
+    });
+    await application.occurrences.transitionOccurrence(ownerA, recurring.id, {
+      action: "skip",
+      occurrenceKey: skipped.occurrence.occurrenceKey,
+      expectedVersion: completedResult.task.version,
+    });
+
+    const context = await database.transaction((transaction) =>
+      application.reviewedPlanWrites.loadApplyContextForUpdate(
+        ownerA,
+        [],
+        { query: range, excludedTaskIds: [] },
+        transaction,
+      ),
+    );
+
+    expect(context.busyIntervals?.truncation.truncated).toBe(false);
+    const normalized = context.busyIntervals?.items.map(({ startAt, endAt }) => ({
+      startAt: new Date(startAt).toISOString(),
+      endAt: new Date(endAt).toISOString(),
+    }));
+    expect(normalized?.filter(({ startAt }) => startAt.includes("T13:00:00"))).toEqual([
+      {
+        startAt: "2026-07-20T13:00:00.000Z",
+        endAt: "2026-07-20T13:30:00.000Z",
+      },
+    ]);
+    expect(normalized?.some(({ startAt }) => startAt.includes("T14:00:00"))).toBe(false);
+  });
+
+  it("rejects planner schedule writes for active or ended recurrence rows", async () => {
+    const list = await createList(ownerA, "Recurring schedule guard");
+    const recurring = await createScheduled(
+      ownerA,
+      list.id,
+      "Protected recurring schedule",
+      "2026-07-20T10:00:00Z",
+    );
+    const recurrence = await application.recurrences.setRecurrence(ownerA, recurring.id, {
+      expectedVersion: recurring.version,
+      definition: dailyDefinition(),
+    });
+
+    await expect(
+      database.transaction((transaction) =>
+        application.reviewedPlanWrites.applyBatch(
+          ownerA,
+          {
+            creates: [],
+            updates: [
+              {
+                id: recurring.id,
+                expectedVersion: recurrence.task.version,
+                schedule: {
+                  kind: "timed",
+                  startAt: "2026-07-20T12:00:00Z",
+                  endAt: "2026-07-20T12:30:00Z",
+                  timezone: "UTC",
+                },
+              },
+            ],
+          },
+          transaction,
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: recurrence.task.version });
+    expect(await storedSchedule(ownerA.userId, recurring.id)).toMatchObject({
+      start_at: new Date("2026-07-20T10:00:00Z"),
+    });
+
+    await database.transaction((transaction) =>
+      application.reviewedPlanWrites.applyBatch(
+        ownerA,
+        {
+          creates: [],
+          updates: [{ id: recurring.id, expectedVersion: recurrence.task.version, priority: "high" }],
+        },
+        transaction,
+      ),
+    );
+    expect(await storedTask(ownerA.userId, recurring.id)).toMatchObject({ priority: "high", version: 4 });
+    const ended = await application.recurrences.endRecurrence(ownerA, recurring.id, {
+      expectedVersion: 4,
+    });
+    await expect(
+      database.transaction((transaction) =>
+        application.reviewedPlanWrites.applyBatch(
+          ownerA,
+          {
+            creates: [],
+            updates: [
+              {
+                id: recurring.id,
+                expectedVersion: ended.task.version,
+                schedule: {
+                  kind: "timed",
+                  startAt: "2026-07-20T12:00:00Z",
+                  endAt: "2026-07-20T12:30:00Z",
+                  timezone: "UTC",
+                },
+              },
+            ],
+          },
+          transaction,
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: ended.task.version });
   });
 
   it("rolls back every prior write on a later failure and denies cross-user targets", async () => {
@@ -260,11 +425,15 @@ async function createTask(actor: AuthenticatedActor, listId: string, title: stri
 async function createScheduled(actor: AuthenticatedActor, listId: string, title: string, startAt: string) {
   const task = await createTask(actor, listId, title);
   const endAt = new Date(new Date(startAt).getTime() + 30 * 60_000).toISOString();
-  await application.schedules.setSchedule(actor, task.id, {
+  const scheduled = await application.schedules.setSchedule(actor, task.id, {
     expectedVersion: 1,
     schedule: { kind: "timed", startAt, endAt, timezone: "UTC" },
   });
-  return task;
+  return { ...task, version: scheduled.task.version };
+}
+
+function dailyDefinition() {
+  return { preset: { kind: "daily" as const, interval: 1 }, end: { kind: "never" as const } };
 }
 
 async function storedTask(userId: string, taskId: string) {

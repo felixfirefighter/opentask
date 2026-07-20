@@ -1,5 +1,5 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
-import type { Database } from "@/shared/db/client";
+import type { DatabaseExecutor } from "@/shared/db/client";
 
 import {
   boundedTaskOccurrencePageSchema,
@@ -49,10 +49,11 @@ type SortableProjection = Readonly<{
 
 export function createBoundedOccurrenceReader(
   dependencies: Readonly<{
-    database: Database;
+    database: DatabaseExecutor;
     taskSchedules: TaskScheduleTable;
     expansion: RecurrenceExpansionPort;
     resolveUserTimezone: UserTimezoneResolver;
+    serializeSourceReads?: boolean;
   }>,
 ) {
   const schedules = createTaskScheduleRepository(dependencies.taskSchedules, dependencies.database);
@@ -65,11 +66,26 @@ export function createBoundedOccurrenceReader(
   ): Promise<BoundedTaskOccurrencePage> {
     const query = taskOccurrenceRangeQuerySchema.parse(rawQuery);
     const range = repositoryRange(query);
-    const [oneOffPage, recurrencePage, userTimezone] = await Promise.all([
-      schedules.listActiveOpenOneOffsInRange(actor.userId, range),
-      recurrences.listActiveOpenSourcesInRange(actor.userId, range),
-      dependencies.resolveUserTimezone(actor, dependencies.database),
-    ]);
+
+    async function loadSourcesSequentially() {
+      const oneOffPage = await schedules.listActiveOpenOneOffsInRange(actor.userId, range);
+      const recurrencePage = await recurrences.listActiveOpenSourcesInRange(
+        actor.userId,
+        range,
+        dependencies.database,
+        { serializeReads: true },
+      );
+      const userTimezone = await dependencies.resolveUserTimezone(actor, dependencies.database);
+      return [oneOffPage, recurrencePage, userTimezone] as const;
+    }
+
+    const [oneOffPage, recurrencePage, userTimezone] = dependencies.serializeSourceReads
+      ? await loadSourcesSequentially()
+      : await Promise.all([
+          schedules.listActiveOpenOneOffsInRange(actor.userId, range),
+          recurrences.listActiveOpenSourcesInRange(actor.userId, range),
+          dependencies.resolveUserTimezone(actor, dependencies.database),
+        ]);
     const recurrenceTaskIds = recurrencePage.items.map(({ task }) => task.id);
     const eventPage = await events.listLatestForTasks(
       actor.userId,

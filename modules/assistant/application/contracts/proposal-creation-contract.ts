@@ -28,29 +28,6 @@ export type PlannerSelectedTaskReader = Readonly<{
   ): Promise<readonly PlannerSelectedTaskSnapshot[]>;
 }>;
 
-export type PlannerBusyScheduleQuery = Readonly<{
-  rangeStartDate: string;
-  rangeEndDate: string;
-  rangeStartAt: string;
-  rangeEndAt: string;
-  limit: 500;
-}>;
-
-export type PlannerBusySchedule =
-  Readonly<{ kind: "all_day" }> | Readonly<{ kind: "timed"; startAt: string; endAt: string }>;
-
-export type PlannerBusyScheduleReader = Readonly<{
-  listRange(
-    actor: AuthenticatedActor,
-    query: PlannerBusyScheduleQuery,
-  ): Promise<
-    Readonly<{
-      items: readonly Readonly<{ schedule: PlannerBusySchedule }>[];
-      truncated: boolean;
-    }>
-  >;
-}>;
-
 export type PlannerProposalWriter = Readonly<{
   persist(
     actor: AuthenticatedActor,

@@ -15,6 +15,7 @@ import { entityIdSchema } from "./contracts/contract-primitives";
 import type { PlannerApplyDependencies } from "./contracts/planner-apply-unit-of-work";
 import {
   defaultPlannerApplyScheduler,
+  preparePlannerApplyScheduleValidation,
   validatePlannerApplySchedules,
 } from "./planner-apply-schedule-validation";
 import {
@@ -91,22 +92,21 @@ export function createPlannerProposalApplier(
 
         validatePlannerSelection(proposal, selection);
         const selectedTaskIds = taskIdsForActions(selection.actions);
-        const currentTasks = await dependencies.tasks.loadOwnedOpenForUpdate(
-          actor,
-          selectedTaskIds,
-          transaction,
-        );
-        validateCurrentPlannerTasks(proposal, selection.actions, currentTasks);
-
         const writableActions = selection.actions.filter(
           (action): action is Exclude<PlannerAction, { kind: "defer" }> => action.kind !== "defer",
         );
-        await validatePlannerApplySchedules({
+        const scheduleValidation = preparePlannerApplyScheduleValidation(proposal, writableActions);
+        const current = await dependencies.tasks.loadApplyContextForUpdate(
           actor,
-          proposal,
-          actions: writableActions,
-          tasks: dependencies.tasks,
+          selectedTaskIds,
+          scheduleValidation?.busyRequest ?? null,
           transaction,
+        );
+        validateCurrentPlannerTasks(proposal, selection.actions, current.tasks);
+        validatePlannerApplySchedules({
+          proposal,
+          prepared: scheduleValidation,
+          busyIntervals: current.busyIntervals,
           schedule,
         });
 

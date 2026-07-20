@@ -24,6 +24,12 @@ export function getPlanningProjectionApplication() {
 }
 
 export { buildDeterministicPlan } from "./build-deterministic-plan";
+export { createPlanningBusyIntervalReader } from "./busy-interval-reader";
+export type {
+  PlanningBusyIntervalPage,
+  PlanningBusyIntervalQuery,
+  PlanningBusyIntervalReader,
+} from "./busy-interval-reader";
 export { createPlanningProjectionApplication } from "./planning-projection-application";
 export {
   PLANNING_PROJECTION_MAX_ROWS,

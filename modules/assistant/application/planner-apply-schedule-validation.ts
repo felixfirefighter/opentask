@@ -1,33 +1,41 @@
-import { buildDeterministicPlan, type BusyInterval, type FixedSchedulingCandidate } from "@/modules/planning";
-import type { AuthenticatedActor } from "@/shared/auth/actor";
-import type { DatabaseTransaction } from "@/shared/db/client";
-import { ApplicationError } from "@/shared/http/application-error";
+import { z } from "zod";
 
 import {
-  plannerScheduleSchema,
-  type PlannerAction,
-  type PlannerProposalDto,
-  type PlannerSchedule,
-} from "./contracts";
-import type { PlannerApplyTaskWriter } from "./contracts/planner-apply-unit-of-work";
+  PLANNING_PROJECTION_MAX_ROWS,
+  buildDeterministicPlan,
+  type BusyInterval,
+  type FixedSchedulingCandidate,
+  type PlanningBusyIntervalPage,
+} from "@/modules/planning";
+import { ApplicationError } from "@/shared/http/application-error";
+
+import { type PlannerAction, type PlannerProposalDto, type PlannerSchedule } from "./contracts";
+import { instantSchema } from "./contracts/contract-primitives";
+import type { PlannerApplyBusyIntervalRequest } from "./contracts/planner-apply-unit-of-work";
 import { resolvePlannerWorkWindow } from "./planner-local-time";
 
 type DeterministicScheduler = typeof buildDeterministicPlan;
+const plannerBusyIntervalSchema = z
+  .strictObject({ startAt: instantSchema, endAt: instantSchema })
+  .refine(({ startAt, endAt }) => Date.parse(endAt) >= Date.parse(startAt), {
+    message: "A busy interval cannot end before it starts.",
+  });
 
-export async function validatePlannerApplySchedules(options: {
-  actor: AuthenticatedActor;
-  proposal: PlannerProposalDto;
-  actions: readonly PlannerAction[];
-  tasks: PlannerApplyTaskWriter;
-  transaction: DatabaseTransaction;
-  schedule: DeterministicScheduler;
-}): Promise<void> {
-  const candidates = fixedCandidates(options.actions, options.proposal.proposal.planningContext.timeZone);
-  if (candidates.length === 0) return;
+export type PreparedPlannerApplyScheduleValidation = Readonly<{
+  busyRequest: PlannerApplyBusyIntervalRequest;
+  candidates: readonly FixedSchedulingCandidate[];
+}>;
 
-  const context = options.proposal.proposal.planningContext;
+export function preparePlannerApplyScheduleValidation(
+  proposal: PlannerProposalDto,
+  actions: readonly PlannerAction[],
+): PreparedPlannerApplyScheduleValidation | null {
+  const candidates = fixedCandidates(actions, proposal.proposal.planningContext.timeZone);
+  if (candidates.length === 0) return null;
+
+  const context = proposal.proposal.planningContext;
   const window = resolvePlannerWorkWindow({
-    planningDate: options.proposal.planningDate,
+    planningDate: proposal.planningDate,
     timeZone: context.timeZone,
     workWindow: context.workWindow,
   });
@@ -35,26 +43,40 @@ export async function validatePlannerApplySchedules(options: {
     throw invalidPlan("The proposal work window is not valid on this planning date.");
   }
 
-  const excludedTaskIds = options.actions.flatMap((action) =>
-    action.kind === "schedule" ? [action.taskId] : [],
-  );
-  const page = await options.tasks.loadBusySchedulesForUpdate(
-    options.actor,
-    {
-      rangeStartDate: options.proposal.planningDate,
-      rangeEndDate: window.nextLocalDate,
-      rangeStartAt: window.startAt,
-      rangeEndAt: window.endAt,
-      limit: 500,
+  const excludedTaskIds = actions.flatMap((action) => (action.kind === "schedule" ? [action.taskId] : []));
+  return {
+    candidates,
+    busyRequest: {
+      query: {
+        rangeStartDate: proposal.planningDate,
+        rangeEndDate: window.nextLocalDate,
+        rangeStartAt: window.startAt,
+        rangeEndAt: window.endAt,
+        limit: PLANNING_PROJECTION_MAX_ROWS,
+      },
+      excludedTaskIds: [...new Set(excludedTaskIds)].sort(),
     },
-    [...new Set(excludedTaskIds)].sort(),
-    options.transaction,
-  );
-  if (page.truncated) {
-    throw invalidPlan("The planning window has too many scheduled items to validate safely.");
+  };
+}
+
+export function validatePlannerApplySchedules(options: {
+  proposal: PlannerProposalDto;
+  prepared: PreparedPlannerApplyScheduleValidation | null;
+  busyIntervals: PlanningBusyIntervalPage | null;
+  schedule: DeterministicScheduler;
+}): void {
+  if (!options.prepared) return;
+  if (!options.busyIntervals) {
+    throw new ApplicationError("INTERNAL", "Current planner occurrence state was not loaded safely.");
+  }
+  if (options.busyIntervals.truncation.truncated) {
+    throw invalidPlan(
+      "The recurring occurrence context was truncated by a safety limit, so the proposal cannot be applied safely.",
+    );
   }
 
-  const busyIntervals = parseBusyIntervals(page.items);
+  const context = options.proposal.proposal.planningContext;
+  const busyIntervals = parseBusyIntervals(options.busyIntervals.items);
   const result = options.schedule({
     timeZone: context.timeZone,
     workWindows: [
@@ -66,14 +88,14 @@ export async function validatePlannerApplySchedules(options: {
     ],
     busyIntervals,
     bufferMinutes: context.bufferMinutes,
-    candidates,
+    candidates: options.prepared.candidates,
   });
   const placedReferences = new Set(result.placed.map(({ semanticRef }) => semanticRef));
   if (
     result.conflicts.length > 0 ||
     result.overflow.length > 0 ||
-    result.placed.length !== candidates.length ||
-    candidates.some(({ semanticRef }) => !placedReferences.has(semanticRef))
+    result.placed.length !== options.prepared.candidates.length ||
+    options.prepared.candidates.some(({ semanticRef }) => !placedReferences.has(semanticRef))
   ) {
     throw new ApplicationError(
       "CONFLICT",
@@ -112,21 +134,15 @@ function scheduleAfter(action: PlannerAction): PlannerSchedule | null {
   return null;
 }
 
-function parseBusyIntervals(
-  items: readonly Readonly<{ schedule: PlannerSchedule }>[],
-): readonly BusyInterval[] {
-  if (items.length > 500) {
+function parseBusyIntervals(items: readonly BusyInterval[]): readonly BusyInterval[] {
+  if (items.length > PLANNING_PROJECTION_MAX_ROWS) {
     throw new ApplicationError("INTERNAL", "Current planner schedule state could not be read safely.");
   }
-  const parsed = items.map(({ schedule }) => plannerScheduleSchema.safeParse(schedule));
+  const parsed = items.map((interval) => plannerBusyIntervalSchema.safeParse(interval));
   if (parsed.some((result) => !result.success)) {
     throw new ApplicationError("INTERNAL", "Current planner schedule state could not be read safely.");
   }
-  return parsed.flatMap((result) =>
-    result.success && result.data.kind === "timed"
-      ? [{ startAt: result.data.startAt, endAt: result.data.endAt }]
-      : [],
-  );
+  return parsed.flatMap((result) => (result.success ? [result.data] : []));
 }
 
 function invalidPlan(message: string): ApplicationError {

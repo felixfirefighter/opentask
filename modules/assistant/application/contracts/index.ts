@@ -33,14 +33,13 @@ export type {
 export { plannerProposalSubjectSchema, plannerProposalSubjectsSchema } from "./proposal-subject-contract";
 export type { PlannerProposalSubject } from "./proposal-subject-contract";
 export type {
-  PlannerBusySchedule,
-  PlannerBusyScheduleQuery,
-  PlannerBusyScheduleReader,
   PlannerProposalWriter,
   PlannerSelectedTaskReader,
   PlannerSelectedTaskSnapshot,
 } from "./proposal-creation-contract";
 export type {
+  PlannerApplyBusyIntervalRequest,
+  PlannerApplyContext,
   PlannerApplyDependencies,
   PlannerApplyProposalRepository,
   PlannerApplyTaskSnapshot,

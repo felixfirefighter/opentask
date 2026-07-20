@@ -20,18 +20,19 @@ type MutableReviewedUpdate = {
 
 export function createPlannerApplyTaskAdapter(writer: ReviewedPlanTaskWriter): PlannerApplyTaskWriter {
   return {
-    async loadOwnedOpenForUpdate(actor, taskIds, transaction) {
-      return (await writer.loadOwnedOpenForUpdate(actor, taskIds, transaction)).map((task) => ({
-        ...task,
-        schedule: task.schedule ? toPlannerSchedule(task.schedule) : null,
-      }));
-    },
-
-    async loadBusySchedulesForUpdate(actor, query, excludedTaskIds, transaction) {
-      const page = await writer.loadBusySchedulesForUpdate(actor, query, excludedTaskIds, transaction);
+    async loadApplyContextForUpdate(actor, taskIds, busyRequest, transaction) {
+      const context = await writer.loadApplyContextForUpdate(actor, taskIds, busyRequest, transaction);
       return {
-        items: page.items.map(({ schedule }) => ({ schedule: toPlannerSchedule(schedule) })),
-        truncated: page.truncated,
+        tasks: context.tasks.map((task) => ({
+          ...task,
+          schedule: task.schedule ? toPlannerSchedule(task.schedule) : null,
+        })),
+        busyIntervals: context.busyIntervals
+          ? {
+              items: context.busyIntervals.items.map(({ startAt, endAt }) => ({ startAt, endAt })),
+              truncation: context.busyIntervals.truncation,
+            }
+          : null,
       };
     },
 

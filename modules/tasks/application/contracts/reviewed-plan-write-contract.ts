@@ -10,6 +10,7 @@ import {
   taskTitleSchema,
   versionSchema,
 } from "./contract-primitives";
+import type { OccurrenceTruncation, TaskOccurrenceRangeQuery } from "./occurrence-contract";
 import { taskScheduleValueSchema, type TaskScheduleValue } from "./schedule-contract";
 
 const reviewedPlanCreateSchema = z.strictObject({
@@ -61,29 +62,28 @@ export type ReviewedPlanTaskSnapshot = Readonly<{
   schedule: TaskScheduleValue | null;
 }>;
 
+export type ReviewedPlanBusyIntervalPage = Readonly<{
+  items: readonly Readonly<{ startAt: string; endAt: string }>[];
+  truncation: OccurrenceTruncation;
+}>;
+
+export type ReviewedPlanBusyIntervalRequest = Readonly<{
+  query: TaskOccurrenceRangeQuery;
+  excludedTaskIds: readonly string[];
+}>;
+
+export type ReviewedPlanApplyContext = Readonly<{
+  tasks: readonly ReviewedPlanTaskSnapshot[];
+  busyIntervals: ReviewedPlanBusyIntervalPage | null;
+}>;
+
 export interface ReviewedPlanTaskWriter {
-  loadOwnedOpenForUpdate(
+  loadApplyContextForUpdate(
     actor: AuthenticatedActor,
     taskIds: readonly string[],
+    busyIntervals: ReviewedPlanBusyIntervalRequest | null,
     transaction: DatabaseTransaction,
-  ): Promise<readonly ReviewedPlanTaskSnapshot[]>;
-  loadBusySchedulesForUpdate(
-    actor: AuthenticatedActor,
-    query: Readonly<{
-      rangeStartDate: string;
-      rangeEndDate: string;
-      rangeStartAt: string;
-      rangeEndAt: string;
-      limit: 500;
-    }>,
-    excludedTaskIds: readonly string[],
-    transaction: DatabaseTransaction,
-  ): Promise<
-    Readonly<{
-      items: readonly Readonly<{ schedule: TaskScheduleValue }>[];
-      truncated: boolean;
-    }>
-  >;
+  ): Promise<ReviewedPlanApplyContext>;
   applyBatch(
     actor: AuthenticatedActor,
     batch: ReviewedPlanBatch,

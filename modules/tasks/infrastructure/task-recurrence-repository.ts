@@ -44,7 +44,10 @@ type RecurrenceRange = Readonly<{
   limit: number;
 }>;
 
-type RecurrenceRangeReadOptions = Readonly<{ lockForUpdate?: boolean }>;
+type RecurrenceRangeReadOptions = Readonly<{
+  lockForUpdate?: boolean;
+  serializeReads?: boolean;
+}>;
 
 export function createTaskRecurrenceRepository(defaultExecutor: DatabaseExecutor = getDatabase()) {
   return {
@@ -169,10 +172,15 @@ export function createTaskRecurrenceRepository(defaultExecutor: DatabaseExecutor
       options: RecurrenceRangeReadOptions = {},
     ): Promise<StoredRecurrenceSourcePage> {
       assertSourceLimit(range.limit);
-      const [allDayRows, timedRows] = await Promise.all([
-        listSourcesByCutover(executor, userId, range, "all_day", options),
-        listSourcesByCutover(executor, userId, range, "timed", options),
-      ]);
+      const [allDayRows, timedRows] = options.serializeReads
+        ? [
+            await listSourcesByCutover(executor, userId, range, "all_day", options),
+            await listSourcesByCutover(executor, userId, range, "timed", options),
+          ]
+        : await Promise.all([
+            listSourcesByCutover(executor, userId, range, "all_day", options),
+            listSourcesByCutover(executor, userId, range, "timed", options),
+          ]);
       const rows = [...allDayRows, ...timedRows].sort(compareSourceTaskId);
       return {
         items: rows.slice(0, range.limit),

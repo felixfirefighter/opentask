@@ -1,3 +1,4 @@
+import { createPlanningBusyIntervalReader } from "@/modules/planning";
 import { getTasksApplication } from "@/modules/tasks";
 import { getDatabase } from "@/shared/db/client";
 import { plannerProposals } from "@/shared/db/schema";
@@ -26,20 +27,7 @@ function createAssistantPlannerApplication() {
   const creator = createPlannerProposalCreator({
     provider: createPlannerExtractionProvider(),
     selectedTasks: tasks.taskSnapshots,
-    busySchedules: {
-      async listRange(actor, query) {
-        const page = await tasks.schedules.listRange(actor, query);
-        return {
-          items: page.items.map(({ schedule }) => ({
-            schedule:
-              schedule.kind === "all_day"
-                ? { kind: schedule.kind }
-                : { kind: schedule.kind, startAt: schedule.startAt, endAt: schedule.endAt },
-          })),
-          truncated: page.truncated,
-        };
-      },
-    },
+    busyIntervals: createPlanningBusyIntervalReader(tasks.occurrences),
     proposals,
   });
   const applier = createPlannerProposalApplier({
