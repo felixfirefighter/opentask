@@ -37,7 +37,7 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
 
   afterAll(async () => fixture.teardown());
 
-  it("loads only owned open snapshots and canonical schedules under row lock", async () => {
+  it("loads only owned open snapshots and canonical schedules under the task-owner lock", async () => {
     const listA = await createList(ownerA, "Snapshot A");
     const listB = await createList(ownerB, "Snapshot B");
     const owned = await createTask(ownerA, listA.id, "Owned");
@@ -78,6 +78,53 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
       }),
     ]);
     expect(context.busyIntervals).toBeNull();
+  });
+
+  it("does not lock schedules before recurrence validation", async () => {
+    const list = await createList(ownerA, "Planner lock order");
+    const scheduled = await createScheduled(
+      ownerA,
+      list.id,
+      "Schedule stays behind recurrence in lock order",
+      "2026-07-25T09:00:00Z",
+    );
+    let releasePlanner!: () => void;
+    let signalLoaded!: () => void;
+    const plannerReleased = new Promise<void>((resolve) => {
+      releasePlanner = resolve;
+    });
+    const contextLoaded = new Promise<void>((resolve) => {
+      signalLoaded = resolve;
+    });
+    const heldPlanner = database.transaction(async (transaction) => {
+      await application.reviewedPlanWrites.loadApplyContextForUpdate(
+        ownerA,
+        [scheduled.id],
+        null,
+        transaction,
+      );
+      signalLoaded();
+      await plannerReleased;
+    });
+
+    await contextLoaded;
+    try {
+      await expect(
+        pool.query(
+          `select task_id from task_schedules where user_id = $1 and task_id = $2 for update nowait`,
+          [ownerA.userId, scheduled.id],
+        ),
+      ).resolves.toMatchObject({ rowCount: 1 });
+      await expect(
+        pool.query(`select id from tasks where user_id = $1 and id = $2 for update nowait`, [
+          ownerA.userId,
+          scheduled.id,
+        ]),
+      ).rejects.toMatchObject({ code: "55P03" });
+    } finally {
+      releasePlanner();
+      await heldPlanner;
+    }
   });
 
   it("creates in Inbox and applies grouped detail/priority/schedule updates once per task", async () => {

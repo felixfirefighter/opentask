@@ -13,8 +13,7 @@ export function createReviewedPlanRepository(taskSchedules: TaskScheduleTable) {
         .select()
         .from(taskSchedules)
         .where(and(eq(taskSchedules.userId, userId), inArray(taskSchedules.taskId, taskIds)))
-        .orderBy(asc(taskSchedules.taskId))
-        .for("update");
+        .orderBy(asc(taskSchedules.taskId));
     },
 
     async loadInboxForUpdate(userId: string, transaction: DatabaseTransaction) {
