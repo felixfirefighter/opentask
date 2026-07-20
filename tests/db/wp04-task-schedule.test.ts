@@ -89,6 +89,51 @@ describe("task schedule PostgreSQL integration", () => {
     });
   });
 
+  it("blocks active-series schedule writes and clears an ended definition atomically", async () => {
+    const list = await createList(ownerA, "Recurring schedule owner");
+    const task = await createTask(ownerA, list.id, "Recurring schedule target");
+    await schedules.setSchedule(ownerA, task.id, {
+      expectedVersion: 1,
+      schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
+    });
+    await pool.query(
+      `insert into task_recurrences
+         (user_id, task_id, rrule, timezone, projection_start_date)
+       values ($1, $2, 'FREQ=DAILY;INTERVAL=1', 'Asia/Singapore', '2026-07-20')`,
+      [ownerA.userId, task.id],
+    );
+
+    await expect(
+      schedules.setSchedule(ownerA, task.id, {
+        expectedVersion: 2,
+        schedule: { kind: "all_day", startDate: "2026-07-21", endDate: "2026-07-22" },
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 2 });
+    await expect(schedules.clearSchedule(ownerA, task.id, { expectedVersion: 2 })).rejects.toMatchObject({
+      code: "CONFLICT",
+      currentVersion: 2,
+    });
+    await expect(storedTaskVersion(ownerA.userId, task.id)).resolves.toBe(2);
+
+    await pool.query(
+      `update task_recurrences
+          set projection_end_date = projection_start_date
+        where user_id = $1 and task_id = $2`,
+      [ownerA.userId, task.id],
+    );
+    await expect(schedules.clearSchedule(ownerA, task.id, { expectedVersion: 2 })).resolves.toEqual({
+      task: { id: task.id, version: 3 },
+      schedule: null,
+    });
+    const remaining = await pool.query(
+      `select
+         (select count(*)::int from task_recurrences where user_id = $1 and task_id = $2) as rules,
+         (select count(*)::int from task_schedules where user_id = $1 and task_id = $2) as schedules`,
+      [ownerA.userId, task.id],
+    );
+    expect(remaining.rows).toEqual([{ rules: 0, schedules: 0 }]);
+  });
+
   it("creates a task and schedule atomically with exact whole-command replay", async () => {
     const listA = await createList(ownerA, "Atomic create owner A");
     const listB = await createList(ownerB, "Atomic create owner B");

@@ -26,6 +26,7 @@ import {
   type ScheduleWriteValue,
   type StoredTaskSchedule,
 } from "../infrastructure/task-schedule-repository";
+import { createTaskRecurrenceRepository } from "../infrastructure/task-recurrence-repository";
 import { createTaskRepository } from "../infrastructure/task-repository";
 import type { TaskScheduleTable } from "../infrastructure/schema";
 
@@ -40,6 +41,7 @@ export function createTaskScheduleApplication({
 }) {
   const tasks = createTaskRepository(database);
   const schedules = createTaskScheduleRepository(taskSchedules, database);
+  const recurrences = createTaskRecurrenceRepository(database);
 
   return {
     async getSchedule(actor: AuthenticatedActor, rawTaskId: string): Promise<TaskScheduleDto | null> {
@@ -60,6 +62,14 @@ export function createTaskScheduleApplication({
       return database.transaction(async (transaction) => {
         const current = await tasks.lockById(actor.userId, taskId, "any", transaction);
         assertMutableTask(current, input.expectedVersion);
+        const recurrence = await recurrences.lockByTaskId(actor.userId, taskId, transaction);
+        await schedules.lockByTaskId(actor.userId, taskId, transaction);
+        if (recurrence) {
+          throw taskConflict(
+            "Use the recurrence editor to change a recurring task's future schedule.",
+            current.version,
+          );
+        }
         const now = clock.now();
         const schedule = await schedules.upsert(
           {
@@ -93,6 +103,12 @@ export function createTaskScheduleApplication({
       return database.transaction(async (transaction) => {
         const current = await tasks.lockById(actor.userId, taskId, "any", transaction);
         assertMutableTask(current, input.expectedVersion);
+        const recurrence = await recurrences.lockByTaskId(actor.userId, taskId, transaction);
+        await schedules.lockByTaskId(actor.userId, taskId, transaction);
+        if (recurrence && !hasEndedRecurrence(recurrence)) {
+          throw taskConflict("End recurrence before clearing this schedule.", current.version);
+        }
+        if (recurrence) await recurrences.remove(actor.userId, taskId, transaction);
         const removed = await schedules.clear(actor.userId, taskId, transaction);
         if (!removed) throw taskConflict("This task is already unscheduled.", current.version);
         const updated = requireAppliedTask(
@@ -134,6 +150,12 @@ export function createTaskScheduleApplication({
       });
     },
   } as const;
+}
+
+function hasEndedRecurrence(
+  recurrence: Readonly<{ projectionEndDate: string | null; projectionEndAt: Date | null }>,
+): boolean {
+  return recurrence.projectionEndDate !== null || recurrence.projectionEndAt !== null;
 }
 
 export function toScheduleWrite(schedule: TaskScheduleValue): ScheduleWriteValue {
