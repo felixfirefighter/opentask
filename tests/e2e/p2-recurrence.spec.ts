@@ -6,13 +6,15 @@ const APP_ORIGIN = "http://127.0.0.1:3107";
 const goldenPathProjects = new Set(["desktop-chromium", "mobile-chromium"]);
 
 const demo = {
+  allDayTaskId: "50000000-0000-4000-8000-000000000003",
+  allDayTaskTitle: "Prepare attendee notes",
   recurringTaskId: "50000000-0000-4000-8000-000000000011",
   recurringTaskTitle: "Review workshop progress",
   scheduledTaskId: "50000000-0000-4000-8000-000000000001",
   scheduledTaskTitle: "Outline the workshop agenda",
 } as const;
 
-test("a scheduled task can become, restart, reschedule, and end a series before completion", async ({
+test("a timed task can become, restart, reschedule, and end a series before completion", async ({
   context,
   page,
 }, testInfo) => {
@@ -143,13 +145,45 @@ test("a scheduled task can become, restart, reschedule, and end a series before 
   await expect(details.getByRole("button", { name: "Completed", exact: true })).toBeVisible();
 });
 
+test("an all-day task creates an approved preset with an inclusive end date", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  test.skip(
+    !goldenPathProjects.has(testInfo.project.name),
+    "The all-day recurrence path runs at desktop and mobile widths.",
+  );
+
+  await enterIsolatedDemo(page, testInfo);
+  const localDate = (await getJson<TodayProjectionWire>(page, "/api/v1/planning/today")).localDate;
+  await openTaskDetails(page, demo.allDayTaskId, demo.allDayTaskTitle);
+  const recurrence = recurrenceSection(page);
+  await recurrence.getByRole("button", { name: "Add recurrence" }).click();
+  const form = recurrence.locator("form");
+  await form.getByRole("combobox", { name: "Cadence", exact: true }).selectOption("daily");
+  await form.getByRole("combobox", { name: "Ends", exact: true }).selectOption("until");
+  const inclusiveEnd = addLocalDays(localDate, 8);
+  await form.getByLabel("Inclusive end date", { exact: true }).fill(inclusiveEnd);
+
+  const response = waitForMutation(page, `/tasks/${demo.allDayTaskId}/recurrence`, "PATCH");
+  await form.getByRole("button", { name: "Add recurrence" }).click();
+  expect((await response).status()).toBe(200);
+  await expect(recurrence.getByText("Recurrence added", { exact: true })).toBeVisible();
+  await expect(recurrence.getByText("Active", { exact: true })).toBeVisible();
+  await expect(recurrence).toContainText("Every day");
+  await expect(recurrence).toContainText("All day");
+  await expect(recurrence).toContainText("inclusive");
+});
+
 test("a stale recurrence draft stays intact and retries against the authoritative version", async ({
   page,
 }, testInfo) => {
-  test.setTimeout(120_000);
-  test.skip(testInfo.project.name !== "desktop-chromium", "One desktop fault-injection path is sufficient.");
+  test.setTimeout(180_000);
+  test.skip(
+    !goldenPathProjects.has(testInfo.project.name),
+    "The recurrence conflict and history path runs at desktop and mobile widths.",
+  );
 
   await enterIsolatedDemo(page, testInfo);
+  const localDate = (await getJson<TodayProjectionWire>(page, "/api/v1/planning/today")).localDate;
   await openTaskDetails(page, demo.recurringTaskId, demo.recurringTaskTitle);
   const recurrence = recurrenceSection(page);
   await expect(recurrence.getByRole("button", { name: "Edit recurrence" })).toBeVisible({
@@ -186,15 +220,21 @@ test("a stale recurrence draft stays intact and retries against the authoritativ
   expect((await retryResponse).status()).toBe(200);
   await expect(recurrence.getByText("Future recurrence restarted", { exact: true })).toBeVisible();
   await expect(recurrence).toContainText("30 occurrences, including the anchor");
+
+  await expectHistoricalOccurrenceStates(page, localDate);
+  await openTaskDetails(page, demo.recurringTaskId, demo.recurringTaskTitle);
+  await endSeriesThroughKeyboard(page, recurrenceSection(page), demo.recurringTaskId);
+  await expect(recurrenceSection(page).getByText("Ended", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expectHistoricalOccurrenceStates(page, localDate);
 });
 
 test("one occurrence supports UI transitions and exact API retry without completing its series", async ({
   page,
 }, testInfo) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   test.skip(
-    testInfo.project.name !== "desktop-chromium",
-    "One deterministic occurrence retry path is sufficient.",
+    !goldenPathProjects.has(testInfo.project.name),
+    "The recurring projection and occurrence-action path runs at desktop and mobile widths.",
   );
 
   await enterIsolatedDemo(page, testInfo);
@@ -204,6 +244,34 @@ test("one occurrence supports UI transitions and exact API retry without complet
   );
   expect(occurrence).toMatchObject({ occurrenceState: "open", status: "open" });
   if (!occurrence?.occurrenceKey) throw new Error("The deterministic demo recurrence is missing today.");
+
+  await page.goto("/today");
+  await page.waitForLoadState("networkidle");
+  await expect(planningRow(page, occurrence.projectionId)).toBeVisible();
+  await page.goto("/upcoming");
+  await page.waitForLoadState("networkidle");
+  const upcomingOccurrence = planningRowsForTask(page, demo.recurringTaskId).first();
+  await expect(upcomingOccurrence).toBeVisible();
+  await expect(upcomingOccurrence).toHaveAttribute("data-projection-lifecycle", "recurring_occurrence");
+  const today = projection.localDate;
+  await page.goto(`/calendar?view=month&date=${today}`);
+  await page.waitForLoadState("networkidle");
+  await revealRecurringCalendarEvent(page);
+  await expect(
+    page.getByLabel("Task to edit", { exact: true }).locator(`option[value="${occurrence.projectionId}"]`),
+  ).toHaveCount(1);
+  await page.getByRole("button", { name: "Agenda", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Agenda", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(recurringCalendarEvents(page).first()).toBeVisible();
+  await expect(
+    page.getByLabel("Task to edit", { exact: true }).locator(`option[value="${occurrence.projectionId}"]`),
+  ).toHaveCount(1);
+  await page.goto("/matrix");
+  await page.waitForLoadState("networkidle");
+  await expect(planningRow(page, occurrence.projectionId)).toBeVisible();
 
   await page.goto("/today");
   await page.waitForLoadState("networkidle");
@@ -231,17 +299,56 @@ test("one occurrence supports UI transitions and exact API retry without complet
     occurrenceState: "completed",
     task: { version: completed.task.version },
   });
-  const reopened = await postOccurrence(page, {
-    action: "undo",
-    occurrenceKey: occurrence.occurrenceKey,
-    expectedVersion: completed.task.version,
-  });
-  expect(reopened).toMatchObject({ outcome: "applied", occurrenceState: "open" });
+
+  const rangeEnd = addLocalDays(today, 3);
+  const calendarProjection = await getJson<CalendarProjectionWire>(
+    page,
+    `/api/v1/planning/calendar?rangeStartDate=${today}&rangeEndDate=${rangeEnd}&limit=250`,
+  );
+  const completedEvent = calendarProjection.events.find(
+    (event) => event.taskId === demo.recurringTaskId && event.occurrenceKey === occurrence.occurrenceKey,
+  );
+  const nextOpenEvent = calendarProjection.events.find(
+    (event) =>
+      event.taskId === demo.recurringTaskId &&
+      event.occurrenceKey !== occurrence.occurrenceKey &&
+      event.occurrenceState === "open",
+  );
+  expect(completedEvent).toMatchObject({ occurrenceState: "completed" });
+  expect(nextOpenEvent).toMatchObject({ occurrenceState: "open" });
+  if (!completedEvent || !nextOpenEvent) throw new Error("The recurrence action range is incomplete.");
+
+  await page.goto(`/calendar?view=agenda&date=${today}&rangeStartDate=${today}&rangeEndDate=${rangeEnd}`);
+  await page.waitForLoadState("networkidle");
+  const selection = page.getByLabel("Task to edit", { exact: true });
+  await selection.selectOption(completedEvent.projectionId);
+  const undoCompletedResponse = waitForMutation(
+    page,
+    `/tasks/${demo.recurringTaskId}/occurrences/transition`,
+    "POST",
+  );
+  await page.getByRole("button", { name: "Undo occurrence", exact: true }).click();
+  expect((await undoCompletedResponse).status()).toBe(200);
+  await expect(page.getByRole("button", { name: "Complete occurrence", exact: true })).toBeVisible();
+
+  await selection.selectOption(nextOpenEvent.projectionId);
+  const skipResponse = waitForMutation(page, `/tasks/${demo.recurringTaskId}/occurrences/transition`, "POST");
+  await page.getByRole("button", { name: "Skip occurrence", exact: true }).click();
+  expect((await skipResponse).status()).toBe(200);
+  await expect(page.getByRole("button", { name: "Undo occurrence", exact: true })).toBeVisible();
+  const undoSkippedResponse = waitForMutation(
+    page,
+    `/tasks/${demo.recurringTaskId}/occurrences/transition`,
+    "POST",
+  );
+  await page.getByRole("button", { name: "Undo occurrence", exact: true }).click();
+  expect((await undoSkippedResponse).status()).toBe(200);
+  await expect(page.getByRole("button", { name: "Skip occurrence", exact: true })).toBeVisible();
 
   const owner = await getJson<TaskWireRecord>(page, `/api/v1/tasks/${demo.recurringTaskId}`);
-  expect(owner).toMatchObject({ status: "open", version: reopened.task.version });
+  expect(owner.status).toBe("open");
   const recurrence = await getJson<RecurrenceWire>(page, `/api/v1/tasks/${demo.recurringTaskId}/recurrence`);
-  expect(recurrence).toMatchObject({ lifecycle: "active", taskVersion: reopened.task.version });
+  expect(recurrence).toMatchObject({ lifecycle: "active", taskVersion: owner.version });
 });
 
 type TaskWireRecord = Readonly<{ id: string; priority: string; status: string; version: number }>;
@@ -257,9 +364,13 @@ type OccurrenceResult = Readonly<{
   task: { id: string; version: number };
 }>;
 type TodayProjectionWire = Readonly<{
+  localDate: string;
   overdue: readonly OccurrenceRow[];
   timed: readonly OccurrenceRow[];
   anytime: readonly OccurrenceRow[];
+}>;
+type CalendarProjectionWire = Readonly<{
+  events: readonly (OccurrenceRow & Readonly<{ taskId: string }>)[];
 }>;
 type OccurrenceRow = Readonly<{
   id: string;
@@ -300,6 +411,29 @@ function planningRow(page: Page, projectionId: string) {
   return page.locator(`[data-planning-projection-id="${projectionId}"]`);
 }
 
+function planningRowsForTask(page: Page, taskId: string) {
+  return page.locator(`[data-planning-task-id="${taskId}"]`);
+}
+
+function recurringCalendarEvents(page: Page) {
+  return page
+    .locator(`[aria-label^="${demo.recurringTaskTitle},"][aria-label*="recurring"]`)
+    .filter({ visible: true });
+}
+
+async function revealRecurringCalendarEvent(page: Page) {
+  const event = recurringCalendarEvents(page).first();
+  if (!(await event.isVisible())) {
+    const overflow = page
+      .getByRole("button", { name: /^\+\d+ more$/u })
+      .filter({ visible: true })
+      .first();
+    await expect(overflow).toBeVisible();
+    await overflow.click();
+  }
+  await expect(event).toBeVisible();
+}
+
 async function openTaskActions(details: ReturnType<typeof taskDetails>, title: string) {
   await details.getByRole("button", { name: `More actions for ${title}` }).click();
   await expect(details.page().getByRole("menu")).toBeVisible();
@@ -328,6 +462,21 @@ async function postOccurrence(page: Page, command: OccurrenceCommand): Promise<O
   return readJson<OccurrenceResult>(response);
 }
 
+async function expectHistoricalOccurrenceStates(page: Page, localDate: string) {
+  const rangeStart = addLocalDays(localDate, -2);
+  const rangeEnd = addLocalDays(localDate, 1);
+  await page.goto(
+    `/calendar?view=agenda&date=${rangeStart}&rangeStartDate=${rangeStart}&rangeEndDate=${rangeEnd}`,
+  );
+  await page.waitForLoadState("networkidle");
+  await expect(
+    page.locator(`[aria-label^="${demo.recurringTaskTitle},"][aria-label*="Completed occurrence"]`),
+  ).toBeVisible();
+  await expect(
+    page.locator(`[aria-label^="${demo.recurringTaskTitle},"][aria-label*="Skipped occurrence"]`),
+  ).toBeVisible();
+}
+
 async function readJson<T>(response: Pick<APIResponse, "json" | "status">): Promise<T> {
   expect(response.status()).toBe(200);
   return (await response.json()) as T;
@@ -335,6 +484,12 @@ async function readJson<T>(response: Pick<APIResponse, "json" | "status">): Prom
 
 function mutationHeaders() {
   return { origin: APP_ORIGIN };
+}
+
+function addLocalDays(localDate: string, days: number) {
+  const value = new Date(`${localDate}T00:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
 }
 
 async function tabTo(page: Page, target: Locator, maximumSteps = 60) {
