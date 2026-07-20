@@ -31,7 +31,15 @@ export default async function InboxPage() {
       compactNavigation={<TaskNavigation current="inbox" inboxId={inbox.id} variant="compact" />}
     >
       <TaskWorkspaceScreen
-        destination={{ kind: "list", list: inbox, inbox, immutableInbox: true, initialTasks }}
+        destination={{
+          kind: "list",
+          list: inbox,
+          inbox,
+          immutableInbox: true,
+          initialTasks,
+          timeZone: workspace.preferences.timezone,
+          hourCycle: workspace.preferences.hourCycle,
+        }}
       />
     </AuthenticatedShell>
   );

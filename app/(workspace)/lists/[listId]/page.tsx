@@ -47,7 +47,14 @@ export default async function RegularListPage({ params }: RegularListPageProps) 
     >
       {list ? (
         <TaskWorkspaceScreen
-          destination={{ kind: "list", list, inbox, ...(initialTasks ? { initialTasks } : {}) }}
+          destination={{
+            kind: "list",
+            list,
+            inbox,
+            ...(initialTasks ? { initialTasks } : {}),
+            timeZone: workspace.preferences.timezone,
+            hourCycle: workspace.preferences.hourCycle,
+          }}
         />
       ) : (
         <UnavailableList />

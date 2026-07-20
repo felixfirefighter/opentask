@@ -20,7 +20,7 @@ export function GET(request: Request) {
 
 export function PATCH(request: Request) {
   return observeApiRequest(request, "identity.update-preferences", async () => {
-    assertTrustedJsonMutation(request, getIdentityRequestSecurity().trustedOrigin, "PATCH");
+    assertTrustedJsonMutation(request, getIdentityRequestSecurity(), "PATCH");
     const actor = await resolveActor(request.headers);
     const input = updateUserPreferencesRequestSchema.parse(await readBoundedJson(request, 2048));
     const preferences = await updateUserPreferences(actor, input.expectedVersion, input.patch);

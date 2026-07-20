@@ -1,21 +1,38 @@
 import { ApplicationError } from "./application-error";
 
+export type TrustedOriginPolicy =
+  Readonly<{ trustedOrigin: string }> | Readonly<{ trustedOrigins: readonly string[] }>;
+
 export function assertTrustedJsonMutation(
   request: Request,
-  trustedOrigin: string,
+  policy: TrustedOriginPolicy,
   expectedMethod: "PATCH" | "POST" = "POST",
 ) {
   if (request.method !== expectedMethod) throw validationFailure();
   assertJsonContentType(request.headers);
 
-  const expectedOrigin = new URL(trustedOrigin).origin;
-  if (request.headers.get("origin") !== expectedOrigin) {
+  const requestOrigin = normalizeOrigin(request.headers.get("origin"));
+  const trustedOrigins = "trustedOrigins" in policy ? policy.trustedOrigins : [policy.trustedOrigin];
+  if (
+    requestOrigin === null ||
+    !trustedOrigins.some((trustedOrigin) => normalizeOrigin(trustedOrigin) === requestOrigin)
+  ) {
     throw new ApplicationError("FORBIDDEN", "This request origin is not allowed.");
   }
 
   const fetchSite = request.headers.get("sec-fetch-site");
   if (fetchSite !== null && fetchSite !== "same-origin") {
     throw new ApplicationError("FORBIDDEN", "Cross-site mutations are not allowed.");
+  }
+}
+
+function normalizeOrigin(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.origin === value ? parsed.origin : null;
+  } catch {
+    return null;
   }
 }
 

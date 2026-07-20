@@ -54,7 +54,7 @@ export function PlannerTerminalProposalState({
       <p>{content.message}</p>
       <div>
         <Button type="button" variant="secondary" onClick={onEditInput}>
-          Edit input
+          Create new proposal
         </Button>
         <Button asChild variant="secondary">
           <Link href={todayHref}>Open Today</Link>

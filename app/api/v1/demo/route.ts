@@ -10,7 +10,7 @@ const emptyDemoEntryRequestSchema = z.strictObject({});
 
 export function POST(request: Request) {
   return observeApiRequest(request, "identity.enter-demo", async () => {
-    assertTrustedJsonMutation(request, getIdentityRequestSecurity().trustedOrigin);
+    assertTrustedJsonMutation(request, getIdentityRequestSecurity());
     emptyDemoEntryRequestSchema.parse(await readBoundedJson(request, 64));
     const result = await enterDemo(request.headers);
     const response = Response.json(

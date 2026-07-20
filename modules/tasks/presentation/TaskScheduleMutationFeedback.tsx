@@ -1,7 +1,11 @@
+import type { Ref } from "react";
+
 import styles from "./TaskScheduleEditor.module.css";
 
 export function TaskScheduleMutationFeedback({
+  alertRef,
   conflict,
+  latestMatchesProposal,
   latestSummary,
   latestUnavailable,
   loadingLatest,
@@ -11,8 +15,11 @@ export function TaskScheduleMutationFeedback({
   onUseLatest,
   pending,
   proposedSummary,
+  unconfirmed,
 }: Readonly<{
+  alertRef: Ref<HTMLDivElement>;
   conflict: boolean;
+  latestMatchesProposal: boolean;
   latestSummary: string | null;
   latestUnavailable: boolean;
   loadingLatest: boolean;
@@ -22,16 +29,26 @@ export function TaskScheduleMutationFeedback({
   onUseLatest: () => void;
   pending: boolean;
   proposedSummary: string | null;
+  unconfirmed: boolean;
 }>) {
+  const recovering = conflict || unconfirmed;
   return (
-    <div className={styles.mutationError} role="alert">
-      <strong>{conflict ? "This schedule changed elsewhere." : "The schedule was not saved."}</strong>
+    <div ref={alertRef} className={styles.mutationError} role="alert" tabIndex={-1}>
+      <strong>
+        {conflict
+          ? "This schedule changed elsewhere."
+          : unconfirmed
+            ? "The schedule update is unconfirmed."
+            : "The schedule was not saved."}
+      </strong>
       <p>
         {conflict
           ? "Your schedule choice is preserved while the latest task is checked."
-          : "Your previous saved schedule is unchanged. You can safely try again."}
+          : unconfirmed
+            ? "The response did not confirm whether your change was saved. Your choice is preserved while the latest schedule is checked."
+            : "Your previous saved schedule is unchanged. You can safely try again."}
       </p>
-      {conflict ? (
+      {recovering ? (
         <div className={styles.comparison}>
           {proposedSummary ? <p>Your choice: {proposedSummary}</p> : null}
           <p>
@@ -43,10 +60,13 @@ export function TaskScheduleMutationFeedback({
                   ? "The latest schedule could not be loaded."
                   : "Latest saved: No schedule"}
           </p>
+          {latestMatchesProposal ? (
+            <p>The latest saved schedule matches your choice. Confirm it without writing again.</p>
+          ) : null}
         </div>
       ) : null}
       <div className={styles.errorActions}>
-        {conflict ? (
+        {recovering ? (
           <button
             className="quiet-button"
             type="button"
@@ -67,7 +87,7 @@ export function TaskScheduleMutationFeedback({
         <button
           className="secondary-button"
           type="button"
-          disabled={pending || (conflict && (loadingLatest || latestUnavailable))}
+          disabled={pending || (recovering && (loadingLatest || latestUnavailable))}
           onClick={onRetry}
         >
           Try again

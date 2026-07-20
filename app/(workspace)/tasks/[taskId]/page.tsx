@@ -13,11 +13,16 @@ export const dynamic = "force-dynamic";
 
 type TaskDetailPageProps = Readonly<{
   params: Promise<{ taskId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>;
 
-export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
+export default async function TaskDetailPage({ params, searchParams }: TaskDetailPageProps) {
   const { taskId } = await params;
-  const workspace = await loadWorkspace(`/tasks/${taskId}`);
+  const requestedReturnTo = readReturnTo(await searchParams);
+  const taskRoute = requestedReturnTo
+    ? (`/tasks/${taskId}?returnTo=${encodeURIComponent(requestedReturnTo)}` as const)
+    : (`/tasks/${taskId}` as const);
+  const workspace = await loadWorkspace(taskRoute);
   const [task, inbox] = await Promise.all([
     loadTask(workspace.identity.actor, taskId),
     getInbox(workspace.identity.actor),
@@ -51,12 +56,39 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
           task={task}
           mode="page"
           inbox={inbox}
-          returnHref={task.listId === inbox.id ? "/inbox" : `/lists/${task.listId}`}
+          returnHref={requestedReturnTo ?? (task.listId === inbox.id ? "/inbox" : `/lists/${task.listId}`)}
         />
       ) : (
         <UnavailableTask />
       )}
     </AuthenticatedShell>
+  );
+}
+
+function readReturnTo(searchParams: Record<string, string | string[] | undefined>): string | null {
+  const value = searchParams.returnTo;
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (value.includes("\\") || /[\u0000-\u001f\u007f]/u.test(value)) return null;
+  try {
+    const target = new URL(value, "http://opentask.local");
+    if (target.origin !== "http://opentask.local" || target.username || target.password) return null;
+    if (!isTaskReturnPath(target.pathname)) return null;
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+function isTaskReturnPath(pathname: string): boolean {
+  if (
+    ["/inbox", "/today", "/upcoming", "/calendar", "/matrix", "/plan", "/completed", "/settings"].includes(
+      pathname,
+    )
+  ) {
+    return true;
+  }
+  return /^\/lists\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+    pathname,
   );
 }
 

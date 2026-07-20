@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -172,6 +172,89 @@ describe("TaskScheduleEditor", () => {
     await waitFor(() => expect(scheduleApi.setTaskSchedule).toHaveBeenCalledTimes(2));
     expect(scheduleApi.setTaskSchedule.mock.calls[1]?.[1]).toMatchObject({ expectedVersion: 2 });
     expect(await screen.findByText("Schedule saved")).toBeInTheDocument();
+  });
+
+  it("reconciles an accepted set after a lost response without writing twice", async () => {
+    const lostResponse = new TypeError("Failed to fetch");
+    scheduleApi.setTaskSchedule.mockImplementationOnce(async (taskId, input) => {
+      savedSchedule = {
+        taskId,
+        ...input.schedule,
+        createdAt: "2026-07-19T00:00:00.000Z",
+        updatedAt: "2026-07-19T00:00:00.000Z",
+      } as TaskScheduleDto;
+      throw lostResponse;
+    });
+    const workspaceChanged = vi.fn();
+    window.addEventListener("opentask:workspace-data-changed", workspaceChanged);
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Add schedule" }));
+    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-07-20" } });
+    fireEvent.change(screen.getByLabelText("End date (exclusive)"), {
+      target: { value: "2026-07-22" },
+    });
+    await user.click(screen.getByRole("button", { name: "Save schedule" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("schedule update is unconfirmed");
+    expect(alert).not.toHaveTextContent("schedule was not saved");
+    expect(screen.getByLabelText("Start date")).toHaveValue("2026-07-20");
+    await waitFor(() => expect(alert).toHaveTextContent("matches your choice"));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("Schedule saved")).toBeInTheDocument();
+    expect(scheduleApi.setTaskSchedule).toHaveBeenCalledOnce();
+    expect(workspaceChanged).toHaveBeenCalledOnce();
+    window.removeEventListener("opentask:workspace-data-changed", workspaceChanged);
+  });
+
+  it("reconciles an accepted clear after a lost response and keeps focus on confirmation", async () => {
+    savedSchedule = allDaySchedule();
+    const lostResponse = new TypeError("Failed to fetch");
+    scheduleApi.clearTaskSchedule.mockImplementationOnce(async () => {
+      savedSchedule = null;
+      throw lostResponse;
+    });
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Clear schedule" }));
+
+    const alert = await screen.findByRole("alert");
+    await waitFor(() => expect(alert).toHaveFocus());
+    expect(alert).toHaveTextContent("schedule update is unconfirmed");
+    await waitFor(() => expect(alert).toHaveTextContent("matches your choice"));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    const confirmation = await screen.findByText("Schedule removed");
+    expect(confirmation.closest('[role="status"]')).toHaveFocus();
+    expect(scheduleApi.clearTaskSchedule).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Add schedule" })).toBeInTheDocument();
+  });
+
+  it("preserves and gates an unconfirmed set when authoritative schedule reload fails", async () => {
+    scheduleApi.getTaskSchedule.mockResolvedValueOnce(null).mockRejectedValue(new Error("offline"));
+    scheduleApi.setTaskSchedule.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Add schedule" }));
+    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-07-20" } });
+    fireEvent.change(screen.getByLabelText("End date (exclusive)"), {
+      target: { value: "2026-07-22" },
+    });
+    await user.click(screen.getByRole("button", { name: "Save schedule" }));
+
+    const alert = await screen.findByRole("alert");
+    await waitFor(() => expect(alert).toHaveTextContent("latest schedule could not be loaded"));
+    expect(screen.getByLabelText("Start date")).toHaveValue("2026-07-20");
+    expect(screen.getByRole("button", { name: "Save schedule" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(within(alert).getByRole("button", { name: "Use latest" })).toBeDisabled();
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeDisabled();
+    expect(within(alert).getByRole("button", { name: "Refresh latest" })).toBeEnabled();
   });
 });
 

@@ -24,6 +24,7 @@ export function DateTimePreferencesCard({
   onReviewLatest(): void;
 }) {
   const localTime = formatLocalTime(preferences.timezone, preferences.hourCycle);
+  const fieldsDisabled = saveState === "saving";
 
   return (
     <section className={styles.card} aria-labelledby="date-time-title">
@@ -37,11 +38,13 @@ export function DateTimePreferencesCard({
 
       <div className={styles.fieldGrid}>
         <label className={styles.field} htmlFor="timezone">
-          <span>Timezone</span>
+          <span id="timezone-label">Timezone</span>
           <input
             id="timezone"
             list="opentask-timezones"
             value={preferences.timezone}
+            disabled={fieldsDisabled}
+            aria-labelledby="timezone-label"
             aria-describedby="timezone-help"
             onChange={(event) => onChange({ timezone: event.target.value })}
           />
@@ -60,6 +63,7 @@ export function DateTimePreferencesCard({
           <select
             id="week-start"
             value={preferences.weekStart}
+            disabled={fieldsDisabled}
             onChange={(event) =>
               onChange({ weekStart: Number(event.target.value) as UserPreferences["weekStart"] })
             }
@@ -72,7 +76,7 @@ export function DateTimePreferencesCard({
           </select>
         </label>
 
-        <fieldset className={styles.fieldset}>
+        <fieldset className={styles.fieldset} disabled={fieldsDisabled}>
           <legend>Time display</legend>
           <label>
             <input

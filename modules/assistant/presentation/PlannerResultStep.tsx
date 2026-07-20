@@ -7,6 +7,8 @@ import { useEffect, useRef } from "react";
 import type { PlannerApplyResult, PlannerProposalDto } from "../application/contracts";
 import { Button } from "@/shared/presentation";
 
+import { plannerTaskHref } from "./planner-route-navigation";
+import type { PlannerTaskLink } from "./planner-screen-model";
 import styles from "./PlannerResultStep.module.css";
 
 export function PlannerResultStep({
@@ -14,6 +16,7 @@ export function PlannerResultStep({
   result,
   selectedActionCount,
   notAppliedActionCount,
+  taskLinks,
   todayHref,
   calendarHref,
   onEditInput,
@@ -22,6 +25,7 @@ export function PlannerResultStep({
   result: PlannerApplyResult;
   selectedActionCount: number;
   notAppliedActionCount: number;
+  taskLinks: readonly PlannerTaskLink[];
   todayHref: string;
   calendarHref: string;
   onEditInput: () => void;
@@ -70,6 +74,18 @@ export function PlannerResultStep({
         <strong>Proposal summary</strong>
         <span>{proposal.proposal.summary}</span>
       </div>
+      {taskLinks.length > 0 ? (
+        <div className={styles.taskLinks}>
+          <strong>Applied tasks</strong>
+          <ul>
+            {taskLinks.map((task) => (
+              <li key={task.id}>
+                <Link href={plannerTaskHref(task.id, proposal.id)}>{task.title}</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className={styles.actions}>
         <Button asChild>
           <Link href={todayHref}>

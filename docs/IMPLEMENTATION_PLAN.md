@@ -1,6 +1,6 @@
 # Local-first Full Release forward plan
 
-This is the canonical dependency and delivery plan for the unfinished P1-P7 work in
+This is the canonical dependency and delivery plan for the unfinished P2-P7 work in
 `docs/SCOPE.md`. The implemented and approved baseline is summarized in `README.md`; completed
 sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
@@ -9,11 +9,12 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 - `main` stays a green, locally runnable baseline while a later package is incomplete.
 - Editorial Focus is frozen across current routes. Later UI extends it through `DESIGN.md`; broad
   restyling or shared-foundation changes require explicit user approval and new visual evidence.
-- P1 is the next active package. No P2-P7 table, route, dependency, worker job, service worker, or
-  control may land before its dependency gate.
+- P2 is the next active package in numbered execution order. P3 and P5 are dependency-unblocked but
+  remain unstarted; no package may expose a table, route, dependency, worker job, service worker, or
+  control before its own gate.
 - A package integrates only as a coherent unit after its acceptance and audit gates pass. A partial
   implementation, screenshot, elapsed time, or available agent is not a merge criterion.
-- The remaining work is estimated at **124-188 serial engineering hours** before external-provider
+- The remaining work is estimated at **114-172 serial engineering hours** before external-provider
   and user-approval latency. Estimates guide coordination; they never weaken a gate or authorize a
   scope cut.
 - Hackathon timing and submission operations live in `docs/HACKATHON.md`, not in this product plan.
@@ -22,10 +23,9 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
 ```mermaid
 flowchart LR
-    BASELINE["Implemented Editorial Focus baseline"] --> P1["P1: local-core stabilization"]
-    P1 --> P2["P2: recurrence"]
-    P1 --> P3["P3: habits"]
-    P1 --> P5["P5: installable PWA shell"]
+    BASELINE["Implemented stabilized local core"] --> P2["P2: recurrence"]
+    BASELINE --> P3["P3: habits"]
+    BASELINE --> P5["P5: installable PWA shell"]
     P3 --> P4["P4: Focus"]
     P2 --> P6["P6: browser reminder"]
     P5 --> P6
@@ -36,7 +36,7 @@ flowchart LR
     P6 --> P7
 ```
 
-P2, P3, and P5 may run in parallel only after P1 freezes their public contracts. P4 may begin pure
+P2, P3, and P5 may run in parallel from the stabilized-core gate. P4 may begin pure
 domain work after the Habits ownership-validator contract freezes. P6 waits for recurrence and the
 service-worker contract. Each P2-P6 package supplies and integrates its portable representation;
 the integration owner serializes export-schema version bumps as packages land. P7 owns the final
@@ -70,39 +70,6 @@ Only the integration owner edits or serializes:
 - Browser, Docker, database, and full gates run centrally and sequentially to avoid shared-state and
   machine-resource conflicts. Static lanes may run concurrently because repository checks must not
   create lint-visible temporary source files.
-
-## P1 — Local-core stabilization (10–16 serial hours; 7–10 elapsed)
-
-### Boundary
-
-Close audited gaps in existing behavior only. No recurrence, habit, Focus, PWA, reminder, or later
-schema/control may appear.
-
-### Deliverables
-
-- Context-aware quick add defaults exactly to current Inbox/current regular list unscheduled, Today
-  all-day today, or Upcoming all-day on the next local day. A visible editable recognized date/time
-  may override the default; Calendar uses the full create/schedule form and Matrix uses only the
-  global palette.
-- One atomic create-with-schedule application use case and endpoint; no orphan task on schedule
-  validation/conflict/network failure.
-- Canonical authorized task inspector/detail access from Today, Upcoming, Calendar, Matrix, search,
-  and planner result contexts.
-- Correct query invalidation after task/schedule/planner apply and local-midnight/timezone refresh for
-  Today/Upcoming/Matrix without full browser restart.
-- Restore planner Review/Result from persisted proposal state after refresh/navigation; never infer
-  a proposal from client-only state.
-- Show accurate optional OpenAI capability in Settings and retain clear no-key/manual paths.
-- Harden supported local origin/CSRF configuration and document both `127.0.0.1` and `localhost`
-  without wildcard trust.
-- Repair stale local feature/setup claims and preserve user input across offline/error/conflict paths.
-
-### Gate
-
-- Focused domain/application/component/API/database tests for atomicity, ownership, idempotency,
-  stale versions, midnight/timezone changes, query freshness, and origin policy.
-- G1–G4 and forced variants at desktop/mobile, no-key workflow, affected a11y/design checks.
-- `pnpm verify`; no extension table/dependency/route/control exists.
 
 ## P2 — Bounded schedule-based recurrence (24–36 serial hours; 14–20 elapsed)
 
@@ -317,7 +284,7 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 | Active capability | Package | Primary evidence |
 |---|---|---|
-| Existing identity/tasks/planning/AI | P1 | G1–G4 + authorization/atomicity/freshness tests |
+| Existing identity/tasks/planning/AI | Stabilized baseline | G1–G4 + authorization/atomicity/freshness tests |
 | Recurrence/occurrences | P2 | recurrence golden path + range/DST/ownership suites |
 | Habits | P3 | Habits golden path + log/streak/time suites |
 | Focus | P4 | Focus golden path + state/race/clock suites |

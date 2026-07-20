@@ -27,6 +27,7 @@ export function AppearancePreferencesCard({
   onSave(): void;
   onReviewLatest(): void;
 }) {
+  const fieldsDisabled = saveState === "saving";
   return (
     <section className={styles.card} aria-labelledby="appearance-title">
       <div className={styles.cardHeading}>
@@ -36,7 +37,7 @@ export function AppearancePreferencesCard({
         </div>
       </div>
 
-      <fieldset className={styles.themeFieldset}>
+      <fieldset className={styles.themeFieldset} disabled={fieldsDisabled}>
         <legend>Theme</legend>
         <div className={styles.themeGrid}>
           {themes.map((theme) => (
@@ -68,6 +69,7 @@ export function AppearancePreferencesCard({
           id="reduced-motion"
           type="checkbox"
           checked={preferences.reducedMotion}
+          disabled={fieldsDisabled}
           onChange={(event) => onChange({ reducedMotion: event.target.checked })}
         />
       </label>

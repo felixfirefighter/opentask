@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { getPlannerCapability } from "@/modules/assistant";
 import { AuthenticatedShell, SettingsScreen } from "@/modules/identity/presentation";
 import { getInbox } from "@/modules/tasks";
 import { TaskCommandPalette } from "@/modules/tasks/presentation";
@@ -21,7 +22,7 @@ export default async function SettingsPage() {
       currentDestination="settings"
       topBarActions={<TaskCommandPalette inbox={inbox} />}
     >
-      <SettingsScreen initialPreferences={workspace.preferences} />
+      <SettingsScreen aiCapability={getPlannerCapability()} initialPreferences={workspace.preferences} />
     </AuthenticatedShell>
   );
 }

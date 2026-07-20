@@ -125,6 +125,49 @@ describe("identity authentication and request security", () => {
     expect(crossOrigin.status).toBe(403);
   });
 
+  it("accepts the exact loopback alias without widening scheme, port, or hostname", async () => {
+    const application = createIdentityApplication({
+      database,
+      clock: identityTestClock,
+      authRuntime: {
+        ...identityTestAuthRuntime,
+        baseUrl: "http://127.0.0.1:3000",
+      },
+    });
+    expect(application.security.trustedOrigins).toEqual(["http://127.0.0.1:3000", "http://localhost:3000"]);
+    const credentials = {
+      email: "loopback-alias@example.test",
+      password: identityTestPassword,
+    };
+
+    const aliasResponse = await application.handleAuthRequest(
+      authRequest("/sign-up/email", credentials, undefined, "192.0.2.31", "http://localhost:3000"),
+    );
+    expect(aliasResponse.status).toBe(200);
+    const aliasSignIn = await application.handleAuthRequest(
+      authRequest("/sign-in/email", credentials, undefined, "192.0.2.31", "http://localhost:3000"),
+    );
+    expect(aliasSignIn.status).toBe(200);
+    expect(aliasSignIn.headers.getSetCookie()).not.toHaveLength(0);
+
+    for (const untrustedOrigin of [
+      "http://127.0.0.1:3001",
+      "https://127.0.0.1:3000",
+      "http://localhost.example:3000",
+    ]) {
+      const response = await application.handleAuthRequest(
+        authRequest(
+          "/sign-up/email",
+          { ...credentials, email: `blocked-${new URL(untrustedOrigin).port}@example.test` },
+          undefined,
+          "192.0.2.32",
+          untrustedOrigin,
+        ),
+      );
+      expect(response.status, untrustedOrigin).toBe(403);
+    }
+  });
+
   it("rate limits credential attempts by x-real-ip and emits secure sign-in cookies", async () => {
     const application = createApplication();
     expect(application.security).toMatchObject({

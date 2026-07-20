@@ -186,8 +186,10 @@ One optional row per scheduled task; its owning foreign key is tenant-leading:
 
 Check constraints require exactly the fields for `kind`, no mixed date/instant representation,
 `end_date > start_date` for the inclusive/exclusive all-day interval, and `end_at >= start_at` for a
-timed schedule (including a zero-duration point-in-time task). A schedule mutation increments the
-owning task version in the same transaction.
+timed schedule (including a zero-duration point-in-time task). Atomic task-plus-schedule creation
+inserts both rows in one transaction at task version `1`; the initial schedule is part of aggregate
+creation. Every later set, replace, or clear schedule mutation increments the owning task version
+exactly once in the same transaction.
 
 ### `task_recurrences` — tasks
 

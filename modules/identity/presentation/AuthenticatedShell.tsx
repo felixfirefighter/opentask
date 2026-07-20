@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { SessionIdentity } from "@/modules/identity";
+import { WorkspaceRouteFreshness } from "@/shared/presentation";
 
 import {
   AuthenticatedMobileNavigation,
@@ -42,6 +43,7 @@ export function AuthenticatedShell({
   return (
     <div className={styles.shell} data-mobile-navigation={showMobileNavigation}>
       <ThemePreferenceSync theme={theme} reducedMotion={reducedMotion} />
+      <WorkspaceRouteFreshness />
       <RouteFocus />
       <a className="skip-link" href="#main-content">
         Skip to main content

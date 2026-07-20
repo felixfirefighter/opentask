@@ -5,7 +5,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthenticatedShell } from "./AuthenticatedShell";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/inbox" }));
+const navigation = vi.hoisted(() => ({ refresh: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/inbox",
+  useRouter: () => navigation,
+}));
 
 const identity = {
   actor: { userId: "user_01" },

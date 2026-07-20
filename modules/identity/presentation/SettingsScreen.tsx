@@ -1,20 +1,43 @@
 "use client";
 
+import { markWorkspaceRoutesStale } from "@/shared/presentation";
+
 import { AppearancePreferencesCard } from "./AppearancePreferencesCard";
 import { DateTimePreferencesCard } from "./DateTimePreferencesCard";
 import { DataExportCard } from "./DataExportCard";
+import { OptionalAiSettingsCard, type OptionalAiCapability } from "./OptionalAiSettingsCard";
 import styles from "./SettingsScreen.module.css";
 import { applyThemePreference } from "./theme-client";
 import { mergePreferenceDraft, usePreferencesEditor } from "./usePreferencesEditor";
 import type { UserPreferences, UserPreferencesPatch } from "../application/preferences-contract";
 
-export function SettingsScreen({ initialPreferences }: { initialPreferences: UserPreferences }) {
+export function SettingsScreen({
+  aiCapability,
+  initialPreferences,
+}: {
+  aiCapability: OptionalAiCapability;
+  initialPreferences: UserPreferences;
+}) {
   const editor = usePreferencesEditor(initialPreferences);
 
   function updateAppearance(patch: UserPreferencesPatch) {
     const next = mergePreferenceDraft(editor.draft, patch);
     editor.updateDraft(patch);
     applyThemePreference(next.theme, next.reducedMotion);
+  }
+
+  async function saveDateAndTime() {
+    const next = await editor.save("date-time", {
+      timezone: editor.draft.timezone,
+      weekStart: editor.draft.weekStart,
+      hourCycle: editor.draft.hourCycle,
+    });
+    if (next) markWorkspaceRoutesStale();
+  }
+
+  async function reviewLatestDateAndTime() {
+    const latest = await editor.reviewLatest("date-time");
+    if (latest) markWorkspaceRoutesStale();
   }
 
   return (
@@ -33,14 +56,8 @@ export function SettingsScreen({ initialPreferences }: { initialPreferences: Use
         saveState={editor.states["date-time"]}
         message={editor.messages["date-time"]}
         onChange={editor.updateDraft}
-        onSave={() =>
-          editor.save("date-time", {
-            timezone: editor.draft.timezone,
-            weekStart: editor.draft.weekStart,
-            hourCycle: editor.draft.hourCycle,
-          })
-        }
-        onReviewLatest={editor.reviewLatest}
+        onSave={saveDateAndTime}
+        onReviewLatest={reviewLatestDateAndTime}
       />
 
       <AppearancePreferencesCard
@@ -55,8 +72,10 @@ export function SettingsScreen({ initialPreferences }: { initialPreferences: Use
             reducedMotion: editor.draft.reducedMotion,
           })
         }
-        onReviewLatest={editor.reviewLatest}
+        onReviewLatest={() => editor.reviewLatest("appearance")}
       />
+
+      <OptionalAiSettingsCard capability={aiCapability} />
 
       <DataExportCard online={editor.online} />
     </div>

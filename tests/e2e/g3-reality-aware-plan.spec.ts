@@ -106,10 +106,39 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
   await updateCard.getByRole("button", { name: "Edit change" }).click();
   const editedTitle = "G3 reviewed venue walkthrough";
   await updateCard.getByRole("textbox", { name: "Title after apply" }).fill(editedTitle);
-  await page.getByRole("checkbox", { name: "Select defer action for Clarify volunteer feedback" }).uncheck();
+  const deferSelection = page.getByRole("checkbox", {
+    name: "Select defer action for Clarify volunteer feedback",
+  });
+  await deferSelection.uncheck();
   const apply = page.getByRole("button", { name: "Apply 3 changes" });
   await expect(apply).toBeEnabled();
   expect(harness.applySelections).toHaveLength(0);
+
+  await page.keyboard.press("Control+k");
+  await expect(page.getByRole("dialog", { name: "Search tasks and commands" })).toBeVisible();
+  const paletteStayDialog = page.waitForEvent("dialog");
+  const paletteNavigation = page.getByRole("option", { name: "Inbox. Destination" }).click();
+  const paletteDialog = await paletteStayDialog;
+  expect(paletteDialog.type()).toBe("confirm");
+  expect(paletteDialog.message()).toContain("Discard review edits?");
+  await paletteDialog.dismiss();
+  await paletteNavigation;
+  await expect(page).toHaveURL(/\/plan(?:\?|$)/u);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Search tasks and commands" })).toBeHidden();
+  await expect(updateCard.getByRole("textbox", { name: "Title after apply" })).toHaveValue(editedTitle);
+  await expect(deferSelection).not.toBeChecked();
+
+  const stayDialog = page.waitForEvent("dialog");
+  await page.evaluate(() => window.history.back());
+  const dialog = await stayDialog;
+  expect(["beforeunload", "confirm"]).toContain(dialog.type());
+  if (dialog.type() === "confirm") expect(dialog.message()).toContain("Discard review edits?");
+  await dialog.dismiss();
+  await expect(page).toHaveURL(/\/plan(?:\?|$)/u);
+  await expect(updateCard.getByRole("textbox", { name: "Title after apply" })).toHaveValue(editedTitle);
+  await expect(deferSelection).not.toBeChecked();
+  await expect(apply).toBeEnabled();
 
   await context.setOffline(true);
   await expect(

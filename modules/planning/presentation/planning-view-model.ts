@@ -16,8 +16,13 @@ import type {
   TodayPlanningModel,
   UpcomingPlanningModel,
 } from "./planning-screen-model";
+import { planningTaskDetailsHref } from "./planning-task-navigation";
 
-type FormatOptions = Readonly<{ hourCycle: "12" | "24" }>;
+type FormatOptions = Readonly<{
+  conflictedTaskId?: string | null | undefined;
+  hourCycle: "12" | "24";
+  taskReturnTo?: string | null | undefined;
+}>;
 
 const categories = ["coral", "amber", "mint", "sky", "violet", "slate"] as const;
 
@@ -110,12 +115,13 @@ function toTaskRowModel(
   return {
     id: task.id,
     title: task.title,
-    detailsHref: `/tasks/${task.id}`,
+    detailsHref: planningTaskDetailsHref(task.id, options.taskReturnTo),
     status: task.status,
     priority: task.priority,
     scheduleLabel: scheduleLabel(task.schedule, timeZone, options.hourCycle),
     contextLabel: "Task",
     category: categoryFor(task.listId),
+    conflicted: options.conflictedTaskId === task.id || undefined,
   };
 }
 
@@ -133,12 +139,13 @@ function toCalendarEventModel(
     id: event.taskId,
     taskId: event.taskId,
     title: event.title,
-    detailsHref: `/tasks/${event.taskId}`,
+    detailsHref: planningTaskDetailsHref(event.taskId, options.taskReturnTo),
     ...bounds,
     scheduleLabel: scheduleLabel(event, timeZone, options.hourCycle),
     statusLabel: "Open",
     categoryLabel: "Task",
     category,
+    conflicted: options.conflictedTaskId === event.taskId || undefined,
   };
 }
 

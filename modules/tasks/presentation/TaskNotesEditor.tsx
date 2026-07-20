@@ -19,11 +19,11 @@ export function TaskNotesEditor({ disabled, task }: Readonly<{ disabled: boolean
 
   const visibleDraft = dirty || update.isError ? draft : task.descriptionMd;
   const recovery = useTaskConflictRecovery(task, update.error);
-  const authoritativeTask = recovery.conflict ? recovery.latestTask : task;
+  const authoritativeTask = recovery.needsLatest ? recovery.latestTask : task;
   const draftGuard = useTaskDraftGuard(task.id, "notes", dirty || update.isError, update.isPending);
 
   async function save(force = false) {
-    if (disabled || update.isPending || (recovery.conflict && (!force || !recovery.latestReady))) {
+    if (disabled || update.isPending || (recovery.needsLatest && (!force || !recovery.latestReady))) {
       return;
     }
     if (visibleDraft === authoritativeTask.descriptionMd) {
@@ -97,7 +97,7 @@ export function TaskNotesEditor({ disabled, task }: Readonly<{ disabled: boolean
             <button
               className="secondary-button"
               type="button"
-              disabled={disabled || !dirty || update.isPending}
+              disabled={disabled || !dirty || update.isPending || recovery.needsLatest}
               onClick={() => void save()}
             >
               {update.isPending ? "Saving…" : "Save notes"}
@@ -115,9 +115,19 @@ export function TaskNotesEditor({ disabled, task }: Readonly<{ disabled: boolean
       )}
       {update.error && (
         <div className={styles.error} role="alert">
-          <strong>{recovery.conflict ? "These notes changed elsewhere." : "Notes were not saved."}</strong>
-          <p>Your Markdown draft is preserved.</p>
-          {recovery.conflict ? (
+          <strong>
+            {recovery.conflict
+              ? "These notes changed elsewhere."
+              : recovery.unconfirmed
+                ? "The notes update is unconfirmed."
+                : "Notes were not saved."}
+          </strong>
+          <p>
+            {recovery.unconfirmed
+              ? "Your Markdown draft is preserved while the latest saved notes are checked."
+              : "Your Markdown draft is preserved."}
+          </p>
+          {recovery.needsLatest ? (
             recovery.latestReady ? (
               <details className={styles.latest}>
                 <summary>Review latest saved notes</summary>
@@ -135,7 +145,7 @@ export function TaskNotesEditor({ disabled, task }: Readonly<{ disabled: boolean
             <button
               className="quiet-button"
               type="button"
-              disabled={recovery.conflict && !recovery.latestReady}
+              disabled={recovery.needsLatest && !recovery.latestReady}
               onClick={() => {
                 setDraft(authoritativeTask.descriptionMd);
                 setDirty(false);
@@ -166,7 +176,7 @@ export function TaskNotesEditor({ disabled, task }: Readonly<{ disabled: boolean
             <button
               className="primary-button"
               type="button"
-              disabled={recovery.conflict && !recovery.latestReady}
+              disabled={recovery.needsLatest && !recovery.latestReady}
               onClick={() => void save(true)}
             >
               Try again

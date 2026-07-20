@@ -9,7 +9,7 @@ describe("TodayScreen conditions", () => {
   it("preserves geometry and announces loading", () => {
     renderToday({ condition: { kind: "loading" } });
     expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "" })).toHaveTextContent("Loading planning tasks");
+    expect(screen.getByText(/Loading planning tasks/u)).toBeInTheDocument();
   });
 
   it("keeps safe rows stale and retries an error", async () => {
@@ -33,7 +33,7 @@ describe("TodayScreen conditions", () => {
 
   it("leaves cached rows visible but disables writes offline", () => {
     renderToday({ condition: { kind: "offline" }, taskActions: { onStatusChange: vi.fn() } });
-    expect(screen.getByRole("status")).toHaveTextContent("Planning is read-only");
+    expect(screen.getByText("Planning is read-only")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
     expect(screen.getByRole("button", { name: /complete confirm/i })).toBeDisabled();
   });
@@ -64,6 +64,7 @@ describe("TodayScreen conditions", () => {
       onReturnToToday,
     });
     expect(screen.getByRole("textbox", { name: "Add a task" })).toHaveValue("Call Sam tomorrow at 3pm");
+    expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Return to Today" }));
     expect(onReturnToToday).toHaveBeenCalledOnce();
   });

@@ -33,12 +33,17 @@ export type PlanningScreenCondition =
 export type QuickAddTokenModel = Readonly<{
   id: string;
   label: string;
+  warning?: string | undefined;
 }>;
 
 export type QuickAddModel = Readonly<{
+  announcement?: string | undefined;
+  errorMessage?: string | undefined;
+  placeholder?: string | undefined;
   value: string;
   tokens?: readonly QuickAddTokenModel[] | undefined;
   destinationLabel: string;
+  retryLocked?: boolean | undefined;
   submitting?: boolean | undefined;
 }>;
 
@@ -111,6 +116,8 @@ export type CalendarEventChange = Readonly<{
 export type CalendarChangeResult =
   | Readonly<{ ok: true; announcement?: string | undefined }>
   | Readonly<{ ok: false; message: string; conflict?: boolean | undefined }>;
+
+export type ScheduleSaveOutcome = "saved" | "failed" | "unconfirmed";
 
 export type MatrixQuadrantId = "do-now" | "plan" | "time-sensitive" | "later";
 

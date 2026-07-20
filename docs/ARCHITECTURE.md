@@ -80,6 +80,21 @@ Smart lists, calendar events, agenda rows, and Eisenhower quadrants are projecti
   and summary rows are not stored.
 - Do not create materialized projection tables during the Local-first Full Release.
 
+### Client route freshness
+
+Authenticated server-rendered workspace pages remain dynamic and PostgreSQL-authoritative. After a
+successful task, schedule, planner-apply, or date/time-preference mutation, presentation adapters
+invalidate affected TanStack Query data and mark one workspace-route revision stale. A projection
+route also refreshes its current React Server Component payload when the just-completed command can
+change the visible projection. The shared authenticated shell consumes the stale revision once on
+the next normal pathname transition or browser-history navigation, then clears it; it never forces
+refreshes on every later route for the rest of the session. Browser Back always refreshes once to
+avoid reviving an older Router Cache payload.
+
+This is a presentation cache-invalidation contract, not a second data store or offline protocol.
+Unknown write outcomes retain the user's command/draft, describe the result as unconfirmed, and load
+authoritative server state before claiming whether the change applied.
+
 ## Time model
 
 Time is a product invariant, not a formatting detail.

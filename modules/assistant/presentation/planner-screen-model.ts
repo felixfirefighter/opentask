@@ -12,6 +12,11 @@ export type PlannerTaskOption = Readonly<{
   priority: "none" | "low" | "medium" | "high";
 }>;
 
+export type PlannerTaskLink = Readonly<{
+  id: string;
+  title: string;
+}>;
+
 export type PlannerFailureKind =
   | "refusal"
   | "timeout"
@@ -58,7 +63,9 @@ export type PlannerScreenState =
       result: PlannerApplyResult;
       selectedActionCount: number;
       notAppliedActionCount: number;
+      taskLinks: readonly PlannerTaskLink[];
     }>
+  | Readonly<{ kind: "terminal"; proposal: PlannerProposalDto }>
   | Readonly<{ kind: "permission" }>;
 
 export type AssistantPlannerScreenProps = Readonly<{
@@ -72,6 +79,6 @@ export type AssistantPlannerScreenProps = Readonly<{
   onCreateProposal: (input: PlannerInput) => void;
   onApply: (selection: PlannerSelection) => void;
   onReject: (proposalId: string) => void;
-  onRetry: () => void;
+  onRetry: (input?: PlannerInput) => void;
   onEditInput: () => void;
 }>;

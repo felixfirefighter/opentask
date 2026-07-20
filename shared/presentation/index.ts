@@ -5,3 +5,5 @@ export { ThemeToggle } from "./ThemeToggle";
 export { withThemeTransitionSuppressed } from "./theme-transition";
 export { useOnlineStatus } from "./useOnlineStatus";
 export { useMediaQuery } from "./useMediaQuery";
+export { markWorkspaceRoutesStale, WorkspaceRouteFreshness } from "./WorkspaceRouteFreshness";
+export { confirmUnsavedNavigation, useUnsavedNavigationGuard } from "./unsaved-navigation";

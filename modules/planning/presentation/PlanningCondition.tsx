@@ -116,8 +116,8 @@ function conditionContent(
   if (condition.kind === "date-changed") {
     return {
       icon: <RefreshCw size={18} aria-hidden="true" />,
-      title: `Today is now ${condition.currentDateLabel}`,
-      message: "Your typed quick-add text is still here. Return when you are ready to refresh the date.",
+      title: `The local date is now ${condition.currentDateLabel}`,
+      message: "Planning data is refreshing for your saved timezone. Unsaved input remains in place.",
       tone: "info",
     };
   }

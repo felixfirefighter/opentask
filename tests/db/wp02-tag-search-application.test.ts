@@ -45,7 +45,7 @@ describe("WP02 tag, task-tag, and search application integration", () => {
     listBId = await insertList(ownerB, "Owner B list");
     tags = createTagApplication({ database, clock: testClock });
     search = createSearchApplication({ database });
-    tasks = createTaskApplication({ database, clock: testClock });
+    tasks = createTaskApplication({ database, clock: testClock, taskSchedules: schema.taskSchedules });
   });
 
   afterAll(async () => fixture.teardown());

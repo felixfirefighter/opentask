@@ -30,7 +30,7 @@ export function TaskOrganizationEditor({
   const [tagsOpen, setTagsOpen] = useState(false);
   const priorityRef = useRef<HTMLSelectElement>(null);
   const recovery = useTaskConflictRecovery(task, update.error);
-  const authoritativeTask = recovery.conflict ? recovery.latestTask : task;
+  const authoritativeTask = recovery.needsLatest ? recovery.latestTask : task;
 
   const visiblePriority = priorityDirty || update.isError ? priority : task.priority;
   useTaskDraftGuard(task.id, "priority", priorityDirty || update.isPending || update.isError);
@@ -51,7 +51,7 @@ export function TaskOrganizationEditor({
   function savePriority(nextPriority: TaskPriority, force = false) {
     setPriority(nextPriority);
     setPriorityDirty(true);
-    if (disabled || update.isPending || (recovery.conflict && (!force || !recovery.latestReady))) {
+    if (disabled || update.isPending || (recovery.needsLatest && (!force || !recovery.latestReady))) {
       return;
     }
     if (nextPriority === authoritativeTask.priority) {
@@ -127,9 +127,11 @@ export function TaskOrganizationEditor({
           <span>
             {recovery.conflict
               ? "This task changed elsewhere. Your priority choice is preserved."
-              : "Priority was not saved."}
+              : recovery.unconfirmed
+                ? "The priority update is unconfirmed. Your choice is preserved."
+                : "Priority was not saved."}
           </span>
-          {recovery.conflict ? (
+          {recovery.needsLatest ? (
             <span>
               {recovery.latestReady
                 ? `Your choice: ${priorityLabel(priority)}. Latest saved priority: ${priorityLabel(recovery.latestTask.priority)}.`
@@ -141,7 +143,7 @@ export function TaskOrganizationEditor({
           <button
             className="quiet-button"
             type="button"
-            disabled={recovery.conflict && !recovery.latestReady}
+            disabled={recovery.needsLatest && !recovery.latestReady}
             onClick={() => {
               setPriority(authoritativeTask.priority);
               setPriorityDirty(false);
@@ -161,7 +163,7 @@ export function TaskOrganizationEditor({
           <button
             className="secondary-button"
             type="button"
-            disabled={disabled || update.isPending || (recovery.conflict && !recovery.latestReady)}
+            disabled={disabled || update.isPending || (recovery.needsLatest && !recovery.latestReady)}
             onClick={() => savePriority(priority, true)}
           >
             Try again

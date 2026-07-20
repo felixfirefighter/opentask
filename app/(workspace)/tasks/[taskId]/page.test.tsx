@@ -18,8 +18,16 @@ vi.mock("@/modules/tasks", () => ({
 vi.mock("@/modules/tasks/presentation", () => ({
   TaskCommandPalette: () => null,
   TaskNavigation: () => null,
-  TaskDetailScreen: ({ mode, task }: { mode: string; task: { title: string } }) => (
-    <div data-testid="task-detail" data-mode={mode}>
+  TaskDetailScreen: ({
+    mode,
+    returnHref,
+    task,
+  }: {
+    mode: string;
+    returnHref: string;
+    task: { title: string };
+  }) => (
+    <div data-testid="task-detail" data-mode={mode} data-return-href={returnHref}>
       {task.title}
     </div>
   ),
@@ -51,7 +59,12 @@ describe("TaskDetailPage", () => {
   it("loads the actor-scoped task and composes the full-page detail", async () => {
     mocks.getTask.mockResolvedValue({ id: taskId, title: "Prepare demo" });
 
-    render(await TaskDetailPage({ params: Promise.resolve({ taskId }) }));
+    render(
+      await TaskDetailPage({
+        params: Promise.resolve({ taskId }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
 
     expect(mocks.loadWorkspace).toHaveBeenCalledWith(`/tasks/${taskId}`);
     expect(mocks.getTask).toHaveBeenCalledWith(actor, taskId);
@@ -62,12 +75,58 @@ describe("TaskDetailPage", () => {
     );
   });
 
+  it("preserves a safe planning return path and rejects external or unknown paths", async () => {
+    mocks.getTask.mockResolvedValue({
+      id: taskId,
+      title: "Prepare demo",
+      listId: "00000000-0000-4000-8000-000000000099",
+    });
+
+    const safe = await TaskDetailPage({
+      params: Promise.resolve({ taskId }),
+      searchParams: Promise.resolve({ returnTo: "/calendar?view=week&date=2026-07-20" }),
+    });
+    render(safe);
+    expect(screen.getByTestId("task-detail")).toHaveAttribute(
+      "data-return-href",
+      "/calendar?view=week&date=2026-07-20",
+    );
+    expect(mocks.loadWorkspace).toHaveBeenLastCalledWith(
+      `/tasks/${taskId}?returnTo=${encodeURIComponent("/calendar?view=week&date=2026-07-20")}`,
+    );
+
+    vi.clearAllMocks();
+    mocks.loadWorkspace.mockResolvedValue({
+      identity: { actor },
+      preferences: { theme: "system", reducedMotion: false },
+    });
+    mocks.getInbox.mockResolvedValue({ id: "00000000-0000-4000-8000-000000000099", name: "Inbox" });
+    mocks.getTask.mockResolvedValue({
+      id: taskId,
+      title: "Prepare demo",
+      listId: "00000000-0000-4000-8000-000000000099",
+    });
+    render(
+      await TaskDetailPage({
+        params: Promise.resolve({ taskId }),
+        searchParams: Promise.resolve({ returnTo: "//attacker.example/steal" }),
+      }),
+    );
+    expect(screen.getAllByTestId("task-detail").at(-1)).toHaveAttribute("data-return-href", "/inbox");
+    expect(mocks.loadWorkspace).toHaveBeenLastCalledWith(`/tasks/${taskId}`);
+  });
+
   it("uses the same unavailable state for a missing or foreign task", async () => {
     mocks.getTask.mockRejectedValue(
       new ApplicationError("NOT_FOUND", "The requested resource was not found."),
     );
 
-    render(await TaskDetailPage({ params: Promise.resolve({ taskId }) }));
+    render(
+      await TaskDetailPage({
+        params: Promise.resolve({ taskId }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
 
     expect(screen.getByRole("heading", { name: "Task unavailable" })).toBeInTheDocument();
     expect(screen.queryByTestId("task-detail")).not.toBeInTheDocument();

@@ -4,7 +4,8 @@ import type { PaletteAsyncAction } from "./TaskCommandPaletteResultItem";
 import styles from "./TaskCommandPaletteResults.module.css";
 
 export function TaskCommandPaletteConditions({
-  createError,
+  createErrorMessage,
+  createUncertain,
   listsError,
   listsLoading,
   noTaskResults,
@@ -14,8 +15,10 @@ export function TaskCommandPaletteConditions({
   searchTooLong,
   onRetryLists,
   onRetrySearch,
+  onAbandonCreate,
 }: Readonly<{
-  createError: boolean;
+  createErrorMessage: string | null;
+  createUncertain: boolean;
   listsError: boolean;
   listsLoading: boolean;
   noTaskResults: boolean;
@@ -25,6 +28,7 @@ export function TaskCommandPaletteConditions({
   searchTooLong: boolean;
   onRetryLists: PaletteAsyncAction;
   onRetrySearch: PaletteAsyncAction;
+  onAbandonCreate: () => void;
 }>) {
   return (
     <div className={styles.conditions}>
@@ -46,9 +50,14 @@ export function TaskCommandPaletteConditions({
           <button onClick={() => void onRetryLists()}>Try again</button>
         </p>
       ) : null}
-      {createError ? (
+      {createErrorMessage ? (
         <p role="alert" data-tone="error">
-          Task was not added. Your title is still here so you can try again.
+          <span>{createErrorMessage}</span>
+          {createUncertain ? (
+            <button type="button" onClick={onAbandonCreate}>
+              Discard safe retry and close
+            </button>
+          ) : null}
         </p>
       ) : null}
     </div>

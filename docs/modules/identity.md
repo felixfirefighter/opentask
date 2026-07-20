@@ -27,7 +27,7 @@ Product fields and domain permissions do not belong in Better Auth tables.
   request, then restores canonical preferences and delegates domain seeding through
   `DemoDatasetSeeder` in one transaction. The seeder accepts that transaction; the default adapter
   resets planner proposals and the task dataset without opening a nested transaction.
-- `getIdentityRequestSecurity()` exposes the configured trusted browser origin without leaking
+- `getIdentityRequestSecurity()` exposes the exact trusted browser origins without leaking
   provider configuration or secrets.
 - Public contracts: `AuthenticatedActor`, `UserPreferences`, `UserPreferencesPatch`, `InboxBootstrapPort`, and `DemoDatasetSeeder`.
 
@@ -49,6 +49,9 @@ types.
 - Auth and demo abuse controls derive the client address from the same `X-Real-IP` policy. Production
   ingress must overwrite that header and prevent direct origin access; an unresolved address uses a
   shared fallback bucket.
+- When the configured browser origin uses `localhost` or `127.0.0.1`, the other loopback spelling is
+  trusted only with the same scheme and port. Non-loopback deployments trust only the configured
+  origin; wildcard origins are forbidden.
 
 ## Dependencies
 

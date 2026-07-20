@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { assertTrustedJsonMutation, readBoundedJson } from "./request-security";
 
 const origin = "https://tasks.example.test";
+const policy = { trustedOrigins: [origin] } as const;
 
 describe("trusted JSON mutation boundary", () => {
   it("accepts a bounded same-origin JSON request", async () => {
@@ -11,25 +12,25 @@ describe("trusted JSON mutation boundary", () => {
       "sec-fetch-site": "same-origin",
     });
 
-    expect(() => assertTrustedJsonMutation(request, origin)).not.toThrow();
+    expect(() => assertTrustedJsonMutation(request, policy)).not.toThrow();
     await expect(readBoundedJson(request, 32)).resolves.toEqual({});
 
     const patch = mutationRequest("{}", { origin }, "PATCH");
-    expect(() => assertTrustedJsonMutation(patch, origin, "PATCH")).not.toThrow();
-    expect(() => assertTrustedJsonMutation(patch, origin)).toThrow(
+    expect(() => assertTrustedJsonMutation(patch, policy, "PATCH")).not.toThrow();
+    expect(() => assertTrustedJsonMutation(patch, policy)).toThrow(
       expect.objectContaining({ code: "VALIDATION_FAILED" }),
     );
   });
 
   it("rejects missing, untrusted, and cross-site origins", () => {
-    expect(() => assertTrustedJsonMutation(mutationRequest("{}"), origin)).toThrow(
+    expect(() => assertTrustedJsonMutation(mutationRequest("{}"), policy)).toThrow(
       expect.objectContaining({ code: "FORBIDDEN" }),
     );
     expect(() =>
-      assertTrustedJsonMutation(mutationRequest("{}", { origin: "https://attacker.example" }), origin),
+      assertTrustedJsonMutation(mutationRequest("{}", { origin: "https://attacker.example" }), policy),
     ).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
     expect(() =>
-      assertTrustedJsonMutation(mutationRequest("{}", { origin, "sec-fetch-site": "cross-site" }), origin),
+      assertTrustedJsonMutation(mutationRequest("{}", { origin, "sec-fetch-site": "cross-site" }), policy),
     ).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
   });
 
@@ -39,7 +40,7 @@ describe("trusted JSON mutation boundary", () => {
       headers: { "content-type": "application/x-www-form-urlencoded", origin },
       body: "demo=true",
     });
-    expect(() => assertTrustedJsonMutation(form, origin)).toThrow(
+    expect(() => assertTrustedJsonMutation(form, policy)).toThrow(
       expect.objectContaining({ code: "VALIDATION_FAILED" }),
     );
     await expect(readBoundedJson(mutationRequest('{"long":true}', { origin }), 4)).rejects.toMatchObject({
@@ -48,6 +49,36 @@ describe("trusted JSON mutation boundary", () => {
     await expect(readBoundedJson(mutationRequest("{", { origin }), 32)).rejects.toMatchObject({
       code: "VALIDATION_FAILED",
     });
+  });
+
+  it("accepts only the explicitly listed loopback scheme and port", () => {
+    const loopbackPolicy = {
+      trustedOrigins: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    } as const;
+
+    expect(() =>
+      assertTrustedJsonMutation(
+        mutationRequest("{}", {
+          origin: "http://127.0.0.1:3000",
+          "sec-fetch-site": "same-origin",
+        }),
+        loopbackPolicy,
+      ),
+    ).not.toThrow();
+
+    for (const untrustedOrigin of [
+      "http://127.0.0.1:3001",
+      "https://127.0.0.1:3000",
+      "http://localhost.example:3000",
+      "http://localhost:3000/not-an-origin",
+    ]) {
+      expect(() =>
+        assertTrustedJsonMutation(
+          mutationRequest("{}", { origin: untrustedOrigin, "sec-fetch-site": "same-origin" }),
+          loopbackPolicy,
+        ),
+      ).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
+    }
   });
 
   it.each([

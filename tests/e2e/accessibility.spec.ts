@@ -277,6 +277,19 @@ async function auditCalendar(page: Page) {
   const taskSelector = page.getByLabel("Task to edit");
   await expect(taskSelector).toBeVisible();
 
+  const addTask = page.getByRole("button", { name: "Add task", exact: true });
+  await addTask.click();
+  const createDialog = page.getByRole("dialog", { name: "Create scheduled task" });
+  await expect(createDialog).toBeVisible();
+  await expect(createDialog.getByLabel("Task title", { exact: true })).toBeFocused();
+  await expect(createDialog.getByRole("combobox", { name: "List", exact: true })).toBeVisible();
+  await expect(createDialog.getByRole("combobox", { name: "Priority", exact: true })).toBeVisible();
+  await expect(createDialog.getByRole("checkbox", { name: "All-day schedule" })).toBeChecked();
+  await expectNoSevereViolations(page, '[role="dialog"]');
+  await createDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(createDialog).toBeHidden();
+  await expect(addTask).toBeFocused();
+
   for (const view of ["Month", "Week", "Day", "Agenda"] as const) {
     const button = page.getByRole("button", { name: view, exact: true });
     await button.click();

@@ -6,10 +6,12 @@ import type { RegularListDto, TaskSearchResultDto } from "../application/contrac
 import { TaskCommandPalette } from "./TaskCommandPalette";
 
 const mocks = vi.hoisted(() => ({
+  confirmUnsavedNavigation: vi.fn(),
   create: vi.fn(),
   fetchMoreLists: vi.fn(),
   fetchMoreSearch: vi.fn(),
   lists: vi.fn(),
+  navigationGuard: vi.fn(),
   mutateAsync: vi.fn(),
   online: vi.fn(),
   push: vi.fn(),
@@ -19,8 +21,16 @@ const mocks = vi.hoisted(() => ({
   search: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
-vi.mock("@/shared/presentation", () => ({ useOnlineStatus: mocks.online }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/today",
+  useRouter: () => ({ push: mocks.push }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+vi.mock("@/shared/presentation", () => ({
+  confirmUnsavedNavigation: mocks.confirmUnsavedNavigation,
+  useOnlineStatus: mocks.online,
+  useUnsavedNavigationGuard: mocks.navigationGuard,
+}));
 vi.mock("./data/use-organizer-queries", () => ({ useRegularListsQuery: mocks.lists }));
 vi.mock("./data/use-task-editor-mutations", () => ({ useCreateTaskMutation: mocks.create }));
 vi.mock("./data/use-task-queries", () => ({ useTaskSearchQuery: mocks.search }));
@@ -45,17 +55,31 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  let createError: unknown = null;
   mocks.online.mockReturnValue(true);
+  mocks.confirmUnsavedNavigation.mockReturnValue(true);
   mocks.lists.mockReturnValue(listQueryState());
   mocks.search.mockImplementation((query: string) => searchQueryState(query ? [] : []));
   mocks.mutateAsync.mockResolvedValue({ id: TASK_ID });
-  mocks.create.mockReturnValue({
-    error: null,
-    isError: false,
+  mocks.create.mockImplementation(() => ({
+    error: createError,
+    isError: createError !== null,
     isPending: false,
-    mutateAsync: mocks.mutateAsync,
-    reset: mocks.resetCreate,
-  });
+    mutateAsync: async (input: unknown) => {
+      try {
+        const result = await mocks.mutateAsync(input);
+        createError = null;
+        return result;
+      } catch (error) {
+        createError = error;
+        throw error;
+      }
+    },
+    reset: () => {
+      createError = null;
+      mocks.resetCreate();
+    },
+  }));
 });
 
 describe("TaskCommandPalette", () => {
@@ -75,6 +99,23 @@ describe("TaskCommandPalette", () => {
     await user.keyboard("{ArrowDown}{Enter}");
 
     expect(mocks.push).toHaveBeenCalledWith("/completed");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("honors unsaved-review Stay and Leave decisions for programmatic navigation", async () => {
+    const user = userEvent.setup();
+    mocks.confirmUnsavedNavigation.mockReturnValueOnce(false).mockReturnValueOnce(true);
+    renderPalette();
+
+    await user.click(screen.getByRole("button", { name: /Search tasks and commands/u }));
+    await user.click(screen.getByRole("option", { name: "Inbox. Destination" }));
+
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Search tasks and commands" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("option", { name: "Inbox. Destination" }));
+
+    expect(mocks.push).toHaveBeenCalledWith("/inbox");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -107,7 +148,7 @@ describe("TaskCommandPalette", () => {
 
     await user.click(result);
 
-    expect(mocks.push).toHaveBeenCalledWith(`/tasks/${TASK_ID}`);
+    expect(mocks.push).toHaveBeenCalledWith(`/tasks/${TASK_ID}?returnTo=${encodeURIComponent("/today")}`);
   });
 
   it("quick-adds an unscheduled task to the explicit current list", async () => {
@@ -156,10 +197,12 @@ describe("TaskCommandPalette", () => {
     await waitFor(() => expect(input).toBeDisabled());
     fireEvent.change(input, { target: { value: "Later draft" } });
     fireEvent.keyDown(input, { key: "Enter" });
+    await user.keyboard("{Escape}");
 
     expect(mocks.mutateAsync).toHaveBeenCalledOnce();
     expect(mocks.resetCreate).not.toHaveBeenCalled();
     expect(input).toHaveValue("Request A");
+    expect(screen.getByRole("dialog", { name: "Search tasks and commands" })).toBeInTheDocument();
 
     request.resolve({ id: TASK_ID });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -169,11 +212,6 @@ describe("TaskCommandPalette", () => {
 
   it("reuses the pending draft id after failure and rotates it after success", async () => {
     const user = userEvent.setup();
-    const randomUUID = vi
-      .fn()
-      .mockReturnValueOnce("69b628eb-4937-45c2-a464-fcbfeac2dc46")
-      .mockReturnValueOnce("ab1aa6ea-09d8-49d1-a8b6-a4391dc0e4fc");
-    vi.stubGlobal("crypto", { randomUUID });
     mocks.mutateAsync
       .mockRejectedValueOnce(new TypeError("response lost"))
       .mockResolvedValue({ id: TASK_ID });
@@ -182,21 +220,70 @@ describe("TaskCommandPalette", () => {
     await user.click(screen.getByRole("button", { name: /Search tasks and commands/u }));
     await user.type(searchInput(), "Retry this task");
     await user.click(screen.getByRole("option", { name: /Add “Retry this task”/u }));
-    await waitFor(() => expect(searchInput()).toBeEnabled());
+    await waitFor(() => expect(searchInput()).toBeDisabled());
     expect(searchInput()).toHaveValue("Retry this task");
 
     await user.click(screen.getByRole("option", { name: /Add “Retry this task”/u }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
-    expect(mocks.mutateAsync.mock.calls[0]?.[0].resourceId).toBe("69b628eb-4937-45c2-a464-fcbfeac2dc46");
-    expect(mocks.mutateAsync.mock.calls[1]?.[0].resourceId).toBe("69b628eb-4937-45c2-a464-fcbfeac2dc46");
+    const retryResourceId = mocks.mutateAsync.mock.calls[0]?.[0].resourceId;
+    expect(retryResourceId).toEqual(expect.any(String));
+    expect(mocks.mutateAsync.mock.calls[1]?.[0].resourceId).toBe(retryResourceId);
 
     await user.click(screen.getByRole("button", { name: /Search tasks and commands/u }));
     await user.type(searchInput(), "New task");
     await user.click(screen.getByRole("option", { name: /Add “New task”/u }));
     await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledTimes(3));
-    expect(mocks.mutateAsync.mock.calls[2]?.[0].resourceId).toBe("ab1aa6ea-09d8-49d1-a8b6-a4391dc0e4fc");
-    expect(randomUUID).toHaveBeenCalledTimes(2);
+    expect(mocks.mutateAsync.mock.calls[2]?.[0].resourceId).not.toBe(retryResourceId);
+  });
+
+  it("discards an uncertain create only after confirmation and rotates its draft id", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    mocks.mutateAsync.mockRejectedValueOnce(new TypeError("response lost")).mockResolvedValue({
+      id: TASK_ID,
+    });
+    renderPalette(LIST_ID);
+    const trigger = screen.getByRole("button", { name: /Search tasks and commands/u });
+
+    await user.click(trigger);
+    await user.type(searchInput(), "Possibly created task");
+    mocks.resetCreate.mockClear();
+    await user.click(screen.getByRole("option", { name: /Add “Possibly created task”/u }));
+
+    await waitFor(() => expect(searchInput()).toBeDisabled());
+    const firstResourceId = mocks.mutateAsync.mock.calls[0]?.[0].resourceId;
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The create outcome could not be confirmed. Retry this unchanged title to resolve it safely.",
+    );
+    expect(screen.getByRole("option", { name: /Add “Possibly created task”/u })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close search" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog", { name: "Search tasks and commands" })).toBeInTheDocument();
+
+    const discard = screen.getByRole("button", { name: "Discard safe retry and close" });
+    await user.click(discard);
+
+    expect(confirm).toHaveBeenLastCalledWith(
+      "Discard this safe retry? The task may already exist. Search before creating it again.",
+    );
+    expect(screen.getByRole("dialog", { name: "Search tasks and commands" })).toBeInTheDocument();
+    expect(searchInput()).toHaveValue("Possibly created task");
+    expect(mocks.resetCreate).not.toHaveBeenCalled();
+
+    await user.click(discard);
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(mocks.resetCreate).toHaveBeenCalledOnce();
+
+    await user.click(trigger);
+    expect(searchInput()).toHaveValue("");
+    await user.type(searchInput(), "Fresh task");
+    await user.click(screen.getByRole("option", { name: /Add “Fresh task”/u }));
+
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledTimes(2));
+    expect(mocks.mutateAsync.mock.calls[1]?.[0].resourceId).not.toBe(firstResourceId);
   });
 
   it("falls back to Inbox when no current list is supplied", async () => {

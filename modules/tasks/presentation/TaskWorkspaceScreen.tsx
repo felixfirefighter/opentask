@@ -31,6 +31,8 @@ export type TaskWorkspaceDestination =
       inbox?: InboxReference;
       immutableInbox?: boolean;
       initialTasks?: TaskPage;
+      timeZone: string;
+      hourCycle: "h12" | "h23";
     }>
   | Readonly<{
       kind: "terminal";
@@ -83,7 +85,12 @@ function OpenTaskWorkspace({
       showAddTask
     >
       {isInbox ? <FirstRunOrientation inboxId={inbox.id} /> : null}
-      <TaskQuickAdd listId={destination.list.id} listName={destination.list.name} />
+      <TaskQuickAdd
+        hourCycle={destination.hourCycle}
+        listId={destination.list.id}
+        listName={destination.list.name}
+        timeZone={destination.timeZone}
+      />
       {!isInbox && <CreateSectionControl listId={destination.list.id} />}
       {useSectionFallback && sectionsQuery.isPending ? (
         <p className={styles.partialDataNotice} role="status">

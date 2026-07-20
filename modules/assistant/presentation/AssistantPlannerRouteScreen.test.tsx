@@ -1,4 +1,5 @@
-import { act, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,7 +12,14 @@ import {
   proposalWithStatus,
 } from "./planner-presentation-fixtures";
 
-beforeEach(() => setOnline(true));
+const navigation = vi.hoisted(() => ({ refresh: vi.fn(), replace: vi.fn() }));
+
+vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  setOnline(true);
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -39,6 +47,34 @@ describe("Assistant planner route controller", () => {
     await act(async () => resolveRequest?.(jsonResponse(plannerProposalFixture, 201)));
     expect(await screen.findByRole("heading", { name: "Proposal changes" })).toHaveFocus();
     expect(fetchMock).toHaveBeenCalledOnce();
+    expect(navigation.replace).toHaveBeenCalledWith(`/plan?proposal=${plannerProposalFixture.id}`, {
+      scroll: false,
+    });
+  });
+
+  it("restores an authorized pending Review and an honest terminal Result without a client fetch", () => {
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", fetchMock);
+    const pending = renderRoute({ initialProposal: plannerProposalFixture });
+    expect(screen.getByRole("heading", { name: "Proposal changes" })).toHaveFocus();
+    expect(screen.getByText("Review")).toHaveAttribute("aria-current", "step");
+    pending.unmount();
+
+    renderRoute({ initialProposal: proposalWithStatus("applied") });
+    expect(screen.getByRole("heading", { name: "This proposal was already applied" })).toHaveFocus();
+    expect(screen.getByText("Result")).toHaveAttribute("aria-current", "step");
+    expect(screen.queryByText("Selected")).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("clears the persisted proposal URL when starting a new proposal", async () => {
+    const user = userEvent.setup();
+    renderRoute({ initialProposal: proposalWithStatus("applied") });
+
+    await user.click(screen.getByRole("button", { name: "Create new proposal" }));
+
+    expect(screen.getByRole("button", { name: "Create proposal" })).toBeInTheDocument();
+    expect(navigation.replace).toHaveBeenCalledWith("/plan", { scroll: false });
   });
 
   it("applies the reviewed selection once and reports the exact atomic result", async () => {
@@ -54,7 +90,8 @@ describe("Assistant planner route controller", () => {
         }),
       );
     vi.stubGlobal("fetch", fetchMock);
-    renderRoute();
+    const { queryClient } = renderRoute();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 
     await user.click(screen.getByRole("button", { name: "Create proposal" }));
     await screen.findByRole("heading", { name: "Proposal changes" });
@@ -63,8 +100,37 @@ describe("Assistant planner route controller", () => {
     expect(await screen.findByRole("heading", { name: "Your selected changes were applied" })).toHaveFocus();
     expect(screen.getByText("4 actions were committed together.")).toBeInTheDocument();
     expect(screen.getByText("Not applied").nextElementSibling).toHaveTextContent("1");
+    expect(screen.getByRole("link", { name: "Prepare organized attendee notes" })).toHaveAttribute(
+      "href",
+      `/tasks/${plannerTasksFixture[1]!.id}?returnTo=%2Fplan%3Fproposal%3D${plannerProposalFixture.id}`,
+    );
     const [, applyRequest] = fetchMock.mock.calls[1]!;
     expect(new Headers(applyRequest?.headers).get("idempotency-key")).toBe(plannerProposalFixture.applyToken);
+    await waitFor(() => expect(invalidate).toHaveBeenCalled());
+    expect(navigation.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("retries generation with the current visible draft", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(problemResponse("INTERNAL", 500))
+      .mockResolvedValueOnce(jsonResponse(plannerProposalFixture, 201));
+    vi.stubGlobal("fetch", fetchMock);
+    renderRoute();
+
+    await user.click(screen.getByRole("button", { name: "Create proposal" }));
+    await screen.findByRole("alert");
+    const input = screen.getByRole("textbox", { name: /Brain dump/u });
+    await user.clear(input);
+    await user.type(input, "Use the currently visible retry draft.");
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    await screen.findByRole("heading", { name: "Proposal changes" });
+
+    const [, request] = fetchMock.mock.calls[1]!;
+    expect(JSON.parse(String(request?.body))).toMatchObject({
+      brainDump: "Use the currently visible retry draft.",
+    });
   });
 
   it("turns an apply conflict into a blocked stale review and regenerates on Retry", async () => {
@@ -94,6 +160,25 @@ describe("Assistant planner route controller", () => {
     expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("POST");
   });
 
+  it("never regenerates a restored stale proposal from an unpersisted blank input", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(problemResponse("CONFLICT", 409));
+    vi.stubGlobal("fetch", fetchMock);
+    renderRoute({
+      initialInput: { ...plannerInputFixture, brainDump: "", selectedTaskIds: [] },
+      initialProposal: plannerProposalFixture,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Apply 5 changes" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("This proposal is out of date");
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("The selected context changed");
+    expect(screen.getByRole("textbox", { name: /Brain dump/u })).toHaveValue("");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(navigation.replace).toHaveBeenCalledWith("/plan", { scroll: false });
+  });
+
   it("treats a lost apply response as unknown until status is refreshed", async () => {
     const user = userEvent.setup();
     const fetchMock = vi
@@ -114,6 +199,7 @@ describe("Assistant planner route controller", () => {
     expect(await screen.findByRole("heading", { name: "This proposal was already applied" })).toHaveFocus();
     expect(fetchMock.mock.calls[2]?.[0]).toBe(`/api/v1/planner/proposals/${plannerProposalFixture.id}`);
     expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("GET");
+    await waitFor(() => expect(navigation.refresh).toHaveBeenCalledOnce());
   });
 
   it("rejects explicitly and renders the persisted terminal state", async () => {
@@ -156,14 +242,19 @@ describe("Assistant planner route controller", () => {
   });
 });
 
-function renderRoute() {
-  return render(
-    <AssistantPlannerRouteScreen
-      capability={{ state: "available", model: PLANNER_MODEL, schemaVersion: PLANNER_SCHEMA_VERSION }}
-      initialInput={plannerInputFixture}
-      tasks={plannerTasksFixture}
-    />,
+function renderRoute(overrides: Partial<React.ComponentProps<typeof AssistantPlannerRouteScreen>> = {}) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <AssistantPlannerRouteScreen
+        capability={{ state: "available", model: PLANNER_MODEL, schemaVersion: PLANNER_SCHEMA_VERSION }}
+        initialInput={plannerInputFixture}
+        tasks={plannerTasksFixture}
+        {...overrides}
+      />
+    </QueryClientProvider>,
   );
+  return { ...view, queryClient };
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -173,7 +264,7 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function problemResponse(code: "CONFLICT" | "FORBIDDEN", status: number) {
+function problemResponse(code: "CONFLICT" | "FORBIDDEN" | "INTERNAL", status: number) {
   return jsonResponse(
     {
       type: `urn:opentask:problem:${code.toLowerCase()}`,

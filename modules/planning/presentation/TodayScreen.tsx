@@ -41,7 +41,8 @@ export function TodayScreen(props: TodayScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { condition, model } = props;
   const tasks = [...model.overdue, ...model.timed, ...model.anytime];
-  const readOnly = condition.kind === "offline" || condition.kind === "loading";
+  const readOnly =
+    condition.kind === "offline" || condition.kind === "loading" || condition.kind === "date-changed";
 
   return (
     <div className={styles.page}>
@@ -96,7 +97,9 @@ export function TodayScreen(props: TodayScreenProps) {
             <UnavailableDataState title="Today's tasks are unavailable" />
           ) : tasks.length === 0 ? (
             <section className={styles.empty} aria-labelledby="today-empty-heading">
-              <h2 id="today-empty-heading">Nothing planned for today</h2>
+              <h2 id="today-empty-heading" tabIndex={-1} data-planning-recovery-focus>
+                Nothing planned for today
+              </h2>
               <p>Add a task above or look ahead without turning an empty day into a score.</p>
               <Button asChild variant="secondary">
                 <Link href={props.upcomingHref}>Open Upcoming</Link>

@@ -1,8 +1,9 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
-import type { Database } from "@/shared/db/client";
+import type { Database, DatabaseTransaction } from "@/shared/db/client";
 import type { Clock } from "@/shared/time/clock";
 
 import {
+  createTaskWithScheduleRequestSchema,
   createTaskRequestSchema,
   entityIdSchema,
   taskDetailDtoSchema,
@@ -11,10 +12,13 @@ import {
   transitionTaskStatusRequestSchema,
   updateTaskRequestSchema,
   type CreateTaskRequest,
+  type CreateTaskWithScheduleRequest,
   type TaskDetailDto,
   type TaskDto,
   type TaskPage,
   type TaskQuery,
+  type TaskScheduleValue,
+  type TaskWithScheduleDto,
   type TransitionTaskStatusRequest,
   type UpdateTaskRequest,
 } from "./contracts";
@@ -35,6 +39,7 @@ import {
   taskRankScope,
 } from "./task-application-support";
 import { createTaskLifecycleCommands } from "./task-lifecycle-commands";
+import { mapSchedule, toScheduleWrite } from "./schedule-application";
 import { createTerminalTaskQuery } from "./terminal-task-query";
 import { taskConflict, taskResourceNotFound } from "./task-errors";
 import { mapTaskListItems } from "./task-list-item-projection";
@@ -43,19 +48,94 @@ import { createChecklistRepository } from "../infrastructure/checklist-repositor
 import { createSectionRepository } from "../infrastructure/section-repository";
 import { createTagRepository } from "../infrastructure/tag-repository";
 import { createTaskRepository, type StoredTask } from "../infrastructure/task-repository";
+import {
+  createTaskScheduleRepository,
+  type StoredTaskSchedule,
+} from "../infrastructure/task-schedule-repository";
 import { createTaskListRepository } from "../infrastructure/task-list-repository";
+import type { TaskScheduleTable } from "../infrastructure/schema";
 
 export type TaskCreateResult = Readonly<{ created: boolean; value: TaskDto }>;
+export type TaskWithScheduleCreateResult = Readonly<{
+  created: boolean;
+  value: TaskWithScheduleDto;
+}>;
 
-export function createTaskApplication({ database, clock }: { database: Database; clock: Clock }) {
+export function createTaskApplication({
+  database,
+  clock,
+  taskSchedules,
+}: {
+  database: Database;
+  clock: Clock;
+  taskSchedules: TaskScheduleTable;
+}) {
   const tasks = createTaskRepository(database);
   const lists = createTaskListRepository(database);
   const sections = createSectionRepository(database);
   const checklist = createChecklistRepository(database);
   const tags = createTagRepository(database);
+  const schedules = createTaskScheduleRepository(taskSchedules, database);
   const placementRepositories = { tasks, lists, sections };
   const lifecycleCommands = createTaskLifecycleCommands({ database, clock });
   const terminalQuery = createTerminalTaskQuery({ database });
+
+  async function createTaskInTransaction(
+    actor: AuthenticatedActor,
+    resourceId: string,
+    input: CreateTaskRequest,
+    transaction: DatabaseTransaction,
+  ): Promise<TaskCreateResult> {
+    const canonical = {
+      listId: input.listId,
+      sectionId: input.sectionId,
+      parentTaskId: input.parentTaskId,
+      title: normalizeTaskTitle(input.title),
+      descriptionMd: validateTaskDescription(input.descriptionMd),
+      priority: input.priority,
+    };
+    const replay = await tasks.lockById(actor.userId, resourceId, "any", transaction);
+    if (replay) return taskReplay(replay, canonical);
+    await assertActiveContainers(
+      placementRepositories,
+      actor.userId,
+      canonical.listId,
+      canonical.sectionId,
+      transaction,
+      true,
+    );
+    const scope = taskRankScope(canonical);
+    const planned = await planLockedTaskRank(
+      transaction,
+      tasks,
+      actor.userId,
+      scope,
+      resourceId,
+      input.placement,
+    );
+    await loadAllowedParent(
+      placementRepositories,
+      actor.userId,
+      { id: resourceId, listId: canonical.listId },
+      canonical.parentTaskId,
+      transaction,
+      true,
+    );
+    const existing = await tasks.lockById(actor.userId, resourceId, "any", transaction);
+    if (existing) return taskReplay(existing, canonical);
+    const now = clock.now();
+    await applyTaskSiblingRebalance(tasks, actor.userId, scope, planned, resourceId, now, transaction);
+    const created = await tasks.insert(
+      { id: resourceId, userId: actor.userId, ...canonical, rank: planned.plan.rank, now },
+      transaction,
+    );
+    if (!created) {
+      const collision = await tasks.lockById(actor.userId, resourceId, "any", transaction);
+      if (collision) return taskReplay(collision, canonical);
+      throw taskConflict("This create key was already used for different task data.");
+    }
+    return { created: true, value: mapTask(created) };
+  }
 
   return {
     async listTasks(actor: AuthenticatedActor, rawQuery: TaskQuery): Promise<TaskPage> {
@@ -121,56 +201,37 @@ export function createTaskApplication({ database, clock }: { database: Database;
     ): Promise<TaskCreateResult> {
       const resourceId = entityIdSchema.parse(rawResourceId);
       const input = createTaskRequestSchema.parse(rawInput);
-      const canonical = {
-        listId: input.listId,
-        sectionId: input.sectionId,
-        parentTaskId: input.parentTaskId,
-        title: normalizeTaskTitle(input.title),
-        descriptionMd: validateTaskDescription(input.descriptionMd),
-        priority: input.priority,
-      };
+      return database.transaction((transaction) =>
+        createTaskInTransaction(actor, resourceId, input, transaction),
+      );
+    },
+
+    async createTaskWithSchedule(
+      actor: AuthenticatedActor,
+      rawResourceId: string,
+      rawInput: CreateTaskWithScheduleRequest,
+    ): Promise<TaskWithScheduleCreateResult> {
+      const resourceId = entityIdSchema.parse(rawResourceId);
+      const input = createTaskWithScheduleRequestSchema.parse(rawInput);
+      const { schedule, ...taskInput } = input;
+      const scheduleWrite = toScheduleWrite(schedule);
       return database.transaction(async (transaction) => {
-        const replay = await tasks.lockById(actor.userId, resourceId, "any", transaction);
-        if (replay) return taskReplay(replay, canonical);
-        await assertActiveContainers(
-          placementRepositories,
-          actor.userId,
-          canonical.listId,
-          canonical.sectionId,
-          transaction,
-          true,
-        );
-        const scope = taskRankScope(canonical);
-        const planned = await planLockedTaskRank(
-          transaction,
-          tasks,
-          actor.userId,
-          scope,
-          resourceId,
-          input.placement,
-        );
-        await loadAllowedParent(
-          placementRepositories,
-          actor.userId,
-          { id: resourceId, listId: canonical.listId },
-          canonical.parentTaskId,
-          transaction,
-          true,
-        );
-        const existing = await tasks.lockById(actor.userId, resourceId, "any", transaction);
-        if (existing) return taskReplay(existing, canonical);
-        const now = clock.now();
-        await applyTaskSiblingRebalance(tasks, actor.userId, scope, planned, resourceId, now, transaction);
-        const created = await tasks.insert(
-          { id: resourceId, userId: actor.userId, ...canonical, rank: planned.plan.rank, now },
-          transaction,
-        );
-        if (!created) {
-          const collision = await tasks.lockById(actor.userId, resourceId, "any", transaction);
-          if (collision) return taskReplay(collision, canonical);
-          throw taskConflict("This create key was already used for different task data.");
-        }
-        return { created: true, value: mapTask(created) };
+        const result = await createTaskInTransaction(actor, resourceId, taskInput, transaction);
+        const storedSchedule = result.created
+          ? await schedules.upsert(
+              {
+                userId: actor.userId,
+                taskId: resourceId,
+                schedule: scheduleWrite,
+                now: clock.now(),
+              },
+              transaction,
+            )
+          : await requireEquivalentScheduleReplay(schedules, actor.userId, resourceId, schedule, transaction);
+        return {
+          created: result.created,
+          value: { task: result.value, schedule: mapSchedule(storedSchedule) },
+        };
       });
     },
 
@@ -251,4 +312,30 @@ function taskReplay(
 ): TaskCreateResult {
   assertEquivalentTaskReplay(task, canonical);
   return { created: false, value: mapTask(task) };
+}
+
+async function requireEquivalentScheduleReplay(
+  schedules: ReturnType<typeof createTaskScheduleRepository>,
+  userId: string,
+  taskId: string,
+  requested: TaskScheduleValue,
+  transaction: DatabaseTransaction,
+): Promise<StoredTaskSchedule> {
+  const current = await schedules.findByTaskId(userId, taskId, transaction);
+  if (!current || !sameSchedule(current, requested)) {
+    throw taskConflict("This create key was already used for different task or schedule data.");
+  }
+  return current;
+}
+
+function sameSchedule(current: StoredTaskSchedule, requested: TaskScheduleValue): boolean {
+  if (current.kind !== requested.kind) return false;
+  if (requested.kind === "all_day") {
+    return current.startDate === requested.startDate && current.endDate === requested.endDate;
+  }
+  return (
+    current.startAt?.getTime() === new Date(requested.startAt).getTime() &&
+    current.endAt?.getTime() === new Date(requested.endAt).getTime() &&
+    current.timezone === requested.timezone
+  );
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseEnvironment } from "@/shared/config/environment";
 
-import { resolveAuthRuntimeConfig } from "./auth-runtime-config";
+import { resolveAuthRuntimeConfig, resolveTrustedBrowserOrigins } from "./auth-runtime-config";
 
 const databaseUrl = "postgresql://user:pass@localhost:5432/opentask";
 
@@ -50,5 +50,19 @@ describe("auth runtime configuration", () => {
     );
 
     expect(runtime.secureCookies).toBe(false);
+  });
+
+  it.each([
+    ["http://localhost:3000", ["http://localhost:3000", "http://127.0.0.1:3000"]],
+    ["http://127.0.0.1:3000", ["http://127.0.0.1:3000", "http://localhost:3000"]],
+    ["https://localhost:3443/auth", ["https://localhost:3443", "https://127.0.0.1:3443"]],
+  ])("trusts only the exact same-scheme, same-port loopback pair for %s", (baseUrl, expected) => {
+    expect(resolveTrustedBrowserOrigins(baseUrl)).toEqual(expected);
+  });
+
+  it("does not expand a configured non-loopback origin", () => {
+    expect(resolveTrustedBrowserOrigins("https://tasks.example.com:8443/auth")).toEqual([
+      "https://tasks.example.com:8443",
+    ]);
   });
 });

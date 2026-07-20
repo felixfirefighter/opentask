@@ -30,11 +30,15 @@ The app runs at `http://127.0.0.1:3000`. Start the background process separately
 the implemented baseline registers zero product jobs, and P6 activates reminder jobs. Stop local
 PostgreSQL with `pnpm db:down`.
 
-`BETTER_AUTH_URL` is the exact browser-facing origin, not an internal service URL. OpenTask uses
-only a trusted proxy's overwritten `X-Real-IP` header for authentication and demo abuse-control
-buckets. Before exposing the service to a network, route all traffic through one ingress that
-overwrites that header and block direct access to the application origin. See `SECURITY.md` for the
-operational trust boundary. The checked-in Compose port is loopback-only for this reason.
+`BETTER_AUTH_URL` is the exact browser-facing origin, not an internal service URL. For local
+loopback only, configuring either `http://127.0.0.1:3000` or `http://localhost:3000` also accepts
+the other spelling with that exact scheme and port. This is an explicit two-origin policy, not a
+wildcard; a different scheme, port, hostname, or any second non-loopback origin remains rejected.
+OpenTask uses only a trusted proxy's overwritten `X-Real-IP` header for authentication and demo
+abuse-control buckets. Before exposing the service to a network, route all traffic through one
+ingress that overwrites that header and block direct access to the application origin. See
+`SECURITY.md` for the operational trust boundary. The checked-in Compose port is loopback-only for
+this reason.
 
 `.env.local` is ignored by Git. `.env.example` contains local placeholders only. Provider keys are optional and must never use the `NEXT_PUBLIC_` prefix.
 

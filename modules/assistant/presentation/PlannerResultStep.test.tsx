@@ -18,6 +18,7 @@ describe("Assistant planner Result and terminal proposal states", () => {
         },
         selectedActionCount: 3,
         notAppliedActionCount: 2,
+        taskLinks: [],
       },
     });
     expect(screen.getByRole("heading", { name: "Your selected changes were applied" })).toHaveFocus();
@@ -39,6 +40,7 @@ describe("Assistant planner Result and terminal proposal states", () => {
         },
         selectedActionCount: 5,
         notAppliedActionCount: 0,
+        taskLinks: [],
       },
     });
     expect(screen.getByRole("heading", { name: "This proposal was already applied" })).toBeInTheDocument();
@@ -72,6 +74,7 @@ describe("Assistant planner Result and terminal proposal states", () => {
         },
         selectedActionCount: 5,
         notAppliedActionCount: 0,
+        taskLinks: [],
       },
     });
     await user.click(screen.getByRole("button", { name: "Create another proposal" }));

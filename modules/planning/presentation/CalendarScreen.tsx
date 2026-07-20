@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Ref } from "react";
 
 import { useMediaQuery } from "@/shared/presentation";
 
@@ -21,6 +21,7 @@ import styles from "./CalendarScreen.module.css";
 export type CalendarScreenProps = Readonly<{
   model: CalendarPlanningModel;
   condition: PlanningScreenCondition;
+  addTaskRef?: Ref<HTMLButtonElement> | undefined;
   onAddTask: () => void;
   onOpenTask: (taskId: string) => void;
   onEditSchedule: (taskId: string) => void;
@@ -81,6 +82,7 @@ export function CalendarScreen(props: CalendarScreenProps) {
       ) : (
         <>
           <CalendarToolbar
+            addTaskRef={props.addTaskRef}
             disabled={props.condition.kind === "offline"}
             rangeLabel={props.model.rangeLabel}
             view={effectiveView}

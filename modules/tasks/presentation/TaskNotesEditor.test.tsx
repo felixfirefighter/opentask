@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TaskDetailDto } from "../application/contracts";
+import { taskQueryKeys } from "./data/task-query-keys";
 import { clearTaskDrafts, confirmTaskDraftNavigation, hasTaskDraft } from "./task-draft-guard";
 
 const mocks = vi.hoisted(() => ({
@@ -91,6 +92,40 @@ describe("TaskNotesEditor", () => {
       await request.promise;
     });
     await waitFor(() => expect(hasTaskDraft(TASK_ID, "notes")).toBe(false));
+  });
+
+  it("reconciles accepted notes after a lost response without writing them twice", async () => {
+    const client = queryClient();
+    const user = userEvent.setup();
+    const view = render(
+      <QueryClientProvider client={client}>
+        <TaskNotesEditor disabled={false} task={taskDetail()} />
+      </QueryClientProvider>,
+    );
+    const notes = screen.getByLabelText("Markdown description");
+    await user.type(notes, "Accepted **Markdown** after response loss");
+
+    mocks.error = new TypeError("Failed to fetch");
+    mocks.isError = true;
+    client.setQueryData(
+      taskQueryKeys.detail(TASK_ID),
+      taskDetail({ descriptionMd: "Accepted **Markdown** after response loss", version: 2 }),
+    );
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <TaskNotesEditor disabled={false} task={taskDetail()} />
+      </QueryClientProvider>,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("notes update is unconfirmed");
+    expect(alert).not.toHaveTextContent("Notes were not saved");
+    expect(notes).toHaveValue("Accepted **Markdown** after response loss");
+    expect(screen.getByRole("button", { name: "Save notes" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
+    expect(mocks.reset).toHaveBeenCalledOnce();
   });
 });
 

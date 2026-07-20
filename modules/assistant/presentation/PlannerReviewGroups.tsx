@@ -3,6 +3,7 @@ import type { PlannerAction, PlannerProposalDto } from "../application/contracts
 import { PlannerProposalCard } from "./PlannerProposalCard";
 import { PlannerProposalGroup } from "./PlannerProposalGroup";
 import { isActionEditable, targetTitle, type ReviewGroupId } from "./planner-review-policy";
+import { plannerTaskHref } from "./planner-route-navigation";
 import type { PlannerActionIssue } from "./planner-screen-model";
 import styles from "./PlannerReviewStep.module.css";
 
@@ -41,6 +42,11 @@ export function PlannerReviewGroups({
                 key={action.actionId}
                 action={action}
                 target={targetTitle(action, proposal.proposal)}
+                taskHref={
+                  action.kind !== "create" && action.taskId
+                    ? plannerTaskHref(action.taskId, proposal.id)
+                    : undefined
+                }
                 selected={selected.has(action.actionId)}
                 issues={issues}
                 overflow={overflow}

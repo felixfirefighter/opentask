@@ -93,9 +93,11 @@ export function PlannerPermissionState() {
       <ShieldAlert size={25} aria-hidden="true" />
       <p className="eyebrow">Private workspace</p>
       <h2 id="planner-permission-heading">This planning proposal is unavailable</h2>
-      <p>Sign in again to continue. No task or proposal details are shown on this page.</p>
+      <p>
+        It could not be found or you may not have access. No task or proposal details are shown on this page.
+      </p>
       <Button asChild variant="secondary">
-        <Link href="/sign-in">Go to sign in</Link>
+        <Link href="/plan">Start a new proposal</Link>
       </Button>
     </section>
   );

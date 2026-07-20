@@ -34,6 +34,7 @@ export function ProjectionTaskRow({
       className={styles.row}
       data-accent={task.category ?? "slate"}
       data-conflict={task.conflicted || undefined}
+      data-planning-task-id={task.id}
       data-status={task.status}
       data-ui="planning-task-row"
     >
@@ -64,7 +65,13 @@ export function ProjectionTaskRow({
         )}
       </button>
 
-      <Link className={styles.content} href={task.detailsHref} title={task.title} onClick={openTask}>
+      <Link
+        className={styles.content}
+        data-planning-task-open
+        href={task.detailsHref}
+        title={task.title}
+        onClick={openTask}
+      >
         <span className={styles.title}>{task.title}</span>
         <span className={styles.metadata}>
           <span>{task.scheduleLabel}</span>

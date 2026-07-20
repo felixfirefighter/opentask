@@ -9,9 +9,10 @@ import {
   planningTaskRow,
   readTaskSchedule,
   setTaskSchedule,
+  singaporeInstant,
   type TestSchedule,
 } from "./support/golden-path-planning";
-import { signUpThroughUi } from "./support/wp01-auth";
+import { openVisibleAccountMenu, signUpThroughUi } from "./support/wp01-auth";
 import { quickAddTask, taskRow, type TaskWireRecord } from "./support/wp03-tasks";
 
 const responsiveProjects = new Set(["desktop-chromium", "mobile-chromium"]);
@@ -87,8 +88,8 @@ test("G2 projects canonical scheduled tasks across Today, Upcoming, Calendar, an
     }
     await expect(calendarEvent(page, allDay.title)).toBeVisible();
     await expect(calendarEvent(page, timed.title)).toBeVisible();
-    await expect(calendarEvent(page, allDay.title)).toHaveAttribute("href", `/tasks/${allDay.id}`);
-    await expect(calendarEvent(page, timed.title)).toHaveAttribute("href", `/tasks/${timed.id}`);
+    await expectTaskLinkReturnsToCurrentView(page, calendarEvent(page, allDay.title), allDay.id);
+    await expectTaskLinkReturnsToCurrentView(page, calendarEvent(page, timed.title), timed.id);
     if (overflowDialog) {
       await page.keyboard.press("Escape");
       await expect(overflowDialog).toBeHidden();
@@ -219,6 +220,111 @@ test("G2 resizes an all-day calendar event with the pointer", async ({ page }, t
     });
 });
 
+test("G2 edits canonical task details and returns through browser history with a fresh projection", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  test.skip(
+    !responsiveProjects.has(testInfo.project.name),
+    "The canonical detail path runs on desktop and mobile.",
+  );
+
+  await signUpThroughUi(page, testInfo);
+  await configureTestTimeZone(page, timeZone);
+  const today = localDateIn(timeZone);
+  const tomorrow = addLocalDays(today, 1);
+  const created = await quickAddTask(page, "G2 canonical detail edit");
+  const { task } = await setTaskSchedule(page, created, {
+    kind: "all_day",
+    startDate: today,
+    endDate: tomorrow,
+  });
+
+  await page.goto("/today");
+  const initialRow = planningTaskRow(page, task.title);
+  await expect(initialRow).toBeVisible();
+  await initialRow.getByRole("link", { name: task.title }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/tasks/${task.id}\\?returnTo=${encodeURIComponent("/today")}$`, "u"),
+  );
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(task.title);
+
+  const priorityResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname === `/api/v1/tasks/${task.id}`,
+  );
+  await page.getByRole("combobox", { name: "Priority", exact: true }).selectOption("high");
+  expect((await priorityResponse).status()).toBe(200);
+  await expect(page.getByText("Priority saved", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Edit schedule", exact: true }).click();
+  await page.getByRole("radio", { name: "Specific time", exact: true }).check();
+  await page.getByLabel("Start", { exact: true }).fill(`${today}T10:00`);
+  await page.getByLabel("End", { exact: true }).fill(`${today}T11:00`);
+  await expect(page.getByRole("combobox", { name: /^Timezone/u })).toHaveValue(timeZone);
+  const scheduleResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname === `/api/v1/tasks/${task.id}/schedule`,
+  );
+  await page.getByRole("button", { name: "Save schedule", exact: true }).click();
+  expect((await scheduleResponse).status()).toBe(200);
+  await expect(page.getByText("Schedule saved", { exact: true })).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL("/today");
+  const refreshedRow = planningTaskRow(page, task.title);
+  await expect(refreshedRow).toBeVisible();
+  await expect(refreshedRow).toContainText("10:00 AM–11:00 AM");
+  await expect(refreshedRow.getByRole("img", { name: "high priority" })).toBeVisible();
+  await expect
+    .poll(async () => readTaskSchedule(page, task.id))
+    .toMatchObject({
+      kind: "timed",
+      startAt: singaporeInstant(today, "10:00"),
+      endAt: singaporeInstant(today, "11:00"),
+      timezone: timeZone,
+    });
+});
+
+test("G2 refreshes Today and Calendar after timezone changes through normal links and Back", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  test.skip(
+    !responsiveProjects.has(testInfo.project.name),
+    "Timezone navigation freshness runs on desktop and mobile.",
+  );
+
+  const westTimeZone = "Pacific/Honolulu";
+  const eastTimeZone = "Pacific/Kiritimati";
+  await signUpThroughUi(page, testInfo);
+  await page.goto("/settings");
+
+  await saveTimeZoneThroughSettings(page, eastTimeZone);
+  await page.getByRole("link", { name: "Plan manually in Today", exact: true }).click();
+  await expect(page).toHaveURL("/today");
+  await expectTodayTimeZone(page, eastTimeZone);
+
+  await page.getByRole("main").getByRole("link", { name: "Calendar", exact: true }).click();
+  await expect(page).toHaveURL(/\/calendar(?:\?|$)/u);
+  await expectCalendarTimeZone(page, eastTimeZone);
+
+  const { menu } = await openVisibleAccountMenu(page);
+  await menu.getByRole("menuitem", { name: "Settings", exact: true }).click();
+  await expect(page).toHaveURL("/settings");
+  await saveTimeZoneThroughSettings(page, westTimeZone);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/calendar(?:\?|$)/u);
+  await expectCalendarTimeZone(page, westTimeZone);
+
+  await page.goBack();
+  await expect(page).toHaveURL("/today");
+  await expectTodayTimeZone(page, westTimeZone);
+});
+
 async function addNaturalLanguageTask(page: Page, title: string): Promise<TaskWireRecord> {
   const composer = page.locator("form").filter({ hasText: "Recognized dates stay visible" });
   const input = composer.getByRole("textbox", { name: "Add a task" });
@@ -241,24 +347,30 @@ async function addNaturalLanguageTask(page: Page, title: string): Promise<TaskWi
 
   const createdResponse = page.waitForResponse(
     (response) =>
-      response.request().method() === "POST" && new URL(response.url()).pathname === "/api/v1/tasks",
-  );
-  const scheduledResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === "PATCH" &&
-      /\/api\/v1\/tasks\/[^/]+\/schedule$/u.test(new URL(response.url()).pathname),
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/api/v1/tasks/with-schedule",
   );
   await composer.getByRole("button", { name: "Add task", exact: true }).click();
-  const created = (await (await createdResponse).json()) as TaskWireRecord;
-  expect((await scheduledResponse).status()).toBe(200);
+  const response = await createdResponse;
+  expect(response.status()).toBe(201);
+  const created = (await response.json()) as { task: TaskWireRecord };
   await expect(input).toHaveValue("");
-  return created;
+  return created.task;
 }
 
 async function expectCanonicalProjectionRow(page: Page, task: Pick<TaskWireRecord, "id" | "title">) {
   const row = planningTaskRow(page, task.title);
   await expect(row).toHaveCount(1);
-  await expect(row.getByRole("link", { name: task.title })).toHaveAttribute("href", `/tasks/${task.id}`);
+  await expectTaskLinkReturnsToCurrentView(page, row.getByRole("link", { name: task.title }), task.id);
+}
+
+async function expectTaskLinkReturnsToCurrentView(page: Page, link: Locator, taskId: string) {
+  const href = await link.getAttribute("href");
+  expect(href).not.toBeNull();
+  const target = new URL(href!, "http://opentask.local");
+  expect(target.pathname).toBe(`/tasks/${taskId}`);
+  const current = new URL(page.url());
+  expect(target.searchParams.get("returnTo")).toBe(`${current.pathname}${current.search}`);
 }
 
 async function editCalendarScheduleWithKeyboard(
@@ -346,4 +458,40 @@ async function dragWithPointer(page: Page, source: Locator, target: Locator) {
   });
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
   await page.mouse.up();
+}
+
+async function saveTimeZoneThroughSettings(page: Page, timeZoneValue: string) {
+  const timeZoneInput = page.getByRole("combobox", { name: "Timezone", exact: true });
+  await timeZoneInput.fill(timeZoneValue);
+  const response = page.waitForResponse(
+    (candidate) =>
+      candidate.request().method() === "PATCH" && new URL(candidate.url()).pathname === "/api/v1/preferences",
+  );
+  await page.getByRole("button", { name: "Save date and time", exact: true }).click();
+  expect((await response).status()).toBe(200);
+  await expect(page.getByText("Saved", { exact: true }).first()).toBeVisible();
+}
+
+async function expectTodayTimeZone(page: Page, timeZoneValue: string) {
+  const localDate = localDateIn(timeZoneValue);
+  await expect(page.getByText(new RegExp(`· ${escapeRegExp(timeZoneValue)}$`, "u"))).toBeVisible();
+  await expect(page.getByText(formatLocalDate(localDate), { exact: true })).toBeVisible();
+}
+
+async function expectCalendarTimeZone(page: Page, timeZoneValue: string) {
+  await expect(page.getByText(`Schedule projection · ${timeZoneValue}`, { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Today", exact: true })).toBeVisible();
+}
+
+function formatLocalDate(localDate: string) {
+  return new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${localDate}T00:00:00.000Z`));
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }

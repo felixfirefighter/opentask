@@ -18,23 +18,33 @@ pnpm dev
 
 `pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose **Try demo** to create/reset a private sample workspace for that browser. The implemented baseline does not require a background worker; `pnpm worker` remains a zero-job architecture smoke until the reminder package activates jobs.
 
+For local use, you may open either `http://127.0.0.1:3000` or `http://localhost:3000`. When
+`BETTER_AUTH_URL` names either loopback host, OpenTask accepts the other spelling only on the same
+scheme and port; you do not need to change the environment file when switching between them.
+
 ## Implemented baseline
 
 The implemented baseline includes:
 
 - task, list, section, tag, checklist, subtask, search, status, priority, and Markdown workflows;
-- all-day and timed schedules, Today, Upcoming, Calendar, and a derived priority matrix;
+- contextual quick add with atomic task-plus-schedule creation, all-day and timed schedules, Today,
+  Upcoming, a full Calendar create/edit flow, and a derived priority matrix;
+- canonical task-detail navigation from planning/search surfaces, local-midnight and preference-aware
+  projection refresh, and recoverable optimistic/network-conflict states;
 - an optional GPT-5.6 proposal flow whose output is editable and cannot write until explicit Apply;
+- persisted planner Review/Result restoration after refresh or navigation, plus an explicit no-key
+  capability state in Settings;
 - a private versioned JSON export from **Settings → Your data**;
 - isolated demo entry, health endpoints, and reproducible Docker deployment.
 
 Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
 
-The next unfinished package is P1 local-core stabilization. Recurrence, habits, Focus timers,
-reminders/push, and installability remain later packages in the active Local-first Full Release.
+The next unfinished package is P2 bounded schedule-based recurrence. Habits, Focus timers,
+installability, reminders/push, and final release portability remain later packages in the active
+Local-first Full Release.
 Offline mutation synchronization, collaboration, and premium/billing paths remain excluded. See
 [docs/SCOPE.md](docs/SCOPE.md) for the exact target and
-[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the remaining P1-P7 order.
+[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the remaining P2-P7 order.
 
 ## Built with Codex and GPT-5.6
 

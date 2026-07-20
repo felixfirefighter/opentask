@@ -27,7 +27,9 @@ projections through its public application contracts.
 ## Public use cases and contracts
 
 - Container commands: create/update/reorder/soft-delete/restore folders and lists; create/update/reorder/delete empty sections; `createPersonalInbox` for identity bootstrap.
-- Task commands: create/update/move/reorder/soft-delete/restore and transition among `open`, `completed`, and `cancelled`.
+- Task commands: create/update/move/reorder/soft-delete/restore and transition among `open`,
+  `completed`, and `cancelled`; `createTaskWithSchedule` atomically creates one task and its validated
+  initial schedule under the same actor-scoped UUID idempotency contract.
 - Detail commands: manage tags and checklist items; set/clear schedule; set/edit/end a supported
   recurrence rule.
 - Occurrence commands: complete, skip, and undo/reopen one authorized occurrence using its opaque
@@ -61,7 +63,10 @@ No public contract exposes a Drizzle row or an unscoped repository method.
   days and the elapsed instant span at 63 days, and return at most 500 projected rows plus a
   truncation signal. They never return an occurrence outside the requested bounds, and the domain
   wrapper applies an explicit computation cap while resolving count/end semantics.
-- A schedule mutation increments the owning task `version` exactly once in the same transaction.
+- Atomic task-plus-schedule creation inserts both rows in one transaction and returns task version
+  `1`; the initial schedule is part of aggregate creation and does not increment that new version.
+  Every later set/replace/clear schedule mutation increments the owning task `version` exactly once
+  in the same transaction.
 - A recurring series is an open, non-deleted, scheduled root task with one `generation_mode=schedule`
   rule. Subtasks cannot own recurrence; checklist/subtask state is not repeated per occurrence.
 - API/UI recurrence input is a typed preset, never raw RRULE text: daily, weekdays, weekly on selected

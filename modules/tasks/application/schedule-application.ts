@@ -136,7 +136,7 @@ export function createTaskScheduleApplication({
   } as const;
 }
 
-function toScheduleWrite(schedule: TaskScheduleValue): ScheduleWriteValue {
+export function toScheduleWrite(schedule: TaskScheduleValue): ScheduleWriteValue {
   return schedule.kind === "all_day"
     ? schedule
     : {

@@ -28,7 +28,7 @@ export function createTasksApplication({
     folders: createFolderApplication({ database, clock }),
     lists: createListApplication({ database, clock }),
     sections: createSectionApplication({ database, clock }),
-    tasks: createTaskApplication({ database, clock }),
+    tasks: createTaskApplication({ database, clock, taskSchedules }),
     checklist: createChecklistApplication({ database, clock }),
     tags: createTagApplication({ database, clock }),
     search: createSearchApplication({ database }),

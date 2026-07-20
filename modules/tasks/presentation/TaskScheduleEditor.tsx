@@ -13,11 +13,23 @@ import { useTaskScheduleEditorController } from "./use-task-schedule-editor-cont
 export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: boolean; task: TaskDetailDto }>) {
   const editor = useTaskScheduleEditorController(task, disabled);
   const formRef = useRef<HTMLFormElement>(null);
+  const mutationFeedbackRef = useRef<HTMLDivElement>(null);
+  const saveStateRef = useRef<HTMLParagraphElement>(null);
   const validationRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (editor.validationError) validationRef.current?.focus();
   }, [editor.validationError]);
+
+  useEffect(() => {
+    if (editor.mutation.error && editor.lastAttempt === "clear") {
+      mutationFeedbackRef.current?.focus();
+    }
+  }, [editor.lastAttempt, editor.mutation.error]);
+
+  useEffect(() => {
+    if (editor.reconciledAttempt) saveStateRef.current?.focus();
+  }, [editor.reconciledAttempt]);
 
   function focusFirstScheduleField() {
     setTimeout(() => {
@@ -56,7 +68,7 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
         <div className={styles.stale} role="status">
           <span>Showing the last loaded schedule. A fresh copy could not be loaded.</span>
           <button className="quiet-button" type="button" onClick={() => void editor.scheduleQuery.refetch()}>
-            Try again
+            Refresh schedule
           </button>
         </div>
       ) : null}
@@ -90,12 +102,16 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
             <button
               className="quiet-button"
               type="button"
-              disabled={editor.mutation.isPending}
+              disabled={editor.mutation.isPending || editor.recovery.needsLatest}
               onClick={editor.cancelEditing}
             >
               Cancel
             </button>
-            <button className="primary-button" type="submit" disabled={editor.controlsDisabled}>
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={editor.controlsDisabled || editor.recovery.needsLatest}
+            >
               {editor.mutation.isPending ? "Saving schedule…" : "Save schedule"}
             </button>
           </div>
@@ -105,7 +121,7 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
           <button
             className="secondary-button"
             type="button"
-            disabled={editor.controlsDisabled}
+            disabled={editor.controlsDisabled || editor.recovery.needsLatest}
             onClick={() => {
               editor.beginEditing();
               focusFirstScheduleField();
@@ -117,7 +133,7 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
             <button
               className="quiet-button"
               type="button"
-              disabled={editor.controlsDisabled}
+              disabled={editor.controlsDisabled || editor.recovery.needsLatest}
               onClick={() => void editor.clearSchedule()}
             >
               Clear schedule
@@ -128,9 +144,18 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
 
       {editor.mutation.error ? (
         <TaskScheduleMutationFeedback
+          alertRef={mutationFeedbackRef}
           conflict={editor.recovery.conflict}
-          proposedSummary={editor.interpretation?.valid ? editor.interpretation.summary : null}
+          unconfirmed={editor.recovery.unconfirmed}
+          proposedSummary={
+            editor.lastAttempt === "clear"
+              ? "No schedule"
+              : editor.interpretation?.valid
+                ? editor.interpretation.summary
+                : null
+          }
           latestSummary={latestSummary}
+          latestMatchesProposal={editor.latestMatchesAttempt}
           loadingLatest={editor.recovery.loadingLatest || editor.scheduleQuery.isFetching}
           latestUnavailable={editor.recovery.latestUnavailable || editor.scheduleQuery.isError}
           pending={editor.mutation.isPending}
@@ -143,7 +168,13 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
           onUseLatest={() => void editor.useLatest()}
         />
       ) : null}
-      <p className={styles.saveState} role="status" aria-live="polite">
+      <p
+        ref={saveStateRef}
+        className={styles.saveState}
+        role="status"
+        aria-live="polite"
+        tabIndex={editor.reconciledAttempt ? -1 : undefined}
+      >
         {editor.mutation.isPending ? (
           <>
             <RefreshCw size={13} aria-hidden="true" /> Saving schedule…

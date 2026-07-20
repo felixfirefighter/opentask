@@ -37,6 +37,8 @@ export default async function CalendarPage({
     >
       <CalendarRouteScreen
         projection={projection}
+        inboxId={inbox.id}
+        inboxName={inbox.name}
         view={route.view}
         hasSavedView={route.hasSavedView}
         initialDate={route.initialDate}

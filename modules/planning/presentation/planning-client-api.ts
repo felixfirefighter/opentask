@@ -28,6 +28,19 @@ const scheduleMutationSchema = z.object({
   task: entityRefSchema,
   schedule: scheduleDtoSchema.nullable(),
 });
+const taskWithScheduleSchema = z.object({
+  task: entityRefSchema,
+  schedule: scheduleDtoSchema,
+});
+const planningListPageSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.uuidv4(),
+      name: z.string().min(1),
+    }),
+  ),
+  nextCursor: z.string().min(1).nullable(),
+});
 const quickAddSchema = z.object({
   sourceText: z.string(),
   suggestions: z.array(
@@ -48,6 +61,8 @@ const problemSchema = z.object({
 
 export type PlanningSchedule = z.infer<typeof scheduleSchema>;
 export type PlanningQuickAddSuggestion = z.infer<typeof quickAddSchema>["suggestions"][number];
+export type PlanningListOption = z.infer<typeof planningListPageSchema>["items"][number];
+export type PlanningListPage = z.infer<typeof planningListPageSchema>;
 
 export class PlanningClientError extends Error {
   readonly code: string;
@@ -87,22 +102,47 @@ export function setPlanningTaskSchedule(taskId: string, expectedVersion: number,
   );
 }
 
-export function createPlanningTask(resourceId: string, input: Readonly<{ title: string; listId: string }>) {
+export function createPlanningTaskWithSchedule(
+  resourceId: string,
+  input: Readonly<{
+    title: string;
+    descriptionMd?: string;
+    priority?: PlanningPriority;
+    listId: string;
+    schedule: PlanningSchedule;
+  }>,
+) {
   return mutate(
-    "/api/v1/tasks",
+    "/api/v1/tasks/with-schedule",
     "POST",
     {
       title: input.title,
-      descriptionMd: "",
-      priority: "none",
+      descriptionMd: input.descriptionMd ?? "",
+      priority: input.priority ?? "none",
       listId: input.listId,
       sectionId: null,
       parentTaskId: null,
       placement: { kind: "start" },
+      schedule: input.schedule,
     },
-    entityRefSchema,
+    taskWithScheduleSchema,
     { "idempotency-key": resourceId },
   );
+}
+
+export async function listPlanningTaskLists(cursor?: string): Promise<PlanningListPage> {
+  const query = new URLSearchParams({ limit: "100" });
+  if (cursor) query.set("cursor", cursor);
+  const response = await fetch(`/api/v1/lists?${query.toString()}`, {
+    credentials: "same-origin",
+    headers: { accept: "application/json" },
+  });
+  if (!response.ok) throw await readProblem(response);
+  try {
+    return planningListPageSchema.parse(await response.json());
+  } catch {
+    throw new PlanningClientError("The server returned an unreadable list response.");
+  }
 }
 
 export function parsePlanningQuickAdd(text: string, timezone: string) {

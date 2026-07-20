@@ -90,6 +90,7 @@
 }
 
 .fields label,
+.fullField,
 .timeZone {
   display: grid;
   min-width: 0;
@@ -100,6 +101,9 @@
 }
 
 .fields input,
+.fields select,
+.fullField input,
+.fullField textarea,
 .timeZone select {
   min-width: 0;
   min-height: var(--control-target-touch);
@@ -108,6 +112,36 @@
   border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
+  font: inherit;
+}
+
+.fullField textarea {
+  min-height: 104px;
+  padding: var(--space-3);
+  line-height: var(--type-body-line);
+  resize: vertical;
+}
+
+.fieldStatus {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  gap: var(--space-2);
+  margin: calc(-1 * var(--space-3)) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.loadMore {
+  width: fit-content;
+  min-height: var(--control-target-desktop);
+  margin-top: calc(-1 * var(--space-3));
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .error {

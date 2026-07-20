@@ -8,6 +8,14 @@ import { signUpThroughUi } from "./support/wp01-auth";
 import { assertPriorityMarkers, readBaseTaskRowContract } from "./support/task-row-contract";
 import { addTagToTask, quickAddTask, taskRow, updateTask } from "./support/wp03-tasks";
 
+const calendarCreateProjects = new Set([
+  "desktop-chromium",
+  "tablet-chromium",
+  "mobile-chromium",
+  "boundary-768-chromium",
+  "boundary-320-chromium",
+]);
+
 test("production TaskRow preserves the approved density, typography, and action targets", async ({
   page,
 }, testInfo) => {
@@ -313,6 +321,99 @@ test("mobile authenticated surfaces preserve the touch and readable-range contra
   await assertMobileTouchContracts(page, "50000000-0000-4000-8000-000000000001");
 });
 
+test("the Calendar create form fits every required responsive viewport", async ({ page }, testInfo) => {
+  test.skip(
+    !calendarCreateProjects.has(testInfo.project.name),
+    "One project per required width owns the Calendar create-form contract.",
+  );
+  test.setTimeout(90_000);
+  await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
+  await page.goto("/");
+  const demoResponse = page.waitForResponse(
+    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Try demo" }).click();
+  expect((await demoResponse).status()).toBe(200);
+  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+
+  await page.goto("/calendar");
+  await expect(page.getByRole("heading", { name: "Calendar", exact: true }).first()).toBeVisible();
+  const addTask = page.getByRole("main").getByRole("button", { name: "Add task", exact: true });
+  await addTask.click();
+  const dialog = page.getByRole("dialog", { name: "Create scheduled task" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Task title", { exact: true })).toBeFocused();
+  await expect(dialog.getByLabel("Notes (Markdown)", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("combobox", { name: "List", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("combobox", { name: "Priority", exact: true })).toBeVisible();
+  await expect(dialog.getByLabel("Schedule timezone", { exact: true })).toBeDisabled();
+  await page.evaluate(() => document.fonts.ready);
+  await expectUsesSans(
+    dialog.getByRole("heading", { name: "Create scheduled task" }),
+    "Calendar create title",
+  );
+
+  const layout = await dialog.evaluate((element) => {
+    const dialogRect = element.getBoundingClientRect();
+    const root = document.documentElement;
+    const fields = Array.from(element.querySelectorAll("input, select, textarea, button"));
+    return {
+      activeName: document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent,
+      dialogClientWidth: element.clientWidth,
+      dialogLeft: dialogRect.left,
+      dialogRight: dialogRect.right,
+      dialogScrollWidth: element.scrollWidth,
+      fieldsInsideDialog: fields.every((field) => {
+        const rect = field.getBoundingClientRect();
+        return rect.left >= dialogRect.left - 1 && rect.right <= dialogRect.right + 1;
+      }),
+      rootClientWidth: root.clientWidth,
+      rootScrollWidth: root.scrollWidth,
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+      dialogTop: dialogRect.top,
+      dialogBottom: dialogRect.bottom,
+    };
+  });
+  expect(layout.rootScrollWidth, "Calendar create page horizontal overflow").toBeLessThanOrEqual(
+    layout.rootClientWidth + 1,
+  );
+  expect(layout.dialogScrollWidth, "Calendar create dialog horizontal overflow").toBeLessThanOrEqual(
+    layout.dialogClientWidth + 1,
+  );
+  expect(layout.dialogLeft).toBeGreaterThanOrEqual(-1);
+  expect(layout.dialogRight).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.dialogTop).toBeGreaterThanOrEqual(-1);
+  expect(layout.dialogBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.fieldsInsideDialog).toBe(true);
+
+  await expectResponsiveTarget(
+    page,
+    dialog.getByRole("button", { name: "Close task form" }),
+    "Calendar create close",
+  );
+  await expectResponsiveTarget(
+    page,
+    dialog.getByRole("button", { name: "Cancel", exact: true }),
+    "Calendar create cancel",
+  );
+  await expectResponsiveTarget(
+    page,
+    dialog.getByRole("button", { name: "Create task", exact: true }),
+    "Calendar create submit",
+  );
+
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/p1/calendar-create");
+  await mkdir(evidenceDirectory, { recursive: true });
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  });
+  await page.screenshot({
+    path: path.join(evidenceDirectory, `calendar-create-${testInfo.project.name}.png`),
+    animations: "disabled",
+  });
+});
+
 test("every released route reflows at the tablet and minimum-width boundaries", async ({
   page,
 }, testInfo) => {
@@ -584,6 +685,20 @@ async function expectTouchTarget(locator: Locator, label: string) {
   expect(box, `${label} has a bounding box`).not.toBeNull();
   expect(box!.width, `${label} width`).toBeGreaterThanOrEqual(44);
   expect(box!.height, `${label} height`).toBeGreaterThanOrEqual(44);
+}
+
+async function expectResponsiveTarget(page: Page, locator: Locator, label: string) {
+  const minimum = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const token = matchMedia("(max-width: 767px), (any-pointer: coarse)").matches
+      ? "--control-target-touch"
+      : "--control-target-desktop";
+    return Number.parseFloat(root.getPropertyValue(token));
+  });
+  const box = await locator.boundingBox();
+  expect(box, `${label} has a bounding box`).not.toBeNull();
+  expect(box!.width, `${label} width`).toBeGreaterThanOrEqual(minimum);
+  expect(box!.height, `${label} height`).toBeGreaterThanOrEqual(minimum);
 }
 
 async function expectUsesSans(locator: Locator, label: string) {

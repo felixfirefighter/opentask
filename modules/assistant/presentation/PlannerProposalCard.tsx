@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, ArrowRight, Check, ChevronDown, ChevronUp, Clock3, Info } from "lucide-react";
+import Link from "next/link";
 import { useId, useState } from "react";
 
 import type { PlannerAction, PlannerPlanningContext } from "../application/contracts";
@@ -15,6 +16,7 @@ import styles from "./PlannerProposalCard.module.css";
 export function PlannerProposalCard({
   action,
   target,
+  taskHref,
   selected,
   issues,
   overflow,
@@ -27,6 +29,7 @@ export function PlannerProposalCard({
 }: Readonly<{
   action: PlannerAction;
   target: string;
+  taskHref?: string | undefined;
   selected: boolean;
   issues: readonly PlannerActionIssue[];
   overflow: string | null;
@@ -69,7 +72,7 @@ export function PlannerProposalCard({
           <span className={styles.actionKind} data-kind={action.kind}>
             {actionLabel(action)}
           </span>
-          <h3>{target}</h3>
+          <h3>{taskHref ? <Link href={taskHref}>{target}</Link> : target}</h3>
           {editable ? (
             <Button
               type="button"

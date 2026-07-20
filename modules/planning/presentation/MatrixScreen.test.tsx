@@ -11,7 +11,6 @@ function renderMatrix(overrides: Partial<MatrixScreenProps> = {}) {
     model: matrixFixture,
     condition: { kind: "ready" },
     taskActions: {},
-    onAddTask: vi.fn(),
     ...overrides,
   };
   return render(<MatrixScreen {...props} />);
@@ -55,6 +54,16 @@ describe("MatrixScreen", () => {
     expect(screen.getByRole("heading", { name: "Do now" })).toBeInTheDocument();
     expect(screen.getByText("Loading Do now tasks")).toBeInTheDocument();
     expect(screen.getByText("Loading Later tasks")).toBeInTheDocument();
+  });
+
+  it("keeps its classifications visible and read-only while the local date refreshes", () => {
+    renderMatrix({
+      condition: { kind: "date-changed", currentDateLabel: "Tuesday, 21 July" },
+      taskActions: { onPriorityChange: vi.fn() },
+    });
+
+    expect(screen.getByText("Confirm the workshop goals")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /more actions for confirm/i })).toBeDisabled();
   });
 
   it("keeps loaded quadrants read-only offline and hides them for permission", () => {

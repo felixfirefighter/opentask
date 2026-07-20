@@ -111,7 +111,9 @@ test("cancel, terminal restore, search, and palette creation work with keyboard 
   });
   await selectCommandOptionWithKeyboard(page, taskOption);
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(new RegExp(`/tasks/${task.id}$`, "u"));
+  await expect(page).toHaveURL(
+    (url) => url.pathname === `/tasks/${task.id}` && url.searchParams.get("returnTo") === "/inbox",
+  );
   await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(task.title);
 
   await page.goto("/inbox");

@@ -1,12 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
 import type { EisenhowerProjection } from "../application/public";
 import { MatrixScreen } from "./MatrixScreen";
+import { PlanningLiveRegion } from "./PlanningLiveRegion";
 import { localDateForInstant } from "./schedule-form-policy";
 import { ScheduleEditorDialog } from "./ScheduleEditorDialog";
+import { usePlanningProjectionFreshness } from "./use-planning-projection-freshness";
 import { usePlanningTaskController } from "./use-planning-task-controller";
 import { toMatrixPlanningModel } from "./planning-view-model";
 
@@ -14,22 +15,52 @@ export function MatrixRouteScreen({
   hourCycle,
   projection,
 }: Readonly<{ hourCycle: "12" | "24"; projection: EisenhowerProjection }>) {
-  const router = useRouter();
   const tasks = useMemo(
     () => [...projection.doNow, ...projection.plan, ...projection.timeSensitive, ...projection.later],
     [projection],
   );
-  const controller = usePlanningTaskController(tasks, projection.timeZone);
+  const destinationByTask = useMemo(
+    () =>
+      new Map([
+        ...projection.doNow.map((task) => [task.id, "Do now"] as const),
+        ...projection.plan.map((task) => [task.id, "Plan"] as const),
+        ...projection.timeSensitive.map((task) => [task.id, "Time-sensitive"] as const),
+        ...projection.later.map((task) => [task.id, "Later"] as const),
+      ]),
+    [projection],
+  );
+  const controllerOptions = useMemo(
+    () => ({
+      authoritativeSource: projection,
+      destinationLabelForTask: (taskId: string) => destinationByTask.get(taskId) ?? null,
+      taskReturnTo: "/matrix",
+    }),
+    [destinationByTask, projection],
+  );
+  const controller = usePlanningTaskController(tasks, projection.timeZone, controllerOptions);
+  const freshness = usePlanningProjectionFreshness({
+    projectedLocalDate: localDateForInstant(projection.nowAt, projection.timeZone),
+    timeZone: projection.timeZone,
+  });
+  const model = toMatrixPlanningModel(projection, {
+    conflictedTaskId: controller.conflictedTaskId,
+    hourCycle,
+    taskReturnTo: "/matrix",
+  });
+  const condition =
+    controller.condition.kind === "ready" && freshness.pendingLocalDateLabel
+      ? ({ kind: "date-changed", currentDateLabel: freshness.pendingLocalDateLabel } as const)
+      : controller.condition;
 
   return (
     <>
       <MatrixScreen
-        model={toMatrixPlanningModel(projection, { hourCycle })}
-        condition={controller.condition}
+        model={{ ...model, announcement: controller.announcement }}
+        condition={condition}
         taskActions={controller.taskActions}
-        onAddTask={() => router.push("/inbox")}
         onRetry={controller.retry}
       />
+      <PlanningLiveRegion messages={[freshness.announcement]} />
       <ScheduleEditorDialog
         localDate={localDateForInstant(projection.nowAt, projection.timeZone)}
         task={controller.scheduleTask}

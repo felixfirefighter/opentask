@@ -13,7 +13,8 @@ import {
 
 export function TaskCommandPaletteResults({
   canCreate,
-  createError,
+  createErrorMessage,
+  createUncertain,
   destinationName,
   inbox,
   lists,
@@ -30,6 +31,7 @@ export function TaskCommandPaletteResults({
   searchResults,
   searchTooLong,
   onCreate,
+  onAbandonCreate,
   onLoadMoreLists,
   onLoadMoreSearch,
   onNavigate,
@@ -37,7 +39,8 @@ export function TaskCommandPaletteResults({
   onRetrySearch,
 }: Readonly<{
   canCreate: boolean;
-  createError: boolean;
+  createErrorMessage: string | null;
+  createUncertain: boolean;
   destinationName: string;
   inbox: { id: string; name: string };
   lists: readonly RegularListDto[];
@@ -54,6 +57,7 @@ export function TaskCommandPaletteResults({
   searchResults: readonly TaskSearchResultDto[];
   searchTooLong: boolean;
   onCreate: PaletteAsyncAction;
+  onAbandonCreate: () => void;
   onLoadMoreLists: PaletteAsyncAction;
   onLoadMoreSearch: PaletteAsyncAction;
   onNavigate: (href: string) => void;
@@ -70,7 +74,8 @@ export function TaskCommandPaletteResults({
   return (
     <>
       <TaskCommandPaletteConditions
-        createError={createError}
+        createErrorMessage={createErrorMessage}
+        createUncertain={createUncertain}
         listsError={listsError}
         listsLoading={listsLoading}
         offline={offline}
@@ -80,6 +85,7 @@ export function TaskCommandPaletteResults({
         noTaskResults={noTaskResults && searchResults.length === 0}
         onRetryLists={onRetryLists}
         onRetrySearch={onRetrySearch}
+        onAbandonCreate={onAbandonCreate}
       />
       <Command.List className={styles.results} label="Commands and task results">
         <Command.Empty className={styles.empty}>No matching commands.</Command.Empty>

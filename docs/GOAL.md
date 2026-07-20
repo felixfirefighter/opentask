@@ -5,7 +5,7 @@ truth, not a progress log. Feature authority remains in `docs/SCOPE.md`.
 
 ## Goal objective
 
-> Continue from the implemented, user-approved Editorial Focus baseline and complete the OpenTask Local-first Full Release exactly as specified by the repository's current-truth contracts. Stabilize the existing manual/AI planning core, then implement schedule-based task recurrence, habits, authoritative Focus sessions, an installable read-only-offline PWA shell, one optional browser-push task reminder with an active worker, and the expanded portable local release. Follow the remaining P1-P7 dependency gates in `docs/IMPLEMENTATION_PLAN.md`, keep every provider optional, preserve canonical task/time data and review-before-apply AI, and pass `docs/QUALITY.md`. Do not implement Stage A–D or any excluded feature without another user-authorized scope change.
+> Continue from the implemented, user-approved Editorial Focus and stabilized local-core baseline and complete the OpenTask Local-first Full Release exactly as specified by the repository's current-truth contracts. Implement schedule-based task recurrence, habits, authoritative Focus sessions, an installable read-only-offline PWA shell, one optional browser-push task reminder with an active worker, and the expanded portable local release. Follow the remaining P2-P7 dependency gates in `docs/IMPLEMENTATION_PLAN.md`, keep every provider optional, preserve canonical task/time data and review-before-apply AI, and pass `docs/QUALITY.md`. Do not implement Stage A–D or any excluded feature without another user-authorized scope change.
 
 ## Required reading order
 

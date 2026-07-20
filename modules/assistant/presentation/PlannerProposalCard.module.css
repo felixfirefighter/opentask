@@ -79,6 +79,19 @@
   line-height: var(--type-row-line);
 }
 
+.titleRow h3 a {
+  display: inline-flex;
+  min-height: var(--control-target-touch);
+  align-items: center;
+  color: inherit;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+}
+
+.titleRow h3 a:hover {
+  text-decoration-color: currentColor;
+}
+
 .titleRow button {
   flex: 0 0 auto;
 }

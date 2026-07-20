@@ -104,7 +104,14 @@ describe("TaskEmpty", () => {
 
 function renderWorkspace() {
   return render(
-    <TaskWorkspaceScreen destination={{ kind: "list", list: { id: LIST_ID, name: "Launch" } }} />,
+    <TaskWorkspaceScreen
+      destination={{
+        kind: "list",
+        list: { id: LIST_ID, name: "Launch" },
+        timeZone: "Asia/Singapore",
+        hourCycle: "h23",
+      }}
+    />,
   );
 }
 

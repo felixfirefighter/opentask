@@ -158,6 +158,9 @@ describe("CalendarScreen", () => {
     const user = userEvent.setup();
     const offline = renderCalendar({ condition: { kind: "offline" } });
     expect(screen.getByRole("button", { name: "Previous range" })).toBeDisabled();
+    for (const view of ["Month", "Week", "Day", "Agenda"]) {
+      expect(screen.getByRole("button", { name: view })).toBeDisabled();
+    }
     await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "event-demo");
     expect(screen.getByRole("button", { name: "Edit schedule" })).toBeDisabled();
     expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
@@ -174,6 +177,9 @@ describe("CalendarScreen", () => {
     expect(calendarMock.latest?.events).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "event-demo", editable: false })]),
     );
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "event-demo");
+    expect(screen.getByRole("button", { name: "Edit schedule" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Open task" })).toBeEnabled();
   });
 });
 

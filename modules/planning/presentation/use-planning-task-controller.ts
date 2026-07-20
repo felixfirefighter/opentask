@@ -1,9 +1,10 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useOnlineStatus } from "@/shared/presentation";
+import { markWorkspaceRoutesStale, useOnlineStatus } from "@/shared/presentation";
 
 import {
   PlanningClientError,
@@ -18,6 +19,7 @@ import type {
   PlanningScreenCondition,
   PlanningTaskActions,
 } from "./planning-screen-model";
+import { planningTaskDetailsHref } from "./planning-task-navigation";
 
 export type MutablePlanningTask = Readonly<{
   id: string;
@@ -26,12 +28,42 @@ export type MutablePlanningTask = Readonly<{
   schedule: PlanningSchedule | null;
 }>;
 
-export function usePlanningTaskController(tasks: readonly MutablePlanningTask[], timeZone: string) {
+type PlanningMutationKind = "priority" | "schedule" | "status";
+
+type PlanningTaskControllerOptions = Readonly<{
+  authoritativeSource?: object | undefined;
+  destinationLabelForTask?: ((taskId: string) => string | null) | undefined;
+  taskReturnTo?: string | null | undefined;
+}>;
+
+type MutationRecovery = Readonly<{
+  kind: PlanningMutationKind;
+  minimumVersion: number;
+  outcome: "conflict" | "failed" | "saved" | "unconfirmed";
+  restoreFocus: boolean;
+  sourceProjection: object | undefined;
+  sourceHeadingId: string | null;
+  taskId: string;
+  title: string;
+}>;
+
+export function usePlanningTaskController(
+  tasks: readonly MutablePlanningTask[],
+  timeZone: string,
+  options: PlanningTaskControllerOptions = {},
+) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const online = useOnlineStatus();
   const inFlight = useRef(new Set<string>());
-  const [failure, setFailure] = useState<Readonly<{ conflict: boolean; message: string }> | null>(null);
+  const [failure, setFailure] = useState<Readonly<{
+    conflict: boolean;
+    message: string;
+    taskId: string;
+  }> | null>(null);
   const [scheduleTaskId, setScheduleTaskId] = useState<string | null>(null);
+  const [recovery, setRecovery] = useState<MutationRecovery | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const byId = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
 
   const condition: PlanningScreenCondition = !online
@@ -42,63 +74,144 @@ export function usePlanningTaskController(tasks: readonly MutablePlanningTask[],
         ? { kind: "error", message: failure.message }
         : { kind: "ready" };
 
-  async function run(taskId: string, operation: (task: MutablePlanningTask) => Promise<unknown>) {
+  useEffect(() => {
+    if (!recovery) return;
+    const latest = byId.get(recovery.taskId);
+    if (recovery.outcome === "unconfirmed") {
+      if (options.authoritativeSource === recovery.sourceProjection) return;
+    } else if (latest && latest.version < recovery.minimumVersion) {
+      return;
+    }
+
+    const destination = options.destinationLabelForTask?.(recovery.taskId) ?? null;
+    const timeout = window.setTimeout(() => {
+      setAnnouncement(recoveryAnnouncement(recovery, destination));
+      if (recovery.outcome === "unconfirmed") {
+        setFailure((current) => (current?.taskId === recovery.taskId ? null : current));
+      }
+      if (recovery.restoreFocus) {
+        restorePlanningFocus(recovery.taskId, recovery.sourceHeadingId);
+      }
+      setRecovery(null);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [byId, options, recovery]);
+
+  async function refreshAuthoritativeData() {
+    await queryClient.invalidateQueries().catch(() => undefined);
+    markWorkspaceRoutesStale();
+    router.refresh();
+  }
+
+  async function run(
+    taskId: string,
+    kind: PlanningMutationKind,
+    operation: (task: MutablePlanningTask) => Promise<unknown>,
+    restoreFocus = true,
+  ) {
     const task = byId.get(taskId);
     if (!task || !online || inFlight.current.has(taskId)) {
-      return { saved: false, conflict: false } as const;
+      return { saved: false, conflict: false, unconfirmed: false } as const;
     }
+    const sourceHeadingId = restoreFocus ? sourceHeadingForTask(taskId) : null;
     inFlight.current.add(taskId);
     setFailure(null);
+    setAnnouncement("");
     try {
-      await operation(task);
-      router.refresh();
-      return { saved: true, conflict: false } as const;
+      const result = await operation(task);
+      setRecovery({
+        kind,
+        minimumVersion: resultVersion(result) ?? task.version + 1,
+        outcome: "saved",
+        restoreFocus,
+        sourceProjection: options.authoritativeSource,
+        sourceHeadingId,
+        taskId,
+        title: task.title,
+      });
+      setAnnouncement(`${task.title} was saved. Refreshing the planning view.`);
+      await refreshAuthoritativeData();
+      return { saved: true, conflict: false, unconfirmed: false } as const;
     } catch (error) {
       const conflict = error instanceof PlanningClientError && error.code === "CONFLICT";
+      const unconfirmed = !(error instanceof PlanningClientError) || error.code === "INTERNAL";
+      if (unconfirmed) {
+        setAnnouncement(`${task.title}'s change could not be confirmed. Loading the latest planning view.`);
+      }
       setFailure({
         conflict,
         message: conflict
           ? "This task changed elsewhere. The latest server value is being restored."
-          : "That task change was not saved. Your current planning view remains unchanged.",
+          : unconfirmed
+            ? "The task-change outcome could not be confirmed. The latest server value is being loaded."
+            : "That task change was not saved. Your current planning view remains unchanged.",
+        taskId,
       });
-      router.refresh();
-      return { saved: false, conflict } as const;
+      setRecovery({
+        kind,
+        minimumVersion:
+          error instanceof PlanningClientError && error.currentVersion ? error.currentVersion : task.version,
+        outcome: conflict ? "conflict" : unconfirmed ? "unconfirmed" : "failed",
+        restoreFocus,
+        sourceProjection: options.authoritativeSource,
+        sourceHeadingId,
+        taskId,
+        title: task.title,
+      });
+      await refreshAuthoritativeData();
+      return { saved: false, conflict, unconfirmed } as const;
     } finally {
       inFlight.current.delete(taskId);
     }
   }
 
   const taskActions: PlanningTaskActions = {
-    onOpenTask: (taskId) => router.push(`/tasks/${taskId}`),
+    onOpenTask: (taskId) => router.push(planningTaskDetailsHref(taskId, options.taskReturnTo)),
     onStatusChange: (taskId, status) => {
-      void run(taskId, (task) => transitionPlanningTask(taskId, task.version, status));
+      void run(taskId, "status", (task) => transitionPlanningTask(taskId, task.version, status));
     },
     onPriorityChange: (taskId, priority) => {
-      void run(taskId, (task) => updatePlanningTaskPriority(taskId, task.version, priority));
+      void run(taskId, "priority", (task) => updatePlanningTaskPriority(taskId, task.version, priority));
     },
     onEditSchedule: setScheduleTaskId,
   };
 
-  async function saveSchedule(taskId: string, schedule: PlanningSchedule) {
-    const result = await run(taskId, (task) => setPlanningTaskSchedule(taskId, task.version, schedule));
+  async function saveSchedule(taskId: string, schedule: PlanningSchedule, restoreFocus = true) {
+    const result = await run(
+      taskId,
+      "schedule",
+      (task) => setPlanningTaskSchedule(taskId, task.version, schedule),
+      restoreFocus,
+    );
     if (result.saved) setScheduleTaskId(null);
-    return result.saved;
+    return result.saved ? "saved" : result.unconfirmed ? "unconfirmed" : "failed";
   }
 
   async function saveCalendarChange(change: CalendarEventChange): Promise<CalendarChangeResult> {
     const schedule: PlanningSchedule = change.allDay
       ? { kind: "all_day", startDate: change.start, endDate: change.end }
       : { kind: "timed", startAt: change.start, endAt: change.end, timezone: timeZone };
-    const result = await run(change.taskId, (task) =>
-      setPlanningTaskSchedule(change.taskId, task.version, schedule),
+    const result = await run(
+      change.taskId,
+      "schedule",
+      (task) => setPlanningTaskSchedule(change.taskId, task.version, schedule),
+      false,
     );
     return result.saved
       ? { ok: true, announcement: "Task schedule saved." }
-      : { ok: false, message: "The schedule was not saved.", conflict: result.conflict };
+      : {
+          ok: false,
+          message: result.unconfirmed
+            ? "The schedule-change outcome could not be confirmed. The latest server value is being loaded."
+            : "The schedule was not saved.",
+          conflict: result.conflict,
+        };
   }
 
   return {
+    announcement,
     condition,
+    conflictedTaskId: failure?.conflict ? failure.taskId : null,
     taskActions,
     scheduleTask: scheduleTaskId ? (byId.get(scheduleTaskId) ?? null) : null,
     closeSchedule: () => setScheduleTaskId(null),
@@ -107,7 +220,68 @@ export function usePlanningTaskController(tasks: readonly MutablePlanningTask[],
     saveCalendarChange,
     retry: () => {
       setFailure(null);
-      router.refresh();
+      void refreshAuthoritativeData();
     },
   } as const;
+}
+
+function resultVersion(result: unknown) {
+  if (!result || typeof result !== "object") return null;
+  if ("version" in result && typeof result.version === "number") return result.version;
+  if (
+    "task" in result &&
+    result.task &&
+    typeof result.task === "object" &&
+    "version" in result.task &&
+    typeof result.task.version === "number"
+  ) {
+    return result.task.version;
+  }
+  return null;
+}
+
+function sourceHeadingForTask(taskId: string) {
+  const row = planningTaskRow(taskId);
+  return row?.closest("section[aria-labelledby]")?.getAttribute("aria-labelledby") ?? null;
+}
+
+function restorePlanningFocus(taskId: string, sourceHeadingId: string | null) {
+  if (document.querySelector('[role="dialog"]')) return;
+  const row = planningTaskRow(taskId);
+  const rowTarget = row?.querySelector<HTMLElement>("[data-planning-task-open]");
+  const sourceHeading = sourceHeadingId ? document.getElementById(sourceHeadingId) : null;
+  const fallback =
+    document.querySelector<HTMLElement>("[data-planning-recovery-focus]") ??
+    document.querySelector<HTMLElement>('h2[tabindex="-1"]') ??
+    document.querySelector<HTMLElement>("[data-route-focus]");
+  (rowTarget ?? sourceHeading ?? fallback)?.focus();
+}
+
+function planningTaskRow(taskId: string) {
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-planning-task-id]")).find(
+    (row) => row.dataset.planningTaskId === taskId,
+  );
+}
+
+function mutationResultLabel(kind: PlanningMutationKind) {
+  if (kind === "priority") return "priority was updated";
+  if (kind === "schedule") return "schedule was updated";
+  return "status was updated";
+}
+
+function recoveryAnnouncement(recovery: MutationRecovery, destination: string | null) {
+  if (recovery.outcome === "conflict") {
+    return destination
+      ? `${recovery.title} changed elsewhere and is now in ${destination}.`
+      : `${recovery.title} changed elsewhere. The latest planning view was restored.`;
+  }
+  if (recovery.outcome === "failed") {
+    return `${recovery.title} was not changed. The latest planning view was restored.`;
+  }
+  if (recovery.outcome === "unconfirmed") {
+    return `${recovery.title}'s change could not be confirmed. The latest planning view was loaded.`;
+  }
+  return destination && recovery.kind !== "status"
+    ? `${recovery.title} moved to ${destination}.`
+    : `${recovery.title} ${mutationResultLabel(recovery.kind)}.`;
 }

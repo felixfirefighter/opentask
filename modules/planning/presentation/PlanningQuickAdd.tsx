@@ -29,6 +29,8 @@ export function PlanningQuickAdd({
 }: PlanningQuickAddProps) {
   const inputId = useId();
   const explanationId = `${inputId}-explanation`;
+  const errorId = `${inputId}-error`;
+  const describedBy = model.errorMessage ? `${explanationId} ${errorId}` : explanationId;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,7 +38,7 @@ export function PlanningQuickAdd({
   }
 
   return (
-    <form className={styles.composer} onSubmit={submit} aria-describedby={explanationId}>
+    <form className={styles.composer} onSubmit={submit} aria-describedby={describedBy}>
       <label htmlFor={inputId} className={styles.label}>
         Add a task
       </label>
@@ -46,10 +48,17 @@ export function PlanningQuickAdd({
           id={inputId}
           ref={inputRef}
           value={model.value}
-          disabled={disabled || model.submitting}
-          placeholder="Add a task for today…"
+          disabled={disabled || model.submitting || model.retryLocked}
+          placeholder={model.placeholder ?? "Add a task…"}
           autoComplete="off"
           onChange={(event) => onChange(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape" || disabled || model.submitting || model.retryLocked) return;
+            event.preventDefault();
+            const token = model.tokens?.[0];
+            if (token && onRemoveToken) onRemoveToken(token.id);
+            else onChange("");
+          }}
         />
         <Button
           type="submit"
@@ -68,7 +77,7 @@ export function PlanningQuickAdd({
             {onEditToken ? (
               <button
                 type="button"
-                disabled={disabled}
+                disabled={disabled || model.submitting || model.retryLocked}
                 aria-label={`Edit recognized value ${token.label}`}
                 onClick={() => onEditToken(token.id)}
               >
@@ -80,7 +89,7 @@ export function PlanningQuickAdd({
             {onRemoveToken ? (
               <button
                 type="button"
-                disabled={disabled}
+                disabled={disabled || model.submitting || model.retryLocked}
                 aria-label={`Clear recognized value ${token.label}`}
                 onClick={() => onRemoveToken(token.id)}
               >
@@ -90,11 +99,28 @@ export function PlanningQuickAdd({
           </span>
         ))}
       </div>
+      {(model.tokens ?? []).flatMap((token) =>
+        token.warning ? (
+          <p className={styles.warning} key={`${token.id}-warning`} role="status">
+            {token.warning}
+          </p>
+        ) : (
+          []
+        ),
+      )}
+      {model.errorMessage ? (
+        <p className={styles.error} id={errorId} role="alert">
+          {model.errorMessage}
+        </p>
+      ) : null}
       <p className={styles.explanation} id={explanationId}>
         {disabled
           ? "Task creation is unavailable until this view can write again."
           : "Recognized dates stay visible and editable before the task is saved."}
       </p>
+      <span className="sr-only" role="status" aria-live="polite">
+        {model.announcement}
+      </span>
     </form>
   );
 }

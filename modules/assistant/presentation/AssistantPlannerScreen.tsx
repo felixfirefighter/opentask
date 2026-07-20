@@ -13,6 +13,7 @@ import { PlannerDescribeStep } from "./PlannerDescribeStep";
 import { PlannerProcessingState } from "./PlannerProcessingState";
 import { PlannerResultStep } from "./PlannerResultStep";
 import { PlannerReviewStep } from "./PlannerReviewStep";
+import { PlannerTerminalProposalState } from "./PlannerTerminalProposalState";
 import type { AssistantPlannerScreenProps } from "./planner-screen-model";
 import { PlannerStepIndicator } from "./PlannerStepIndicator";
 import styles from "./AssistantPlannerScreen.module.css";
@@ -20,7 +21,13 @@ import styles from "./AssistantPlannerScreen.module.css";
 export function AssistantPlannerScreen(props: AssistantPlannerScreenProps) {
   const [draft, setDraft] = useState<PlannerInput>(props.initialInput);
   const step =
-    props.state.kind === "result" ? "result" : props.state.kind === "review" ? "review" : "describe";
+    props.state.kind === "result" ||
+    props.state.kind === "terminal" ||
+    (props.state.kind === "review" && props.state.proposal.status !== "pending")
+      ? "result"
+      : props.state.kind === "review"
+        ? "review"
+        : "describe";
 
   return (
     <div className={styles.page}>
@@ -46,10 +53,17 @@ export function AssistantPlannerScreen(props: AssistantPlannerScreenProps) {
           failure={props.state.failure}
           onChange={setDraft}
           onSubmit={props.onCreateProposal}
-          onRetry={props.onRetry}
+          onRetry={() => props.onRetry(draft)}
         />
       ) : props.state.kind === "processing" ? (
         <PlannerProcessingState stage={props.state.stage} input={props.state.submittedInput} />
+      ) : props.state.kind === "review" && props.state.proposal.status !== "pending" ? (
+        <PlannerTerminalProposalState
+          proposal={props.state.proposal}
+          todayHref={props.todayHref}
+          calendarHref={props.calendarHref}
+          onEditInput={props.onEditInput}
+        />
       ) : props.state.kind === "review" ? (
         <PlannerReviewStep
           key={props.state.proposal.id}
@@ -58,19 +72,25 @@ export function AssistantPlannerScreen(props: AssistantPlannerScreenProps) {
           issues={props.state.issues ?? []}
           failure={props.state.failure}
           online={props.online}
-          todayHref={props.todayHref}
-          calendarHref={props.calendarHref}
           onApply={props.onApply}
           onReject={props.onReject}
           onRetry={props.onRetry}
           onEditInput={props.onEditInput}
         />
-      ) : (
+      ) : props.state.kind === "result" ? (
         <PlannerResultStep
           proposal={props.state.proposal}
           result={props.state.result}
           selectedActionCount={props.state.selectedActionCount}
           notAppliedActionCount={props.state.notAppliedActionCount}
+          taskLinks={props.state.taskLinks}
+          todayHref={props.todayHref}
+          calendarHref={props.calendarHref}
+          onEditInput={props.onEditInput}
+        />
+      ) : (
+        <PlannerTerminalProposalState
+          proposal={props.state.proposal}
           todayHref={props.todayHref}
           calendarHref={props.calendarHref}
           onEditInput={props.onEditInput}

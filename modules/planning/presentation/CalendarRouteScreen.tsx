@@ -1,19 +1,24 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { CalendarProjection } from "../application/public";
 import { CalendarScreen } from "./CalendarScreen";
+import { CalendarTaskCreateDialog } from "./CalendarTaskCreateDialog";
+import { PlanningLiveRegion } from "./PlanningLiveRegion";
 import { midpointLocalDate } from "./schedule-form-policy";
 import { ScheduleEditorDialog } from "./ScheduleEditorDialog";
 import type { CalendarView, VisibleCalendarRange } from "./planning-screen-model";
+import { planningTaskDetailsHref } from "./planning-task-navigation";
 import { usePlanningTaskController, type MutablePlanningTask } from "./use-planning-task-controller";
 import { toCalendarPlanningModel } from "./planning-view-model";
 
 export function CalendarRouteScreen({
   hasSavedView,
   hourCycle,
+  inboxId,
+  inboxName,
   initialDate,
   projection,
   view,
@@ -21,6 +26,8 @@ export function CalendarRouteScreen({
 }: Readonly<{
   hasSavedView: boolean;
   hourCycle: "12" | "24";
+  inboxId: string;
+  inboxName: string;
   initialDate: string;
   projection: CalendarProjection;
   view: CalendarView;
@@ -29,14 +36,24 @@ export function CalendarRouteScreen({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const returnTo = `${pathname}${searchParams.size > 0 ? `?${searchParams.toString()}` : ""}`;
+  const [creatingTask, setCreatingTask] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const addTaskButtonRef = useRef<HTMLButtonElement>(null);
+  const scheduleReturnFocus = useRef<HTMLElement | null>(null);
   const tasks = useMemo(() => projection.events.map(toMutableTask), [projection.events]);
-  const controller = usePlanningTaskController(tasks, projection.timeZone);
+  const controller = usePlanningTaskController(tasks, projection.timeZone, {
+    authoritativeSource: projection,
+    taskReturnTo: returnTo,
+  });
   const model = toCalendarPlanningModel(projection, {
     view,
     hasSavedView,
     initialDate,
     weekStartsOn,
     hourCycle,
+    conflictedTaskId: controller.conflictedTaskId,
+    taskReturnTo: returnTo,
   });
 
   function replaceRoute(patch: Readonly<Record<string, string>>) {
@@ -58,14 +75,34 @@ export function CalendarRouteScreen({
     });
   }
 
+  function closeCreateDialog() {
+    setCreatingTask(false);
+    window.requestAnimationFrame(() => addTaskButtonRef.current?.focus());
+  }
+
+  function editSchedule(taskId: string) {
+    scheduleReturnFocus.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    controller.editSchedule(taskId);
+  }
+
+  function closeSchedule() {
+    controller.closeSchedule();
+    window.requestAnimationFrame(() => scheduleReturnFocus.current?.focus());
+  }
+
   return (
     <>
       <CalendarScreen
+        addTaskRef={addTaskButtonRef}
         model={model}
         condition={controller.condition}
-        onAddTask={() => router.push("/inbox")}
-        onOpenTask={(taskId) => router.push(`/tasks/${taskId}`)}
-        onEditSchedule={controller.editSchedule}
+        onAddTask={() => {
+          setAnnouncement("");
+          setCreatingTask(true);
+        }}
+        onOpenTask={(taskId) => router.push(planningTaskDetailsHref(taskId, returnTo))}
+        onEditSchedule={editSchedule}
         onSelectEvent={() => undefined}
         onViewChange={(nextView) => replaceRoute({ view: nextView })}
         onVisibleRangeChange={changeRange}
@@ -73,13 +110,27 @@ export function CalendarRouteScreen({
         onEventResize={controller.saveCalendarChange}
         onRetry={controller.retry}
       />
+      <CalendarTaskCreateDialog
+        inboxId={inboxId}
+        inboxName={inboxName}
+        initialDate={initialDate}
+        open={creatingTask}
+        timeZone={projection.timeZone}
+        onClose={closeCreateDialog}
+        onCreated={() => setAnnouncement("Scheduled task created.")}
+      />
       <ScheduleEditorDialog
         localDate={initialDate}
         task={controller.scheduleTask}
         timeZone={projection.timeZone}
-        onClose={controller.closeSchedule}
-        onSave={controller.saveSchedule}
+        onClose={closeSchedule}
+        onSave={async (taskId, schedule) => {
+          const saved = await controller.saveSchedule(taskId, schedule, false);
+          if (saved === "saved") window.requestAnimationFrame(() => scheduleReturnFocus.current?.focus());
+          return saved;
+        }}
       />
+      <PlanningLiveRegion messages={[announcement, controller.announcement]} />
     </>
   );
 }

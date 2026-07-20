@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import type { Ref } from "react";
 
 import { Button } from "@/shared/presentation";
 
@@ -16,6 +17,7 @@ const views: readonly Readonly<{ id: CalendarView; label: string }>[] = [
 
 export function CalendarToolbar({
   disabled,
+  addTaskRef,
   rangeLabel,
   view,
   onAddTask,
@@ -23,6 +25,7 @@ export function CalendarToolbar({
   onViewChange,
 }: Readonly<{
   disabled: boolean;
+  addTaskRef?: Ref<HTMLButtonElement> | undefined;
   rangeLabel: string;
   view: CalendarView;
   onAddTask: () => void;
@@ -60,6 +63,7 @@ export function CalendarToolbar({
           <button
             key={item.id}
             type="button"
+            disabled={disabled}
             aria-pressed={view === item.id}
             onClick={() => onViewChange(item.id)}
           >
@@ -67,7 +71,7 @@ export function CalendarToolbar({
           </button>
         ))}
       </div>
-      <Button type="button" disabled={disabled} onClick={onAddTask}>
+      <Button ref={addTaskRef} type="button" disabled={disabled} onClick={onAddTask}>
         <Plus size={17} aria-hidden="true" /> Add task
       </Button>
     </div>

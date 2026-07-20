@@ -2,11 +2,7 @@ import { Temporal } from "temporal-polyfill";
 
 import { ianaTimeZoneSchema } from "@/shared/validation/time-zone";
 
-import {
-  taskScheduleValueSchema,
-  type TaskScheduleDto,
-  type TaskScheduleValue,
-} from "../application/contracts";
+import { taskScheduleValueSchema, type TaskScheduleValue } from "../application/contracts";
 
 export type TaskScheduleDraft = Readonly<{
   kind: "all_day" | "timed";
@@ -22,7 +18,7 @@ export type ScheduleInterpretation =
   | Readonly<{ valid: false; message: string }>;
 
 export function createTaskScheduleDraft(
-  schedule: TaskScheduleDto | null,
+  schedule: TaskScheduleValue | null,
   preferredTimeZone: string,
   nowInstant = Temporal.Now.instant().toString(),
 ): TaskScheduleDraft {

@@ -1,6 +1,8 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+
+import { confirmUnsavedNavigation } from "@/shared/presentation";
 
 import { plannerProposalDtoSchema } from "../application/contracts";
 import { actionIds, emptyProposalFixture, plannerProposalFixture } from "./planner-presentation-fixtures";
@@ -156,6 +158,44 @@ describe("Assistant planner Review", () => {
     expect(onEditInput).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Discard review edits" }));
     expect(onEditInput).toHaveBeenCalledOnce();
+  });
+
+  it("protects dirty review edits from reload and task-link navigation", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderReview();
+    await user.click(
+      screen.getByRole("checkbox", { name: "Select defer action for Clarify partner handoff" }),
+    );
+
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+
+    fireEvent.click(screen.getAllByRole("link", { name: "Review workshop checklist" })[0]!);
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Discard review edits?"));
+
+    expect(confirmUnsavedNavigation()).toBe(false);
+    confirm.mockReturnValue(true);
+    act(() => expect(confirmUnsavedNavigation()).toBe(true));
+    expect(
+      screen.getByRole("checkbox", { name: "Select defer action for Clarify partner handoff" }),
+    ).toBeChecked();
+    expect(screen.getByRole("button", { name: "Apply 5 changes" })).toBeEnabled();
+  });
+
+  it("does not guard navigation after local selection changes are fully reverted", async () => {
+    const user = userEvent.setup();
+    renderReview();
+    const selection = screen.getByRole("checkbox", {
+      name: "Select defer action for Clarify partner handoff",
+    });
+    await user.click(selection);
+    await user.click(selection);
+
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(false);
   });
 
   it("keeps explicit reject and apply operations stable against duplicate actions", async () => {

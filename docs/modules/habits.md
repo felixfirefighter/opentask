@@ -1,7 +1,7 @@
 # Habits module contract
 
-**Status:** Active in the Local-first Full Release. Implementation begins only in P3 after its P1
-dependency gate; this contract does not authorize later-scope habit capabilities.
+**Status:** Active in the Local-first Full Release. Implementation begins only in P3 under its own
+package gate; this contract does not authorize later-scope habit capabilities.
 
 `modules/habits` owns personal habit definitions, supported schedules, local-day logs, and derived streak/history projections.
 

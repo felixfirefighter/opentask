@@ -57,8 +57,14 @@ export function CalendarScheduleFallback({
       </Button>
       <Button
         type="button"
-        disabled={disabled || !selected}
-        title={disabled ? "Schedule editing is unavailable while this view is read-only." : undefined}
+        disabled={disabled || !selected || selected.conflicted}
+        title={
+          selected?.conflicted
+            ? "Open task details to review the latest saved schedule."
+            : disabled
+              ? "Schedule editing is unavailable while this view is read-only."
+              : undefined
+        }
         onClick={() => selected && onEditSchedule(selected.taskId)}
       >
         Edit schedule
