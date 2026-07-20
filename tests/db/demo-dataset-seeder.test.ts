@@ -37,7 +37,19 @@ describe("deterministic isolated demo dataset", () => {
     await seeder.reset(ownerA);
     await seeder.reset(ownerB);
 
-    const [tasksA, tasksB, listsA, sectionsA, schedulesA, checklistA, tagsA] = await Promise.all([
+    const [
+      tasksA,
+      tasksB,
+      listsA,
+      sectionsA,
+      schedulesA,
+      checklistA,
+      tagsA,
+      recurrencesA,
+      recurrencesB,
+      occurrenceEventsA,
+      occurrenceEventsB,
+    ] = await Promise.all([
       tasksFor(ownerA),
       tasksFor(ownerB),
       database.select().from(schema.taskLists).where(eq(schema.taskLists.userId, ownerA)),
@@ -45,19 +57,48 @@ describe("deterministic isolated demo dataset", () => {
       database.select().from(schema.taskSchedules).where(eq(schema.taskSchedules.userId, ownerA)),
       database.select().from(schema.checklistItems).where(eq(schema.checklistItems.userId, ownerA)),
       database.select().from(schema.tags).where(eq(schema.tags.userId, ownerA)),
+      database.select().from(schema.taskRecurrences).where(eq(schema.taskRecurrences.userId, ownerA)),
+      database.select().from(schema.taskRecurrences).where(eq(schema.taskRecurrences.userId, ownerB)),
+      occurrenceEventsFor(ownerA),
+      occurrenceEventsFor(ownerB),
     ]);
 
-    expect(tasksA).toHaveLength(10);
-    expect(tasksB).toHaveLength(10);
+    expect(tasksA).toHaveLength(11);
+    expect(tasksB).toHaveLength(11);
     expect(listsA).toHaveLength(2);
     expect(listsA.filter((list) => list.kind === "inbox")).toHaveLength(1);
     expect(listsA.filter((list) => list.kind === "regular")).toEqual([
       expect.objectContaining({ name: "Community workshop", folderId: expect.any(String) }),
     ]);
     expect(sectionsA).toEqual([expect.objectContaining({ name: "This week" })]);
-    expect(schedulesA).toHaveLength(4);
+    expect(schedulesA).toHaveLength(5);
     expect(checklistA).toHaveLength(3);
     expect(tagsA.map((tag) => tag.name).sort()).toEqual(["Design", "Event", "Planning"]);
+    expect(recurrencesA).toEqual([
+      expect.objectContaining({
+        userId: ownerA,
+        rrule: "FREQ=DAILY;INTERVAL=1",
+        timezone: "UTC",
+      }),
+    ]);
+    expect(recurrencesB).toEqual([
+      expect.objectContaining({
+        userId: ownerB,
+        taskId: recurrencesA[0]?.taskId,
+        rrule: "FREQ=DAILY;INTERVAL=1",
+      }),
+    ]);
+    expect(occurrenceEventsA.map(({ state, taskVersion }) => ({ state, taskVersion }))).toEqual([
+      { state: "completed", taskVersion: 2 },
+      { state: "skipped", taskVersion: 3 },
+    ]);
+    expect(occurrenceEventsB.map(({ id, userId }) => ({ id, userId }))).toEqual(
+      occurrenceEventsA.map(({ id }) => ({ id, userId: ownerB })),
+    );
+    const recurringA = tasksA.find((task) => task.title === "Review workshop progress")!;
+    expect(recurringA.version).toBe(3);
+    expect(recurrencesA[0]?.taskId).toBe(recurringA.id);
+    expect(occurrenceEventsA.every((event) => event.taskId === recurringA.id)).toBe(true);
 
     const recordA = tasksA.find((task) => task.title === "Outline the workshop agenda")!;
     const recordB = tasksB.find((task) => task.title === "Outline the workshop agenda")!;
@@ -113,11 +154,13 @@ describe("deterministic isolated demo dataset", () => {
 
     const resetA = await tasksFor(ownerA);
     const untouchedB = await tasksFor(ownerB);
-    expect(resetA).toHaveLength(10);
+    expect(resetA).toHaveLength(11);
     expect(resetA.some((task) => task.title === "Outline the workshop agenda")).toBe(true);
     expect(resetA.some((task) => task.title === "Temporary demo edit")).toBe(false);
-    expect(untouchedB).toHaveLength(10);
+    expect(untouchedB).toHaveLength(11);
     expect(untouchedB.some((task) => task.title === "Friend-owned edit")).toBe(true);
+    expect(await occurrenceEventsFor(ownerA)).toHaveLength(2);
+    expect(await occurrenceEventsFor(ownerB)).toHaveLength(2);
   });
 
   it("rolls back a failed replacement without erasing the previous demo", async () => {
@@ -135,8 +178,9 @@ describe("deterministic isolated demo dataset", () => {
     try {
       await expect(seeder.reset(ownerA)).rejects.toThrow();
       const rows = await tasksFor(ownerA);
-      expect(rows).toHaveLength(10);
+      expect(rows).toHaveLength(11);
       expect(rows.some((task) => task.title === "Preserve this previous demo")).toBe(true);
+      expect(await occurrenceEventsFor(ownerA)).toHaveLength(2);
     } finally {
       await database.execute(sql`alter table tasks drop constraint demo_dataset_forced_failure`);
     }
@@ -161,6 +205,14 @@ async function createBootstrappedUser(label: string): Promise<string> {
 
 function tasksFor(userId: string) {
   return database.select().from(schema.tasks).where(eq(schema.tasks.userId, userId));
+}
+
+function occurrenceEventsFor(userId: string) {
+  return database
+    .select()
+    .from(schema.taskOccurrenceEvents)
+    .where(eq(schema.taskOccurrenceEvents.userId, userId))
+    .orderBy(schema.taskOccurrenceEvents.taskVersion);
 }
 
 async function activeInboxId(userId: string): Promise<string> {

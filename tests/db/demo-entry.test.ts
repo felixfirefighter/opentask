@@ -116,9 +116,10 @@ describe("isolated demo entry", () => {
       .select({ title: schema.tasks.title })
       .from(schema.tasks)
       .where(eq(schema.tasks.userId, identity!.actor.userId));
-    expect(taskRows).toHaveLength(10);
+    expect(taskRows).toHaveLength(11);
     expect(taskRows).toContainEqual({ title: "Outline the workshop agenda" });
     expect(taskRows).toContainEqual({ title: "Draft the welcome message" });
+    expect(taskRows).toContainEqual({ title: "Review workshop progress" });
 
     const otherResponse = await POST(demoMutationRequest({ clientAddress: "203.0.113.92" }));
     const otherCookie = cookiesFromSetCookie(otherResponse.headers.getSetCookie());

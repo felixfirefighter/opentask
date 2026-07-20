@@ -204,6 +204,9 @@ No public contract exposes a Drizzle row or an unscoped repository method.
   month-end, leap-day, edit/end, complete/skip/undo, no-op replay, and no-duplicate tests.
 - Database constraint, optimistic-concurrency, and cross-user denial tests for recurrence rules and
   occurrence events.
+- Deterministic isolated-demo fixtures include one canonical recurring task plus completed/skipped
+  occurrence history; repeated reset proves event cleanup uses the owning-task cascade rather than
+  a direct immutable-event delete.
 - Optimistic-version tests proving one increment per accepted aggregate mutation and typed conflicts for stale writes.
 - Search ownership/soft-delete tests and seeded query-plan checks.
 - Quick-add fixtures proving original text remains intact and suggestions are editable.

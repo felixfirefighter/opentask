@@ -1,6 +1,11 @@
 import { Temporal } from "temporal-polyfill";
 
 import type { DemoDatasetRecords } from "../infrastructure/demo-dataset-repository";
+import {
+  buildDemoRecurrenceFixture,
+  DEMO_RECURRING_TASK_ID,
+  DEMO_RECURRING_TASK_VERSION,
+} from "./demo-recurrence-fixture";
 
 export const DEMO_TIME_ZONE = "UTC";
 
@@ -30,6 +35,7 @@ export function buildDemoDatasetFixture(resetAt: Date, inboxId: string): DemoDat
   const today = Temporal.Instant.from(resetAt.toISOString()).toZonedDateTimeISO(DEMO_TIME_ZONE).toPlainDate();
   const tomorrow = today.add({ days: 1 });
   const dayAfterTomorrow = today.add({ days: 2 });
+  const recurring = buildDemoRecurrenceFixture(resetAt);
 
   return {
     resetAt,
@@ -61,6 +67,9 @@ export function buildDemoDatasetFixture(resetAt: Date, inboxId: string): DemoDat
       task(ids.readinessReview, ids.list, ids.section, "Run the workshop readiness review", "high", "a2", {
         descriptionMd: "## Readiness check\n\nVerify the agenda, attendee notes, and venue before the event.",
       }),
+      task(DEMO_RECURRING_TASK_ID, ids.list, ids.section, "Review workshop progress", "medium", "a3", {
+        version: DEMO_RECURRING_TASK_VERSION,
+      }),
       task(ids.mobileLayout, ids.list, ids.section, "Check the mobile layout", "medium", "a0", {
         parentTaskId: ids.readinessReview,
       }),
@@ -86,7 +95,10 @@ export function buildDemoDatasetFixture(resetAt: Date, inboxId: string): DemoDat
         startDate: tomorrow.toString(),
         endDate: dayAfterTomorrow.toString(),
       },
+      recurring.schedule,
     ],
+    recurrences: [recurring.recurrence],
+    occurrenceEvents: recurring.occurrenceEvents,
     checklistItems: [
       checklist(ids.checklistAttendeeFlow, ids.readinessReview, "Review the attendee journey", true, "a0"),
       checklist(ids.checklistMobile, ids.readinessReview, "Verify the mobile layout", false, "a1"),
@@ -98,6 +110,7 @@ export function buildDemoDatasetFixture(resetAt: Date, inboxId: string): DemoDat
       { taskId: ids.attendeeNotes, tagId: ids.planningTag },
       { taskId: ids.welcomeMessage, tagId: ids.eventTag },
       { taskId: ids.readinessReview, tagId: ids.planningTag },
+      { taskId: DEMO_RECURRING_TASK_ID, tagId: ids.planningTag },
     ],
   };
 }
@@ -113,6 +126,7 @@ function task(
     descriptionMd?: string;
     parentTaskId?: string;
     status?: "open" | "completed" | "cancelled";
+    version?: number;
   }> = {},
 ) {
   return {
@@ -125,6 +139,7 @@ function task(
     status: options.status ?? "open",
     priority,
     rank,
+    version: options.version ?? 1,
   } as const;
 }
 
