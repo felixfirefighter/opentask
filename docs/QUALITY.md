@@ -171,6 +171,26 @@ Forced: cache update/removal, no authenticated content in Cache Storage, unsuppo
 4. Exercise production build/Compose health and clean SIGTERM shutdown.
 5. Re-run in a clean signed-out browser and prepare only verified screenshots/video claims.
 
+### G10 — Electron desktop release
+
+1. On each supported target, install from a clean machine with no Docker, system Node/PostgreSQL,
+   package manager, or internet connection.
+2. Start the app twice, verify single-instance behavior, local database initialization, migrations,
+   stable auth secret, loopback binding, and data under OS application data.
+3. Complete representative manual G1–G4 workflows while offline; verify AI is visibly degraded but
+   does not block manual work.
+4. Upgrade from a previous fixture database, confirm migrations are applied safely, then close the
+   app and verify PostgreSQL/Next child processes terminate cleanly.
+5. Inspect the unpacked package for runtime binaries, source/version checksums, license notices,
+   signing/notarization metadata, and absence of secrets or development services.
+6. Run `pnpm electron:runtime-smoke -- --app-dir <unpacked-app>` in the release environment, then run
+   `pnpm electron:smoke -- --app-dir <unpacked-app>` from the interactive native desktop session and
+   retain both JSON results plus the platform signing verification output.
+
+Forced: missing runtime artifact, occupied loopback port, malformed local database, migration failure,
+crash during startup/shutdown, second-instance launch, read-only install directory, no OpenAI key,
+offline AI request, and attempted remote navigation from the renderer.
+
 ## Package acceptance evidence
 
 | Package | Required evidence |
@@ -184,6 +204,7 @@ Forced: cache update/removal, no authenticated content in Cache Storage, unsuppo
 | P5 | install/cache/fallback/privacy/offline-write audit |
 | P6 | G8 push half + reminder migration/encryption/idempotency/provider/worker suites |
 | P7 | G9 + expanded export/demo/fresh-clone/full audits |
+| P8 | G10 + Windows/macOS installer/runtime/signing/offline/upgrade evidence |
 
 ## Candidate gates
 
@@ -321,8 +342,8 @@ Do not downgrade because time is short. A cut requires the five-part user-author
 
 ## Final sign-off
 
-The auditor reports release commit/environment, exact commands/results, LF00 and P0–P7 evidence,
-G1–G9 at required widths, visual approvals, migration/worker/PWA/provider smokes, all ten audit
+The auditor reports release commit/environment, exact commands/results, LF00 and P0–P8 evidence,
+G1–G10 at required widths, visual approvals, migration/worker/PWA/provider smokes, all ten audit
 results, dependency/font/asset licenses, and contract-permitted limitations.
 
 Sign-off is denied for any blocker/critical defect, failed required command, unmapped acceptance,

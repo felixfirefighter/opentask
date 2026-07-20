@@ -194,6 +194,30 @@ Acceptance:
 - The full local release passes every mandatory audit in `docs/QUALITY.md`; no hosted deployment is
   required for goal completion.
 
+### 9. Electron desktop local runtime
+
+- Package the same Next.js application in an Electron shell for Windows x64 and macOS x64/arm64.
+- Ship Node.js and PostgreSQL runtime binaries with the installer so a clean machine needs no system
+  Node.js, PostgreSQL, Docker, package manager, or first-run download.
+- Keep the existing application, API, Better Auth, Drizzle migration, and module boundaries. Electron
+  supervises a loopback Next.js process and a per-user PostgreSQL process; it is not a second domain
+  or database implementation.
+- Persist the database and instance secret under OS application data, outside the install directory,
+  and run committed migrations before opening the window.
+- Manual identity, tasks, planning, recurrence, habits, Focus, export, and local startup work without
+  internet. OpenAI remains an optional degraded capability; Web Push is not a desktop-offline path.
+
+Acceptance:
+
+- A clean target machine installs and starts without Docker, system Node/PostgreSQL, or internet;
+  first run initializes the local database and applies migrations exactly once.
+- Windows and macOS artifacts pass cold-start, upgrade-migration, clean-shutdown, and user-data-
+  location checks. The browser/PWA path remains independently supported.
+- Core manual workflows pass with no `OPENAI_API_KEY`; the AI surface reports unavailable
+  configuration/network rather than blocking the app.
+- Each shipped runtime binary has a pinned source/version, checksum, and license notice in the
+  release record. Production distribution includes signing/notarization evidence.
+
 ## Explicitly outside the active release
 
 - Full offline-first mutation log, sync/change feed, tombstones, background sync, or conflict UI.
@@ -208,8 +232,8 @@ Acceptance:
   background/theme galleries, white noise, app blocking, or health integrations.
 - External calendars, CalDAV, Notion, Telegram, email capture, Siri, Zapier/IFTTT, competitor import,
   public API, CLI, or MCP server.
-- Native/mobile/desktop/watch applications, browser extensions, widgets, OS global shortcuts, voice,
-  location, or share-target integrations beyond the installable web app.
+- Native/mobile/watch applications, browser extensions, widgets, OS global shortcuts, voice, location,
+  or share-target integrations beyond the Electron desktop shell and installable web app.
 - Billing, subscriptions, quotas, advertisements, premium gates, autonomous agent behavior, or AI
   deletion/completion.
 
@@ -236,7 +260,7 @@ management, stable public REST API, CLI, and authenticated Streamable HTTP MCP s
 
 ### Stage D: offline and platform reach
 
-IndexedDB mutation log, sync protocol/tombstones/conflict UI, native wrapper evaluation, share
+IndexedDB mutation log, sync protocol/tombstones/conflict UI, mobile/native wrapper expansion, share
 targets, platform shortcuts, widgets, voice, health/location capabilities, and native notification
 enhancements.
 

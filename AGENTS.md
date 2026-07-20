@@ -85,8 +85,10 @@ Do not add generic JSONB, EAV/custom-field tables, duplicated status/date/owner 
 - Task, habit, Focus, export, and local startup paths must function when Web Push/VAPID is absent;
   provider absence produces an honest degraded state.
 - AI output never mutates data directly. It creates a proposal; a user reviews it; the server validates and applies it transactionally.
-- Offline support in the active release is an installable static shell and read-only connectivity
-  behavior only. Do not queue domain writes or claim offline-first sync.
+- Browser offline support in the active release is an installable static shell and read-only
+  connectivity behavior only. The authorized Electron target may write to its own local PostgreSQL
+  database while disconnected, but must not queue domain writes for synchronization or claim
+  cross-device offline-first sync.
 - Do not copy TickTick, Airbnb, ElevenLabs, GetDesign, or another product's names, copy, screenshots,
   icons, proprietary fonts, exact layouts, palettes, or trade dress.
 - Components consume semantic design tokens, never raw color literals.

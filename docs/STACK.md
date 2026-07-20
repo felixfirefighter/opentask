@@ -14,6 +14,7 @@ The stack favors one language, one database, few operational services, strong sc
 | Database | PostgreSQL 17 for local/self-host baseline | Durable relational invariants, search, queue, and migrations in one service. Hosted deployments may use a compatible newer supported major after verification. |
 | ORM/migrations | Drizzle ORM + Drizzle Kit | SQL-visible, modular TypeScript schemas, committed generated migrations. |
 | Local services | Docker Compose | Reproducible PostgreSQL without proprietary local tooling. |
+| Desktop shell | Electron 43.1.1 + electron-builder 26.15.3 | Packages the existing Next.js server and supervises a per-user loopback PostgreSQL runtime for Windows/macOS. Development uses Docker; production uses staged, pinned native runtime trees. |
 
 Next.js documents App Router as the current route model. Drizzle supports code-first PostgreSQL schemas and generated/applied migrations. Sources: [Next.js App Router](https://nextjs.org/docs/app), [Drizzle migrations](https://orm.drizzle.team/docs/migrations).
 
@@ -107,8 +108,10 @@ License sources:
 | Automated accessibility | `@axe-core/playwright` plus keyboard tests |
 | CI | GitHub Actions with PostgreSQL service container |
 | Supply-chain check | `pnpm audit --prod` plus manual license inventory before release |
+| Desktop release | `electron-builder` NSIS/DMG, staged Node 24 and relocatable PostgreSQL 17 runtime trees | Every runtime artifact needs an exact source, checksum, license notice, cold-start test, dynamic-library/share-data check, and platform signing/notarization review. |
 
-Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date library, or a second component system.
+Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date library, a second
+component system, or a second application/database implementation for desktop.
 
 ### Bootstrap dependency decisions
 
@@ -192,7 +195,7 @@ Local/self-host operation is the release completion path. No hosted deployment i
 
 Railway remains an optional demo target because its official guides support a Next.js service,
 PostgreSQL, a separate worker from the same codebase, private networking, and pre-deploy Drizzle
-migrations. Hosted setup is not a P0-P7 completion gate. If used, configure a hard usage limit and
+migrations. Hosted setup is not a P0-P8 completion gate. If used, configure a hard usage limit and
 do not describe trial or usage-based hosting as permanently free. Sources:
 [Railway Next.js + Postgres](https://docs.railway.com/guides/nextjs),
 [full-stack worker pattern](https://docs.railway.com/guides/fullstack-nextjs),
@@ -205,9 +208,9 @@ do not describe trial or usage-based hosting as permanently free. Sources:
 - Redis/BullMQ is unnecessary; PostgreSQL-backed pg-boss owns the one active reminder-job family
   after P6.
 - A monorepo is unnecessary for one web product and one worker entrypoint sharing the same modules.
-- Native/mobile frameworks and offline synchronization remain outside active scope. P5 adds only an
-  installable static shell and content-free offline fallback; it caches no authenticated user data
-  and accepts no offline mutation.
+- Mobile/native framework expansion and offline synchronization remain outside active scope. The
+  authorized Electron shell packages the existing server/database locally; it provides no sync
+  protocol or remote-data cache.
 - Rich-text editor frameworks are deferred; Markdown keeps task content portable and implementation bounded.
 
 ## Recommended agent tooling

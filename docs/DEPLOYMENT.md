@@ -10,6 +10,22 @@ Create one Railway project with:
 1. a web service connected to this repository root; and
 2. a Railway PostgreSQL service named `Postgres`.
 
+## Electron desktop release
+
+The desktop release is a separate local runtime, not a hosted deployment. Electron starts the bundled
+Next.js server and PostgreSQL process on loopback. It uses the same application routes, Better Auth
+session flow, Drizzle migrations, and feature modules as the web deployment.
+
+Use `pnpm electron:dist` after staging the target-specific runtime files described in
+`desktop/runtime/README.md`. Build Windows x64 and macOS x64/arm64 artifacts on their corresponding
+platforms or in a controlled cross-build pipeline. Do not make the installer depend on Docker,
+system PostgreSQL, system Node.js, or a first-run network download.
+
+The desktop package can operate fully without internet for identity, tasks, lists, search, schedules,
+planning views, and export. The OpenAI planner remains an optional provider and must display a disabled
+or unavailable state when no key or network is available. If native reminders are later added, use an
+OS notification provider for offline desktop reminders; Web Push is not an offline mechanism.
+
 The checked-in `railway.json` selects the production `Dockerfile`, runs committed Drizzle migrations as a pre-deploy command, probes `/api/health/ready`, and bounds crash retries. Railway supports these settings through [Config as Code](https://docs.railway.com/config-as-code/reference), and its pre-deploy container has private-network variables available before the new deployment starts.
 
 The current green fallback does not deploy its zero-job worker. After P6 is integrated, browser

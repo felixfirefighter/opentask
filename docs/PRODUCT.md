@@ -52,7 +52,7 @@ This combines model strengths with deterministic scheduling and a human approval
 
 - A new user can add a task in under 15 seconds without documentation.
 - A user can move from brain dump to an approved day plan in under 2 minutes.
-- The G1–G9 golden paths in `docs/QUALITY.md` work at their required desktop/mobile widths.
+- The G1–G10 golden paths in `docs/QUALITY.md` work at their required desktop/mobile widths.
 - The app remains fully useful when the OpenAI integration is disabled.
 - Task, habit, Focus, export, and local startup remain useful when Web Push/VAPID or the reminder
   worker is absent; only reminder delivery degrades.

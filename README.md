@@ -54,6 +54,13 @@ Install Playwright Chromium once with `pnpm exec playwright install chromium`, t
 
 For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository-owned design tokens and contracts in [DESIGN.md](DESIGN.md) remain authoritative.
 
+## Electron desktop build
+
+The desktop target keeps the Next.js server, application services, and PostgreSQL data model intact.
+Development uses the existing Docker PostgreSQL service; production packages a Node runtime and a
+PostgreSQL 17 runtime for Windows x64 and macOS x64/arm64. See [Desktop setup](docs/SETUP.md#desktop-development)
+and [desktop runtime artifacts](desktop/runtime/README.md).
+
 ## Repository orientation
 
 1. Read [AGENTS.md](AGENTS.md) for engineering and audit gates.

@@ -17,11 +17,16 @@ flowchart LR
     APP --> OAI["Optional OpenAI adapter"]
     APP --> PUSH["Optional Web Push adapter"]
     PUSH --> BROWSER
+    ELECTRON["Electron shell"] --> LOCALNEXT["Loopback Next.js process"]
+    ELECTRON --> LOCALPG["Per-user PostgreSQL process"]
+    LOCALNEXT --> APP
+    LOCALPG --> PG
 ```
 
 This is the target Local-first Full Release topology. The product remains one modular TypeScript
-application with a Next.js web process and PostgreSQL as the self-host baseline. P5 adds only the
-installable static shell boundary. Through P5, the existing worker entry point remains a zero-job
+application with a Next.js web process and PostgreSQL as the self-host baseline. The Electron shell
+is a packaging and process-supervision boundary around that same process and database; it adds no
+domain or API implementation. P5 adds only the browser installable static shell boundary. Through P5, the existing worker entry point remains a zero-job
 architecture smoke; P6 alone activates it for notification jobs and Web Push delivery. OpenAI,
 browser push support, VAPID configuration, and a running reminder worker are optional capabilities:
 their absence must not prevent manual tasks, planning, recurrence, habits, Focus, export, or web
@@ -115,6 +120,15 @@ Domain tests must cover spring-forward/fall-back behavior for at least one repre
   notifications never write task schedule, recurrence, or status tables.
 - PWA manifest, registration, update state, and content-free offline fallback are presentation/static
   infrastructure, not a domain module or a synchronization layer.
+- `electron/` owns desktop process supervision, window security, runtime discovery, and packaging
+  composition. It may start the existing Next.js server and PostgreSQL runtime only through explicit
+  process boundaries; it may not import Drizzle repositories, feature application services, or React
+  components.
+- The Electron main process is ESM, while the sandboxed preload is deliberately compiled as CommonJS
+  `.cjs`; sandboxed preloads do not execute in an ESM context. The preload exposes only the minimal
+  context-isolated desktop marker.
+- Desktop local writes are ordinary authenticated application writes to the per-user local database.
+  They are not queued, replicated, or merged with another device.
 
 These boundaries authorize only the capabilities listed in `docs/SCOPE.md`. Stage A-D remain later
 roadmap context and contribute no dormant route, table, provider, or framework to this release.

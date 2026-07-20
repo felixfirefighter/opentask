@@ -9,6 +9,7 @@ import { runtimeSafety } from "./scripts/eslint/runtime-safety.mjs";
 const localCode = [
   "app/**/*.{ts,tsx}",
   "modules/**/*.{ts,tsx}",
+  "electron/**/*.{ts,cts,tsx}",
   "scripts/**/*.{ts,tsx,mjs}",
   "shared/**/*.{ts,tsx}",
   "worker/**/*.{ts,tsx}",
@@ -22,7 +23,15 @@ const sharedDatabasePattern = {
 export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
-  globalIgnores([".next/**", "node_modules/**", "playwright-report/**", "test-results/**", "artifacts/**"]),
+  globalIgnores([
+    ".next/**",
+    "node_modules/**",
+    "dist-electron/**",
+    "release/**",
+    "playwright-report/**",
+    "test-results/**",
+    "artifacts/**",
+  ]),
   architectureBoundaries,
   {
     files: localCode,
@@ -49,12 +58,23 @@ export default defineConfig([
     files: [
       "app/**/*.{ts,tsx}",
       "modules/**/*.{ts,tsx}",
+      "electron/**/*.{ts,cts,tsx}",
       "shared/**/*.{ts,tsx}",
       "worker/**/*.{ts,tsx}",
       "scripts/{migrate,seed}.ts",
     ],
+    ignores: ["electron/check-runtime.ts"],
     rules: {
       "opentask/no-unreviewed-output": "error",
+    },
+  },
+  {
+    files: ["electron/preload.cts"],
+    rules: {
+      // Sandboxed Electron preloads require CommonJS; the exception is limited to this boundary file.
+      "@typescript-eslint/no-require-imports": "off",
+      "opentask/explicit-type-imports": "off",
+      "opentask/no-runtime-loader-escapes": "off",
     },
   },
   {

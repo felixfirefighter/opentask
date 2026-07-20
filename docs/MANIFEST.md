@@ -107,6 +107,9 @@ The bootstrap work package must create these stable commands; later agents use t
 | `pnpm verify` | full required local gate |
 | `pnpm check:secrets` | tracked and non-ignored repository-file secret-pattern scan |
 | `pnpm check:licenses` | reviewed production dependency-license inventory |
+| `pnpm electron:check-package` | unpacked desktop package content audit before signing |
+| `pnpm electron:runtime-smoke` | packaged runtime startup, migrations, local auth/session persistence, readiness, and shutdown smoke |
+| `pnpm electron:smoke` | native unpacked desktop startup, local-data, and graceful-shutdown smoke |
 
 ## Documentation maintenance
 
