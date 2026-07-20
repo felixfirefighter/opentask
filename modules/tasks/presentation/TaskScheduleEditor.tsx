@@ -13,6 +13,7 @@ import { useTaskScheduleEditorController } from "./use-task-schedule-editor-cont
 export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: boolean; task: TaskDetailDto }>) {
   const editor = useTaskScheduleEditorController(task, disabled);
   const formRef = useRef<HTMLFormElement>(null);
+  const focusFirstFieldRequestedRef = useRef(false);
   const mutationFeedbackRef = useRef<HTMLDivElement>(null);
   const saveStateRef = useRef<HTMLParagraphElement>(null);
   const validationRef = useRef<HTMLParagraphElement>(null);
@@ -31,10 +32,19 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
     if (editor.reconciledAttempt) saveStateRef.current?.focus();
   }, [editor.reconciledAttempt]);
 
+  useEffect(() => {
+    if (!editor.draft || !focusFirstFieldRequestedRef.current) return;
+    focusFirstScheduleField();
+  }, [editor.draft]);
+
   function focusFirstScheduleField() {
-    setTimeout(() => {
-      formRef.current?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus();
-    }, 0);
+    focusFirstFieldRequestedRef.current = true;
+    const field = formRef.current?.querySelector<HTMLInputElement>(
+      'input[id^="schedule-start-"]:not(:disabled)',
+    );
+    if (!field) return;
+    focusFirstFieldRequestedRef.current = false;
+    field.focus();
   }
 
   if (
@@ -137,8 +147,8 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
             type="button"
             disabled={editor.scheduleEditDisabled || editor.recovery.needsLatest}
             onClick={() => {
-              editor.beginEditing();
               focusFirstScheduleField();
+              editor.beginEditing();
             }}
           >
             {editor.schedule

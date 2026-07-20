@@ -163,6 +163,19 @@ describe("TaskScheduleEditor", () => {
     expect(screen.queryByRole("button", { name: "Clear schedule" })).not.toBeInTheDocument();
   });
 
+  it("moves keyboard focus into the recurring schedule form when it opens", async () => {
+    savedSchedule = allDaySchedule();
+    savedRecurrence = recurrence();
+    const user = userEvent.setup();
+    renderEditor();
+
+    const edit = await screen.findByRole("button", { name: "Edit recurring schedule" });
+    edit.focus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => expect(screen.getByLabelText("Start date")).toHaveFocus());
+  });
+
   it("allows the canonical atomic clear only after recurrence has ended", async () => {
     savedSchedule = allDaySchedule();
     savedRecurrence = recurrence("ended");
