@@ -33,6 +33,16 @@ assignees, activity history, templates, estimates, or custom fields.
 - Edit fields, complete/undo or skip/reopen an occurrence, cancel/restore, move, and soft-delete.
 - Edit/end a recurrence series for future expansion only; no individual occurrence reschedule,
   recurring checklist state, raw RRULE, or “this and future” fork.
+- Recurrence offers only Daily, Weekdays, selected-weekday Weekly, anchor-day Monthly, and
+  anchor-month/day Yearly, with interval, inclusive end date, or count inside the documented bounds.
+  The interpreted cadence/timezone/end is visible before commit. Weekday mismatch, recurring
+  duration, DST-fold-anchor, and exhausted-rule errors preserve every entered value.
+- Completing the series task and clearing its schedule are unavailable until the user explicitly
+  ends recurrence. Cancel/delete may keep the definition dormant; reopening/restoring resumes from
+  a server-chosen future occurrence and states that dormant missed occurrences were not recreated.
+  End recurrence confirms that future expansion stops at a server-chosen exclusive boundary while
+  the ended definition and recorded occurrence history remain. Completing is then available; clearing
+  its schedule removes the ended definition and schedule atomically without deleting event history.
 - Set/remove one absolute reminder for a non-recurring task or one relative-start reminder for any
   eligible scheduled task. A recurring task requires relative-start; the form rejects an absolute
   recurring combination with explicit copy. Permission enrollment remains a separate user action.
@@ -59,6 +69,11 @@ Subtasks reuse the full task editor at one level and display a clear “Subtasks
 | Offline | Details already loaded in the open page are read-only under the global banner. All mutations, including status and checklist changes, are disabled with one explanatory message; no unsynced draft is described as saved. |
 | Permission | Missing, deleted, or foreign IDs use the same generic unavailable treatment. No title, list, or existence metadata leaks. |
 | Conflict | Freeze further autosaves for the affected field, preserve the user's value, show before/latest values, and offer Keep editing, Use latest, or retry through a validated conflict flow. Never last-write-wins silently. |
+
+Recurrence create/edit/end and recurring schedule changes use an explicit submit boundary rather
+than per-field autosave because the rule, cutover, and task version commit atomically. A response-lost
+result keeps the draft, reloads authoritative series state, and only offers exact retry when the
+server did not apply it.
 
 ## Keyboard, touch, and accessibility
 

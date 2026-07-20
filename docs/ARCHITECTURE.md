@@ -118,8 +118,10 @@ Domain tests must cover spring-forward/fall-back behavior for at least one repre
 ## Active release extension boundaries
 
 - `modules/tasks` owns task recurrence rules, append-only occurrence events, deterministic occurrence
-  identity, and range-bounded expansion. `modules/planning` consumes only the public bounded
-  occurrence projection and never stores recurrence state.
+  identity, and range-bounded expansion. Pure recurrence policy defines presets, limits, calendar
+  semantics, and identity; the `rrule` import is confined to a task infrastructure adapter behind an
+  application-owned expansion port. `modules/planning` consumes only the public bounded occurrence
+  projection and never stores recurrence state.
 - `modules/habits` owns habit definitions, schedules, local-day logs, and derived streak/heat-map
   projections. Other modules consume narrow public ownership/snapshot contracts.
 - `modules/focus` owns authoritative active and completed focus/break session state. It accepts only

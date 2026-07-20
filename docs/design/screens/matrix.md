@@ -11,8 +11,10 @@ duplicate priority, occurrence due field, or second schedule. Classification is 
 - every task belongs to one of the remaining combinations.
 
 The due boundary is the timed end or exclusive all-day end interpreted at midnight in the user's
-saved IANA timezone. For a recurring series, classify its next eligible open occurrence within the
-bounded projection and do not render the series twice. The boundary is derived from the canonical
+saved IANA timezone. For a recurring series, inspect today through the next 62 local days, classify
+its earliest eligible open occurrence, and do not render the series twice. When no occurrence exists
+in that horizon, render the series once as nonurgent with “No occurrence in the next 62 days”; high
+priority maps to Plan and every other priority to Later. The boundary is derived from the canonical
 schedule/rule and never persisted as a second field; unscheduled tasks are not urgent.
 
 Use plain secondary labels so the surface is actionable without implying collaboration:

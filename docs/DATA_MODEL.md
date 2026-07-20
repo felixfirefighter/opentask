@@ -198,25 +198,38 @@ One optional row per recurring task; its owning foreign key is tenant-leading:
 - `user_id`, `task_id` composite PK/FK
 - `rrule` text, `timezone`, `generation_mode`
 - nullable `projection_start_date`, nullable `projection_start_at`
+- nullable `projection_end_date`, nullable `projection_end_at`; an optional exclusive upper cutover
 - `generation_mode` is `schedule`; completion-relative generation remains outside the active release
 - `created_at`, `updated_at`
 
 `rrule` is a normalized internal serialization generated and validated by the tasks domain wrapper;
-it does not contain a second `DTSTART`, because `task_schedules` is the only series anchor. The
+it is a 1-512 character uppercase ASCII property list with no prefix, line break, `DTSTART`,
+`RDATE`, or exclusion rule, because `task_schedules` is the only series anchor. The
 UI/API accepts only daily, weekdays, weekly selected-weekday, monthly day-of-month, and yearly
-month/day presets with a bounded interval and never/until/count endings; it never accepts arbitrary
-RRULE text. The owning task must be an open, non-deleted, scheduled root task. Schedule or rule
-changes increment the owning task version once in the same transaction. A timed recurrence timezone
-must equal its schedule timezone; an all-day recurrence retains the validated IANA zone used to
-interpret the rule when it is created/edited.
+month/day presets with interval 1-99 and never/inclusive-until-date/count-1-999 endings; it never
+accepts arbitrary RRULE text. `timezone` is a validated IANA name of 1-128 characters and
+`generation_mode` is exactly `schedule`. Creating/editing an active rule requires an open,
+non-deleted, eligible scheduled root task. Cancelled or deleted owners may retain a dormant active
+row that does not project; a completed owner may retain only an explicitly ended row. Schedule or
+rule changes increment the owning task version once in the same transaction. A timed recurrence
+timezone must equal its schedule timezone; an all-day recurrence retains the validated IANA zone
+used to interpret the rule when it is created/edited.
 
-Exactly one projection cutover is present: `projection_start_date` for an all-day schedule or
-`projection_start_at` for a timed schedule. A row check enforces the exclusive discriminant; the
-application transaction also verifies it matches the owning schedule kind. On initial rule creation,
-the cutover equals the canonical schedule anchor. An edit replaces the one mutable rule and chooses a
-server-controlled future date/instant at or after which the new rule may project. Recorded earlier
-events remain immutable; unrecorded occurrences before the current cutover are deliberately not
-reconstructed. The cutover is an expansion lower bound, not a second task schedule.
+Exactly one lower projection cutover is present: `projection_start_date` for an all-day schedule or
+`projection_start_at` for a timed schedule. The matching upper cutover is nullable and exclusive;
+an all-day row may use only date cutovers and a timed row only instant cutovers. When present, the
+upper value must be greater than or equal to the lower value; equality is the valid empty interval
+when a not-yet-started series is ended before its anchor. Row checks enforce that discriminant and ordering;
+the application transaction also verifies it matches the owning schedule kind. On initial rule
+creation, the lower cutover equals the canonical schedule anchor and the upper cutover is null. An
+edit replaces the one mutable rule and chooses a server-controlled future lower cutover at or after
+which the new rule may project. Ending sets the upper cutover to the first candidate strictly after
+authoritative server now, or to the documented no-candidate fallback, so current/prior occurrences
+remain reconstructable but no future candidate projects. Partial indexes on active all-day and timed
+rows support bounded scans. Recorded earlier events remain immutable; unrecorded occurrences before
+the current lower cutover are deliberately not reconstructed. Neither cutover is a second task
+schedule. Clearing the schedule of an ended series atomically removes the definition while recorded
+events remain attached to the task.
 
 ### `task_occurrence_events` — tasks
 
@@ -231,10 +244,15 @@ Append-only effective state for a recurring occurrence:
   and `open` transitions rather than overwriting history
 
 `occurrence_key` is derived deterministically from the series identity and canonical all-day local
-date or timed start instant, not a display string. A transition serializes through the owning task
-aggregate so a replayed/no-op command does not append a duplicate event, and accepted changes
-increment the task version exactly once. Effective state is the event with the greatest
-`task_version`; timestamps and UUIDs are audit data, not causal ordering. Past events and keys remain
+date or timed start instant, not a display string, and is 1-80 characters. Checks constrain `state`
+to `completed|skipped|open` and `task_version` to a positive integer. A transition serializes through
+the owning task aggregate so a replayed/no-op command does not append a duplicate event, and accepted
+changes increment the task version exactly once. Effective state is the event with the greatest
+`task_version`; timestamps and UUIDs are audit data, not causal ordering. An index on
+`(user_id, task_id, occurrence_key, task_version DESC)` serves latest-state reads. A table-specific
+trigger rejects ordinary `UPDATE` and direct `DELETE` while permitting a referential cascade from an
+owning task/account deletion; demo reset deletes the owned task graph and never deletes events
+directly. Past events and keys remain
 stable when a series rule changes or ends, even when the old unrecorded projection is no longer
 reconstructable.
 
@@ -367,8 +385,9 @@ At minimum, migration review checks:
   `(user_id, list_id, parent_task_id, rank, id)`;
 - tasks by `(user_id, status, status_changed_at)`;
 - schedules by `(user_id, start_at/end_at)` and `(user_id, start_date/end_date)`;
-- recurrence by `(user_id, task_id)` and occurrence events by
-  `(user_id, task_id, occurrence_key, task_version)` for latest-state lookup;
+- active recurrence cutovers by `(user_id, projection_start_date, projection_end_date, task_id)` and
+  `(user_id, projection_start_at, projection_end_at, task_id)`, and occurrence events by
+  `(user_id, task_id, occurrence_key, task_version DESC)` for latest-state lookup;
 - active habits and habit schedules by user, habit logs by user/habit/local date and user/local date;
 - the partial one-unfinished-Focus-session index plus completed Focus history by user/end time;
 - reminders by user/task, active subscriptions by user/endpoint hash, and deliveries by unique

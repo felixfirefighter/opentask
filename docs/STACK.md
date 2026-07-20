@@ -29,15 +29,16 @@ Next.js documents App Router as the current route model. Drizzle supports code-f
 | `@fullcalendar/react` v7 standard entrypoints | month/day/week/agenda and drag/resize | Use only bundled `/daygrid`, `/timegrid`, `/list`, and `/interaction` entrypoints; no premium Scheduler dependency. |
 | `@dnd-kit/core` + sortable | accessible list/section reorder | Must configure keyboard sensor, instructions, and menu fallback. |
 | `chrono-node` | English quick-add date/time recognition | Always show parsed tokens for confirmation. |
-| `rrule` (not installed) | P2-gated, range-bounded recurrence expansion | No raw RRULE UI or direct presentation import. Installation is authorized only after the P2 dependency gate below passes. |
+| `rrule` 2.8.1 | P2 range-bounded Gregorian recurrence candidate expansion | Imported only by the tasks infrastructure adapter. No raw RRULE UI, timezone authority, unbounded `all()`, or presentation import. |
 | `temporal-polyfill` | explicit date/time arithmetic used by FullCalendar/domain adapters | Do not use implicit server-local timezone arithmetic. |
 | `react-markdown` + `remark-gfm` | safe Markdown task-description rendering | Raw HTML disabled; sanitize any future HTML path. |
 | `fractional-indexing` | stable task/list sort keys | Rebalance through one application use case, not ad hoc updates. |
 | `cmdk` and Sonner (through shadcn) | command palette and undo/error toast | No parallel custom implementations. |
 
 FullCalendar's React standard package is MIT and supports React 17–19; its interaction API supports
-event drag/resize. OpenTask's P2 recurrence policy and safety cap remain in a task-owned domain
-wrapper rather than a FullCalendar plugin or presentation component. dnd-kit provides sortable
+event drag/resize. OpenTask's P2 recurrence policy and safety cap remain in task-owned
+domain/application code behind a narrow infrastructure adapter rather than a FullCalendar plugin or
+presentation component. dnd-kit provides sortable
 primitives and keyboard/accessibility hooks. Sources:
 [FullCalendar React](https://fullcalendar.io/docs/react),
 [event drag/resize](https://fullcalendar.io/docs/event-dragging-resizing),
@@ -80,8 +81,8 @@ Better Auth documents current Next.js integration and PostgreSQL/Drizzle support
 
 ### Release-gated dependency decisions
 
-The active release approves the capabilities below, not an unchecked package installation. Both
-packages are absent from the current `package.json` and lockfile. The named work package must rerun
+The active release approves the capabilities below, not an unchecked package installation. The
+named work package must rerun
 the dependency-change gate, choose and pin an exact version, review its resolved production tree,
 update the license allowlist/notices, and add the resulting decision to the table of installed
 dependencies in the same change. Until that gate passes, production code must not import the
@@ -89,7 +90,7 @@ package.
 
 | Package gate | Purpose | Declared upstream license | Activation requirements |
 |---|---|---|---|
-| P2 — `rrule` | Standards-based expansion behind the tasks module's bounded recurrence wrapper; OpenTask still owns presets, IANA-time semantics, occurrence identity, and safety caps. | BSD-3-Clause | Verify the selected version/license and maintenance signal; pin it; add only a task-owned adapter; prove finite range/cap and DST fixtures. Do not expose arbitrary RRULE input. |
+| P2 — `rrule` (activated) | Standards-based candidate expansion behind the tasks module's bounded recurrence port; OpenTask still owns presets, IANA-time semantics, occurrence identity, and safety caps. | BSD-3-Clause | Pinned at 2.8.1 after package metadata, one-dependency tree, upstream notice, API/timezone caveats, and maintenance review. The exact notice is committed and copied into the runtime image. Finite range/cap and DST fixtures remain part of the P2 code gate. |
 | P6 — `web-push` | Serialize and send standards-based Web Push messages behind the notifications provider port. | MPL-2.0 | Verify the selected version, license compatibility/notice obligations, type support, and maintenance signal; pin it; keep endpoint/key material server-only and encrypted; prove provider-absent, retry, revocation, and redaction paths. |
 
 License sources:
@@ -127,6 +128,7 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 | `temporal-polyfill` 1.0.1 | Provide explicit IANA-zone date arithmetic and DST-safe conversions not available through the approved stack. | Loaded only by schedule/planning adapters; avoids implicit server-local `Date` calculations. | MIT | Current stable 1.0 release implementing the standardized Temporal API surface. | `modules/tasks/domain/schedule/` and `modules/planning/domain/` |
 | `openai` 6.48.0 | Implement the optional GPT-5.6 Responses/Structured Outputs provider through the official SDK. | Server-only optional adapter; requests use minimal context, `store:false`, bounded timeout, and no-key capability fallback. | Apache-2.0 | Current stable official JavaScript SDK with maintained Responses and Zod helpers. | `modules/assistant/infrastructure/openai-responses-provider.ts` |
 | `@fullcalendar/react` 7.0.1 | Provide the committed month, week, day, and agenda views plus pointer drag/resize through the v7 React package's standard subpath plugins. | Client-only calendar surface; keyboard/touch schedule forms remain canonical and no premium/resource package is installed. The exact package and its two official transitive v7 packages are lockfile-pinned with an explicitly reviewed `minimumReleaseAgeExclude` exception. | MIT | Current stable v7 React release, React 19 compatible, with view and interaction plugins consolidated into the connector package. | `modules/planning/presentation/FullCalendarView.tsx` |
+| `rrule` 2.8.1 | Enumerate approved Gregorian preset candidates without maintaining a second calendar-rule parser. | One 687 KB unpacked server dependency with only `tslib`; the replaceable adapter never enters presentation and OpenTask still applies every range, timezone, duration, identity, and output limit. | BSD-3-Clause; exact upstream notice committed at `licenses/third-party/rrule-LICENCE.txt` and distributed in the production image. | Stable but slow-moving upstream: latest npm release is 2.8.1, published in 2023, with built-in TypeScript declarations and roughly 2.2M weekly downloads at review time. | `modules/tasks/infrastructure/recurrence/rrule-expander.ts` |
 
 ### Direct runtime license baseline
 
@@ -137,15 +139,17 @@ for packages currently installed is:
 - Apache-2.0: class-variance-authority, Drizzle ORM, and the official `openai` JavaScript SDK.
 - ISC: Lucide React.
 - CC0-1.0: `fractional-indexing`.
+- BSD-3-Clause: `rrule`; its full upstream notice is committed and copied into the runtime image.
 
 The production-tree license gate also permits reviewed permissive transitive families: MIT-0
 (`@csstools` helpers), BlueOak-1.0.0 (`lru-cache` 11; its notice must remain with distributed
 copies), and CC0-1.0 (`mdn-data`). These are compatible with the repository's AGPL distribution;
 new license identifiers still fail the allowlist until reviewed.
 
-The P2 `rrule` and P6 `web-push` candidates are intentionally absent from this baseline. Their
-BSD-3-Clause and MPL-2.0 identifiers, respectively, must not be added to the executable allowlist
-until the package-specific gate has reviewed the exact resolved version and notice obligations.
+`rrule` is now part of the reviewed P2 baseline. Because BSD-3-Clause and MPL-2.0 already occur in
+unrelated transitive packages, the executable gate cannot treat a license identifier alone as
+package approval; it pins the direct `rrule` version, exact notice, and runtime-image copy. The P6
+`web-push` candidate remains absent and still requires its own package-specific review before use.
 
 The current production audit reports one moderate advisory in `esbuild` 0.18.20, reached only
 through Better Auth's Drizzle Kit tooling branch. The affected capability is an opt-in esbuild

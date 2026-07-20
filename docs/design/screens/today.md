@@ -42,6 +42,11 @@ Mobile uses one vertical stream. Timed/all-day metadata stays visible; opening a
 | Permission | Unauthenticated access routes to sign-in. A task that is no longer authorized disappears through a safe refresh without revealing owner information. |
 | Date changed | Announce that Today moved to the new local date and provide “Return to Today” if the user was editing a stale route state; preserve unsaved quick-add text. |
 
+Recurring work expands only for an occurrence overlapping the current local day. Today does not
+accumulate earlier missed occurrences from a series; a timed occurrence whose boundary passed
+earlier today may still appear in Overdue. This bounded presentation does not mutate or erase prior
+occurrence history.
+
 ## Keyboard, touch, and accessibility
 
 - Section headings expose item counts in text and are navigation targets without becoming unnecessary accordions.

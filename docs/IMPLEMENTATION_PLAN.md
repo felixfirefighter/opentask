@@ -81,7 +81,8 @@ AI-created recurrence.
 
 ### Deliverables
 
-- Promote reviewed `rrule` dependency, domain wrapper, canonical presets, and safety caps.
+- Promote reviewed `rrule` dependency through an application-owned expansion port and tasks
+  infrastructure adapter, with provider-free domain policy, canonical presets, and safety caps.
 - Add `task_recurrences` and `task_occurrence_events` through one reviewed migration with tenant-
   leading ownership, checked date/instant cutovers, immutable post-command `task_version` ordering,
   constraints, indexes, upgrade tests, and no generic JSON.
@@ -99,9 +100,10 @@ AI-created recurrence.
   recurring busy intervals as context but cannot create/edit recurrence.
 - Recurrence demo fixture plus an integrated, version-bumped portable recurrence/event section before
   the P2 gate; the integration owner serializes the shared export schema.
-- Before migration generation, freeze exact preset interval/count/computation bounds and the missing-
-  month-day/leap-day policy in the task/domain/data contracts. No migration or UI may invent a bound
-  independently.
+- The exact preset, interval/count/duration/query/computation limits plus missing-month/leap-day,
+  DST, cutover, lifecycle, projection, and retry policies are frozen in `docs/modules/tasks.md`,
+  `docs/modules/planning.md`, and `docs/DATA_MODEL.md`. Migration, Zod, domain, and UI code reuse
+  those values and may not invent a local bound.
 
 ### Explicit exclusions
 

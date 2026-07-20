@@ -33,10 +33,15 @@ At compact desktop/tablet the inspector overlays. On mobile, Agenda is the first
 - Navigate date range and switch the four committed views.
 - Open/edit a task through task details. “Add task” opens the full create/schedule form seeded from
   the visible range; Calendar does not use the contextual quick-add defaults.
-- Pointer-drag a scheduled task to a valid date/time and resize a timed task.
+- Pointer-drag a one-off scheduled task to a valid date/time and resize a one-off timed task.
 - Use “Edit schedule” in the event menu/inspector for complete keyboard and touch parity.
 - Complete, skip, or undo one recurring occurrence through labeled event/detail actions; editing the
   recurrence rule remains a series action in task details.
+
+Recurring events never expose drag or resize because per-occurrence overrides are outside scope.
+Their menu says “Edit future series schedule” and opens the canonical atomic series form. Calendar
+and Agenda keep completed/skipped occurrences visible in-range with state text and Undo; Today and
+Upcoming remain open-work projections.
 
 Drag/resize uses optimistic feedback only after a clear drop. On server rejection/conflict, restore the event to its authoritative slot, retain focus, and state what was not saved. Invalid all-day/timed mixtures are never presented as droppable results.
 

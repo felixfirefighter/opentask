@@ -40,6 +40,10 @@ Use the shared task-row anatomy. Show title first, then the minimum context need
 - Search: matching context and source list.
 - Completed/Cancelled: status and completion/cancellation time where available.
 
+A recurring canonical task row includes a Repeat label. Because it is not one projected occurrence,
+its leading status action opens recurring task details rather than completing the series; occurrence
+Complete/Skip/Undo actions appear only where an `occurrenceKey` is present.
+
 Selecting a row is visually distinct from completing it. Optimistic changes retain the row in place until the server confirms the destination change, then use a stable transition rather than a sudden page jump.
 
 ## State contract
