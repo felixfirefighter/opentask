@@ -80,6 +80,27 @@ describe("task schedule repository SQL", () => {
     expect(query?.params).toContain(userId);
   });
 
+  it("excludes recurrence roots from the dedicated one-off range source", async () => {
+    const recorder = createRecorder();
+    await createTaskScheduleRepository(taskSchedules, recorder.executor).listActiveOpenOneOffsInRange(
+      userId,
+      {
+        rangeStartDate: "2026-07-19",
+        rangeEndDate: "2026-07-20",
+        rangeStartAt: new Date("2026-07-18T16:00:00Z"),
+        rangeEndAt: new Date("2026-07-19T16:00:00Z"),
+        limit: 250,
+      },
+    );
+
+    const query = recorder.queries[0];
+    expect(query?.sql).toContain("not exists");
+    expect(query?.sql).toContain('from "task_recurrences"');
+    expect(query?.sql).toContain('"task_recurrences"."user_id" =');
+    expect(query?.sql).toContain('"task_recurrences"."task_id" = "task_schedules"."task_id"');
+    expect(query?.params).toContain(userId);
+  });
+
   it("loads snapshots only from owned active open tasks without a schedule", async () => {
     const recorder = createRecorder();
     await createTaskScheduleRepository(taskSchedules, recorder.executor).loadOpenUnscheduled(userId, [

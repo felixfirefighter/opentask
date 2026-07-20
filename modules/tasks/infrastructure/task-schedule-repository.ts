@@ -167,6 +167,48 @@ export function createTaskScheduleRepository(
       };
     },
 
+    async listActiveOpenOneOffsInRange(
+      userId: string,
+      range: ScheduleRange,
+      executor: DatabaseExecutor = defaultExecutor,
+    ): Promise<StoredScheduleRangePage> {
+      assertRangeLimit(range.limit);
+      const rows = await executor
+        .select({ task: schema.tasks, schedule: taskSchedules })
+        .from(taskSchedules)
+        .innerJoin(
+          schema.tasks,
+          and(eq(schema.tasks.userId, taskSchedules.userId), eq(schema.tasks.id, taskSchedules.taskId)),
+        )
+        .where(
+          and(
+            eq(taskSchedules.userId, userId),
+            eq(schema.tasks.userId, userId),
+            eq(schema.tasks.status, "open"),
+            isNull(schema.tasks.deletedAt),
+            notExists(
+              executor
+                .select({ one: sql<number>`1` })
+                .from(schema.taskRecurrences)
+                .where(
+                  and(
+                    eq(schema.taskRecurrences.userId, userId),
+                    eq(schema.taskRecurrences.userId, taskSchedules.userId),
+                    eq(schema.taskRecurrences.taskId, taskSchedules.taskId),
+                  ),
+                ),
+            ),
+            or(allDayOverlap(taskSchedules, range), timedOverlap(taskSchedules, range)),
+          ),
+        )
+        .orderBy(asc(taskSchedules.taskId))
+        .limit(range.limit + 1);
+      return {
+        items: rows.slice(0, range.limit),
+        truncated: rows.length > range.limit,
+      };
+    },
+
     async loadOpenUnscheduled(
       userId: string,
       taskIds: readonly string[],

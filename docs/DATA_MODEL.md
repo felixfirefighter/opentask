@@ -252,9 +252,10 @@ changes increment the task version exactly once. Effective state is the event wi
 `(user_id, task_id, occurrence_key, task_version DESC)` serves latest-state reads. A table-specific
 trigger rejects ordinary `UPDATE` and direct `DELETE` while permitting a referential cascade from an
 owning task/account deletion; demo reset deletes the owned task graph and never deletes events
-directly. Past events and keys remain
-stable when a series rule changes or ends, even when the old unrecorded projection is no longer
-reconstructable.
+directly. A bounded range projection may decode at most 50,000 latest event states to recover
+recorded keys from prior rules; reaching that cap is explicit and planner context rejects it. Past
+events and keys remain stable when a series rule changes or ends, even when the old unrecorded
+projection is no longer reconstructable.
 
 ### `checklist_items` — tasks
 

@@ -62,8 +62,10 @@ No public contract exposes a Drizzle row or an unscoped repository method.
 - Schedule and occurrence range queries require both date and instant bounds, cap the local-date
   span at 62 days and the elapsed instant span at 63 days, and return at most 500 combined one-off
   and recurring rows in canonical start/task/key order plus a truncation signal. One request
-  evaluates at most 500 recurrence rows, 1,000 emitted candidates per series, and 50,000 candidates
-  overall. Hitting a source, computation, or output cap is explicit; planner busy-time reads reject
+  evaluates at most 500 recurrence rows, 1,000 emitted candidates per series, 50,000 candidates
+  overall, and 50,000 latest recorded occurrence-event states. The bounded event read is necessary to
+  recover recorded keys from prior mutable rules without storing a second occurrence schedule.
+  Hitting a source, event, computation, or output cap is explicit; planner busy-time reads reject
   truncated context rather than planning against an incomplete calendar.
 - Atomic task-plus-schedule creation inserts both rows in one transaction and returns task version
   `1`; the initial schedule is part of aggregate creation and does not increment that new version.
