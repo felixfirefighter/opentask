@@ -19,6 +19,8 @@ export const taskLists = taskSchema.taskLists;
 export const listSections = taskSchema.listSections;
 export const tasks = taskSchema.tasks;
 export const taskSchedules = taskSchema.taskSchedules;
+export const taskRecurrences = taskSchema.taskRecurrences;
+export const taskOccurrenceEvents = taskSchema.taskOccurrenceEvents;
 export const checklistItems = taskSchema.checklistItems;
 export const tags = taskSchema.tags;
 export const taskTags = taskSchema.taskTags;
@@ -36,6 +38,8 @@ export const schema = {
   listSections,
   tasks,
   taskSchedules,
+  taskRecurrences,
+  taskOccurrenceEvents,
   checklistItems,
   tags,
   taskTags,
