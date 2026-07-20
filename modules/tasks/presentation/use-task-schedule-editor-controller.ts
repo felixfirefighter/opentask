@@ -3,11 +3,8 @@
 import { useState } from "react";
 
 import type { TaskDetailDto, TaskScheduleValue } from "../application/contracts";
-import {
-  useSchedulePreferencesQuery,
-  useTaskScheduleMutation,
-  useTaskScheduleQuery,
-} from "./data/use-task-schedule";
+import { useSchedulePreferencesQuery, useTaskScheduleQuery } from "./data/use-task-schedule";
+import { useTaskScheduleWriteRouter } from "./data/use-task-schedule-write-router";
 import {
   createTaskScheduleDraft,
   formatTaskSchedule,
@@ -20,7 +17,7 @@ import { useTaskConflictRecovery } from "./use-task-conflict-recovery";
 export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: boolean) {
   const scheduleQuery = useTaskScheduleQuery(task.id);
   const preferencesQuery = useSchedulePreferencesQuery();
-  const mutation = useTaskScheduleMutation();
+  const mutation = useTaskScheduleWriteRouter(task);
   const recovery = useTaskConflictRecovery(task, mutation.error);
   const [draft, setDraft] = useState<TaskScheduleDraft | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -44,13 +41,23 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
       : "No schedule";
   const interpretation =
     draft && preferences ? interpretTaskScheduleDraft(draft, preferences.hourCycle) : null;
-  const recoveryReady = recovery.latestReady && !scheduleQuery.isFetching && !scheduleQuery.isError;
+  const recurrenceReady =
+    task.parentTaskId !== null ||
+    (mutation.recurrenceQuery.isSuccess && mutation.recurrenceQuery.data !== undefined);
+  const recoveryReady =
+    recovery.latestReady &&
+    !scheduleQuery.isFetching &&
+    !scheduleQuery.isError &&
+    recurrenceReady &&
+    !mutation.recurrenceQuery.isFetching;
   const latestMatchesAttempt =
     recovery.unconfirmed &&
     recoveryReady &&
     attemptedSchedule !== undefined &&
     schedulesMatch(attemptedSchedule, schedule);
-  const controlsDisabled = disabled || mutation.isPending || (recovery.needsLatest && !recoveryReady);
+  const controlsDisabled =
+    disabled || mutation.isPending || !recurrenceReady || (recovery.needsLatest && !recoveryReady);
+  const scheduleEditDisabled = controlsDisabled || (mutation.recurrence !== null && task.status !== "open");
 
   function beginEditing(resetError = true) {
     if (!preferences) return;
@@ -80,7 +87,12 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
   }
 
   async function saveSchedule(force = false) {
-    if (!draft || !preferences || controlsDisabled || (recovery.needsLatest && (!force || !recoveryReady))) {
+    if (
+      !draft ||
+      !preferences ||
+      scheduleEditDisabled ||
+      (recovery.needsLatest && (!force || !recoveryReady))
+    ) {
       return;
     }
     const parsed = interpretTaskScheduleDraft(draft, preferences.hourCycle);
@@ -92,7 +104,13 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
   }
 
   async function clearSchedule(force = false) {
-    if (controlsDisabled || (!schedule && !recovery.needsLatest)) return;
+    if (
+      controlsDisabled ||
+      (mutation.recurrence !== null && mutation.recurrence.lifecycle !== "ended") ||
+      (!schedule && !recovery.needsLatest)
+    ) {
+      return;
+    }
     if (recovery.needsLatest && (!force || !recoveryReady)) return;
     await runMutation(null, "clear", force);
   }
@@ -112,7 +130,10 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
       await mutation.mutateAsync({
         task,
         expectedVersion:
-          expectedVersion ?? (force && recovery.needsLatest ? recovery.latestTask.version : task.version),
+          expectedVersion ??
+          (force && recovery.needsLatest
+            ? recovery.latestTask.version
+            : (mutation.recurrence?.taskVersion ?? task.version)),
         schedule: nextSchedule,
       });
       setDirty(false);
@@ -128,11 +149,12 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
   }
 
   async function useLatest() {
-    const [latestTask, latestSchedule] = await Promise.all([
+    const [latestTask, latestSchedule, latestRecurrence] = await Promise.all([
       recovery.refetchLatest(),
       scheduleQuery.refetch(),
+      mutation.recurrenceQuery.refetch(),
     ]);
-    if (!latestTask.isSuccess || !latestSchedule.isSuccess) return;
+    if (!latestTask.isSuccess || !latestSchedule.isSuccess || !latestRecurrence.isSuccess) return;
     acceptLatest(latestSchedule.data ?? null);
   }
 
@@ -157,11 +179,19 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
       return lastAttempt === "clear" ? clearSchedule(true) : saveSchedule(true);
     }
 
-    const [latestTask, latestSchedule] = await Promise.all([
+    const [latestTask, latestSchedule, latestRecurrence] = await Promise.all([
       recovery.refetchLatest(),
       scheduleQuery.refetch(),
+      mutation.recurrenceQuery.refetch(),
     ]);
-    if (!latestTask.isSuccess || !latestTask.data || !latestSchedule.isSuccess) return;
+    if (
+      !latestTask.isSuccess ||
+      !latestTask.data ||
+      !latestSchedule.isSuccess ||
+      !latestRecurrence.isSuccess
+    ) {
+      return;
+    }
     const savedSchedule = latestSchedule.data ?? null;
     if (
       recovery.unconfirmed &&
@@ -201,6 +231,7 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
     clearSchedule,
     recoveryReady,
     controlsDisabled,
+    scheduleEditDisabled,
     draft,
     interpretation,
     lastAttempt,
@@ -214,6 +245,8 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
     saveSchedule,
     schedule,
     scheduleQuery,
+    recurrence: mutation.recurrence,
+    recurrenceQuery: mutation.recurrenceQuery,
     summary,
     task,
     useLatest,
@@ -224,6 +257,7 @@ export function useTaskScheduleEditorController(task: TaskDetailDto, disabled: b
     refreshLatest() {
       void recovery.refetchLatest();
       void scheduleQuery.refetch();
+      void mutation.recurrenceQuery.refetch();
     },
     retry,
   } as const;

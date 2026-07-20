@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TaskDetailDto, TaskScheduleDto } from "../application/contracts";
+import type { TaskRecurrenceDto } from "../application/contracts/recurrence-contract";
 import { TaskApiError } from "./data/task-api-request";
 import { clearTaskDrafts } from "./task-draft-guard";
 
@@ -14,22 +15,50 @@ const scheduleApi = vi.hoisted(() => ({
   setTaskSchedule: vi.fn(),
 }));
 const taskApi = vi.hoisted(() => ({ getTask: vi.fn() }));
+const recurrenceApi = vi.hoisted(() => ({
+  editRecurringTaskSchedule: vi.fn(),
+  endTaskRecurrence: vi.fn(),
+  getTaskRecurrence: vi.fn(),
+  setTaskRecurrence: vi.fn(),
+}));
 
 vi.mock("./data/task-schedule-api-client", () => scheduleApi);
 vi.mock("./data/task-api-client", () => ({ getTask: taskApi.getTask }));
+vi.mock("./data/task-recurrence-api-client", () => recurrenceApi);
 
 import { TaskScheduleEditor } from "./TaskScheduleEditor";
 
 const TASK_ID = "00000000-0000-4000-8000-000000000010";
 const LIST_ID = "00000000-0000-4000-8000-000000000020";
 let savedSchedule: TaskScheduleDto | null;
+let savedRecurrence: TaskRecurrenceDto | null;
 
 beforeEach(() => {
   vi.clearAllMocks();
   clearTaskDrafts(TASK_ID);
   savedSchedule = null;
+  savedRecurrence = null;
   scheduleApi.getSchedulePreferences.mockResolvedValue({ timeZone: "Asia/Singapore", hourCycle: "h23" });
   scheduleApi.getTaskSchedule.mockImplementation(async () => savedSchedule);
+  recurrenceApi.getTaskRecurrence.mockImplementation(async () => savedRecurrence);
+  recurrenceApi.editRecurringTaskSchedule.mockImplementation(async (taskId, input) => {
+    savedSchedule = {
+      taskId,
+      ...input.schedule,
+      createdAt: "2026-07-19T00:00:00.000Z",
+      updatedAt: "2026-07-19T00:00:00.000Z",
+    } as TaskScheduleDto;
+    savedRecurrence = {
+      ...savedRecurrence!,
+      definition: input.definition,
+      taskVersion: input.expectedVersion + 1,
+      updatedAt: "2026-07-19T00:01:00.000Z",
+    };
+    return {
+      task: { id: taskId, version: input.expectedVersion + 1 },
+      recurrence: savedRecurrence,
+    };
+  });
   scheduleApi.setTaskSchedule.mockImplementation(async (taskId, input) => {
     savedSchedule = {
       taskId,
@@ -106,6 +135,46 @@ describe("TaskScheduleEditor", () => {
         schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-23" },
       }),
     );
+  });
+
+  it("routes a recurring schedule edit through the atomic series command", async () => {
+    savedSchedule = allDaySchedule();
+    savedRecurrence = recurrence();
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Edit recurring schedule" }));
+    expect(
+      screen.getByText(/restarts future occurrences while preserving recorded history/i),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("End date (exclusive)"), {
+      target: { value: "2026-07-23" },
+    });
+    await user.click(screen.getByRole("button", { name: "Save schedule" }));
+
+    await waitFor(() =>
+      expect(recurrenceApi.editRecurringTaskSchedule).toHaveBeenCalledWith(TASK_ID, {
+        expectedVersion: 1,
+        definition: recurrence().definition,
+        schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-23" },
+      }),
+    );
+    expect(scheduleApi.setTaskSchedule).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Clear schedule" })).not.toBeInTheDocument();
+  });
+
+  it("allows the canonical atomic clear only after recurrence has ended", async () => {
+    savedSchedule = allDaySchedule();
+    savedRecurrence = recurrence("ended");
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Clear schedule" }));
+
+    await waitFor(() =>
+      expect(scheduleApi.clearTaskSchedule).toHaveBeenCalledWith(TASK_ID, { expectedVersion: 1 }),
+    );
+    expect(recurrenceApi.editRecurringTaskSchedule).not.toHaveBeenCalled();
   });
 
   it("keeps invalid all-day input local and focuses an actionable error", async () => {
@@ -301,6 +370,24 @@ function allDaySchedule(): TaskScheduleDto {
     kind: "all_day",
     startDate: "2026-07-20",
     endDate: "2026-07-21",
+    createdAt: "2026-07-19T00:00:00.000Z",
+    updatedAt: "2026-07-19T00:00:00.000Z",
+  };
+}
+
+function recurrence(lifecycle: TaskRecurrenceDto["lifecycle"] = "active"): TaskRecurrenceDto {
+  return {
+    taskId: TASK_ID,
+    taskVersion: 1,
+    generationMode: "schedule",
+    timezone: "Asia/Singapore",
+    definition: { preset: { kind: "daily", interval: 1 }, end: { kind: "never" } },
+    cutover: {
+      kind: "all_day",
+      projectionStartDate: "2026-07-20",
+      projectionEndDate: lifecycle === "ended" ? "2026-07-25" : null,
+    },
+    lifecycle,
     createdAt: "2026-07-19T00:00:00.000Z",
     updatedAt: "2026-07-19T00:00:00.000Z",
   };

@@ -37,16 +37,25 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
     }, 0);
   }
 
-  if (editor.scheduleQuery.isPending || editor.preferencesQuery.isPending) {
+  if (
+    editor.scheduleQuery.isPending ||
+    editor.preferencesQuery.isPending ||
+    editor.recurrenceQuery.isPending
+  ) {
     return <ScheduleLoading taskId={task.id} />;
   }
-  if (!editor.preferences || (!editor.scheduleQuery.isSuccess && editor.scheduleQuery.data === undefined)) {
+  if (
+    !editor.preferences ||
+    (!editor.scheduleQuery.isSuccess && editor.scheduleQuery.data === undefined) ||
+    (!editor.recurrenceQuery.isSuccess && editor.recurrenceQuery.data === undefined)
+  ) {
     return (
       <ScheduleUnavailable
         taskId={task.id}
         onRetry={() => {
           void editor.scheduleQuery.refetch();
           void editor.preferencesQuery.refetch();
+          void editor.recurrenceQuery.refetch();
         }}
       />
     );
@@ -64,10 +73,10 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
         </div>
         <CalendarClock size={18} aria-hidden="true" />
       </div>
-      {editor.scheduleQuery.isError ? (
+      {editor.scheduleQuery.isError || editor.recurrenceQuery.isError ? (
         <div className={styles.stale} role="status">
           <span>Showing the last loaded schedule. A fresh copy could not be loaded.</span>
-          <button className="quiet-button" type="button" onClick={() => void editor.scheduleQuery.refetch()}>
+          <button className="quiet-button" type="button" onClick={editor.refreshLatest}>
             Refresh schedule
           </button>
         </div>
@@ -85,9 +94,14 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
           <TaskScheduleFields
             taskId={task.id}
             draft={editor.draft}
-            disabled={editor.controlsDisabled}
+            disabled={editor.scheduleEditDisabled}
             onChange={editor.changeDraft}
           />
+          {editor.recurrence ? (
+            <p className={styles.seriesNote}>
+              Saving changes restarts future occurrences while preserving recorded history.
+            </p>
+          ) : null}
           <p className={styles.interpretation}>
             {editor.interpretation?.valid
               ? `Interpreted as: ${editor.interpretation.summary}`
@@ -102,7 +116,7 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
             <button
               className="quiet-button"
               type="button"
-              disabled={editor.mutation.isPending || editor.recovery.needsLatest}
+              disabled={editor.scheduleEditDisabled || editor.recovery.needsLatest}
               onClick={editor.cancelEditing}
             >
               Cancel
@@ -110,7 +124,7 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
             <button
               className="primary-button"
               type="submit"
-              disabled={editor.controlsDisabled || editor.recovery.needsLatest}
+              disabled={editor.scheduleEditDisabled || editor.recovery.needsLatest}
             >
               {editor.mutation.isPending ? "Saving schedule…" : "Save schedule"}
             </button>
@@ -121,15 +135,19 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
           <button
             className="secondary-button"
             type="button"
-            disabled={editor.controlsDisabled || editor.recovery.needsLatest}
+            disabled={editor.scheduleEditDisabled || editor.recovery.needsLatest}
             onClick={() => {
               editor.beginEditing();
               focusFirstScheduleField();
             }}
           >
-            {editor.schedule ? "Edit schedule" : "Add schedule"}
+            {editor.schedule
+              ? editor.recurrence
+                ? "Edit recurring schedule"
+                : "Edit schedule"
+              : "Add schedule"}
           </button>
-          {editor.schedule ? (
+          {editor.schedule && (!editor.recurrence || editor.recurrence.lifecycle === "ended") ? (
             <button
               className="quiet-button"
               type="button"
@@ -157,7 +175,11 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
           latestSummary={latestSummary}
           latestMatchesProposal={editor.latestMatchesAttempt}
           loadingLatest={editor.recovery.loadingLatest || editor.scheduleQuery.isFetching}
-          latestUnavailable={editor.recovery.latestUnavailable || editor.scheduleQuery.isError}
+          latestUnavailable={
+            editor.recovery.latestUnavailable ||
+            editor.scheduleQuery.isError ||
+            editor.recurrenceQuery.isError
+          }
           pending={editor.mutation.isPending}
           onKeepEditing={() => {
             editor.keepEditing();

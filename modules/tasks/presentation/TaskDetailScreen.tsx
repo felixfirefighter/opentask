@@ -10,11 +10,13 @@ import { useOnlineStatus } from "@/shared/presentation";
 
 import type { TaskDetailDto, TaskStatus } from "../application/contracts";
 import { isTaskApiError } from "./data/task-api-request";
+import { useTaskRecurrenceQuery } from "./data/use-task-recurrence";
 import { useDeleteTaskMutation, useTaskStatusMutation } from "./data/use-task-lifecycle-mutations";
 import { useTaskDetailQuery } from "./data/use-task-queries";
 import { TaskDeleteDialog } from "./TaskDeleteDialog";
 import { TaskNotesEditor } from "./TaskNotesEditor";
 import { TaskOrganizationEditor } from "./TaskOrganizationEditor";
+import { TaskRecurrenceEditor } from "./TaskRecurrenceEditor";
 import { TaskScheduleEditor } from "./TaskScheduleEditor";
 import { TaskStepsEditor } from "./TaskStepsEditor";
 import { TaskTitleEditor } from "./TaskTitleEditor";
@@ -48,6 +50,14 @@ export function TaskDetailScreen({
   const online = useOnlineStatus();
   const router = useRouter();
   const status = useTaskStatusMutation();
+  const recurrenceQuery = useTaskRecurrenceQuery(task.id, task.parentTaskId === null);
+  const recurrence = recurrenceQuery.data ?? null;
+  const recurrenceUnknown =
+    task.parentTaskId === null && !recurrenceQuery.isSuccess && recurrenceQuery.data === undefined;
+  const completionBlocked =
+    task.status === "open" &&
+    task.parentTaskId === null &&
+    (recurrenceUnknown || (recurrence !== null && recurrence.lifecycle !== "ended"));
   const remove = useDeleteTaskMutation(() => {
     clearTaskDrafts(task.id);
     if (onClose) onClose();
@@ -76,6 +86,7 @@ export function TaskDetailScreen({
   }, [task.id]);
 
   function setStatus(nextStatus: TaskStatus) {
+    if (nextStatus === "completed" && completionBlocked) return;
     status.mutate({ task, status: nextStatus });
   }
 
@@ -95,7 +106,14 @@ export function TaskDetailScreen({
         <button
           type="button"
           className={styles.status}
-          disabled={!online || status.isPending}
+          disabled={!online || status.isPending || completionBlocked}
+          title={
+            completionBlocked && recurrenceUnknown
+              ? "Loading recurrence status"
+              : completionBlocked
+                ? "End recurrence before completing this task"
+                : undefined
+          }
           onClick={() => setStatus(task.status === "open" ? "completed" : "open")}
         >
           {task.status === "open" ? (
@@ -108,7 +126,12 @@ export function TaskDetailScreen({
           </span>
         </button>
         <div className={styles.actions}>
-          <TaskActions task={task} disabled={!online} onStatusChange={setStatus} />
+          <TaskActions
+            task={task}
+            disabled={!online}
+            completionBlocked={completionBlocked}
+            onStatusChange={setStatus}
+          />
           {mode === "inspector" ? (
             <button
               className="icon-button"
@@ -141,6 +164,7 @@ export function TaskDetailScreen({
         {!online && <p className={styles.offline}>Task details are read-only while you’re offline.</p>}
         <TaskTitleEditor task={task} headingId={`task-title-${task.id}`} disabled={!online} />
         <TaskScheduleEditor key={task.id} task={task} disabled={!online} />
+        <TaskRecurrenceEditor key={`recurrence-${task.id}`} task={task} disabled={!online} />
         <TaskOrganizationEditor
           task={task}
           inbox={inbox ?? { id: task.listId, name: "Current list" }}
@@ -155,11 +179,13 @@ export function TaskDetailScreen({
 }
 
 function TaskActions({
+  completionBlocked,
   disabled,
   onStatusChange,
   task,
 }: Readonly<{
   disabled: boolean;
+  completionBlocked: boolean;
   onStatusChange: (status: TaskStatus) => void;
   task: TaskDetailDto;
 }>) {
@@ -176,7 +202,7 @@ function TaskActions({
             <>
               <DropdownMenu.Item
                 className={styles.menuItem}
-                disabled={disabled}
+                disabled={disabled || completionBlocked}
                 onSelect={() => onStatusChange("completed")}
               >
                 Complete task
