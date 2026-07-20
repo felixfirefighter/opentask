@@ -5,6 +5,8 @@
 }
 
 .pageHeader {
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-default) solid var(--border);
   margin-bottom: var(--space-8);
 }
 
@@ -24,7 +26,7 @@
 .card {
   padding: var(--space-6);
   border: var(--border-default) solid var(--border);
-  border-radius: var(--radius-overlay);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 
@@ -48,7 +50,14 @@
 }
 
 .previewTime {
+  flex: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
   color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
   font-variant-numeric: tabular-nums;
 }
 
@@ -90,7 +99,7 @@
   padding: 0 var(--space-3);
   border: var(--border-default) solid var(--border-strong);
   border-radius: var(--radius-control);
-  background: var(--surface);
+  background: var(--surface-elevated);
 }
 
 .field small,
@@ -109,7 +118,7 @@
 
 .fieldset {
   display: flex;
-  gap: var(--space-5);
+  gap: var(--space-2);
 }
 
 .fieldset legend,
@@ -122,6 +131,23 @@
   min-height: var(--control-target-touch);
   align-items: center;
   gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-elevated);
+  cursor: pointer;
+}
+
+.fieldset label:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--surface-selected);
+  color: var(--text-selected);
+}
+
+.fieldset input,
+.themeChoice input,
+.switchRow input {
+  accent-color: var(--brand);
 }
 
 .themeGrid {
@@ -133,10 +159,12 @@
 .themeChoice {
   position: relative;
   display: grid;
+  min-width: 0;
   gap: var(--space-1);
   padding: var(--space-3);
-  border: var(--border-default) solid var(--border);
+  border: var(--border-default) solid var(--border-strong);
   border-radius: var(--radius-card);
+  background: var(--surface-elevated);
   cursor: pointer;
 }
 
@@ -149,11 +177,13 @@
   position: absolute;
   top: var(--space-2);
   right: var(--space-2);
+  width: var(--space-5);
+  height: var(--space-5);
 }
 
 .themeSample {
   display: grid;
-  height: var(--space-10);
+  height: var(--space-12);
   overflow: hidden;
   border: var(--border-default) solid var(--border);
   border-radius: var(--radius-control);
@@ -170,6 +200,54 @@
   margin: var(--space-2);
   border-radius: var(--radius-control);
   background: var(--surface);
+}
+
+.themeSample[data-theme-preview="light"] {
+  background: var(--surface);
+}
+
+.themeSample[data-theme-preview="light"] i {
+  background: var(--surface-subtle);
+}
+
+.themeSample[data-theme-preview="light"] b {
+  background: var(--surface-elevated);
+}
+
+.themeSample[data-theme-preview="dark"] {
+  background: var(--action);
+}
+
+.themeSample[data-theme-preview="dark"] i {
+  background: var(--action-hover);
+}
+
+.themeSample[data-theme-preview="dark"] b {
+  background: var(--text-on-strong);
+}
+
+:global(:root[data-theme="dark"]) .themeSample[data-theme-preview="light"] {
+  background: var(--action);
+}
+
+:global(:root[data-theme="dark"]) .themeSample[data-theme-preview="light"] i {
+  background: var(--text-on-strong);
+}
+
+:global(:root[data-theme="dark"]) .themeSample[data-theme-preview="light"] b {
+  background: var(--action-hover);
+}
+
+:global(:root[data-theme="dark"]) .themeSample[data-theme-preview="dark"] {
+  background: var(--surface);
+}
+
+:global(:root[data-theme="dark"]) .themeSample[data-theme-preview="dark"] i {
+  background: var(--surface-subtle);
+}
+
+:global(:root[data-theme="dark"]) .themeSample[data-theme-preview="dark"] b {
+  background: var(--surface-elevated);
 }
 
 .switchRow {
@@ -191,6 +269,18 @@
 .switchRow input {
   width: var(--space-5);
   height: var(--space-5);
+}
+
+@media (hover: hover) {
+  .fieldset label:hover,
+  .themeChoice:hover {
+    background: var(--surface-hover);
+  }
+
+  .fieldset label:has(input:checked):hover,
+  .themeChoice:has(input:checked):hover {
+    background: var(--surface-selected);
+  }
 }
 
 .cardActions {
@@ -244,5 +334,13 @@
 
   .cardActions button {
     width: 100%;
+  }
+}
+
+@media (max-width: 359px) {
+  .cardHeading:has(.previewTime) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
   }
 }

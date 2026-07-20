@@ -1,6 +1,9 @@
 "use client";
 
+import { CircleAlert } from "lucide-react";
 import { useEffect } from "react";
+
+import styles from "./WorkspaceRouteError.module.css";
 
 export function WorkspaceRouteError({
   error,
@@ -12,8 +15,11 @@ export function WorkspaceRouteError({
   }, [error]);
 
   return (
-    <main className="workspace-route-state">
-      <div role="alert">
+    <main className={styles.routeState}>
+      <div className={styles.stateCard} role="alert">
+        <span className={styles.stateIcon} aria-hidden="true">
+          <CircleAlert size={20} />
+        </span>
         <p className="eyebrow">Workspace</p>
         <h1>Something interrupted this view</h1>
         <p>Your data was not changed. Try loading the view again.</p>

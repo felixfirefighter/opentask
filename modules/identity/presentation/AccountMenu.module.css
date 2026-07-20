@@ -110,6 +110,12 @@
   background: var(--surface-hover);
 }
 
+.menuItem[aria-current="page"] {
+  background: var(--surface-selected);
+  color: var(--text-selected);
+  font-weight: var(--type-label-weight);
+}
+
 .menuItem:disabled {
   color: var(--text-disabled);
   cursor: wait;

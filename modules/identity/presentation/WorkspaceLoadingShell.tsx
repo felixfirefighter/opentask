@@ -20,12 +20,16 @@ export function WorkspaceLoadingShell({
         </Link>
       </nav>
       <aside className={styles.sidebar} aria-label="Workspace navigation loading">
-        <BrandMark />
+        <div className={styles.sidebarHeader}>
+          <p>Opening</p>
+          <strong>Your workspace</strong>
+        </div>
         <LoadingLines count={5} />
       </aside>
       <header className={styles.topBar}>
         <Link href="/inbox" aria-label="OpenTask inbox">
           <BrandMark compact />
+          <strong>Workspace</strong>
         </Link>
       </header>
       <main className={styles.main} id="loading-main" tabIndex={-1} aria-busy="true">
@@ -43,6 +47,8 @@ export function WorkspaceLoadingShell({
         </section>
       </main>
       <nav className={styles.mobileNav} aria-label="Mobile navigation loading" aria-hidden="true">
+        <span />
+        <span />
         <span />
         <span />
         <span />

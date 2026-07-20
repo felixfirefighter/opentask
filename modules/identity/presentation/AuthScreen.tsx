@@ -26,7 +26,7 @@ export function AuthScreen({
   useEffect(() => headingRef.current?.focus(), []);
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-auth-mode={mode}>
       <a className="skip-link" href="#auth-content">
         Skip to main content
       </a>

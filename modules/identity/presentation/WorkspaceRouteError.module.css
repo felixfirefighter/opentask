@@ -1,0 +1,58 @@
+.routeState {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  padding: var(--space-6);
+  background: var(--canvas);
+  text-align: center;
+}
+
+:global(#main-content) > .routeState {
+  min-height: 100%;
+}
+
+.stateCard {
+  width: min(100%, 440px);
+  padding: var(--space-8);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.stateIcon {
+  display: inline-flex;
+  width: var(--control-target-touch);
+  height: var(--control-target-touch);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-4);
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  color: var(--danger);
+}
+
+.stateCard h1 {
+  margin: var(--space-2) 0;
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+}
+
+.stateCard > p:not(:global(.eyebrow)) {
+  margin: 0 0 var(--space-5);
+  color: var(--text-muted);
+}
+
+@media (max-width: 767px) {
+  .routeState {
+    align-content: start;
+    padding: var(--space-10) var(--space-5);
+    background: var(--surface);
+  }
+
+  .stateCard {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+}
