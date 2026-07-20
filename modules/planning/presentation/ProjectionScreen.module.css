@@ -14,6 +14,16 @@
   padding: 0 var(--space-1) var(--space-6);
 }
 
+.pageHeader > div {
+  min-width: 0;
+}
+
+.pageHeader > a,
+.pageHeader > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .pageHeader h1 {
   margin: var(--space-1) 0 0;
   font-size: var(--type-page-title-size);
@@ -108,13 +118,20 @@
   place-content: center;
   justify-items: center;
   padding: var(--space-8);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface);
   text-align: center;
 }
 
 .empty h2 {
   margin: 0;
-  font-size: var(--type-section-title-size);
-  line-height: var(--type-section-title-line);
+  font-family: var(--font-display);
+  font-size: var(--type-display-sm-size);
+  font-weight: var(--type-display-sm-weight);
+  letter-spacing: var(--type-display-sm-tracking);
+  line-height: var(--type-display-sm-line);
+  text-wrap: balance;
 }
 
 .empty p {

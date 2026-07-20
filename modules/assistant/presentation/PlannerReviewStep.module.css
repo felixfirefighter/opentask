@@ -109,7 +109,7 @@
 .group {
   overflow: hidden;
   border: var(--border-default) solid var(--border);
-  border-radius: var(--radius-overlay);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 
@@ -246,6 +246,15 @@
   margin: var(--space-3) 0 var(--space-2);
   font-size: var(--type-section-title-size);
   line-height: var(--type-section-title-line);
+}
+
+.empty h2 {
+  font-family: var(--font-display);
+  font-size: var(--type-display-sm-size);
+  font-weight: var(--type-display-sm-weight);
+  letter-spacing: var(--type-display-sm-tracking);
+  line-height: var(--type-display-sm-line);
+  text-wrap: balance;
 }
 
 .empty p,

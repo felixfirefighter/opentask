@@ -12,6 +12,15 @@
   padding: 0 var(--space-1) var(--space-4);
 }
 
+.pageHeader > div {
+  min-width: 0;
+}
+
+.pageHeader > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .pageHeader h1 {
   margin: var(--space-1) 0 0;
   font-size: var(--type-page-title-size);
@@ -197,6 +206,10 @@
 @media (max-width: 767px), (any-pointer: coarse) {
   .page {
     padding: var(--space-5) var(--space-4) var(--space-16);
+  }
+
+  .pageHeader {
+    gap: var(--space-2);
   }
 
   .jumpNav a {

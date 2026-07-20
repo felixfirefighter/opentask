@@ -67,7 +67,9 @@ export function UpcomingScreen({ condition, model, onAddTask, onRetry, taskActio
                 <h2 id={`upcoming-${group.id}`} tabIndex={-1}>
                   {group.dateLabel}
                 </h2>
-                <span>{group.tasks.length} tasks</span>
+                <span>
+                  {group.tasks.length} {group.tasks.length === 1 ? "task" : "tasks"}
+                </span>
               </header>
               <div className={styles.rows} role="list" aria-label={`${group.dateLabel} tasks`}>
                 {group.tasks.map((task) => (

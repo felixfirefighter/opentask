@@ -49,15 +49,30 @@
   place-content: center;
   justify-items: center;
   padding: var(--space-8);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface);
   color: var(--text-muted);
   text-align: center;
+}
+
+.statePanel > svg {
+  width: var(--space-12);
+  height: var(--space-12);
+  padding: var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
 }
 
 .statePanel h2 {
   margin: var(--space-3) 0 var(--space-2);
   color: var(--text);
-  font-size: var(--type-section-title-size);
-  line-height: var(--type-section-title-line);
+  font-family: var(--font-display);
+  font-size: var(--type-display-sm-size);
+  font-weight: var(--type-display-sm-weight);
+  letter-spacing: var(--type-display-sm-tracking);
+  line-height: var(--type-display-sm-line);
+  text-wrap: balance;
 }
 
 .statePanel p {

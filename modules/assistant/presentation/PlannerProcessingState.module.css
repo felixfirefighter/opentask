@@ -62,6 +62,7 @@
   width: min(100%, 560px);
   gap: var(--space-1);
   padding: var(--space-4);
+  border: var(--border-default) solid var(--border);
   border-radius: var(--radius-card);
   background: var(--surface-subtle);
 }
@@ -81,5 +82,16 @@
 @media (prefers-reduced-motion: reduce) {
   .stageList li[data-state="current"] svg {
     animation: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .panel {
+    min-height: 400px;
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .stageList {
+    margin: var(--space-6) 0;
   }
 }

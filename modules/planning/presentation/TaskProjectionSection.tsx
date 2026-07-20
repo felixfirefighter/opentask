@@ -18,15 +18,16 @@ export function TaskProjectionSection({
   tone?: "danger" | undefined;
 }>) {
   if (tasks.length === 0) return null;
+  const countLabel = `${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}`;
   return (
     <section className={styles.section} aria-labelledby={headingId}>
       <header className={styles.sectionHeader} data-tone={tone}>
         <h2 id={headingId} tabIndex={-1}>
           {label}
         </h2>
-        <span>{tasks.length} tasks</span>
+        <span>{countLabel}</span>
       </header>
-      <div className={styles.rows} role="list" aria-label={`${label}, ${tasks.length} tasks`}>
+      <div className={styles.rows} role="list" aria-label={`${label}, ${countLabel}`}>
         {tasks.map((task) => (
           <div role="listitem" key={task.id}>
             <ProjectionTaskRow actions={actions} disabled={disabled || task.conflicted} task={task} />

@@ -6,7 +6,7 @@
 .card {
   padding: var(--space-6);
   border: var(--border-default) solid var(--border);
-  border-radius: var(--radius-overlay);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 
@@ -26,7 +26,7 @@
 }
 
 .cardHeading > svg {
-  color: var(--category-violet-fg);
+  color: var(--brand);
 }
 
 .field {
@@ -270,6 +270,10 @@
 .formActions button:disabled {
   background: var(--text-disabled);
   cursor: not-allowed;
+}
+
+.formActions button {
+  border-radius: var(--radius-pill);
 }
 
 .errorSummary {

@@ -38,6 +38,11 @@
   margin-bottom: var(--space-3);
 }
 
+.toolbar > :global(.primary-button) {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .rangeControls {
   min-width: 0;
   gap: var(--space-1);
