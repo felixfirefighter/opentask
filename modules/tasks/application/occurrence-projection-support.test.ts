@@ -72,6 +72,8 @@ describe("occurrence command eligibility", () => {
     expect(skippedProjection.occurrence.occurrenceKey).not.toBe(followingProjection.occurrence.occurrenceKey);
     expect(skippedProjection.occurrence.occurrenceKey).toMatch(/^o2\./);
     expect(followingProjection.occurrence.occurrenceKey).toMatch(/^o1\./);
+    expect(skippedProjection.occurrence.transitionEligible).toBe(true);
+    expect(followingProjection.occurrence.transitionEligible).toBe(true);
 
     for (const projection of [skippedProjection, followingProjection]) {
       expect(
@@ -108,6 +110,7 @@ function generatedProjection(anchor: RecurrenceScheduleAnchor, candidate: LocalR
     1,
     projectRecurrenceCandidate(anchor, candidate),
     "open",
+    true,
     anchor.timezone,
     { kind: "generated", candidate },
   );

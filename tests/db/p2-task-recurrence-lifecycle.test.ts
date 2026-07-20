@@ -137,7 +137,11 @@ describe("P2 recurring task lifecycle integration", () => {
     expect(resumedHistory.items[0]).toMatchObject({
       projectionKind: "recurring",
       task: { id: task.id, version: 4 },
-      occurrence: { occurrenceKey: historicalKey, occurrenceState: "completed" },
+      occurrence: {
+        occurrenceKey: historicalKey,
+        occurrenceState: "completed",
+        transitionEligible: false,
+      },
     });
     await expect(
       application.occurrences.readBoundedOccurrences(stranger, historicalRange),
@@ -152,7 +156,11 @@ describe("P2 recurring task lifecycle integration", () => {
     const undoneHistory = await application.occurrences.readBoundedOccurrences(owner, historicalRange);
     expect(undoneHistory.items).toHaveLength(1);
     expect(undoneHistory.items[0]).toMatchObject({
-      occurrence: { occurrenceKey: historicalKey, occurrenceState: "open" },
+      occurrence: {
+        occurrenceKey: historicalKey,
+        occurrenceState: "open",
+        transitionEligible: false,
+      },
     });
 
     currentInstant = new Date("2026-07-27T10:00:00.000Z");

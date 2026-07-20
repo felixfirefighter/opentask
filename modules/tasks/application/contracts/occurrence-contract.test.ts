@@ -84,6 +84,7 @@ describe("occurrence contracts", () => {
         taskVersion: 4,
         occurrenceKey,
         occurrenceState: "open",
+        transitionEligible: true,
         schedule: {
           kind: "timed",
           startAt: "2026-07-20T09:00:00+08:00",
@@ -94,8 +95,14 @@ describe("occurrence contracts", () => {
     } as const;
     expect(boundedTaskProjectionSchema.parse(recurring)).toMatchObject({
       projectionKind: "recurring",
-      occurrence: { occurrenceState: "open" },
+      occurrence: { occurrenceState: "open", transitionEligible: true },
     });
+    expect(() =>
+      boundedTaskProjectionSchema.parse({
+        ...recurring,
+        occurrence: { ...recurring.occurrence, transitionEligible: undefined },
+      }),
+    ).toThrow();
     expect(() =>
       boundedTaskProjectionSchema.parse({
         ...recurring,

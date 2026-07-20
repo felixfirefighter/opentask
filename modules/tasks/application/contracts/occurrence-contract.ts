@@ -35,6 +35,7 @@ export const taskOccurrenceDtoSchema = z.strictObject({
   taskVersion: versionSchema,
   occurrenceKey: occurrenceKeySchema,
   occurrenceState: occurrenceStateSchema,
+  transitionEligible: z.boolean(),
   schedule: taskScheduleValueSchema,
 });
 

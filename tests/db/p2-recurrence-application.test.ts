@@ -230,7 +230,11 @@ describe("P2 recurrence application PostgreSQL golden path", () => {
     expect(recorded.items[0]).toMatchObject({
       projectionKind: "recurring",
       task: { id: taskId, version: 4 },
-      occurrence: { occurrenceKey, occurrenceState: "completed" },
+      occurrence: {
+        occurrenceKey,
+        occurrenceState: "completed",
+        transitionEligible: false,
+      },
     });
     await expect(application.occurrences.readBoundedOccurrences(stranger, pastRange)).resolves.toMatchObject({
       items: [],
@@ -246,7 +250,11 @@ describe("P2 recurrence application PostgreSQL golden path", () => {
     const undone = await application.occurrences.readBoundedOccurrences(owner, pastRange);
     expect(undone.items).toHaveLength(1);
     expect(undone.items[0]).toMatchObject({
-      occurrence: { occurrenceKey, occurrenceState: "open" },
+      occurrence: {
+        occurrenceKey,
+        occurrenceState: "open",
+        transitionEligible: false,
+      },
     });
 
     const events = await pool.query<{ task_version: number }>(

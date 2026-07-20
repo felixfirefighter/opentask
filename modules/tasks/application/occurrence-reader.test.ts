@@ -189,10 +189,14 @@ describe("bounded occurrence reader", () => {
     ).toBe(3);
     expect(page.items.map((item) => item.projectionKind)).toEqual(["recurring", "recurring", "one_off"]);
     expect(page.items[0]).toMatchObject({
-      occurrence: { occurrenceKey: recordedPriorKey, occurrenceState: "completed" },
+      occurrence: {
+        occurrenceKey: recordedPriorKey,
+        occurrenceState: "completed",
+        transitionEligible: false,
+      },
     });
     expect(page.items[1]).toMatchObject({
-      occurrence: { occurrenceKey: currentKey, occurrenceState: "skipped" },
+      occurrence: { occurrenceKey: currentKey, occurrenceState: "skipped", transitionEligible: true },
     });
     expect(page.truncation).toEqual({
       truncated: false,
@@ -235,6 +239,7 @@ describe("bounded occurrence reader", () => {
         occurrence: expect.objectContaining({
           occurrenceKey: recordedPriorKey,
           occurrenceState: "completed",
+          transitionEligible: false,
         }),
       }),
     ]);
@@ -251,6 +256,42 @@ describe("bounded occurrence reader", () => {
       500,
     );
     expect(expansion.expand).not.toHaveBeenCalled();
+  });
+
+  it("keeps an undone historical occurrence visible but ineligible under the current cutover", async () => {
+    repositories.schedules.listActiveOpenOneOffsInRange.mockResolvedValueOnce({
+      items: [],
+      truncated: false,
+    });
+    repositories.recurrences.listActiveOpenSourcesInRange.mockResolvedValueOnce({
+      items: [],
+      truncated: false,
+    });
+    repositories.recurrences.listActiveOpenSourcesForTaskIds.mockResolvedValueOnce({
+      items: [recurringSource()],
+      truncated: false,
+    });
+    repositories.events.listLatestForUser.mockResolvedValueOnce({
+      items: [event(recordedPriorKey, "open", 4)],
+      truncated: false,
+    });
+
+    const page = await reader()(actor, {
+      ...query(),
+      rangeEndDate: "2026-07-21",
+      rangeEndAt: "2026-07-20T16:00:00.000Z",
+    });
+
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        projectionKind: "recurring",
+        occurrence: expect.objectContaining({
+          occurrenceKey: recordedPriorKey,
+          occurrenceState: "open",
+          transitionEligible: false,
+        }),
+      }),
+    ]);
   });
 
   it("reports output, source, event, and series cap truncation explicitly", async () => {
@@ -345,6 +386,7 @@ describe("bounded occurrence reader", () => {
     expect(new Set(occurrences.map(({ occurrenceKey }) => occurrenceKey.slice(0, 3)))).toEqual(
       new Set(["o1.", "o2."]),
     );
+    expect(occurrences.every(({ transitionEligible }) => transitionEligible)).toBe(true);
   });
 });
 

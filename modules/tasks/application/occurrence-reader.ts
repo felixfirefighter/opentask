@@ -19,6 +19,7 @@ import { selectPotentiallyOverlappingHistoricalEvents } from "./occurrence-histo
 import {
   createOccurrenceProjection,
   expandOccurrenceSchedules,
+  isEligibleOccurrence,
   occurrenceOverlapsRange,
   projectRecordedOccurrence,
   scheduleSortStart,
@@ -162,6 +163,7 @@ export function createBoundedOccurrenceReader(
           source.task.version,
           schedule,
           "open",
+          true,
           userTimezone,
           identity,
         ).occurrence.occurrenceKey;
@@ -170,6 +172,7 @@ export function createBoundedOccurrenceReader(
           source,
           schedule,
           latestEvents.get(eventIdentity(source.task.id, key)) ?? "open",
+          true,
           userTimezone,
           identity,
         );
@@ -193,11 +196,21 @@ export function createBoundedOccurrenceReader(
       const parsed = parseStoredRecurrence(source.recurrence, source.schedule);
       const schedule = projectRecordedOccurrence(parsed.anchor, decoded);
       if (!schedule || !occurrenceOverlapsRange(schedule, query)) continue;
+      const transitionEligible =
+        source.task.status === "open" &&
+        source.task.deletedAt === null &&
+        isEligibleOccurrence({
+          rule: parsed.definition,
+          anchor: parsed.anchor,
+          projection: parsed.projection,
+          decoded,
+        });
       addRecurringProjection(
         projections,
         source,
         schedule,
         occurrenceStateSchema.parse(event.state),
+        transitionEligible,
         userTimezone,
         { kind: "recorded", occurrenceKey: event.occurrenceKey },
       );
@@ -236,6 +249,7 @@ function addRecurringProjection(
   source: StoredTaskRecurrenceSource,
   schedule: RecurrenceOccurrenceSchedule,
   state: OccurrenceState,
+  transitionEligible: boolean,
   userTimezone: string,
   identity: OccurrenceProjectionIdentity,
 ) {
@@ -244,6 +258,7 @@ function addRecurringProjection(
     source.task.version,
     schedule,
     state,
+    transitionEligible,
     userTimezone,
     identity,
   );

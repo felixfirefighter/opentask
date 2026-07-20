@@ -42,7 +42,9 @@ projections through its public application contracts.
   `ReplaceTaskTagsOutput`, `TaskQuery`, `TerminalTaskQuery`, `TaskVersionRef`, `TaskScheduleDto`,
   `TaskSnapshotReader`, `TaskRecurrenceDto`, `TaskOccurrenceDto`, bounded occurrence query/result
   contracts, and narrow mutation/snapshot services used by assistant/planning/notifications/
-  portability.
+  portability. `TaskOccurrenceDto.transitionEligible` is the server-derived answer to whether a
+  complete/skip transition would pass the current rule and cutover; consumers do not infer it from
+  occurrence state or schedule.
 - The module root explicitly exports only those cross-module DTOs plus the strict request/query schemas
   consumed by `app/api/v1`; base resource, cursor, rank, and field schemas remain module-internal.
 
@@ -149,7 +151,11 @@ No public contract exposes a Drizzle row or an unscoped repository method.
   no longer emits. Commands serialize on the owning task, reject stale different-state writes, append
   nothing for a same-state no-op, and increment the task version once for an accepted change. A
   response-lost retry is recognized only when the latest event for that key/state has a task version
-  equal to `expectedVersion + 1`; otherwise a stale version remains a conflict.
+  equal to `expectedVersion + 1`; otherwise a stale version remains a conflict. Current-rule
+  generated projections set `transitionEligible=true`. Recorded projections remain visible for
+  history and undo, but independently recompute that flag against the current rule and cutover even
+  while terminal. Therefore an undone historical key can remain visible as `open` with
+  `transitionEligible=false` and must be presented read-only for complete/skip.
 - Aggregate commands use one lock order: owning task row, recurrence row when present, schedule row
   when present, then occurrence-event reads/appends. Schedule edits, occurrence transitions,
   cancel/reopen, and delete/restore never acquire those resources in another order.

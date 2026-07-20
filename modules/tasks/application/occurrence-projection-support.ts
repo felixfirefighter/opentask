@@ -76,6 +76,7 @@ export function createOccurrenceProjection(
   taskVersion: number,
   schedule: RecurrenceOccurrenceSchedule,
   occurrenceState: OccurrenceState,
+  transitionEligible: boolean,
   userTimezone: string,
   identity: OccurrenceProjectionIdentity,
 ): OccurrenceProjectionCandidate {
@@ -94,6 +95,7 @@ export function createOccurrenceProjection(
       taskVersion,
       occurrenceKey: key,
       occurrenceState,
+      transitionEligible,
       schedule: occurrenceScheduleValue(schedule),
     },
     sortStart: scheduleSortStart(schedule, userTimezone),
