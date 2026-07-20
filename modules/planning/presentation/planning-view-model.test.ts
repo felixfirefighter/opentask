@@ -17,6 +17,13 @@ describe("planning conflict view models", () => {
       anytime: [
         {
           id: TASK_ID,
+          taskId: TASK_ID,
+          projectionId: `task:${TASK_ID}`,
+          projectionLifecycle: "one_off",
+          occurrenceKey: null,
+          occurrenceState: null,
+          recurrenceSummary: null,
+          scheduleInteraction: { editScope: "task", dragEnabled: true, dragDisabledReason: null },
           listId: LIST_ID,
           title: "Alpha",
           status: "open",
@@ -53,6 +60,12 @@ describe("planning conflict view models", () => {
       events: [
         {
           taskId: TASK_ID,
+          projectionId: `task:${TASK_ID}`,
+          projectionLifecycle: "one_off",
+          occurrenceKey: null,
+          occurrenceState: null,
+          recurrenceSummary: null,
+          scheduleInteraction: { editScope: "task", dragEnabled: true, dragDisabledReason: null },
           listId: LIST_ID,
           title: "Alpha",
           status: "open",

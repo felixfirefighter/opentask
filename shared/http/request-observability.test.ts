@@ -97,6 +97,23 @@ describe("API request observability", () => {
     });
     expect(JSON.stringify(events)).not.toContain("sentinel-");
   });
+
+  it("preserves reviewed recurrence route literals while redacting task identity", () => {
+    expect(
+      sanitizeApiRoutePattern(
+        new Request(
+          "https://example.invalid/api/v1/tasks/30000000-0000-4000-8000-000000000001/occurrences/transition",
+        ),
+      ),
+    ).toBe("/api/v1/tasks/:resource/occurrences/transition");
+    expect(
+      sanitizeApiRoutePattern(
+        new Request(
+          "https://example.invalid/api/v1/tasks/30000000-0000-4000-8000-000000000001/recurrence/end",
+        ),
+      ),
+    ).toBe("/api/v1/tasks/:resource/recurrence/end");
+  });
 });
 
 function collectingLogger(events: Array<{ code: SafeLogCode; fields?: SafeLogFields }>): SafeLogger {

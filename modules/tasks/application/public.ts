@@ -11,6 +11,10 @@ export function getTasksApplication() {
     database: getDatabase(),
     clock: systemClock,
     taskSchedules,
+    resolveUserTimezone: async (actor) => {
+      const { getUserPreferences } = await import("@/modules/identity");
+      return (await getUserPreferences(actor)).timezone;
+    },
   });
   return application;
 }

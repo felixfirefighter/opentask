@@ -47,6 +47,10 @@ const routeLiterals = new Set([
   "clear",
   "status",
   "quick-add",
+  "recurrence",
+  "occurrences",
+  "transition",
+  "end",
   "search",
   "terminal",
 ]);

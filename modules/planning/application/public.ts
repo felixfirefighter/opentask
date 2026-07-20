@@ -7,15 +7,19 @@ import { createPlanningProjectionApplication } from "./planning-projection-appli
 let projectionApplication: ReturnType<typeof createPlanningProjectionApplication> | undefined;
 
 export function getPlanningProjectionApplication() {
-  projectionApplication ??= createPlanningProjectionApplication({
-    tasks: getTasksApplication().planningSource,
-    timeZones: {
-      async getSavedTimeZone(actor) {
-        return (await getUserPreferences(actor)).timezone;
+  if (!projectionApplication) {
+    const tasks = getTasksApplication();
+    projectionApplication = createPlanningProjectionApplication({
+      tasks: tasks.planningSource,
+      occurrences: tasks.occurrences,
+      timeZones: {
+        async getSavedTimeZone(actor) {
+          return (await getUserPreferences(actor)).timezone;
+        },
       },
-    },
-    clock: systemClock,
-  });
+      clock: systemClock,
+    });
+  }
   return projectionApplication;
 }
 

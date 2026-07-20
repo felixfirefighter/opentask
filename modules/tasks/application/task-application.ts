@@ -23,6 +23,7 @@ import {
   type UpdateTaskRequest,
 } from "./contracts";
 import { decodeRankCursor, pageFromRows } from "./page-cursor";
+import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import {
   applyTaskSiblingRebalance,
   assertActiveContainers,
@@ -68,10 +69,12 @@ export function createTaskApplication({
   database,
   clock,
   taskSchedules,
+  recurrenceExpansion = new RruleRecurrenceExpander(),
 }: {
   database: Database;
   clock: Clock;
   taskSchedules: TaskScheduleTable;
+  recurrenceExpansion?: RecurrenceExpansionPort;
 }) {
   const tasks = createTaskRepository(database);
   const lists = createTaskListRepository(database);
@@ -82,7 +85,7 @@ export function createTaskApplication({
   const recurrences = createTaskRecurrenceRepository(database);
   const recurrenceLifecycle = createTaskRecurrenceLifecycle({
     database,
-    expansion: new RruleRecurrenceExpander(),
+    expansion: recurrenceExpansion,
     taskSchedules,
   });
   const placementRepositories = { tasks, lists, sections };
