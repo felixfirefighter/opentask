@@ -35,8 +35,9 @@ provider-unavailable states may interrupt the quiet hierarchy because they requi
 
 - Inter Variable is the self-hosted working face for body text, tasks, forms, menus, navigation,
   calendar labels, metadata, and planner diffs.
-- Newsreader Variable is limited to landing, first-run, selected major empty-state headings, and
-  explicitly approved editorial moments. It is never a blanket workspace-heading rule.
+- EB Garamond Variable at its genuine 400 endpoint is limited to landing, first-run, selected major
+  empty-state headings, and explicitly approved editorial moments. It is never a blanket
+  workspace-heading rule.
 - Workspace page titles stay compact and sans-serif so the work remains dominant.
 - Use the scales in `tokens.md`; do not create one-off display sizes or shrink operational copy
   below 12 px.

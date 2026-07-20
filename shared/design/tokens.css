@@ -47,14 +47,27 @@
   --shadow-overlay: 0 12px 32px rgb(37 35 28 / 0.14);
   --shadow-dialog: 0 28px 72px rgb(37 35 28 / 0.2);
 
-  --font-display: var(--font-editorial, "Newsreader Variable"), Newsreader, Georgia, "Times New Roman", serif;
+  --font-display:
+    var(--font-editorial, "EB Garamond"), "EB Garamond", Garamond, Georgia, "Times New Roman", serif;
   --font-sans:
     var(--font-interface, "Inter Variable"), Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --type-display-size: clamp(38px, 5vw, 60px);
-  --type-display-line: 1.06;
-  --type-display-weight: 350;
-  --type-display-tracking: -0.025em;
+  --type-display-mega-size: 64px;
+  --type-display-mega-line: 1.05;
+  --type-display-mega-weight: 400;
+  --type-display-mega-tracking: -1.92px;
+  --type-display-xl-size: 48px;
+  --type-display-xl-line: 1.08;
+  --type-display-xl-weight: 400;
+  --type-display-xl-tracking: -0.96px;
+  --type-display-lg-size: 36px;
+  --type-display-lg-line: 1.17;
+  --type-display-lg-weight: 400;
+  --type-display-lg-tracking: -0.36px;
+  --type-display-sm-size: 24px;
+  --type-display-sm-line: 1.2;
+  --type-display-sm-weight: 400;
+  --type-display-sm-tracking: 0;
   --type-page-title-size: 26px;
   --type-page-title-line: 32px;
   --type-page-title-weight: 600;

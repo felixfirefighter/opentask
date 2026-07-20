@@ -2,10 +2,13 @@
 
 ## Active migration target — Editorial Focus
 
-The first Local-first Full Release work package migrates OpenTask to **Editorial Focus**, an original
-productivity-oriented adaptation of the editorial visual principles documented in the pinned
+The first Local-first Full Release work package migrates OpenTask to **Editorial Focus**, using the
+visual system documented in the pinned
 [GetDesign ElevenLabs source snapshot](https://github.com/VoltAgent/awesome-design-md/blob/e06a96660396d741d0c106c8972172254dafbdc2/design-md/elevenlabs/DESIGN.md).
-The local adaptation contract is `docs/design/editorial-focus.md`.
+The local application contract is `docs/design/editorial-focus.md`. It follows the reference's
+documented display/sans hierarchy and uses its recommended open-source EB Garamond substitute for
+the licensed Waldenburg face; dense product behavior, accessibility states, and OpenTask identity
+remain repository-owned.
 
 P0.1 makes the Editorial Focus shared font/token foundation executable and applies it to the five
 proof surfaces. That does not authorize P0.2: broad route-specific restyling still stops until the
@@ -16,9 +19,9 @@ OpenTask uses **Editorial Focus**: an original paper/ink/pine planning system wi
 at major orientation moments, readable Inter typography for working UI, comfortable task density,
 and unusually clear interaction states.
 
-This is not an ElevenLabs, GetDesign, Airbnb, or TickTick clone. Do not copy their assets, fonts,
-wording, icon treatment, screen composition, palette, or trade dress. OpenTask uses original layouts,
-Lucide icons, open fonts, semantic tokens, and its own product voice.
+This is not an ElevenLabs, GetDesign, Airbnb, or TickTick clone. Do not copy their assets,
+proprietary fonts, wording, icon treatment, screen composition, exact palette, or trade dress.
+OpenTask uses original layouts, Lucide icons, open fonts, semantic tokens, and its own product voice.
 
 ## North star
 

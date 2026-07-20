@@ -108,8 +108,8 @@ Planning and current-truth repair only. Do not add product code, dependency, rou
 ### Boundary
 
 Presentation/design only for the already-working core. Preserve every route, workflow, state,
-authorization rule, API, data model, module boundary, and information architecture. Use the pinned
-research source only through the original adaptation in `docs/design/editorial-focus.md`.
+authorization rule, API, data model, module boundary, and information architecture. Follow the
+pinned research source through the application contract in `docs/design/editorial-focus.md`.
 
 ### P0.1 — Foundation and five-screen proof (8–12 hours; then stop)
 
@@ -119,8 +119,9 @@ Deliverables:
   changing executable tokens.
 - Finalize original light/dark semantic tokens, contrast pairs, type scale, density, radii,
   elevation, focus, and motion in docs, CSS, and computed design tests together.
-- Self-host reviewed OFL-licensed Newsreader Variable for display moments and Inter Variable for
-  working UI through `next/font/local`; commit font licenses and add no font runtime dependency.
+- Self-host the GetDesign-recommended, reviewed OFL-licensed EB Garamond Variable substitute for
+  display moments and Inter Variable for working UI through `next/font/local`; use only the font's
+  genuine 400–800 axis, commit font licenses, and add no font runtime dependency.
 - Update shared tokens/primitives first. Target task titles near 15/22 px and comfortable two-line
   rows near 64 px while preserving 36 px fine-pointer controls and 44 px touch targets.
 - Implement only the five real proof surfaces with deterministic demo/fixture data. Keep serif and

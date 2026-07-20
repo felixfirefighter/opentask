@@ -78,13 +78,18 @@ Matrix quadrants, controls, alerts, or status fills.
 
 ## Typography
 
-The interface self-hosts Inter Variable and Newsreader Variable through `next/font/local`. Inter is
-the working face; Newsreader is a limited display voice. System fallbacks keep rendering usable if a
-font asset fails.
+The interface self-hosts Inter Variable and EB Garamond Variable through `next/font/local`. Inter is
+the working face; EB Garamond is the GetDesign-recommended open-source substitute for the reference's
+licensed display face. The official EB Garamond asset begins at weight 400, so the executable
+contract uses that genuine endpoint instead of claiming a nonexistent 300 master. System fallbacks
+keep rendering usable if a font asset fails.
 
 | Token | Size / line | Weight | Use |
 |---|---|---:|---|
-| `text-display` | `clamp(38px, 5vw, 60px)` / `1.06` | 350 | Landing/first-run/major empty moments only; `-0.025em` tracking |
+| `text-display-mega` | 64 px / `1.05` | 400 | Wide landing hero; `-1.92px` tracking |
+| `text-display-xl` | 48 px / `1.08` | 400 | Tablet/compact landing hero; `-0.96px` tracking |
+| `text-display-lg` | 36 px / `1.17` | 400 | Mobile landing hero or approved major empty moment; `-0.36px` tracking |
+| `text-display-sm` | 24 px / `1.2` | 400 | Approved small editorial heading; zero tracking |
 | `text-page-title` | 26 / 32 px | 600 | Compact workspace title, sans by default |
 | `text-section-title` | 20 / 26 px | 600 | Major section/card heading |
 | `text-body` | 15 / 22 px | 400 | Default UI and prose |

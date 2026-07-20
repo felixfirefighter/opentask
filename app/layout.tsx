@@ -16,12 +16,13 @@ const interfaceFont = localFont({
 });
 
 const editorialFont = localFont({
-  src: "./fonts/NewsreaderVariable.woff2",
+  src: "./fonts/EBGaramondVariable.woff2",
   variable: "--font-editorial",
+  adjustFontFallback: "Times New Roman",
   display: "swap",
   preload: false,
   style: "normal",
-  weight: "200 800",
+  weight: "400 800",
   fallback: ["Georgia", "Times New Roman", "serif"],
 });
 

@@ -35,7 +35,7 @@ COPY --from=builder --chown=opentask:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=opentask:nodejs /app/shared ./shared
 COPY --from=builder --chown=opentask:nodejs /app/worker ./worker
 COPY --from=builder --chown=opentask:nodejs /app/app/fonts/licenses/Inter-OFL.txt ./licenses/fonts/Inter-OFL.txt
-COPY --from=builder --chown=opentask:nodejs /app/app/fonts/licenses/Newsreader-OFL.txt ./licenses/fonts/Newsreader-OFL.txt
+COPY --from=builder --chown=opentask:nodejs /app/app/fonts/licenses/EBGaramond-OFL.txt ./licenses/fonts/EBGaramond-OFL.txt
 USER opentask
 EXPOSE 3000
 CMD ["node", "node_modules/next/dist/bin/next", "start"]

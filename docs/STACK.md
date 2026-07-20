@@ -54,11 +54,11 @@ not require italics, so italic binaries are intentionally omitted.
 | Asset | Purpose and range | Pinned source | License | SHA-256 |
 |---|---|---|---|---|
 | Inter Variable 4.1 | Working UI, available weight axis 100–900; product usage normally stays 400–600 | Official [`v4.1` release archive](https://github.com/rsms/inter/releases/tag/v4.1), `web/InterVariable.woff2` | SIL OFL 1.1; upstream notice committed beside the asset | `693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3` |
-| Newsreader Variable | Display moments, optical-size/weight axes; product usage stays 300–400 | Official repository commit [`cfcb4f7`](https://github.com/productiontype/Newsreader/tree/cfcb4f7af0e52c25e8df2a2431814c8e5fe2e155), `fonts/variable/woff2/Newsreader[opsz,wght].woff2` | SIL OFL 1.1; upstream notice committed beside the asset | `1faa3380ac0e87e057b180e03fd94bd708a612afb67d2590677be4508909fae9` |
+| EB Garamond Variable | GetDesign-recommended open-source display substitute; available weight axis 400–800 and product display usage stays at the genuine 400 endpoint | Official repository commit [`106a4a6`](https://github.com/octaviopardo/EBGaramond12/tree/106a4a6d377987459ae5e68673a4570f13b957fb), `fonts/webfonts/EBGaramond[wght].woff2` | SIL OFL 1.1; upstream notice committed beside the asset | `7667eac47b012e7f92c14e2ec8b41d3b850e1e8d49e0db45f7417517866fb78a` |
 
 The source asset inventory and upstream notices live in `app/fonts/README.md` and
 `app/fonts/licenses/`. The production image distributes the two notices at
-`/app/licenses/fonts/Inter-OFL.txt` and `/app/licenses/fonts/Newsreader-OFL.txt`; the Dockerfile uses
+`/app/licenses/fonts/Inter-OFL.txt` and `/app/licenses/fonts/EBGaramond-OFL.txt`; the Dockerfile uses
 explicit source-to-runtime copies so the notices remain available even though source font files are
 compiled into Next.js output. `pnpm check:licenses` enforces both mappings in addition to the source
 asset hashes and notice contents. Replacing or subsetting either font is a font-asset dependency

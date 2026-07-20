@@ -17,7 +17,7 @@ gates in `docs/QUALITY.md`.
 
 ### 1. Editorial Focus design migration
 
-- Migrate the existing product to the original Editorial Focus direction in
+- Migrate the existing product to the GetDesign-informed Editorial Focus application direction in
   `docs/design/editorial-focus.md` without changing product behavior or information architecture.
 - Use an open-source editorial display face only for major moments and a highly readable sans face
   for working UI; vendor font files and license notices when implementation begins.

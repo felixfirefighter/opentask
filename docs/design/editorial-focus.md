@@ -11,11 +11,17 @@ This file cannot add product behavior. Feature scope remains owned by `docs/SCOP
 
 ## Reference boundary
 
-The research input is the immutable
+The active external reference is the immutable
 [GetDesign ElevenLabs source snapshot](https://github.com/VoltAgent/awesome-design-md/blob/e06a96660396d741d0c106c8972172254dafbdc2/design-md/elevenlabs/DESIGN.md).
 That analysis primarily describes a public marketing system and only partially captures in-product
-surfaces. OpenTask therefore adapts high-level principles to a dense planning product; it does not
-install, copy, or track the external file as its design system.
+surfaces. OpenTask follows its documented typography hierarchy, spacing rhythm, restrained action
+hierarchy, and atmospheric boundaries where they apply, while this repository remains the
+executable source of truth for dense planning UI, semantic states, accessibility, and dark mode.
+
+The reference uses licensed Waldenburg Light for display and explicitly names EB Garamond at weight
+300 as an open-source substitute. The official EB Garamond variable asset has a real 400–800 weight
+axis, so OpenTask uses its genuine 400 endpoint rather than misdeclaring or synthesizing a 300
+master. Inter remains the reference's working face for body, navigation, captions, and controls.
 
 The catalog summary and the source snapshot describe different moods. For reproducibility, this
 contract follows the snapshot's light, quietly editorial direction rather than a dark cinematic or
@@ -46,12 +52,16 @@ Editorial Focus should feel:
 
 ## Typography and density target
 
-- Display face: self-hosted **Newsreader Variable**, used at weights 300–400, with its OFL notice
-  committed.
+- Display face: self-hosted **EB Garamond Variable**, used at its genuine 400 weight, with its OFL
+  notice committed. The vendored source provides a 400–800 axis; display UI never requests a
+  nonexistent 300 master.
 - Working UI: self-hosted **Inter Variable**, normally used at weights 400–600, with system fallbacks
   and its OFL notice committed.
 - Serif is a display voice, not a universal product font. Dense information, input, task, calendar,
   and planner-diff content stays sans-serif.
+- The responsive landing hero follows the reference's 64/1.05/-1.92 px, 48/1.08/-0.96 px, and
+  36/1.17/-0.36 px display tiers. Small editorial headings use 24/1.2/0. The weight is 400 only for
+  the verified EB Garamond axis caveat above.
 - P0.1 uses 15/22 px task titles, 13/18 px metadata, 64 px fine-pointer rows, and 68 px coarse-pointer
   rows. `docs/design/tokens.md`, `shared/design/tokens.css`, and computed design tests own these exact
   values together.
@@ -88,8 +98,8 @@ Editorial Focus should feel:
 Do not use ElevenLabs or GetDesign names in shipped product UI. Do not copy their wordmark, product
 copy, photography, proprietary typefaces, exact palette, exact gradients, navigation, marketing
 sections, cards, pricing/testimonial composition, audio players, voice rows, waveform motifs, or
-trade dress. Do not run a generator that overwrites the repository design contract with the
-external file.
+trade dress. The pinned external analysis informs this contract but never overrides product scope,
+accessibility, or executable repository checks.
 
 OpenTask retains its own brand mark, Lucide icon system, product voice, application shell, task
 anatomy, screen contracts, and planning-specific interaction model.

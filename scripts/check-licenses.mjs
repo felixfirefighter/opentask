@@ -33,11 +33,11 @@ const reviewedFontAssets = [
     sha256: "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
   },
   {
-    asset: "app/fonts/NewsreaderVariable.woff2",
-    license: "app/fonts/licenses/Newsreader-OFL.txt",
-    runtimeLicense: "licenses/fonts/Newsreader-OFL.txt",
-    copyright: "The Newsreader Project Authors",
-    sha256: "1faa3380ac0e87e057b180e03fd94bd708a612afb67d2590677be4508909fae9",
+    asset: "app/fonts/EBGaramondVariable.woff2",
+    license: "app/fonts/licenses/EBGaramond-OFL.txt",
+    runtimeLicense: "licenses/fonts/EBGaramond-OFL.txt",
+    copyright: "The EB Garamond Project Authors",
+    sha256: "7667eac47b012e7f92c14e2ec8b41d3b850e1e8d49e0db45f7417517866fb78a",
   },
 ];
 

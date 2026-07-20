@@ -158,17 +158,93 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
   const typography = await heroHeading.evaluate((heading) => {
     const rootStyle = getComputedStyle(document.documentElement);
     const headingStyle = getComputedStyle(heading);
+    const sectionHeading = document.querySelector("h2");
+    if (!(sectionHeading instanceof HTMLElement)) throw new Error("Landing section heading is missing");
+    const sectionHeadingStyle = getComputedStyle(sectionHeading);
+    const token = (name: string) => rootStyle.getPropertyValue(name).trim();
     const normalizeFontFamily = (value: string) =>
       value.split(",").map((family) => family.trim().replace(/^['"]|['"]$/g, ""));
     return {
       displayFamilies: normalizeFontFamily(rootStyle.getPropertyValue("--font-display")),
       headingFamilies: normalizeFontFamily(headingStyle.fontFamily),
+      heading: {
+        fontSize: headingStyle.fontSize,
+        fontWeight: headingStyle.fontWeight,
+        letterSpacing: headingStyle.letterSpacing,
+        lineHeight: headingStyle.lineHeight,
+        textWrap: headingStyle.textWrap,
+      },
+      scales: {
+        mega: {
+          size: token("--type-display-mega-size"),
+          weight: token("--type-display-mega-weight"),
+          tracking: token("--type-display-mega-tracking"),
+          line: token("--type-display-mega-line"),
+        },
+        xl: {
+          size: token("--type-display-xl-size"),
+          weight: token("--type-display-xl-weight"),
+          tracking: token("--type-display-xl-tracking"),
+          line: token("--type-display-xl-line"),
+        },
+        lg: {
+          size: token("--type-display-lg-size"),
+          weight: token("--type-display-lg-weight"),
+          tracking: token("--type-display-lg-tracking"),
+          line: token("--type-display-lg-line"),
+        },
+        sm: {
+          size: token("--type-display-sm-size"),
+          weight: token("--type-display-sm-weight"),
+          tracking: token("--type-display-sm-tracking"),
+          line: token("--type-display-sm-line"),
+        },
+      },
+      sectionHeading: {
+        families: normalizeFontFamily(sectionHeadingStyle.fontFamily),
+        fontSize: sectionHeadingStyle.fontSize,
+        fontWeight: sectionHeadingStyle.fontWeight,
+        letterSpacing: sectionHeadingStyle.letterSpacing,
+        lineHeight: sectionHeadingStyle.lineHeight,
+        textWrap: sectionHeadingStyle.textWrap,
+      },
       editorialFaces: Array.from(document.fonts)
         .filter((face) => /editorialFont/i.test(face.family))
         .map((face) => ({ family: face.family, status: face.status })),
     };
   });
   expect(typography.headingFamilies).toEqual(typography.displayFamilies);
+  const viewportWidth = page.viewportSize()!.width;
+  const expectedScale =
+    viewportWidth >= 1280
+      ? typography.scales.mega
+      : viewportWidth >= 768
+        ? typography.scales.xl
+        : typography.scales.lg;
+  expect(typography.heading).toMatchObject({
+    fontSize: expectedScale.size,
+    fontWeight: expectedScale.weight,
+    textWrap: "balance",
+  });
+  expect(Number.parseFloat(typography.heading.letterSpacing)).toBeCloseTo(
+    Number.parseFloat(expectedScale.tracking),
+    2,
+  );
+  expect(Number.parseFloat(typography.heading.lineHeight)).toBeCloseTo(
+    Number.parseFloat(expectedScale.size) * Number.parseFloat(expectedScale.line),
+    1,
+  );
+  expect(typography.sectionHeading).toMatchObject({
+    families: typography.displayFamilies,
+    fontSize: typography.scales.sm.size,
+    fontWeight: typography.scales.sm.weight,
+    letterSpacing: "normal",
+    textWrap: "balance",
+  });
+  expect(Number.parseFloat(typography.sectionHeading.lineHeight)).toBeCloseTo(
+    Number.parseFloat(typography.scales.sm.size) * Number.parseFloat(typography.scales.sm.line),
+    1,
+  );
   expect(typography.editorialFaces).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ family: expect.stringMatching(/editorialFont/i), status: "loaded" }),
@@ -179,6 +255,16 @@ test("the public landing keeps labeled entry actions inside every boundary viewp
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({
     path: path.join(evidenceDirectory, `landing-${testInfo.project.name}.png`),
+    animations: "disabled",
+    fullPage: true,
+  });
+  await page.evaluate(() => {
+    localStorage.setItem("opentask-theme-preference", "dark");
+    document.documentElement.dataset.themePreference = "dark";
+    document.documentElement.dataset.theme = "dark";
+  });
+  await page.screenshot({
+    path: path.join(evidenceDirectory, `landing-dark-${testInfo.project.name}.png`),
     animations: "disabled",
     fullPage: true,
   });
@@ -219,6 +305,10 @@ test("the five proof surfaces reflow at a 200% zoom equivalent and honor reduced
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
+  await expectUsesSans(
+    page.getByText("Capture tasks quickly, plan them against real time,", { exact: false }),
+    "landing body copy",
+  );
   const createAccount = page.getByRole("link", { name: "Create account" }).first();
   await createAccount.focus();
   await expect(createAccount).toBeFocused();
@@ -235,21 +325,29 @@ test("the five proof surfaces reflow at a 200% zoom equivalent and honor reduced
   if (await dismissTips.isVisible()) await dismissTips.click();
 
   await page.goto("/today");
-  await expect(page.getByRole("heading", { name: "Today", exact: true }).first()).toBeVisible();
+  const todayHeading = page.getByRole("heading", { name: "Today", exact: true }).first();
+  await expect(todayHeading).toBeVisible();
+  await expectUsesSans(todayHeading, "Today heading");
   await auditZoomSurface(page, evidenceDirectory, "today");
 
   await page.goto("/calendar");
-  await expect(page.getByRole("heading", { name: "Calendar", exact: true }).first()).toBeVisible();
+  const calendarHeading = page.getByRole("heading", { name: "Calendar", exact: true }).first();
+  await expect(calendarHeading).toBeVisible();
+  await expectUsesSans(calendarHeading, "Calendar heading");
   await auditZoomSurface(page, evidenceDirectory, "calendar");
 
   await page.goto("/tasks/50000000-0000-4000-8000-000000000001");
-  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue("Record the two-minute demo");
+  const taskTitle = page.getByLabel("Task title", { exact: true });
+  await expect(taskTitle).toHaveValue("Record the two-minute demo");
+  await expectUsesSans(taskTitle, "task title");
   await expect(page.getByRole("link", { name: "Back to task list" })).toBeVisible();
   await expect(page.getByText("Title is saved")).toBeVisible();
   await auditZoomSurface(page, evidenceDirectory, "task-details");
 
   await page.goto("/plan");
-  await expect(page.getByRole("heading", { name: "AI Review", exact: true })).toBeVisible();
+  const reviewHeading = page.getByRole("heading", { name: "AI Review", exact: true });
+  await expect(reviewHeading).toBeVisible();
+  await expectUsesSans(reviewHeading, "AI Review heading");
   await auditZoomSurface(page, evidenceDirectory, "ai-review");
 });
 
@@ -329,6 +427,23 @@ async function expectTouchTarget(locator: Locator, label: string) {
   expect(box, `${label} has a bounding box`).not.toBeNull();
   expect(box!.width, `${label} width`).toBeGreaterThanOrEqual(44);
   expect(box!.height, `${label} height`).toBeGreaterThanOrEqual(44);
+}
+
+async function expectUsesSans(locator: Locator, label: string) {
+  const contract = await locator.evaluate((element) => {
+    const probe = document.createElement("span");
+    probe.style.fontFamily = "var(--font-sans)";
+    document.body.append(probe);
+    const tokenFontFamily = getComputedStyle(probe).fontFamily.replace(/\s+/g, " ");
+    probe.remove();
+    return {
+      elementFontFamily: getComputedStyle(element).fontFamily.replace(/\s+/g, " "),
+      tokenFontFamily,
+    };
+  });
+  expect(contract.elementFontFamily, `${label} must use the working sans face`).toBe(
+    contract.tokenFontFamily,
+  );
 }
 
 function pixels(value: string) {
