@@ -22,7 +22,9 @@ At compact desktop/tablet the inspector overlays. On mobile, Agenda is the first
 ## Event presentation
 
 - All-day task occurrences occupy the all-day area/date cell; timed occurrences use start/end
-  placement. Recurrence is identified in text/icon metadata, never by a cloned event style.
+  placement. Same-day labels stay concise; a timed occurrence crossing a local-date boundary names
+  both dates, and a multi-day all-day occurrence names its inclusive displayed date range.
+  Recurrence is identified in text/icon metadata, never by a cloned event style.
 - Event block shows time when useful, title, status, and list/category context.
 - Category token uses its paired readable foreground; selection adds outline and does not rely on color.
 - Overdue/open and completed/cancelled states include text/icon/decoration beyond color.
@@ -37,6 +39,9 @@ At compact desktop/tablet the inspector overlays. On mobile, Agenda is the first
 - Use “Edit schedule” in the event menu/inspector for complete keyboard and touch parity.
 - Complete, skip, or undo one recurring occurrence through labeled event/detail actions; editing the
   recurrence rule remains a series action in task details.
+
+An open recorded occurrence outside the current rule remains visible as preserved read-only history.
+It exposes neither Complete nor Skip when the server marks it transition-ineligible.
 
 Recurring events never expose drag or resize because per-occurrence overrides are outside scope.
 Their menu says “Edit future series schedule” and opens the canonical atomic series form. Calendar

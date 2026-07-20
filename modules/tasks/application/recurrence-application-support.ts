@@ -1,7 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 
 import type { AuthenticatedActor } from "@/shared/auth/actor";
-import type { DatabaseExecutor } from "@/shared/db/client";
 
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import {
@@ -33,7 +32,7 @@ import type {
 import type { StoredTaskSchedule } from "../infrastructure/task-schedule-repository";
 import type { StoredTask } from "../infrastructure/task-repository";
 
-export type UserTimezoneResolver = (actor: AuthenticatedActor, executor: DatabaseExecutor) => Promise<string>;
+export type UserTimezoneResolver = (actor: AuthenticatedActor) => Promise<string>;
 
 export type ParsedStoredRecurrence = Readonly<{
   anchor: RecurrenceScheduleAnchor;

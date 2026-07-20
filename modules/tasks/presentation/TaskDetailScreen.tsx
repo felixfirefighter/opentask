@@ -8,13 +8,15 @@ import { useEffect } from "react";
 
 import { useOnlineStatus } from "@/shared/presentation";
 
-import type { TaskDetailDto, TaskStatus } from "../application/contracts";
+import type { TaskDetailDto, TaskOccurrenceDto, TaskStatus } from "../application/contracts";
 import { isTaskApiError } from "./data/task-api-request";
 import { useTaskRecurrenceQuery } from "./data/use-task-recurrence";
 import { useDeleteTaskMutation, useTaskStatusMutation } from "./data/use-task-lifecycle-mutations";
 import { useTaskDetailQuery } from "./data/use-task-queries";
 import { TaskDeleteDialog } from "./TaskDeleteDialog";
 import { TaskNotesEditor } from "./TaskNotesEditor";
+import { TaskOccurrencePanel } from "./TaskOccurrencePanel";
+import { TaskOccurrenceUnavailable } from "./TaskOccurrenceUnavailable";
 import { TaskOrganizationEditor } from "./TaskOrganizationEditor";
 import { TaskRecurrenceEditor } from "./TaskRecurrenceEditor";
 import { TaskScheduleEditor } from "./TaskScheduleEditor";
@@ -32,6 +34,10 @@ export type TaskDetailScreenProps = Readonly<{
   task: TaskDetailDto;
   mode: "inspector" | "page";
   inbox?: { id: string; name: string };
+  initialEditSchedule?: boolean | undefined;
+  hourCycle?: "h12" | "h23" | undefined;
+  occurrence?: TaskOccurrenceDto | null | undefined;
+  occurrenceRequested?: boolean | undefined;
   onClose?: () => void;
   returnHref?: string;
   showRefreshError?: boolean;
@@ -39,6 +45,10 @@ export type TaskDetailScreenProps = Readonly<{
 
 export function TaskDetailScreen({
   inbox,
+  hourCycle = "h12",
+  initialEditSchedule = false,
+  occurrence,
+  occurrenceRequested = false,
   mode,
   onClose,
   returnHref = "/inbox",
@@ -46,7 +56,7 @@ export function TaskDetailScreen({
   task: initialTask,
 }: TaskDetailScreenProps) {
   const query = useTaskDetailQuery(initialTask.id, initialTask);
-  const task = query.data ?? initialTask;
+  const task = query.data && query.data.version > initialTask.version ? query.data : initialTask;
   const online = useOnlineStatus();
   const router = useRouter();
   const status = useTaskStatusMutation();
@@ -163,7 +173,12 @@ export function TaskDetailScreen({
         )}
         {!online && <p className={styles.offline}>Task details are read-only while you’re offline.</p>}
         <TaskTitleEditor task={task} headingId={`task-title-${task.id}`} disabled={!online} />
-        <TaskScheduleEditor key={task.id} task={task} disabled={!online} />
+        <TaskScheduleEditor
+          key={task.id}
+          task={task}
+          disabled={!online}
+          initiallyEditing={initialEditSchedule}
+        />
         <TaskRecurrenceEditor key={`recurrence-${task.id}`} task={task} disabled={!online} />
         <TaskOrganizationEditor
           task={task}
@@ -172,6 +187,22 @@ export function TaskDetailScreen({
         />
         <TaskStepsEditor task={task} disabled={!online} />
         <TaskNotesEditor task={task} disabled={!online} />
+        {occurrence ? (
+          <TaskOccurrencePanel
+            key={occurrence.occurrenceKey}
+            task={task}
+            occurrence={occurrence}
+            disabled={!online}
+            hourCycle={hourCycle}
+            taskFreshness={{
+              error: query.isError,
+              fetching: query.isFetching,
+              refetch: query.refetch,
+            }}
+          />
+        ) : occurrenceRequested ? (
+          <TaskOccurrenceUnavailable taskId={task.id} loading={false} onRetry={() => router.refresh()} />
+        ) : null}
         <TaskDeleteDialog task={task} mutation={remove} disabled={!online} />
       </div>
     </article>

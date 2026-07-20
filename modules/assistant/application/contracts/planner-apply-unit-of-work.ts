@@ -14,7 +14,8 @@ export type PlannerApplyTaskSnapshot = PlannerSelectedTaskSnapshot &
   Readonly<{ schedule: PlannerSchedule | null }>;
 
 export type PlannerApplyBusyIntervalRequest = Readonly<{
-  query: PlanningBusyIntervalQuery;
+  timeZone: string;
+  query: Omit<PlanningBusyIntervalQuery, "timeZone">;
   excludedTaskIds: readonly string[];
 }>;
 

@@ -21,6 +21,7 @@ describe("planning conflict view models", () => {
           projectionLifecycle: "one_off",
           occurrenceKey: null,
           occurrenceState: null,
+          transitionEligible: null,
           recurrenceSummary: null,
           scheduleInteraction: { editScope: "task", dragEnabled: true, dragDisabledReason: null },
           listId: LIST_ID,
@@ -51,6 +52,58 @@ describe("planning conflict view models", () => {
     });
   });
 
+  it("makes same-series occurrence rows distinguishable by their full local date and time", () => {
+    const projection: TodayProjection = {
+      localDate: "2026-07-20",
+      timeZone: "Asia/Singapore",
+      nowAt: "2026-07-20T01:00:00.000Z",
+      overdue: [],
+      anytime: [],
+      timed: [
+        {
+          id: TASK_ID,
+          projectionId: `occurrence:${TASK_ID}:o1.current`,
+          projectionLifecycle: "recurring_occurrence",
+          occurrenceKey: "o1.current",
+          occurrenceState: "open",
+          transitionEligible: true,
+          recurrenceSummary: null,
+          scheduleInteraction: {
+            editScope: "series",
+            dragEnabled: false,
+            dragDisabledReason: "Edit the future series schedule instead.",
+          },
+          listId: LIST_ID,
+          title: "Alpha",
+          status: "open",
+          priority: "high",
+          rank: "a",
+          version: 2,
+          schedule: {
+            kind: "timed",
+            startAt: "2026-07-20T01:00:00.000Z",
+            endAt: "2026-07-20T02:00:00.000Z",
+            timezone: "Asia/Singapore",
+          },
+        },
+      ],
+      remainingCount: 1,
+      truncated: false,
+      truncationReasons: [],
+    };
+
+    const model = toTodayPlanningModel(projection, {
+      conflictedTaskId: null,
+      hourCycle: "12",
+      taskReturnTo: "/today",
+    });
+
+    expect(model.timed[0]).toMatchObject({
+      scheduleLabel: "Monday, July 20, 9:00 AM–10:00 AM",
+      detailsHref: `/tasks/${TASK_ID}?returnTo=%2Ftoday&occurrence=o1.current`,
+    });
+  });
+
   it("makes the affected calendar event visibly read-only after a conflict", () => {
     const projection: CalendarProjection = {
       rangeStartDate: "2026-07-20",
@@ -65,6 +118,7 @@ describe("planning conflict view models", () => {
           projectionLifecycle: "one_off",
           occurrenceKey: null,
           occurrenceState: null,
+          transitionEligible: null,
           recurrenceSummary: null,
           scheduleInteraction: { editScope: "task", dragEnabled: true, dragDisabledReason: null },
           listId: LIST_ID,
@@ -119,6 +173,7 @@ describe("planning conflict view models", () => {
           projectionLifecycle: "recurring_occurrence",
           occurrenceKey: firstOccurrenceKey,
           occurrenceState: "completed",
+          transitionEligible: true,
           recurrenceSummary: null,
           scheduleInteraction: seriesInteraction,
           listId: LIST_ID,
@@ -127,8 +182,8 @@ describe("planning conflict view models", () => {
           priority: "high",
           version: 2,
           kind: "timed",
-          startAt: "2026-07-20T01:00:00.000Z",
-          endAt: "2026-07-20T02:00:00.000Z",
+          startAt: "2026-07-20T15:30:00.000Z",
+          endAt: "2026-07-21T17:00:00.000Z",
           timezone: "Asia/Singapore",
         },
         {
@@ -137,6 +192,7 @@ describe("planning conflict view models", () => {
           projectionLifecycle: "recurring_occurrence",
           occurrenceKey: secondOccurrenceKey,
           occurrenceState: "skipped",
+          transitionEligible: true,
           recurrenceSummary: null,
           scheduleInteraction: seriesInteraction,
           listId: LIST_ID,
@@ -144,10 +200,9 @@ describe("planning conflict view models", () => {
           status: "open",
           priority: "high",
           version: 2,
-          kind: "timed",
-          startAt: "2026-07-21T01:00:00.000Z",
-          endAt: "2026-07-21T02:00:00.000Z",
-          timezone: "Asia/Singapore",
+          kind: "all_day",
+          startDate: "2026-07-21",
+          endDate: "2026-07-24",
         },
       ],
       truncated: false,
@@ -180,12 +235,12 @@ describe("planning conflict view models", () => {
     ]);
     expect(new Set(model.events.map((event) => event.projectionId))).toHaveLength(2);
     expect(model.events.map((event) => event.scheduleLabel)).toEqual([
-      "Monday, July 20, 9:00 AM–10:00 AM",
-      "Tuesday, July 21, 9:00 AM–10:00 AM",
+      "Monday, July 20, 11:30 PM–Wednesday, July 22, 1:00 AM",
+      "Tuesday, July 21–Thursday, July 23, all day",
     ]);
     expect(model.events.map((event) => event.detailsHref)).toEqual([
-      `/tasks/${TASK_ID}?returnTo=%2Fcalendar`,
-      `/tasks/${TASK_ID}?returnTo=%2Fcalendar`,
+      `/tasks/${TASK_ID}?returnTo=%2Fcalendar&occurrence=o1.first`,
+      `/tasks/${TASK_ID}?returnTo=%2Fcalendar&occurrence=o1.second`,
     ]);
   });
 });

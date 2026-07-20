@@ -37,6 +37,24 @@ describe("Matrix recurrence selection", () => {
     expect(selectMatrixRecurrenceRows([root], [], [completed], input)).toEqual([root]);
   });
 
+  it("does not let read-only historical rows suppress the current eligible occurrence", () => {
+    const root = summary("series-a");
+    const historical = occurrence(
+      "series-a",
+      "o1.historical",
+      timed("2026-07-19T15:00:00Z", "2026-07-19T17:00:00Z"),
+      "open",
+      false,
+    );
+    const current = occurrence(
+      "series-a",
+      "o1.current",
+      timed("2026-07-20T08:00:00Z", "2026-07-20T09:00:00Z"),
+    );
+
+    expect(selectMatrixRecurrenceRows([root], [historical], [historical, current], input)).toEqual([current]);
+  });
+
   it("does not add occurrence rows whose series root was truncated from all-open", () => {
     expect(
       selectMatrixRecurrenceRows(
@@ -79,6 +97,7 @@ function occurrence(
   occurrenceKey: string,
   schedule: ProjectionSchedule,
   occurrenceState: "open" | "completed" | "skipped" = "open",
+  transitionEligible = true,
 ): ProjectionSourceTask {
   return {
     ...oneOff(taskId),
@@ -86,6 +105,7 @@ function occurrence(
     projectionLifecycle: "recurring_occurrence",
     occurrenceKey,
     occurrenceState,
+    transitionEligible,
     schedule,
   };
 }

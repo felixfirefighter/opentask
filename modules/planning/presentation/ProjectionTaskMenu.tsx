@@ -64,7 +64,7 @@ export function ProjectionTaskMenu({
             ? actions.onEditSeriesSchedule && (
                 <DropdownMenu.Item
                   className={styles.menuItem}
-                  onSelect={() => actions.onEditSeriesSchedule?.(task.taskId)}
+                  onSelect={() => actions.onEditSeriesSchedule?.(task.taskId, task.occurrenceKey)}
                 >
                   <Repeat2 size={16} aria-hidden="true" /> Edit future series schedule
                 </DropdownMenu.Item>
@@ -124,6 +124,7 @@ function OccurrenceItems({
   const transition = actions.onOccurrenceTransition;
   const occurrenceKey = task.occurrenceKey;
   if (!transition || occurrenceKey === null) return null;
+  if (task.occurrenceState === "open" && !task.transitionEligible) return null;
   return (
     <>
       <DropdownMenu.Separator className={styles.separator} />

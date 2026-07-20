@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { ZodError } from "zod";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
-import { getInbox, getTasksApplication } from "@/modules/tasks";
+import { getInbox, getTasksApplication, occurrenceKeySchema } from "@/modules/tasks";
 import { TaskCommandPalette, TaskDetailScreen, TaskNavigation } from "@/modules/tasks/presentation";
 import { ApplicationError } from "@/shared/http/application-error";
 
 import { loadWorkspace } from "../../_load-workspace";
+import { readTaskDetailReturnHref } from "./task-detail-return";
 
 export const metadata: Metadata = { title: "Task details" };
 export const dynamic = "force-dynamic";
@@ -18,14 +19,27 @@ type TaskDetailPageProps = Readonly<{
 
 export default async function TaskDetailPage({ params, searchParams }: TaskDetailPageProps) {
   const { taskId } = await params;
-  const requestedReturnTo = readReturnTo(await searchParams);
-  const taskRoute = requestedReturnTo
-    ? (`/tasks/${taskId}?returnTo=${encodeURIComponent(requestedReturnTo)}` as const)
-    : (`/tasks/${taskId}` as const);
+  const request = await searchParams;
+  const requestedReturnTo = readTaskDetailReturnHref(request.returnTo);
+  const requestedOccurrence = readOccurrence(request);
+  const initialEditSchedule = request.edit === "series-schedule";
+  const taskRouteQuery = new URLSearchParams();
+  if (requestedReturnTo) taskRouteQuery.set("returnTo", requestedReturnTo);
+  if (requestedOccurrence) taskRouteQuery.set("occurrence", requestedOccurrence);
+  if (initialEditSchedule) taskRouteQuery.set("edit", "series-schedule");
+  const taskRoute =
+    `/tasks/${taskId}${taskRouteQuery.size > 0 ? `?${taskRouteQuery.toString()}` : ""}` as `/${string}`;
   const workspace = await loadWorkspace(taskRoute);
-  const [task, inbox] = await Promise.all([
+  const [task, inbox, occurrence] = await Promise.all([
     loadTask(workspace.identity.actor, taskId),
     getInbox(workspace.identity.actor),
+    requestedOccurrence
+      ? getTasksApplication().occurrences.readOccurrence(
+          workspace.identity.actor,
+          taskId,
+          requestedOccurrence,
+        )
+      : null,
   ]);
 
   return (
@@ -56,40 +70,22 @@ export default async function TaskDetailPage({ params, searchParams }: TaskDetai
           task={task}
           mode="page"
           inbox={inbox}
+          hourCycle={workspace.preferences.hourCycle}
+          initialEditSchedule={initialEditSchedule}
+          occurrence={occurrence}
+          occurrenceRequested={requestedOccurrence !== null}
           returnHref={requestedReturnTo ?? (task.listId === inbox.id ? "/inbox" : `/lists/${task.listId}`)}
         />
       ) : (
-        <UnavailableTask />
+        <UnavailableTask returnHref={requestedReturnTo ?? "/inbox"} />
       )}
     </AuthenticatedShell>
   );
 }
 
-function readReturnTo(searchParams: Record<string, string | string[] | undefined>): string | null {
-  const value = searchParams.returnTo;
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
-  if (value.includes("\\") || /[\u0000-\u001f\u007f]/u.test(value)) return null;
-  try {
-    const target = new URL(value, "http://opentask.local");
-    if (target.origin !== "http://opentask.local" || target.username || target.password) return null;
-    if (!isTaskReturnPath(target.pathname)) return null;
-    return `${target.pathname}${target.search}${target.hash}`;
-  } catch {
-    return null;
-  }
-}
-
-function isTaskReturnPath(pathname: string): boolean {
-  if (
-    ["/inbox", "/today", "/upcoming", "/calendar", "/matrix", "/plan", "/completed", "/settings"].includes(
-      pathname,
-    )
-  ) {
-    return true;
-  }
-  return /^\/lists\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
-    pathname,
-  );
+function readOccurrence(searchParams: Record<string, string | string[] | undefined>): string | null {
+  const parsed = occurrenceKeySchema.safeParse(searchParams.occurrence);
+  return parsed.success ? parsed.data : null;
 }
 
 async function loadTask(
@@ -108,7 +104,7 @@ function isUnavailableResource(error: unknown): boolean {
   return error instanceof ZodError || (error instanceof ApplicationError && error.code === "NOT_FOUND");
 }
 
-function UnavailableTask() {
+function UnavailableTask({ returnHref }: Readonly<{ returnHref: string }>) {
   return (
     <section className="workspace-route-state" aria-labelledby="task-unavailable-title">
       <div>
@@ -117,6 +113,9 @@ function UnavailableTask() {
           Task unavailable
         </h1>
         <p>This task could not be found or you may not have access.</p>
+        <a className="secondary-button" href={returnHref}>
+          Back to tasks
+        </a>
       </div>
     </section>
   );

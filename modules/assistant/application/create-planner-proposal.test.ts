@@ -208,6 +208,7 @@ describe("planner proposal creation", () => {
     expect(harness.selectedCalls).toHaveBeenCalledWith([taskId]);
     expect(harness.providerCalls).toHaveBeenCalledOnce();
     expect(harness.busyCalls).toHaveBeenCalledWith({
+      timeZone: "Asia/Singapore",
       rangeStartDate: "2026-07-20",
       rangeEndDate: "2026-07-21",
       rangeStartAt: "2026-07-20T01:00:00Z",

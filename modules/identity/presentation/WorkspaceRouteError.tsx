@@ -1,17 +1,34 @@
 "use client";
 
 import { CircleAlert } from "lucide-react";
-import { useEffect } from "react";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
 
 import styles from "./WorkspaceRouteError.module.css";
 
 export function WorkspaceRouteError({
+  eyebrow = "Workspace",
   error,
+  message = "Your data was not changed. Try loading the view again.",
   onRetry,
-}: Readonly<{ error: Error & { digest?: string }; onRetry: () => void }>) {
+  returnHref,
+  returnLabel = "Close view",
+  title = "Something interrupted this view",
+}: Readonly<{
+  eyebrow?: string;
+  error: Error & { digest?: string };
+  message?: string;
+  onRetry: () => void;
+  returnHref?: string;
+  returnLabel?: string;
+  title?: string;
+}>) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
   useEffect(() => {
     // Next records the full server error; only its opaque digest is acknowledged here.
     void error.digest;
+    headingRef.current?.focus();
   }, [error]);
 
   return (
@@ -20,12 +37,21 @@ export function WorkspaceRouteError({
         <span className={styles.stateIcon} aria-hidden="true">
           <CircleAlert size={20} />
         </span>
-        <p className="eyebrow">Workspace</p>
-        <h1>Something interrupted this view</h1>
-        <p>Your data was not changed. Try loading the view again.</p>
-        <button className="primary-button" type="button" onClick={onRetry}>
-          Try again
-        </button>
+        <p className="eyebrow">{eyebrow}</p>
+        <h1 ref={headingRef} tabIndex={-1}>
+          {title}
+        </h1>
+        <p>{message}</p>
+        <div className={styles.actions}>
+          <button className="primary-button" type="button" onClick={onRetry}>
+            Try again
+          </button>
+          {returnHref ? (
+            <Link className="secondary-button" href={returnHref}>
+              {returnLabel}
+            </Link>
+          ) : null}
+        </div>
       </div>
     </main>
   );

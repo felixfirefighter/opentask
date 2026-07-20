@@ -10,7 +10,7 @@ export function getPlanningProjectionApplication() {
   if (!projectionApplication) {
     const tasks = getTasksApplication();
     projectionApplication = createPlanningProjectionApplication({
-      tasks: tasks.planningSource,
+      composite: tasks.planningSnapshot,
       occurrences: tasks.occurrences,
       timeZones: {
         async getSavedTimeZone(actor) {
@@ -53,6 +53,9 @@ export {
 export { planningProjectionTruncationReasonSchema } from "./projection-truncation";
 export type {
   CanonicalPlanningTaskRow,
+  PlanningCompositeSourceReader,
+  PlanningCompositeSourceRequest,
+  PlanningCompositeSourceResult,
   PlanningTaskSourcePage,
   PlanningTaskSourceQuery,
   PlanningTaskSourceReader,

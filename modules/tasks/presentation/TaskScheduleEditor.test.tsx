@@ -76,6 +76,16 @@ beforeEach(() => {
 });
 
 describe("TaskScheduleEditor", () => {
+  it("opens and focuses the canonical recurring schedule form from a deep link", async () => {
+    savedSchedule = allDaySchedule();
+    savedRecurrence = recurrence();
+
+    renderEditor({ initiallyEditing: true });
+
+    expect(await screen.findByRole("button", { name: "Save schedule" })).toBeVisible();
+    await waitFor(() => expect(screen.getByLabelText("Start date")).toHaveFocus());
+  });
+
   it("adds a timezone-aware timed schedule through the canonical schedule command", async () => {
     const user = userEvent.setup();
     renderEditor();
@@ -352,7 +362,10 @@ describe("TaskScheduleEditor", () => {
   });
 });
 
-function renderEditor({ disabled = false }: Readonly<{ disabled?: boolean }> = {}) {
+function renderEditor({
+  disabled = false,
+  initiallyEditing = false,
+}: Readonly<{ disabled?: boolean; initiallyEditing?: boolean }> = {}) {
   const client = new QueryClient({
     defaultOptions: {
       mutations: { retry: false },
@@ -361,7 +374,7 @@ function renderEditor({ disabled = false }: Readonly<{ disabled?: boolean }> = {
   });
   return render(
     <QueryClientProvider client={client}>
-      <TaskScheduleEditor disabled={disabled} task={taskDetail()} />
+      <TaskScheduleEditor disabled={disabled} initiallyEditing={initiallyEditing} task={taskDetail()} />
     </QueryClientProvider>,
   );
 }

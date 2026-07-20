@@ -24,6 +24,9 @@ vi.mock("./planning-client-api", async (importOriginal) => {
     parsePlanningQuickAdd: mocks.parseQuickAdd,
   };
 });
+vi.mock("./use-planning-projection-freshness", () => ({
+  usePlanningProjectionFreshness: () => ({ announcement: "", pendingLocalDateLabel: null }),
+}));
 
 const INBOX_ID = "09d7cb40-9c45-43fc-bb2a-0fa62e920d96";
 const projection: UpcomingProjection = {

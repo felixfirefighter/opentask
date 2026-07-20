@@ -1,6 +1,6 @@
 # Local-first Full Release forward plan
 
-This is the canonical dependency and delivery plan for the unfinished P2-P7 work in
+This is the canonical dependency and delivery plan for the unfinished P3-P7 work in
 `docs/SCOPE.md`. The implemented and approved baseline is summarized in `README.md`; completed
 sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
@@ -9,12 +9,12 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 - `main` stays a green, locally runnable baseline while a later package is incomplete.
 - Editorial Focus is frozen across current routes. Later UI extends it through `DESIGN.md`; broad
   restyling or shared-foundation changes require explicit user approval and new visual evidence.
-- P2 is the next active package in numbered execution order. P3 and P5 are dependency-unblocked but
-  remain unstarted; no package may expose a table, route, dependency, worker job, service worker, or
-  control before its own gate.
+- P3 is the next active package in numbered execution order. P5 is dependency-unblocked but remains
+  unstarted; no package may expose a table, route, dependency, worker job, service worker, or control
+  before its own gate.
 - A package integrates only as a coherent unit after its acceptance and audit gates pass. A partial
   implementation, screenshot, elapsed time, or available agent is not a merge criterion.
-- The remaining work is estimated at **114-172 serial engineering hours** before external-provider
+- The remaining work is estimated at **90-136 serial engineering hours** before external-provider
   and user-approval latency. Estimates guide coordination; they never weaken a gate or authorize a
   scope cut.
 - Hackathon timing and submission operations live in `docs/HACKATHON.md`, not in this product plan.
@@ -23,24 +23,23 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
 ```mermaid
 flowchart LR
-    BASELINE["Implemented stabilized local core"] --> P2["P2: recurrence"]
-    BASELINE --> P3["P3: habits"]
+    BASELINE["Implemented local core + recurrence"] --> P3["P3: habits"]
     BASELINE --> P5["P5: installable PWA shell"]
     P3 --> P4["P4: Focus"]
-    P2 --> P6["P6: browser reminder"]
     P5 --> P6
-    P2 --> P7["P7: portability/demo/release audit"]
     P3 --> P7
     P4 --> P7
     P5 --> P7
     P6 --> P7
 ```
 
-P2, P3, and P5 may run in parallel from the stabilized-core gate. P4 may begin pure
-domain work after the Habits ownership-validator contract freezes. P6 waits for recurrence and the
-service-worker contract. Each P2-P6 package supplies and integrates its portable representation;
-the integration owner serializes export-schema version bumps as packages land. P7 owns the final
-cross-version audit, demo, documentation, and cross-module evidence, not the first export integration.
+P3 and P5 may run in parallel from the implemented recurrence baseline. P4 may begin pure domain
+work after the Habits ownership-validator contract freezes. P6 waits for the service-worker
+contract; its recurrence dependency is already satisfied. P3, P4, and P6 each supply and integrate
+their portable representation; the integration owner serializes export-schema version bumps as
+those packages land. P5 adds only an exclusion regression and never changes the export document or
+its versions. P7 owns the final cross-version audit, demo, documentation, and cross-module evidence,
+not the first export integration.
 
 ## Parallel execution contract
 
@@ -70,54 +69,6 @@ Only the integration owner edits or serializes:
 - Browser, Docker, database, and full gates run centrally and sequentially to avoid shared-state and
   machine-resource conflicts. Static lanes may run concurrently because repository checks must not
   create lint-visible temporary source files.
-
-## P2 — Bounded schedule-based recurrence (24–36 serial hours; 14–20 elapsed)
-
-### Boundary
-
-`modules/tasks` owns rules/events and task mutations; `modules/planning` consumes bounded public
-occurrence projections. No generated task clones, second status/schedule fact, reminder behavior, or
-AI-created recurrence.
-
-### Deliverables
-
-- Promote reviewed `rrule` dependency through an application-owned expansion port and tasks
-  infrastructure adapter, with provider-free domain policy, canonical presets, and safety caps.
-- Add `task_recurrences` and `task_occurrence_events` through one reviewed migration with tenant-
-  leading ownership, checked date/instant cutovers, immutable post-command `task_version` ordering,
-  constraints, indexes, upgrade tests, and no generic JSON.
-- One schedule-anchored rule for an eligible scheduled root task: daily, weekdays, weekly selected
-  weekdays, monthly day-of-month, or yearly month/day, bounded interval, and never/until/count end.
-- Store a checked all-day/date or timed/instant projection cutover on the single mutable rule. Initial
-  projection begins at the schedule anchor; rule/schedule edits choose a server-controlled future
-  cutover, preserve recorded earlier events, and do not claim to reconstruct unrecorded pre-cutover
-  occurrences.
-- Deterministic `occurrence_key`, range-bounded all-day/timed expansion, DST/month/year behavior, and
-  projection into Today, Upcoming, Calendar, agenda, and Matrix.
-- Complete, skip, and undo/reopen one occurrence without completing the series; edit/end future
-  expansion while preserving past occurrence events.
-- Task-detail/row occurrence labels and accessible series/occurrence actions; planner treats bounded
-  recurring busy intervals as context but cannot create/edit recurrence.
-- Recurrence demo fixture plus an integrated, version-bumped portable recurrence/event section before
-  the P2 gate; the integration owner serializes the shared export schema.
-- The exact preset, interval/count/duration/query/computation limits plus missing-month/leap-day,
-  DST, cutover, lifecycle, projection, and retry policies are frozen in `docs/modules/tasks.md`,
-  `docs/modules/planning.md`, and `docs/DATA_MODEL.md`. Migration, Zod, domain, and UI code reuse
-  those values and may not invent a local bound.
-
-### Explicit exclusions
-
-Completion-relative rules, raw RRULE entry, individual occurrence reschedule/content edit, “this and
-future” forks, exclusion-date editor, recurring checklist/subtask state, and arbitrary custom
-cadence remain Stage A.
-
-### Gate
-
-- Preset/Zod/domain/DB constraint, ownership, optimistic conflict, and concurrency tests.
-- Deterministic cap/range/occurrence-key, DST gap/fold, month-end, leap-day, edit/end, complete/skip/
-  undo, and no-duplicate fixtures.
-- Desktop/mobile recurrence golden path, keyboard schedule parity, responsive/a11y/design evidence.
-- Empty and upgrade migration, query-plan/index review, `pnpm verify`.
 
 ## P3 — Habits (22–34 serial hours; 13–19 elapsed)
 
@@ -203,9 +154,8 @@ offline-first behavior.
   and recover cleanly online.
 - Clear capability/error/update UI and service-worker registration isolated behind a presentation
   adapter; no second UI framework or speculative native layer.
-- Serialize the P5 export-schema version step through the integration owner while deliberately adding
-  no PWA/device/cache data section; add a regression test proving those operational details are not
-  portable.
+- Add an export regression proving PWA/device/cache operational details are not portable; do not add
+  a data section or change an export version because P5 has no portable data.
 
 ### Gate
 
@@ -259,9 +209,9 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 ### Deliverables
 
-- Audit the serial export-schema versions already integrated by P2-P6 and validate the final combined
-  document containing recurrence rules/events, habits/schedules/logs, completed focus history, and
-  portable reminder definitions.
+- Audit the export-schema versions already integrated for recurrence, habits, Focus, and reminders,
+  then validate the final combined document containing recurrence rules/events,
+  habits/schedules/logs, completed focus history, and portable reminder definitions.
 - Exclude push subscriptions, endpoint keys, delivery/queue internals, credentials, provider secrets,
   raw planner input, and server configuration.
 - Extend isolated deterministic demo reset across every released package without pre-granting push
@@ -286,8 +236,7 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 | Active capability | Package | Primary evidence |
 |---|---|---|
-| Existing identity/tasks/planning/AI | Stabilized baseline | G1–G4 + authorization/atomicity/freshness tests |
-| Recurrence/occurrences | P2 | recurrence golden path + range/DST/ownership suites |
+| Existing identity/tasks/planning/AI/recurrence | Implemented baseline | G1–G5 + authorization/atomicity/time/ownership suites |
 | Habits | P3 | Habits golden path + log/streak/time suites |
 | Focus | P4 | Focus golden path + state/race/clock suites |
 | Installable shell | P5 | manifest/cache/offline fallback audit |

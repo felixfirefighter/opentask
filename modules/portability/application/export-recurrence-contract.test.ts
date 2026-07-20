@@ -88,9 +88,9 @@ describe("portable recurrence export contract", () => {
     allDayDefinition.projectionEndDate = "2026-07-19";
     expect(portableTasksSectionSchema.safeParse(reversedCutover.tasks).success).toBe(false);
 
-    const malformedKey = buildEnvelope();
-    malformedKey.tasks.occurrenceEvents[0]!.occurrenceKey = "o2.not-version-one";
-    expect(portableTasksSectionSchema.safeParse(malformedKey.tasks).success).toBe(false);
+    const unsupportedKey = buildEnvelope();
+    unsupportedKey.tasks.occurrenceEvents[0]!.occurrenceKey = "o3.future-format";
+    expect(portableTasksSectionSchema.safeParse(unsupportedKey.tasks).success).toBe(false);
 
     const malformedPayload = buildEnvelope();
     malformedPayload.tasks.occurrenceEvents[0]!.occurrenceKey = "o1.a";

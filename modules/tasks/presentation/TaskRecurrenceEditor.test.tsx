@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TaskDetailDto, TaskScheduleDto } from "../application/contracts";
 import type { TaskRecurrenceDto } from "../application/contracts/recurrence-contract";
 import { TaskApiError } from "./data/task-api-request";
+import { taskQueryKeys } from "./data/task-query-keys";
 import { clearTaskDrafts } from "./task-draft-guard";
 
 const scheduleApi = vi.hoisted(() => ({
@@ -139,6 +140,67 @@ describe("TaskRecurrenceEditor", () => {
     expect(await screen.findByText("Recurrence ended")).toBeInTheDocument();
     expect(screen.getByText("Ended")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Restart recurrence" })).toBeInTheDocument();
+  });
+
+  it("fences editing until a recurrence token behind the task is synchronized", async () => {
+    const staleRecurrence = recurrence({ taskVersion: 1 });
+    const latestRecurrence = recurrence({ taskVersion: 2 });
+    const recurrenceRefresh = deferred<TaskRecurrenceDto | null>();
+    savedTaskVersion = 2;
+    savedRecurrence = latestRecurrence;
+    recurrenceApi.getTaskRecurrence
+      .mockResolvedValueOnce(staleRecurrence)
+      .mockReturnValueOnce(recurrenceRefresh.promise);
+    const user = userEvent.setup();
+    renderEditor({ task: taskDetail({ version: 2 }) });
+
+    const edit = await screen.findByRole("button", { name: "Edit recurrence" });
+    expect(edit).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Refreshing latest recurrence");
+    expect(recurrenceApi.setTaskRecurrence).not.toHaveBeenCalled();
+
+    recurrenceRefresh.resolve(latestRecurrence);
+    await waitFor(() => expect(edit).toBeEnabled());
+    expect(taskApi.getTask).toHaveBeenCalledOnce();
+    expect(scheduleApi.getTaskSchedule).toHaveBeenCalledTimes(2);
+
+    await user.click(edit);
+    fireEvent.change(screen.getByLabelText("Repeat every"), { target: { value: "2" } });
+    await user.click(screen.getByRole("button", { name: "Save and restart" }));
+    await user.click(screen.getByRole("button", { name: "Restart future recurrence" }));
+
+    await waitFor(() =>
+      expect(recurrenceApi.setTaskRecurrence).toHaveBeenCalledWith(
+        TASK_ID,
+        expect.objectContaining({ expectedVersion: 2 }),
+      ),
+    );
+  });
+
+  it("fences ending until an ahead idempotent-retry snapshot refreshes the task", async () => {
+    const taskRefresh = deferred<TaskDetailDto>();
+    savedTaskVersion = 8;
+    savedRecurrence = recurrence({ taskVersion: 8 });
+    taskApi.getTask.mockReturnValueOnce(taskRefresh.promise);
+    const user = userEvent.setup();
+    renderEditor({ task: taskDetail({ version: 4 }) });
+
+    const end = await screen.findByRole("button", { name: "End recurrence…" });
+    expect(end).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Refreshing latest recurrence");
+    expect(recurrenceApi.endTaskRecurrence).not.toHaveBeenCalled();
+
+    taskRefresh.resolve(taskDetail({ version: 8 }));
+    await waitFor(() => expect(end).toBeEnabled());
+
+    await user.click(end);
+    await user.click(screen.getByRole("button", { name: "End future recurrence" }));
+
+    await waitFor(() =>
+      expect(recurrenceApi.endTaskRecurrence).toHaveBeenCalledWith(TASK_ID, {
+        expectedVersion: 8,
+      }),
+    );
   });
 
   it.each([
@@ -355,6 +417,7 @@ function renderEditor({
       queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
     },
   });
+  client.setQueryData(taskQueryKeys.detail(task.id), task);
   return render(
     <QueryClientProvider client={client}>
       <TaskRecurrenceEditor disabled={disabled} task={task} />

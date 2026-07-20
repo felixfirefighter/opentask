@@ -156,6 +156,33 @@ describe("recurrence application", () => {
     repositories.recurrences.replace.mockImplementation(async (input) => storedFromWrite(input));
   });
 
+  it("reads the recurrence aggregate from one repeatable-read snapshot", async () => {
+    repositories.recurrences.findByTaskId.mockResolvedValueOnce(storedRecurrence());
+
+    const result = await createTaskRecurrenceApplication({
+      database,
+      clock,
+      taskSchedules,
+      expansion,
+      resolveUserTimezone,
+    }).getRecurrence(actor, taskId);
+
+    expect(result).toMatchObject({ taskId, taskVersion: 4, lifecycle: "active" });
+    expect(database.transaction).toHaveBeenCalledWith(expect.anything(), {
+      isolationLevel: "repeatable read",
+      accessMode: "read only",
+    });
+    expect(repositories.tasks.findById).toHaveBeenCalledWith(userId, taskId, "any", transaction);
+    expect(repositories.recurrences.findByTaskId).toHaveBeenCalledWith(userId, taskId, transaction);
+    expect(repositories.schedules.findByTaskId).toHaveBeenCalledWith(userId, taskId, transaction);
+    expect(repositories.tasks.findById.mock.invocationCallOrder[0]).toBeLessThan(
+      repositories.recurrences.findByTaskId.mock.invocationCallOrder[0]!,
+    );
+    expect(repositories.recurrences.findByTaskId.mock.invocationCallOrder[0]).toBeLessThan(
+      repositories.schedules.findByTaskId.mock.invocationCallOrder[0]!,
+    );
+  });
+
   it("creates an anchored rule under the aggregate lock order and increments once", async () => {
     const application = createTaskRecurrenceApplication({
       database,
@@ -171,6 +198,9 @@ describe("recurrence application", () => {
 
     expect(repositories.tasks.lockById.mock.invocationCallOrder[0]).toBeLessThan(
       repositories.recurrences.lockByTaskId.mock.invocationCallOrder[0]!,
+    );
+    expect(resolveUserTimezone.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(database.transaction).mock.invocationCallOrder[0]!,
     );
     expect(repositories.recurrences.lockByTaskId.mock.invocationCallOrder[0]).toBeLessThan(
       repositories.schedules.lockByTaskId.mock.invocationCallOrder[0]!,
@@ -249,6 +279,36 @@ describe("recurrence application", () => {
       repositories.recurrences.replace.mock.invocationCallOrder[0]!,
     );
     expect(repositories.tasks.incrementVersion).toHaveBeenCalledOnce();
+    expect(resolveUserTimezone).not.toHaveBeenCalled();
+  });
+
+  it("resolves an all-day edit timezone before opening the write transaction", async () => {
+    repositories.schedules.lockByTaskId.mockResolvedValue(allDaySchedule());
+    repositories.schedules.upsert.mockResolvedValue(allDaySchedule());
+    repositories.schedules.findByTaskId.mockResolvedValue(allDaySchedule());
+    repositories.recurrences.lockByTaskId.mockResolvedValue(
+      storedRecurrence({ projectionStartDate: "2026-07-21", projectionStartAt: null }),
+    );
+
+    await createTaskRecurrenceApplication({
+      database,
+      clock,
+      taskSchedules,
+      expansion,
+      resolveUserTimezone,
+    }).editRecurringSchedule(actor, taskId, {
+      expectedVersion: 4,
+      definition: { preset: { kind: "daily", interval: 1 }, end: { kind: "never" } },
+      schedule: { kind: "all_day", startDate: "2026-07-21", endDate: "2026-07-22" },
+    });
+
+    expect(resolveUserTimezone).toHaveBeenCalledOnce();
+    expect(resolveUserTimezone.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(database.transaction).mock.invocationCallOrder[0]!,
+    );
+    expect(repositories.tasks.lockById.mock.invocationCallOrder[0]).toBeGreaterThan(
+      resolveUserTimezone.mock.invocationCallOrder[0]!,
+    );
   });
 
   it.each([

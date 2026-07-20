@@ -10,6 +10,7 @@ const navigation = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/inbox",
   useRouter: () => navigation,
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const identity = {

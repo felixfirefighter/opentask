@@ -137,7 +137,7 @@ export function TaskCommandPaletteResults({
                 key={result.task.id}
                 icon={<ListTodo size={18} />}
                 label={result.task.title}
-                meta={`Task · ${result.list.name} · ${matchedContext(result)}`}
+                meta={`Task${result.recurrence ? " · Repeat" : ""} · ${result.list.name} · ${matchedContext(result)}`}
                 value={`task ${result.task.id} ${result.task.title}`}
                 keywords={[result.list.name, ...result.matchingTags.map((tag) => tag.name)]}
                 onSelect={() => onNavigate(`/tasks/${result.task.id}`)}

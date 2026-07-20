@@ -1,6 +1,7 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import type { Database, DatabaseTransaction } from "@/shared/db/client";
 import type { Clock } from "@/shared/time/clock";
+import { ianaTimeZoneSchema } from "@/shared/validation/time-zone";
 
 import {
   editRecurringTaskScheduleRequestSchema,
@@ -28,6 +29,7 @@ import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import { toScheduleWrite } from "./schedule-application";
 import { assertMutableTask, requireAppliedTask } from "./task-application-support";
 import { taskConflict, taskResourceNotFound, taskValidationFailure } from "./task-errors";
+import { createPostgresTaskReadSnapshot, type TaskReadSnapshot } from "./task-read-snapshot";
 import {
   endRecurrenceProjection,
   fallbackEndCutover,
@@ -48,6 +50,7 @@ type RecurrenceApplicationDependencies = Readonly<{
   taskSchedules: TaskScheduleTable;
   expansion: RecurrenceExpansionPort;
   resolveUserTimezone: UserTimezoneResolver;
+  snapshot?: TaskReadSnapshot;
 }>;
 
 export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicationDependencies) {
@@ -55,19 +58,22 @@ export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicat
   const tasks = createTaskRepository(database);
   const schedules = createTaskScheduleRepository(dependencies.taskSchedules, database);
   const recurrences = createTaskRecurrenceRepository(database);
+  const snapshot = dependencies.snapshot ?? createPostgresTaskReadSnapshot(database);
 
   async function getRecurrence(
     actor: AuthenticatedActor,
     rawTaskId: string,
   ): Promise<TaskRecurrenceDto | null> {
     const taskId = entityIdSchema.parse(rawTaskId);
-    const task = await tasks.findById(actor.userId, taskId, "any");
-    if (!task) throw taskResourceNotFound();
-    const recurrence = await recurrences.findByTaskId(actor.userId, taskId);
-    if (!recurrence) return null;
-    const schedule = await schedules.findByTaskId(actor.userId, taskId);
-    if (!schedule) throw new Error("A stored recurrence must have a schedule.");
-    return mapTaskRecurrence(task, schedule, recurrence, expansion, clock.now());
+    return snapshot.run(async (transaction) => {
+      const task = await tasks.findById(actor.userId, taskId, "any", transaction);
+      if (!task) throw taskResourceNotFound();
+      const recurrence = await recurrences.findByTaskId(actor.userId, taskId, transaction);
+      if (!recurrence) return null;
+      const schedule = await schedules.findByTaskId(actor.userId, taskId, transaction);
+      if (!schedule) throw new Error("A stored recurrence must have a schedule.");
+      return mapTaskRecurrence(task, schedule, recurrence, expansion, clock.now());
+    });
   }
 
   async function createOrEditRecurrence(
@@ -77,12 +83,13 @@ export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicat
   ): Promise<TaskRecurrenceMutationResult> {
     const taskId = entityIdSchema.parse(rawTaskId);
     const input = setTaskRecurrenceRequestSchema.parse(rawInput);
+    // The schedule kind is protected by the aggregate lock, so resolve the actor's saved
+    // all-day timezone before acquiring a tasks transaction. Timed schedules ignore it.
+    const savedTimeZone = ianaTimeZoneSchema.parse(await resolveUserTimezone(actor));
     return database.transaction(async (transaction) => {
       const locked = await lockRecurringAggregate(actor, taskId, input.expectedVersion, transaction);
       const timezone =
-        locked.schedule.kind === "all_day"
-          ? await resolveUserTimezone(actor, transaction)
-          : requiredScheduleTimezone(locked.schedule);
+        locked.schedule.kind === "all_day" ? savedTimeZone : requiredScheduleTimezone(locked.schedule);
       const anchor = recurrenceDomainCall(() => toRecurrenceAnchor(locked.schedule, timezone));
       const initial = initialProjection(anchor);
       const now = clock.now();
@@ -114,6 +121,8 @@ export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicat
   ): Promise<TaskRecurrenceMutationResult> {
     const taskId = entityIdSchema.parse(rawTaskId);
     const input = editRecurringTaskScheduleRequestSchema.parse(rawInput);
+    const allDayTimeZone =
+      input.schedule.kind === "all_day" ? ianaTimeZoneSchema.parse(await resolveUserTimezone(actor)) : null;
     return database.transaction(async (transaction) => {
       const locked = await lockRecurringAggregate(actor, taskId, input.expectedVersion, transaction);
       if (!locked.recurrence) {
@@ -125,9 +134,7 @@ export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicat
         );
       }
       const timezone =
-        input.schedule.kind === "all_day"
-          ? await resolveUserTimezone(actor, transaction)
-          : input.schedule.timezone;
+        input.schedule.kind === "all_day" ? requiredTimeZone(allDayTimeZone) : input.schedule.timezone;
       const anchor = recurrenceDomainCall(() => toRecurrenceAnchor(input.schedule, timezone));
       const baseProjection = initialProjection(anchor);
       const now = clock.now();
@@ -286,6 +293,11 @@ function requiredScheduleTimezone(schedule: StoredTaskSchedule): string {
     throw new Error("A stored timed schedule must have a timezone.");
   }
   return schedule.timezone;
+}
+
+function requiredTimeZone(value: string | null): string {
+  if (value === null) throw new Error("An all-day recurrence requires the actor's saved timezone.");
+  return value;
 }
 
 function hasUpperCutover(projection: ReturnType<typeof initialProjection>): boolean {

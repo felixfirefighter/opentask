@@ -31,11 +31,13 @@ priority marker remains visible.
 
 Completed titles use reduced emphasis and a strike only when still readable. Cancelled/won't-do uses a labeled status, not the same styling as completed. Overdue uses icon/text plus semantic color. Row selection and completion are separate actions.
 
-After P2, an occurrence-bearing planning row labels the series and binds Complete/Skip/Undo to its
+An occurrence-bearing planning row labels the series and binds Complete/Skip/Undo to its
 `occurrenceKey`. A canonical Inbox/list/search row with a recurrence definition shows a textual
 Repeat marker and replaces the ordinary Complete target with a named “Open recurring task” action;
-it never implies that one checkbox will complete the series. Cancel/restore and Edit/End recurrence
-remain explicit series actions in details.
+it never implies that one checkbox will complete the series. A preserved open occurrence outside the
+current rule is labeled read-only and suppresses Complete/Skip when its server-derived
+`transitionEligible` value is false. Cancel/restore and Edit/End recurrence remain explicit series
+actions in details.
 
 Keyboard: `Enter` opens details; the status control remains separately tabbable; menu actions expose move, schedule, priority, complete/cancel/restore, and soft-delete as allowed. Hover-only controls also appear on `:focus-within`. Mobile swipe actions are not part of active scope.
 

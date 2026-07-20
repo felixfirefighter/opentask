@@ -20,6 +20,7 @@ const task = {
   projectionLifecycle: "one_off",
   occurrenceKey: null,
   occurrenceState: null,
+  transitionEligible: null,
   recurrenceSummary: null,
   scheduleInteraction: {
     editScope: "task",
@@ -107,13 +108,14 @@ describe("planning projection DTO contracts", () => {
   });
 
   it("requires composite recurrence identity and disabled series dragging metadata", () => {
-    const occurrenceKey = "o1.stable_key";
+    const occurrenceKey = "o2.stable_key";
     const recurring = {
       ...task,
       projectionId: `occurrence:${taskId}:${occurrenceKey}`,
       projectionLifecycle: "recurring_occurrence",
       occurrenceKey,
       occurrenceState: "open",
+      transitionEligible: true,
       scheduleInteraction: {
         editScope: "series",
         dragEnabled: false,
@@ -202,6 +204,7 @@ describe("planning projection DTO contracts", () => {
         projectionLifecycle: "one_off",
         occurrenceKey: null,
         occurrenceState: null,
+        transitionEligible: null,
         recurrenceSummary: null,
         scheduleInteraction: {
           editScope: "task",

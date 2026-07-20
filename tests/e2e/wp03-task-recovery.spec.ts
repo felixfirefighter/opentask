@@ -176,6 +176,10 @@ test("keyboard and touch-menu reorder remain available while offline writes are 
     const alphaHandle = taskRow(page, alpha.id).getByRole("button", { name: `Reorder ${alpha.title}` });
     await alphaHandle.focus();
     await alphaHandle.press("Space");
+    await expect(
+      page.getByRole("status").filter({ hasText: `${alpha.title} picked up at position 2 of 2.` }),
+    ).toBeVisible();
+    await expect(alphaHandle).toHaveAttribute("aria-pressed", "true");
     await alphaHandle.press("ArrowUp");
     await expect(
       page.getByRole("status").filter({ hasText: `${alpha.title} moved to position 1 of 2.` }),

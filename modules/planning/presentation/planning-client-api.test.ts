@@ -130,7 +130,7 @@ describe("planning client API", () => {
   });
 
   it("sends an occurrence transition with task identity, opaque key, and expected version", async () => {
-    const occurrenceKey = "occurrence-key-1";
+    const occurrenceKey = "o1.b2NjdXJyZW5jZS1rZXktMQ";
     const responseBody = {
       outcome: "applied",
       action: "skip",

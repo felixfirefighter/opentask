@@ -15,8 +15,13 @@ import {
   type TaskSearchQuery,
   type TaskSearchResultDto,
 } from "./contracts";
+import { mapTaskRecurrenceSummary } from "./task-list-item-projection";
 import { taskValidationFailure } from "./task-errors";
 import type { StoredTag } from "../infrastructure/tag-repository";
+import {
+  createTaskRecurrenceRepository,
+  type StoredTaskRecurrence,
+} from "../infrastructure/task-recurrence-repository";
 import {
   createTaskSearchRepository,
   type StoredSearchTask,
@@ -33,6 +38,7 @@ type SearchCursor = z.infer<typeof searchCursorPayloadSchema>;
 
 export function createSearchApplication({ database }: { database: Database }) {
   const repository = createTaskSearchRepository(database);
+  const recurrences = createTaskRecurrenceRepository(database);
 
   return {
     async searchTasks(actor: AuthenticatedActor, rawQuery: TaskSearchQuery): Promise<TaskSearchPage> {
@@ -43,8 +49,16 @@ export function createSearchApplication({ database }: { database: Database }) {
         limit: query.limit,
         ...(after ? { after: { updatedAt: new Date(after.updatedAt), id: after.id } } : {}),
       });
+      const recurrenceByTask = new Map(
+        (
+          await recurrences.listForTaskIds(
+            actor.userId,
+            page.items.map(({ task }) => task.id),
+          )
+        ).map((recurrence) => [recurrence.taskId, recurrence]),
+      );
       return taskSearchPageSchema.parse({
-        items: page.items.map(mapSearchResult),
+        items: page.items.map((result) => mapSearchResult(result, recurrenceByTask.get(result.task.id))),
         nextCursor: page.next
           ? encodeSearchCursor({
               version: 1,
@@ -57,13 +71,17 @@ export function createSearchApplication({ database }: { database: Database }) {
   };
 }
 
-function mapSearchResult(result: StoredTaskSearchResult): TaskSearchResultDto {
+function mapSearchResult(
+  result: StoredTaskSearchResult,
+  recurrence: StoredTaskRecurrence | undefined,
+): TaskSearchResultDto {
   if (result.task.deletedAt !== null || result.matchingTags.some((tag) => tag.deletedAt !== null)) {
     throw new Error("Search repository returned deleted data.");
   }
   return taskSearchResultDtoSchema.parse({
     task: mapTask(result.task),
     list: result.list,
+    recurrence: mapTaskRecurrenceSummary(recurrence),
     matchedFields: result.matchedFields,
     matchingTags: result.matchingTags.map(mapTag),
   });

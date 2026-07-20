@@ -1,7 +1,7 @@
 "use client";
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 
 import type { TaskDetailDto, TaskPage } from "../../application/contracts";
 import { getTask, listTasks, listTerminalTasks, searchTasks } from "./task-api-client";
@@ -50,12 +50,25 @@ export function useTerminalTaskQuery(status: "completed" | "cancelled", initialP
 }
 
 export function useTaskDetailQuery(taskId: string, initialTask?: TaskDetailDto, enabled = true) {
-  return useQuery({
-    queryKey: taskQueryKeys.detail(taskId),
+  const queryClient = useQueryClient();
+  const queryKey = taskQueryKeys.detail(taskId);
+  const query = useQuery({
+    queryKey,
     queryFn: () => getTask(taskId),
     initialData: initialTask,
     enabled,
   });
+  const data =
+    initialTask && (!query.data || initialTask.version > query.data.version) ? initialTask : query.data;
+
+  useEffect(() => {
+    if (!initialTask) return;
+    queryClient.setQueryData<TaskDetailDto>(taskQueryKeys.detail(taskId), (current) =>
+      !current || initialTask.version > current.version ? initialTask : current,
+    );
+  }, [initialTask, queryClient, taskId]);
+
+  return { ...query, data };
 }
 
 export function useTaskSearchQuery(searchText: string) {

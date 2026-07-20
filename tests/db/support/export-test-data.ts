@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Pool, PoolClient } from "pg";
 
+import { createProjectedOccurrenceKey } from "../../../modules/tasks/domain/recurrence/occurrence-key.ts";
 import type { AuthenticatedActor } from "../../../shared/auth/actor.ts";
 
 export const EXPORT_INSTANT = "2026-07-20T00:05:06.789Z";
@@ -35,6 +36,13 @@ export const portableEntityIds = {
   timedSkippedEvent: "90000000-0000-4000-8000-000000000003",
   concurrentOccurrenceEvent: "90000000-0000-4000-8000-000000000004",
 } as const;
+
+export const APIA_DATE_CROSSING_OCCURRENCE_KEY = createProjectedOccurrenceKey(
+  portableEntityIds.timedTask,
+  { kind: "timed", startAt: "2011-12-30T19:00:00Z" },
+  { kind: "timed", startLocalDateTime: "2011-12-30T09:00" },
+  "Pacific/Apia",
+);
 
 type TenantSeedInput = Readonly<{
   actor: AuthenticatedActor;
@@ -275,9 +283,9 @@ async function seedTasks(
     `insert into task_occurrence_events
        (id, user_id, task_id, occurrence_key, state, task_version, effective_at, created_at)
      values
-       ($1, $4, $5, 'o1.YWxsLWRheQ', 'completed', 2, $7, $7),
-       ($2, $4, $5, 'o1.YWxsLWRheQ', 'open', 3, $7, $7),
-       ($3, $4, $6, 'o1.dGltZWQ', 'skipped', 2, $7, $7)`,
+       ($1, $4, $5, 'o1.YWxsLWRheQ', 'completed', 2, $8, $8),
+       ($2, $4, $5, 'o1.YWxsLWRheQ', 'open', 3, $8, $8),
+       ($3, $4, $6, $7, 'skipped', 2, $8, $8)`,
     [
       portableEntityIds.allDayCompletedEvent,
       portableEntityIds.allDayReopenedEvent,
@@ -285,6 +293,7 @@ async function seedTasks(
       input.actor.userId,
       portableEntityIds.allDayTask,
       portableEntityIds.timedTask,
+      APIA_DATE_CROSSING_OCCURRENCE_KEY,
       RECORD_INSTANT,
     ],
   );

@@ -24,7 +24,7 @@
 
 The envelope contains `schemaVersion`, export timestamp, portable user profile/preferences, and
 independently versioned module sections. An envelope bump records a composition change; a module
-section version changes only when that section changes. P2 uses envelope version 2 and tasks section
+section version changes only when that section changes. The current envelope and tasks section use
 version 2 while identity and assistant remain version 1. Internal database/provider row shapes are
 never reused directly.
 
@@ -34,11 +34,13 @@ never reused directly.
 - A consistent database snapshot prevents relationships from changing midway through composition.
 - Export contains no other user's record and no server secret, password hash, account/session token, rate-limit state, OpenAI key, pg-boss row, or internal provider payload.
 - Task data includes normalized recurrence rules with checked lower/optional-upper cutovers and
-  append-only occurrence events without cloned task instances. An explicitly ended series normally
-  retains its upper-bounded definition; clearing its schedule may leave events without a current
-  recurrence definition. Relationships still require every rule/event to reference an exported
-  task, every rule to have one compatible exported schedule, unique per-task rule/event-version
-  identities, and `event.taskVersion <= task.version`.
+  append-only occurrence events without cloned task instances. Canonical opaque occurrence identities
+  are preserved in either the bounded `o1` or `o2` task-owned format; portability validates but does
+  not decode or rewrite them. An explicitly ended series normally retains its upper-bounded
+  definition; clearing its schedule may leave events without a current recurrence definition.
+  Relationships still require every rule/event to reference an exported task, every rule to have one
+  compatible exported schedule, unique per-task rule/event-version identities, and
+  `event.taskVersion <= task.version`.
 - Habit data includes definitions, schedules, and local-day logs; streaks and heat maps remain
   derivable and are not exported as stored facts.
 - Focus data includes completed `kind=focus` session history only. Break rows and an active/paused

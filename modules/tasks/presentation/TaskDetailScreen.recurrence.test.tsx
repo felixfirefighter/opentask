@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TaskDetailDto } from "../application/contracts";
+import type { TaskDetailDto, TaskOccurrenceDto } from "../application/contracts";
 import type { TaskRecurrenceDto } from "../application/contracts/recurrence-contract";
 
 const lifecycle = vi.hoisted(() => ({
@@ -10,15 +10,21 @@ const lifecycle = vi.hoisted(() => ({
   status: { error: null, isPending: false, mutate: vi.fn() },
 }));
 const recurrenceHook = vi.hoisted(() => ({ useTaskRecurrenceQuery: vi.fn() }));
+const navigation = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
+const taskQuery = vi.hoisted(() => ({
+  data: null as TaskDetailDto | null,
+  isError: false,
+  isFetching: false,
+  refetch: vi.fn(async () => undefined),
+}));
 
 vi.mock("@/shared/presentation", () => ({ useOnlineStatus: () => true }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("./data/use-task-queries", () => ({
   useTaskDetailQuery: (_taskId: string, task: TaskDetailDto) => ({
-    data: task,
-    error: null,
-    isError: false,
-    refetch: vi.fn(),
+    ...taskQuery,
+    data: taskQuery.data ?? task,
+    error: taskQuery.isError ? new Error("task refresh failed") : null,
   }),
 }));
 vi.mock("./data/use-task-lifecycle-mutations", () => ({
@@ -43,11 +49,23 @@ vi.mock("./TaskOrganizationEditor", () => ({
 vi.mock("./TaskStepsEditor", () => ({ TaskStepsEditor: () => <div>Steps editor</div> }));
 vi.mock("./TaskNotesEditor", () => ({ TaskNotesEditor: () => <div>Notes editor</div> }));
 vi.mock("./TaskDeleteDialog", () => ({ TaskDeleteDialog: () => null }));
+vi.mock("./TaskOccurrencePanel", () => ({
+  TaskOccurrencePanel: ({ occurrence, task }: { occurrence: TaskOccurrenceDto; task: TaskDetailDto }) => (
+    <input
+      aria-label="Occurrence recovery sentinel"
+      data-task-version={task.version}
+      defaultValue={`${occurrence.occurrenceState}:${occurrence.taskVersion}`}
+    />
+  ),
+}));
 
 import { TaskDetailScreen } from "./TaskDetailScreen";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  taskQuery.data = null;
+  taskQuery.isError = false;
+  taskQuery.isFetching = false;
 });
 
 describe("TaskDetailScreen recurrence integration", () => {
@@ -90,6 +108,62 @@ describe("TaskDetailScreen recurrence integration", () => {
       "Loading recurrence status",
     );
   });
+
+  it("preserves occurrence recovery state when authoritative props advance", async () => {
+    recurrenceHook.useTaskRecurrenceQuery.mockReturnValue(recurrenceQuery(recurrence("active")));
+    const user = userEvent.setup();
+    const initialOccurrence = occurrenceDetail();
+    const view = render(
+      <TaskDetailScreen task={taskDetail()} occurrence={initialOccurrence} mode="inspector" />,
+    );
+    const sentinel = screen.getByRole("textbox", { name: "Occurrence recovery sentinel" });
+    await user.clear(sentinel);
+    await user.type(sentinel, "exact command retained");
+
+    view.rerender(
+      <TaskDetailScreen
+        task={taskDetail(2)}
+        occurrence={{ ...initialOccurrence, occurrenceState: "completed", taskVersion: 2 }}
+        mode="inspector"
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Occurrence recovery sentinel" })).toHaveValue(
+      "exact command retained",
+    );
+  });
+
+  it("prefers a newer server task snapshot over an older detail cache", () => {
+    recurrenceHook.useTaskRecurrenceQuery.mockReturnValue(recurrenceQuery(recurrence("active")));
+    taskQuery.data = taskDetail(1);
+
+    render(
+      <TaskDetailScreen
+        task={taskDetail(2)}
+        occurrence={{ ...occurrenceDetail(), taskVersion: 2 }}
+        mode="inspector"
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Occurrence recovery sentinel" })).toHaveAttribute(
+      "data-task-version",
+      "2",
+    );
+  });
+
+  it("shows a generic unavailable state when a valid selected occurrence cannot be resolved", async () => {
+    recurrenceHook.useTaskRecurrenceQuery.mockReturnValue(recurrenceQuery(recurrence("active")));
+    const user = userEvent.setup();
+
+    render(<TaskDetailScreen task={taskDetail()} occurrence={null} occurrenceRequested mode="inspector" />);
+
+    expect(screen.getByRole("heading", { name: "Selected occurrence" })).toBeInTheDocument();
+    expect(screen.getByText(/no longer available under the current series schedule/i)).toBeVisible();
+    expect(screen.queryByText(/o1\./i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Check again" }));
+    expect(navigation.refresh).toHaveBeenCalledOnce();
+  });
 });
 
 function recurrenceQuery(data: TaskRecurrenceDto | null) {
@@ -114,10 +188,10 @@ function recurrence(lifecycleState: TaskRecurrenceDto["lifecycle"]): TaskRecurre
   };
 }
 
-function taskDetail(): TaskDetailDto {
+function taskDetail(version = 1): TaskDetailDto {
   return {
     id: "00000000-0000-4000-8000-000000000010",
-    version: 1,
+    version,
     createdAt: "2026-07-19T01:00:00.000Z",
     updatedAt: "2026-07-19T01:00:00.000Z",
     deletedAt: null,
@@ -133,5 +207,16 @@ function taskDetail(): TaskDetailDto {
     checklistItems: [],
     subtasks: [],
     tags: [],
+  };
+}
+
+function occurrenceDetail(): TaskOccurrenceDto {
+  return {
+    taskId: "00000000-0000-4000-8000-000000000010",
+    taskVersion: 1,
+    occurrenceKey: "o1.current",
+    occurrenceState: "open",
+    transitionEligible: true,
+    schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
   };
 }

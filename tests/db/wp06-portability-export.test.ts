@@ -19,6 +19,7 @@ import type { Clock } from "../../shared/time/clock.ts";
 import {
   ALL_DAY_END_DATE,
   ALL_DAY_START_DATE,
+  APIA_DATE_CROSSING_OCCURRENCE_KEY,
   EXPORT_INSTANT,
   PLANNING_DATE,
   PROPOSAL_APPLIED_INSTANT,
@@ -129,6 +130,15 @@ describe("portable PostgreSQL export", () => {
       { occurrenceKey: "o1.YWxsLWRheQ", state: "completed", taskVersion: 2 },
       { occurrenceKey: "o1.YWxsLWRheQ", state: "open", taskVersion: 3 },
     ]);
+    expect(
+      firstA.tasks.occurrenceEvents.find(({ id }) => id === portableEntityIds.timedSkippedEvent),
+    ).toMatchObject({
+      taskId: portableEntityIds.timedTask,
+      occurrenceKey: APIA_DATE_CROSSING_OCCURRENCE_KEY,
+      state: "skipped",
+      taskVersion: 2,
+    });
+    expect(APIA_DATE_CROSSING_OCCURRENCE_KEY).toMatch(/^o2\./);
     expect(firstA.tasks.tags.map(({ id }) => id)).toEqual([
       portableEntityIds.firstTag,
       portableEntityIds.secondTag,

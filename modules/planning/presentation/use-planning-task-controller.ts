@@ -7,11 +7,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { markWorkspaceRoutesStale, useOnlineStatus } from "@/shared/presentation";
 
 import {
+  canApplyPlanningOccurrenceResultOptimistically,
   PlanningClientError,
   setPlanningTaskSchedule,
   transitionPlanningOccurrence,
   transitionPlanningTask,
   updatePlanningTaskPriority,
+  type PlanningOccurrenceMutationResult,
   type PlanningSchedule,
 } from "./planning-client-api";
 import type {
@@ -35,6 +37,7 @@ type PlanningTaskControllerOptions = Readonly<{
   authoritativeSource?: object | undefined;
   destinationLabelForTask?: ((taskId: string) => string | null) | undefined;
   mutationsDisabled?: boolean | undefined;
+  onOccurrenceApplied?: ((result: PlanningOccurrenceMutationResult) => void) | undefined;
   taskReturnTo?: string | null | undefined;
 }>;
 
@@ -68,6 +71,8 @@ export function usePlanningTaskController(
   const [recovery, setRecovery] = useState<MutationRecovery | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const byId = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
+  const awaitingAuthoritativeProjection = recovery?.outcome === "saved";
+  const mutationsBlocked = Boolean(options.mutationsDisabled || awaitingAuthoritativeProjection);
 
   const condition: PlanningScreenCondition = !online
     ? { kind: "offline" }
@@ -75,15 +80,18 @@ export function usePlanningTaskController(
       ? { kind: "conflict", message: failure.message }
       : failure
         ? { kind: "error", message: failure.message }
-        : { kind: "ready" };
+        : awaitingAuthoritativeProjection
+          ? { kind: "loading" }
+          : { kind: "ready" };
 
   useEffect(() => {
     if (!recovery) return;
     const latest = byId.get(recovery.taskId);
     if (recovery.outcome === "unconfirmed") {
       if (options.authoritativeSource === recovery.sourceProjection) return;
-    } else if (latest && latest.version < recovery.minimumVersion) {
-      return;
+    } else {
+      if (latest && latest.version < recovery.minimumVersion) return;
+      if (!latest && options.authoritativeSource === recovery.sourceProjection) return;
     }
 
     const destination = options.destinationLabelForTask?.(recovery.taskId) ?? null;
@@ -106,15 +114,16 @@ export function usePlanningTaskController(
     router.refresh();
   }
 
-  async function run(
+  async function run<TResult>(
     taskId: string,
     kind: PlanningMutationKind,
-    operation: (task: MutablePlanningTask) => Promise<unknown>,
+    operation: (task: MutablePlanningTask) => Promise<TResult>,
     restoreFocus = true,
     projectionId: string | null = null,
+    onSaved?: ((result: TResult) => void) | undefined,
   ) {
     const task = byId.get(taskId);
-    if (!task || !online || options.mutationsDisabled || inFlight.current.has(taskId)) {
+    if (!task || !online || mutationsBlocked || inFlight.current.has(taskId)) {
       if (options.mutationsDisabled) {
         setAnnouncement("Refresh this incomplete planning view before changing tasks.");
       }
@@ -137,6 +146,7 @@ export function usePlanningTaskController(
         taskId,
         title: task.title,
       });
+      onSaved?.(result);
       setAnnouncement(`${task.title} was saved. Refreshing the planning view.`);
       await refreshAuthoritativeData();
       return { saved: true, conflict: false, unconfirmed: false } as const;
@@ -175,7 +185,14 @@ export function usePlanningTaskController(
   }
 
   const taskActions: PlanningTaskActions = {
-    onOpenTask: (taskId) => router.push(planningTaskDetailsHref(taskId, options.taskReturnTo)),
+    onOpenTask: (taskId, openOptions) =>
+      router.push(
+        planningTaskDetailsHref(taskId, {
+          editSeriesSchedule: openOptions?.editSeriesSchedule,
+          occurrenceKey: openOptions?.occurrenceKey,
+          returnTo: options.taskReturnTo,
+        }),
+      ),
     onStatusChange: (taskId, status) => {
       void run(taskId, "status", (task) => transitionPlanningTask(taskId, task.version, status));
     },
@@ -186,15 +203,29 @@ export function usePlanningTaskController(
         (task) => transitionPlanningOccurrence(taskId, task.version, occurrenceKey, action),
         true,
         projectionId ?? null,
+        (result) => {
+          if (canApplyPlanningOccurrenceResultOptimistically(result)) {
+            options.onOccurrenceApplied?.(result);
+          }
+        },
       );
     },
     onPriorityChange: (taskId, priority) => {
       void run(taskId, "priority", (task) => updatePlanningTaskPriority(taskId, task.version, priority));
     },
     onEditSchedule: (taskId) => {
-      if (!options.mutationsDisabled) setScheduleTaskId(taskId);
+      if (!mutationsBlocked) setScheduleTaskId(taskId);
     },
-    onEditSeriesSchedule: (taskId) => router.push(planningTaskDetailsHref(taskId, options.taskReturnTo)),
+    onEditSeriesSchedule: (taskId, occurrenceKey) => {
+      if (mutationsBlocked) return;
+      router.push(
+        planningTaskDetailsHref(taskId, {
+          editSeriesSchedule: true,
+          occurrenceKey,
+          returnTo: options.taskReturnTo,
+        }),
+      );
+    },
   };
 
   async function saveSchedule(taskId: string, schedule: PlanningSchedule, restoreFocus = true) {
@@ -234,9 +265,11 @@ export function usePlanningTaskController(
     condition,
     conflictedTaskId: failure?.conflict ? failure.taskId : null,
     taskActions,
-    scheduleTask: !options.mutationsDisabled && scheduleTaskId ? (byId.get(scheduleTaskId) ?? null) : null,
+    scheduleTask: !mutationsBlocked && scheduleTaskId ? (byId.get(scheduleTaskId) ?? null) : null,
     closeSchedule: () => setScheduleTaskId(null),
-    editSchedule: setScheduleTaskId,
+    editSchedule: (taskId: string) => {
+      if (!mutationsBlocked) setScheduleTaskId(taskId);
+    },
     saveSchedule,
     saveCalendarChange,
     retry: () => {

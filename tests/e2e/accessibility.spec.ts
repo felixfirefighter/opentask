@@ -3,10 +3,26 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
 
+import {
+  applyOccurrenceWithoutDeliveringResponse,
+  occurrenceDetailPath,
+  P2_OCCURRENCE_DEMO,
+  readOpenDemoOccurrenceKey,
+  unavailableDemoOccurrenceKey,
+} from "./support/p2-occurrence-evidence";
+import {
+  acquireTaskReadBarrier,
+  deleteIsolatedDemoUser,
+  readAuthenticatedUserId,
+  readTaskForConflict,
+  seedOccurrenceAheadOfTask,
+} from "./support/p2-task-route-state-fixture";
+import { updateTask } from "./support/wp03-tasks";
+
 const demo = {
   listId: "20000000-0000-4000-8000-000000000001",
-  recurringTaskId: "50000000-0000-4000-8000-000000000011",
-  recurringTaskTitle: "Review workshop progress",
+  recurringTaskId: P2_OCCURRENCE_DEMO.taskId,
+  recurringTaskTitle: P2_OCCURRENCE_DEMO.taskTitle,
   scheduledTaskId: "50000000-0000-4000-8000-000000000001",
   scheduledTaskTitle: "Outline the workshop agenda",
 } as const;
@@ -186,6 +202,155 @@ test("one isolated demo covers the implemented baseline accessibility surface", 
   await auditSeededRecurrenceDetails(context, page);
   await auditNoKeyPlanner(page);
   await auditOfflineWorkspace(context, page);
+});
+
+test("exact occurrence details expose every recovery state to the accessibility gate", async ({
+  context,
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await enterIsolatedDemo(page, testInfo);
+  const occurrenceKey = await readOpenDemoOccurrenceKey(page);
+
+  await page.goto(occurrenceDetailPath(occurrenceKey));
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(P2_OCCURRENCE_DEMO.taskTitle);
+  const occurrence = selectedOccurrencePanel(page);
+  await expect(occurrence.getByRole("heading", { name: "Selected occurrence", exact: true })).toBeVisible();
+  await expect(occurrence.getByRole("button", { name: "Complete occurrence", exact: true })).toBeEnabled();
+  await expect(occurrence.getByRole("button", { name: "Skip occurrence", exact: true })).toBeEnabled();
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "exact occurrence default");
+
+  if (["desktop-chromium", "mobile-chromium"].includes(testInfo.project.name)) {
+    await setDocumentTheme(page, "dark");
+    await expectNoSevereViolations(page);
+    await expectNoPageOverflow(page, "exact occurrence dark");
+    await setDocumentTheme(page, "light");
+  }
+
+  await context.setOffline(true);
+  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
+  await expect(occurrence.getByRole("button", { name: "Complete occurrence", exact: true })).toBeDisabled();
+  await expect(occurrence.getByRole("button", { name: "Skip occurrence", exact: true })).toBeDisabled();
+  await expect(occurrence.getByRole("status")).toContainText("Reconnect to change this occurrence.");
+  await expectNoSevereViolations(page);
+  await context.setOffline(false);
+  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeHidden();
+
+  await expect(occurrence.getByRole("button", { name: "Complete occurrence", exact: true })).toBeEnabled();
+  await applyOccurrenceWithoutDeliveringResponse(page);
+  await expect(occurrence.getByRole("alert")).toContainText(
+    "The occurrence-change outcome could not be confirmed",
+  );
+  await expect(
+    occurrence.getByRole("button", { name: "Retry exact occurrence change", exact: true }),
+  ).toBeVisible();
+  await expect(
+    occurrence.getByRole("button", { name: "Continue with latest state", exact: true }),
+  ).toBeVisible();
+  await expectNoSevereViolations(page);
+
+  await page.goto(occurrenceDetailPath(unavailableDemoOccurrenceKey()));
+  const unavailable = selectedOccurrencePanel(page);
+  await expect(
+    unavailable.getByText("This occurrence is no longer available under the current series schedule."),
+  ).toBeVisible();
+  await expect(unavailable.getByRole("button", { name: "Check again", exact: true })).toBeVisible();
+  await expect(unavailable.getByRole("button", { name: "Complete occurrence", exact: true })).toHaveCount(0);
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "exact occurrence unavailable");
+});
+
+test("task-detail loading, error, permission, and conflict states pass the accessibility gate", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(180_000);
+  await enterIsolatedDemo(page, testInfo);
+  const userId = await readAuthenticatedUserId(page);
+  const occurrenceKey = await readOpenDemoOccurrenceKey(page);
+  const occurrencePath = occurrenceDetailPath(occurrenceKey);
+
+  try {
+    await page.goto(
+      `/tasks/00000000-0000-4000-8000-000000000099?${new URLSearchParams({ returnTo: "/today" })}`,
+    );
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Task unavailable", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("This task could not be found or you may not have access.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
+      "href",
+      "/today",
+    );
+    await expectNoSevereViolations(page);
+    await expectNoPageOverflow(page, "task-detail permission");
+
+    await page.goto("/today");
+    const occurrenceLink = page
+      .locator(`[data-planning-task-id="${P2_OCCURRENCE_DEMO.taskId}"][data-occurrence-state="open"]`)
+      .locator("[data-planning-task-open]");
+    await expect(occurrenceLink).toBeVisible();
+    const barrier = await acquireTaskReadBarrier();
+    try {
+      await occurrenceLink.evaluate((element) => (element as HTMLElement).click());
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "Opening task details…",
+          exact: true,
+        }),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator('[data-loading-shape="task-detail"]')).toBeVisible();
+      await expect(page.getByRole("link", { name: "Back to task list", exact: true })).toHaveAttribute(
+        "href",
+        "/today",
+      );
+      await expectNoSevereViolations(page);
+      await expectNoPageOverflow(page, "task-detail loading");
+    } finally {
+      await barrier.release();
+    }
+    await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(P2_OCCURRENCE_DEMO.taskTitle, {
+      timeout: 30_000,
+    });
+
+    const staleTask = await readTaskForConflict(page, P2_OCCURRENCE_DEMO.taskId);
+    await updateTask(page, staleTask, {
+      descriptionMd: `Accessibility conflict proof ${testInfo.project.name}`,
+    });
+    const conflictResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname ===
+          `/api/v1/tasks/${P2_OCCURRENCE_DEMO.taskId}/occurrences/transition` &&
+        response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "Complete occurrence", exact: true }).click();
+    expect((await conflictResponse).status()).toBe(409);
+    await expect(selectedOccurrencePanel(page).getByRole("alert")).toContainText(
+      "This occurrence changed elsewhere. The latest saved state is shown; review it before trying again.",
+    );
+    await expectNoSevereViolations(page);
+    await expectNoPageOverflow(page, "task-detail conflict");
+
+    await seedOccurrenceAheadOfTask(userId, P2_OCCURRENCE_DEMO.taskId, occurrenceKey);
+    await page.goto(occurrencePath);
+    const errorHeading = page.getByRole("heading", {
+      level: 1,
+      name: "Task unavailable",
+      exact: true,
+    });
+    await expect(errorHeading).toBeVisible();
+    await expect(errorHeading).toBeFocused();
+    await expect(
+      page.getByText("Task details could not be loaded. Your data was not changed."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible();
+    await expectNoSevereViolations(page);
+    await expectNoPageOverflow(page, "task-detail error");
+  } finally {
+    await page.goto("about:blank").catch(() => undefined);
+    await deleteIsolatedDemoUser(userId);
+  }
 });
 
 test("every released route keeps its accessibility contract in the dark theme", async ({
@@ -397,6 +562,19 @@ async function auditOfflineWorkspace(context: BrowserContext, page: Page) {
   await expectNoSevereViolations(page);
   await context.setOffline(false);
   await expect(banner).toBeHidden();
+}
+
+function selectedOccurrencePanel(page: Page) {
+  return page.locator('section[aria-labelledby^="occurrence-title-"]');
+}
+
+async function setDocumentTheme(page: Page, theme: "light" | "dark") {
+  await page.evaluate((nextTheme) => {
+    localStorage.setItem("opentask-theme-preference", nextTheme);
+    document.documentElement.dataset.themePreference = nextTheme;
+    document.documentElement.dataset.theme = nextTheme;
+  }, theme);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
 
 async function expectNoSevereViolations(page: Page, activeOverlay?: string) {

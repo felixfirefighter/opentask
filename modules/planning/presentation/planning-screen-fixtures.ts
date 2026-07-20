@@ -13,6 +13,7 @@ function oneOffIdentity(taskId: string) {
     projectionLifecycle: "one_off" as const,
     occurrenceKey: null,
     occurrenceState: null,
+    transitionEligible: null,
     recurrenceSummary: null,
     scheduleInteraction: { editScope: "task" as const, dragEnabled: true, dragDisabledReason: null },
   };
@@ -106,6 +107,7 @@ export const calendarFixture: CalendarPlanningModel = {
       projectionLifecycle: "one_off",
       occurrenceKey: null,
       occurrenceState: null,
+      transitionEligible: null,
       recurrenceSummary: null,
       scheduleInteraction: { editScope: "task", dragEnabled: true, dragDisabledReason: null },
       scheduleLabel: "Monday, 20 July, 10:30–11:30 AM",
@@ -124,6 +126,7 @@ export const calendarFixture: CalendarPlanningModel = {
       projectionLifecycle: "one_off",
       occurrenceKey: null,
       occurrenceState: null,
+      transitionEligible: null,
       recurrenceSummary: null,
       scheduleInteraction: { editScope: "task", dragEnabled: true, dragDisabledReason: null },
       scheduleLabel: "Tuesday, 21 July, all day",

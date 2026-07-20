@@ -198,6 +198,7 @@ function createHarness(options: HarnessOptions = {}) {
   const calls = {
     loadedTaskIds: [] as string[][],
     busy: [] as Array<{
+      timeZone: string;
       query: unknown;
       excludedTaskIds: readonly string[];
       transaction: DatabaseTransaction;
@@ -307,6 +308,7 @@ describe("planner proposal apply selection", () => {
     expect(harness.calls.loadedTaskIds).toEqual([[taskId]]);
     expect(harness.calls.busy).toEqual([
       {
+        timeZone: "Asia/Singapore",
         query: {
           rangeStartDate: "2026-07-20",
           rangeEndDate: "2026-07-21",

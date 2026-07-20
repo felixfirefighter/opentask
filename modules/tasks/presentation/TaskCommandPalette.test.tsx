@@ -151,6 +151,23 @@ describe("TaskCommandPalette", () => {
     expect(mocks.push).toHaveBeenCalledWith(`/tasks/${TASK_ID}?returnTo=${encodeURIComponent("/today")}`);
   });
 
+  it("labels a recurring task search result with a textual Repeat marker", async () => {
+    const user = userEvent.setup();
+    mocks.search.mockImplementation((query: string) =>
+      searchQueryState(query ? [{ ...searchResult(), recurrence: { status: "ended" } }] : []),
+    );
+    renderPalette();
+
+    await user.click(screen.getByRole("button", { name: /Search tasks and commands/u }));
+    await user.type(searchInput(), "Prepare");
+
+    expect(
+      screen.getByRole("option", {
+        name: "Prepare demo. Task · Repeat · Launch · Matched title, tag",
+      }),
+    ).toHaveTextContent("Repeat");
+  });
+
   it("quick-adds an unscheduled task to the explicit current list", async () => {
     const user = userEvent.setup();
     renderPalette(LIST_ID);
@@ -436,6 +453,7 @@ function searchResult(): TaskSearchResultDto {
       deletedAt: null,
     },
     list: { id: LIST_ID, name: "Launch" },
+    recurrence: null,
     matchedFields: ["title", "tag"],
     matchingTags: [
       {

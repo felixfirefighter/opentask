@@ -14,6 +14,7 @@ const occurrencePortConforms: TasksApplication["occurrences"] extends PlanningOc
   : false = true;
 const actor = { userId: "10000000-0000-4000-8000-000000000001" } as const;
 const query: PlanningBusyIntervalQuery = {
+  timeZone: "Asia/Singapore",
   rangeStartDate: "2026-07-20",
   rangeEndDate: "2026-07-21",
   rangeStartAt: "2026-07-20T01:00:00Z",
@@ -74,7 +75,17 @@ describe("planning busy interval reader", () => {
       ],
       truncation: emptyTruncation(),
     });
-    expect(source.readBoundedOccurrences).toHaveBeenCalledWith(actor, query);
+    expect(source.readBoundedOccurrences).toHaveBeenCalledWith(
+      actor,
+      {
+        rangeStartDate: "2026-07-20",
+        rangeEndDate: "2026-07-21",
+        rangeStartAt: "2026-07-20T01:00:00Z",
+        rangeEndAt: "2026-07-20T09:00:00Z",
+        limit: 500,
+      },
+      "Asia/Singapore",
+    );
   });
 
   it.each([
@@ -89,6 +100,30 @@ describe("planning busy interval reader", () => {
     await expect(createPlanningBusyIntervalReader(source).readBusyIntervals(actor, query)).resolves.toEqual({
       items: [],
       truncation: expect.objectContaining({ truncated: true, reasons: [reason] }),
+    });
+  });
+
+  it("does not reserve a read-only historical occurrence while retaining an eligible occurrence", async () => {
+    const source = sourceReader(
+      occurrencePage([
+        recurring(
+          "00000000-0000-4000-8000-000000000008",
+          "open",
+          timedSchedule("2026-07-20T06:00:00Z", "2026-07-20T07:00:00Z"),
+          {},
+          false,
+        ),
+        recurring(
+          "00000000-0000-4000-8000-000000000009",
+          "open",
+          timedSchedule("2026-07-20T07:00:00Z", "2026-07-20T08:00:00Z"),
+        ),
+      ]),
+    );
+
+    await expect(createPlanningBusyIntervalReader(source).readBusyIntervals(actor, query)).resolves.toEqual({
+      items: [{ startAt: "2026-07-20T07:00:00Z", endAt: "2026-07-20T08:00:00Z" }],
+      truncation: emptyTruncation(),
     });
   });
 });
@@ -130,6 +165,7 @@ function recurring(
   occurrenceState: "open" | "completed" | "skipped",
   schedule: TaskScheduleValue,
   taskPatch: Partial<TaskDto> = {},
+  transitionEligible = true,
 ) {
   const recurringTask = task(taskId, taskPatch);
   return {
@@ -140,6 +176,7 @@ function recurring(
       taskVersion: recurringTask.version,
       occurrenceKey: `o1.${taskId.slice(-1)}`,
       occurrenceState,
+      transitionEligible,
       schedule,
     },
   };

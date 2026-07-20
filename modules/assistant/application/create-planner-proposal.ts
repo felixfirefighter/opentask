@@ -174,6 +174,7 @@ async function loadBusyIntervals(
   window: Readonly<{ startAt: string; endAt: string; nextLocalDate: string }>,
 ): Promise<readonly BusyInterval[]> {
   const page = await reader.readBusyIntervals(actor, {
+    timeZone: input.timeZone,
     rangeStartDate: input.planningDate,
     rangeEndDate: window.nextLocalDate,
     rangeStartAt: window.startAt,

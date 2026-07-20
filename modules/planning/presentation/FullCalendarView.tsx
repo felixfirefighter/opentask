@@ -27,6 +27,7 @@ import type {
   CalendarChangeResult,
   CalendarPlanningModel,
   CalendarView,
+  PlanningTaskOpenOptions,
   VisibleCalendarRange,
 } from "./planning-screen-model";
 import eventStyles from "./CalendarEvent.module.css";
@@ -42,7 +43,7 @@ type FullCalendarViewProps = Readonly<{
     direction: "previous" | "today" | "next";
   }>;
   readOnly: boolean;
-  onOpenTask: (taskId: string) => void;
+  onOpenTask: (taskId: string, options?: PlanningTaskOpenOptions) => void;
   onSelectEvent: (eventId: string) => void;
   onVisibleRangeChange: (range: VisibleCalendarRange) => void;
   onEventMove: (change: ReturnType<typeof toCalendarEventChange>) => Promise<CalendarChangeResult>;
@@ -195,7 +196,7 @@ export function FullCalendarView({
             const event = eventsById.get(info.event.id);
             if (!event) return;
             onSelectEvent(event.projectionId);
-            onOpenTask(event.taskId);
+            onOpenTask(event.taskId, { occurrenceKey: event.occurrenceKey });
           }}
           eventDrop={(info) => void applyChange(info, onEventMove)}
           eventResize={(info) => void applyChange(info, onEventResize)}

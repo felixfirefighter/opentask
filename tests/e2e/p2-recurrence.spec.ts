@@ -2,12 +2,16 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test, type APIResponse, type Locator, type Page, type TestInfo } from "@playwright/test";
 
+import { taskRow, waitForTaskSearch } from "./support/wp03-tasks";
+
 const APP_ORIGIN = "http://127.0.0.1:3107";
 const goldenPathProjects = new Set(["desktop-chromium", "mobile-chromium"]);
 
 const demo = {
   allDayTaskId: "50000000-0000-4000-8000-000000000003",
   allDayTaskTitle: "Prepare attendee notes",
+  regularListId: "20000000-0000-4000-8000-000000000001",
+  regularListName: "Community workshop",
   recurringTaskId: "50000000-0000-4000-8000-000000000011",
   recurringTaskTitle: "Review workshop progress",
   scheduledTaskId: "50000000-0000-4000-8000-000000000001",
@@ -143,6 +147,12 @@ test("a timed task can become, restart, reschedule, and end a series before comp
   await ownerStatus.press("Enter");
   expect((await completeResponse).status()).toBe(200);
   await expect(details.getByRole("button", { name: "Completed", exact: true })).toBeVisible();
+
+  await page.goto("/completed");
+  await page.waitForLoadState("networkidle");
+  const terminalRow = taskRow(page, demo.scheduledTaskId);
+  await expect(terminalRow).toHaveAttribute("data-status", "completed");
+  await expect(terminalRow.getByText("Repeat ended", { exact: true })).toBeVisible();
 });
 
 test("an all-day task creates an approved preset with an inclusive end date", async ({ page }, testInfo) => {
@@ -238,6 +248,34 @@ test("one occurrence supports UI transitions and exact API retry without complet
   );
 
   await enterIsolatedDemo(page, testInfo);
+  await page.goto(`/lists/${demo.regularListId}`);
+  await page.waitForLoadState("networkidle");
+  const canonicalRow = taskRow(page, demo.recurringTaskId);
+  await expect(canonicalRow).toBeVisible();
+  await expect(canonicalRow.getByText("Repeat", { exact: true })).toBeVisible();
+  await expect(
+    canonicalRow.getByRole("link", {
+      name: `Open recurring task ${demo.recurringTaskTitle}`,
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  await page.keyboard.press("Control+K");
+  const palette = page.getByRole("dialog", { name: "Search tasks and commands" });
+  await expect(palette).toBeVisible();
+  const paletteInput = palette.getByRole("combobox", { name: "Search tasks and commands" });
+  const searchResponse = waitForTaskSearch(page, demo.recurringTaskTitle);
+  await paletteInput.fill(demo.recurringTaskTitle);
+  expect((await searchResponse).status()).toBe(200);
+  await expect(
+    palette.getByRole("option", {
+      name: `${demo.recurringTaskTitle}. Task · Repeat · ${demo.regularListName} · Matched title`,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(palette).toBeHidden();
+
   const projection = await getJson<TodayProjectionWire>(page, "/api/v1/planning/today");
   const occurrence = [...projection.overdue, ...projection.timed, ...projection.anytime].find(
     (row) => row.id === demo.recurringTaskId && row.projectionLifecycle === "recurring_occurrence",
@@ -247,7 +285,41 @@ test("one occurrence supports UI transitions and exact API retry without complet
 
   await page.goto("/today");
   await page.waitForLoadState("networkidle");
-  await expect(planningRow(page, occurrence.projectionId)).toBeVisible();
+  const todayRow = planningRow(page, occurrence.projectionId);
+  await expect(todayRow).toBeVisible();
+  await todayRow.getByRole("link", { name: demo.recurringTaskTitle }).click();
+  await expect(page).toHaveURL((url) => url.pathname === `/tasks/${demo.recurringTaskId}`);
+  const occurrenceDetailsUrl = new URL(page.url());
+  expect(occurrenceDetailsUrl.pathname).toBe(`/tasks/${demo.recurringTaskId}`);
+  expect(occurrenceDetailsUrl.searchParams.get("returnTo")).toBe("/today");
+  expect(occurrenceDetailsUrl.searchParams.get("occurrence")).toBe(occurrence.occurrenceKey);
+  await expect(page.getByRole("heading", { name: "Selected occurrence" })).toBeVisible();
+  await expect(page.getByText("These actions change only this occurrence, not the series.")).toBeVisible();
+  const completeRequest = page.waitForRequest((request) =>
+    request.url().endsWith(`/api/v1/tasks/${demo.recurringTaskId}/occurrences/transition`),
+  );
+  const completeResponse = waitForMutation(
+    page,
+    `/tasks/${demo.recurringTaskId}/occurrences/transition`,
+    "POST",
+  );
+  await page.getByRole("button", { name: "Complete occurrence", exact: true }).click();
+  const exactRequest = (await completeRequest).postDataJSON() as OccurrenceCommand;
+  const completed = await readJson<OccurrenceResult>(await completeResponse);
+  expect(completed).toMatchObject({ outcome: "applied", occurrenceState: "completed" });
+  await expect(page.getByText("Completed", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Undo occurrence", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Back to task list" }).click();
+  await expect(page).toHaveURL("/today");
+  await expect(planningRow(page, occurrence.projectionId)).toBeHidden();
+
+  const exactRetry = await postOccurrence(page, exactRequest);
+  expect(exactRetry).toMatchObject({
+    outcome: "idempotent_retry",
+    occurrenceState: "completed",
+    task: { version: completed.task.version },
+  });
+
   await page.goto("/upcoming");
   await page.waitForLoadState("networkidle");
   const upcomingOccurrence = planningRowsForTask(page, demo.recurringTaskId).first();
@@ -260,6 +332,19 @@ test("one occurrence supports UI transitions and exact API retry without complet
   await expect(
     page.getByLabel("Task to edit", { exact: true }).locator(`option[value="${occurrence.projectionId}"]`),
   ).toHaveCount(1);
+  await page.getByLabel("Task to edit", { exact: true }).selectOption(occurrence.projectionId);
+  const editSeries = page.getByRole("button", { name: "Edit future series schedule", exact: true });
+  await editSeries.focus();
+  await editSeries.press("Enter");
+  await expect(page).toHaveURL((url) => url.pathname === `/tasks/${demo.recurringTaskId}`);
+  const seriesDetailsUrl = new URL(page.url());
+  expect(seriesDetailsUrl.pathname).toBe(`/tasks/${demo.recurringTaskId}`);
+  expect(seriesDetailsUrl.searchParams.get("edit")).toBe("series-schedule");
+  expect(seriesDetailsUrl.searchParams.get("occurrence")).toBe(occurrence.occurrenceKey);
+  await expect(page.getByRole("button", { name: "Save schedule", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Start", { exact: true })).toBeFocused();
+  await page.getByRole("link", { name: "Back to task list" }).click();
+  await expect(page).toHaveURL(/\/calendar/u);
   await page.getByRole("button", { name: "Agenda", exact: true }).click();
   await expect(page.getByRole("button", { name: "Agenda", exact: true })).toHaveAttribute(
     "aria-pressed",
@@ -271,34 +356,11 @@ test("one occurrence supports UI transitions and exact API retry without complet
   ).toHaveCount(1);
   await page.goto("/matrix");
   await page.waitForLoadState("networkidle");
-  await expect(planningRow(page, occurrence.projectionId)).toBeVisible();
-
-  await page.goto("/today");
-  await page.waitForLoadState("networkidle");
-  const row = planningRow(page, occurrence.projectionId);
-  await expect(row).toHaveAttribute("data-occurrence-state", "open");
-  const completeRequest = page.waitForRequest((request) =>
-    request.url().endsWith(`/api/v1/tasks/${demo.recurringTaskId}/occurrences/transition`),
-  );
-  const completeResponse = waitForMutation(
-    page,
-    `/tasks/${demo.recurringTaskId}/occurrences/transition`,
-    "POST",
-  );
-  const complete = row.getByRole("button", { name: `Complete occurrence of ${demo.recurringTaskTitle}` });
-  await complete.focus();
-  await complete.press("Enter");
-  const exactRequest = (await completeRequest).postDataJSON() as OccurrenceCommand;
-  const completed = await readJson<OccurrenceResult>(await completeResponse);
-  expect(completed).toMatchObject({ outcome: "applied", occurrenceState: "completed" });
-  await expect(row).toBeHidden();
-
-  const exactRetry = await postOccurrence(page, exactRequest);
-  expect(exactRetry).toMatchObject({
-    outcome: "idempotent_retry",
-    occurrenceState: "completed",
-    task: { version: completed.task.version },
-  });
+  await expect(planningRow(page, occurrence.projectionId)).toBeHidden();
+  const matrixOccurrence = planningRowsForTask(page, demo.recurringTaskId).first();
+  await expect(matrixOccurrence).toBeVisible();
+  await expect(matrixOccurrence).toHaveAttribute("data-projection-lifecycle", "recurring_occurrence");
+  await expect(matrixOccurrence).not.toHaveAttribute("data-planning-projection-id", occurrence.projectionId);
 
   const rangeEnd = addLocalDays(today, 3);
   const calendarProjection = await getJson<CalendarProjectionWire>(
@@ -349,6 +411,29 @@ test("one occurrence supports UI transitions and exact API retry without complet
   expect(owner.status).toBe("open");
   const recurrence = await getJson<RecurrenceWire>(page, `/api/v1/tasks/${demo.recurringTaskId}/recurrence`);
   expect(recurrence).toMatchObject({ lifecycle: "active", taskVersion: owner.version });
+});
+
+test("task-detail permission recovery keeps a validated origin without leaking resource data", async ({
+  page,
+}, testInfo) => {
+  test.skip(!goldenPathProjects.has(testInfo.project.name), "Task detail runs at desktop and mobile gates.");
+  await enterIsolatedDemo(page, testInfo);
+  const missingTaskId = randomUUID();
+
+  await page.goto(`/tasks/${missingTaskId}?returnTo=${encodeURIComponent("/calendar?view=week")}`);
+  await expect(page.getByRole("heading", { name: "Task unavailable", exact: true })).toBeVisible();
+  await expect(page.getByText("This task could not be found or you may not have access.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
+    "href",
+    "/calendar?view=week",
+  );
+  await expect(page.locator("main")).not.toContainText(missingTaskId);
+
+  await page.goto(`/tasks/${missingTaskId}?returnTo=${encodeURIComponent("//attacker.example/steal")}`);
+  await expect(page.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
+    "href",
+    "/inbox",
+  );
 });
 
 type TaskWireRecord = Readonly<{ id: string; priority: string; status: string; version: number }>;

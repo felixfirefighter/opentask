@@ -6,9 +6,9 @@ import type { AuthenticatedActor } from "@/shared/auth/actor";
 import type { Clock } from "@/shared/time/clock";
 
 import type {
+  PlanningCompositeSourceReader,
   PlanningOccurrenceSourceReader,
   PlanningTaskSourcePage,
-  PlanningTaskSourceReader,
   PlanningTimeZoneReader,
 } from "./planning-source-reader";
 
@@ -17,7 +17,7 @@ const taskId = "20000000-0000-4000-8000-000000000001";
 const secondTaskId = "20000000-0000-4000-8000-000000000002";
 const listId = "30000000-0000-4000-8000-000000000001";
 
-const tasks: PlanningTaskSourceReader = { readOpenTasks: vi.fn() };
+const composite: PlanningCompositeSourceReader = { readPlanningSnapshot: vi.fn() };
 const occurrences: PlanningOccurrenceSourceReader = { readBoundedOccurrences: vi.fn() };
 const timeZones: PlanningTimeZoneReader = { getSavedTimeZone: vi.fn() };
 const clock: Clock = { now: vi.fn() };
@@ -27,41 +27,56 @@ describe("planning projection application", () => {
     vi.resetAllMocks();
     vi.mocked(timeZones.getSavedTimeZone).mockResolvedValue("Asia/Singapore");
     vi.mocked(clock.now).mockReturnValue(new Date("2026-07-20T04:00:00Z"));
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue(taskPage());
+    vi.mocked(composite.readPlanningSnapshot).mockImplementation(async (_actor, request) =>
+      compositeResult(
+        taskPage(),
+        request.occurrenceQueries.map(() => occurrencePage()),
+      ),
+    );
     vi.mocked(occurrences.readBoundedOccurrences).mockResolvedValue(occurrencePage());
   });
 
   it("keeps the one-off overdue read and bounds recurring Today projection to the current local day", async () => {
     vi.mocked(timeZones.getSavedTimeZone).mockResolvedValue("America/New_York");
     vi.mocked(clock.now).mockReturnValue(new Date("2026-03-08T12:00:00Z"));
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue(
-      taskPage(
-        [
-          {
-            task: canonicalTask(taskId),
-            schedule: allDaySchedule(taskId, "2026-03-08", "2026-03-09"),
-            recurrenceRoot: false,
-          },
-        ],
-        true,
+    vi.mocked(composite.readPlanningSnapshot).mockResolvedValue(
+      compositeResult(
+        taskPage(
+          [
+            {
+              task: canonicalTask(taskId),
+              schedule: allDaySchedule(taskId, "2026-03-08", "2026-03-09"),
+              recurrenceRoot: false,
+            },
+          ],
+          true,
+        ),
+        [occurrencePage()],
       ),
     );
 
     const projection = await application().getToday(actor, { limit: 25 });
 
-    expect(tasks.readOpenTasks).toHaveBeenCalledWith(actor, {
-      kind: "scheduled_through",
-      exclusiveEndDate: "2026-03-09",
-      exclusiveEndAt: "2026-03-09T04:00:00Z",
-      limit: 25,
+    expect(composite.readPlanningSnapshot).toHaveBeenCalledTimes(1);
+    expect(composite.readPlanningSnapshot).toHaveBeenCalledWith(actor, {
+      timeZone: "America/New_York",
+      taskQuery: {
+        kind: "scheduled_through",
+        exclusiveEndDate: "2026-03-09",
+        exclusiveEndAt: "2026-03-09T04:00:00Z",
+        limit: 25,
+      },
+      occurrenceQueries: [
+        {
+          rangeStartDate: "2026-03-08",
+          rangeEndDate: "2026-03-09",
+          rangeStartAt: "2026-03-08T05:00:00Z",
+          rangeEndAt: "2026-03-09T04:00:00Z",
+          limit: 25,
+        },
+      ],
     });
-    expect(occurrences.readBoundedOccurrences).toHaveBeenCalledWith(actor, {
-      rangeStartDate: "2026-03-08",
-      rangeEndDate: "2026-03-09",
-      rangeStartAt: "2026-03-08T05:00:00Z",
-      rangeEndAt: "2026-03-09T04:00:00Z",
-      limit: 25,
-    });
+    expect(occurrences.readBoundedOccurrences).not.toHaveBeenCalled();
     expect(projection.anytime.map((task) => task.id)).toEqual([taskId]);
     expect(projection.truncated).toBe(true);
     expect(projection.truncationReasons).toEqual(["task_source_limit"]);
@@ -76,31 +91,37 @@ describe("planning projection application", () => {
 
     const projection = await application().getSmartDestination(actor, "upcoming", { limit: 50 });
 
-    expect(tasks.readOpenTasks).not.toHaveBeenCalled();
-    expect(occurrences.readBoundedOccurrences).toHaveBeenCalledWith(actor, {
-      rangeStartDate: "2026-07-20",
-      rangeEndDate: "2026-07-27",
-      rangeStartAt: "2026-07-19T16:00:00Z",
-      rangeEndAt: "2026-07-26T16:00:00Z",
-      limit: 50,
-    });
+    expect(composite.readPlanningSnapshot).not.toHaveBeenCalled();
+    expect(occurrences.readBoundedOccurrences).toHaveBeenCalledWith(
+      actor,
+      {
+        rangeStartDate: "2026-07-20",
+        rangeEndDate: "2026-07-27",
+        rangeStartAt: "2026-07-19T16:00:00Z",
+        rangeEndAt: "2026-07-26T16:00:00Z",
+        limit: 50,
+      },
+      "Asia/Singapore",
+    );
     expect("days" in projection && projection.days[1]?.items[0]?.occurrenceKey).toBe("o1.upcoming");
   });
 
   it("caps the merged Today result even when both independent sources reach the requested limit", async () => {
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue(
-      taskPage([
-        {
-          task: canonicalTask(taskId),
-          schedule: allDaySchedule(taskId, "2026-07-20", "2026-07-21"),
-          recurrenceRoot: false,
-        },
-      ]),
-    );
-    vi.mocked(occurrences.readBoundedOccurrences).mockResolvedValue(
-      occurrencePage([
-        recurring(secondTaskId, "o1.today", timed("2026-07-20T05:00:00Z", "2026-07-20T06:00:00Z")),
-      ]),
+    vi.mocked(composite.readPlanningSnapshot).mockResolvedValue(
+      compositeResult(
+        taskPage([
+          {
+            task: canonicalTask(taskId),
+            schedule: allDaySchedule(taskId, "2026-07-20", "2026-07-21"),
+            recurrenceRoot: false,
+          },
+        ]),
+        [
+          occurrencePage([
+            recurring(secondTaskId, "o1.today", timed("2026-07-20T05:00:00Z", "2026-07-20T06:00:00Z")),
+          ]),
+        ],
+      ),
     );
 
     const projection = await application().getToday(actor, { limit: 1 });
@@ -134,6 +155,8 @@ describe("planning projection application", () => {
     expect(calendar.events.map((event) => event.occurrenceState)).toEqual(["completed", "skipped"]);
     expect(calendar.events.every((event) => !event.scheduleInteraction.dragEnabled)).toBe(true);
     expect(agenda.items.map((row) => row.event.occurrenceState)).toEqual(["completed", "skipped"]);
+    expect(composite.readPlanningSnapshot).not.toHaveBeenCalled();
+    expect(occurrences.readBoundedOccurrences).toHaveBeenCalledTimes(2);
     expect(calendar.truncated).toBe(true);
     expect(agenda.truncated).toBe(true);
     expect(calendar.truncationReasons).toEqual(["recurrence_source_limit"]);
@@ -141,51 +164,58 @@ describe("planning projection application", () => {
   });
 
   it("performs the frozen Matrix reads and selects one earliest open occurrence per series", async () => {
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue(
-      taskPage([
-        {
-          task: canonicalTask(taskId, { priority: "high" }),
-          schedule: allDaySchedule(taskId, "2026-07-01", "2026-07-02"),
-          recurrenceRoot: true,
-        },
-        { task: canonicalTask(secondTaskId), schedule: null, recurrenceRoot: false },
-      ]),
-    );
-    vi.mocked(occurrences.readBoundedOccurrences)
-      .mockResolvedValueOnce(
-        occurrencePage([
-          recurring(taskId, "o1.spanning", timed("2026-07-19T15:00:00Z", "2026-07-19T17:00:00Z"), "open", {
-            priority: "high",
-          }),
+    vi.mocked(composite.readPlanningSnapshot).mockResolvedValue(
+      compositeResult(
+        taskPage([
+          {
+            task: canonicalTask(taskId, { priority: "high" }),
+            schedule: allDaySchedule(taskId, "2026-07-01", "2026-07-02"),
+            recurrenceRoot: true,
+          },
+          { task: canonicalTask(secondTaskId), schedule: null, recurrenceRoot: false },
         ]),
-      )
-      .mockResolvedValueOnce(
-        occurrencePage(
-          [
-            recurring(taskId, "o1.future", timed("2026-07-21T01:00:00Z", "2026-07-21T02:00:00Z"), "open", {
+        [
+          occurrencePage([
+            recurring(taskId, "o1.spanning", timed("2026-07-19T15:00:00Z", "2026-07-19T17:00:00Z"), "open", {
               priority: "high",
             }),
-          ],
-          true,
-        ),
-      );
+          ]),
+          occurrencePage(
+            [
+              recurring(taskId, "o1.future", timed("2026-07-21T01:00:00Z", "2026-07-21T02:00:00Z"), "open", {
+                priority: "high",
+              }),
+            ],
+            true,
+          ),
+        ],
+      ),
+    );
 
     const projection = await application().getEisenhower(actor, { limit: 30 });
 
-    expect(occurrences.readBoundedOccurrences).toHaveBeenNthCalledWith(1, actor, {
-      rangeStartDate: "2026-06-19",
-      rangeEndDate: "2026-07-20",
-      rangeStartAt: "2026-06-18T16:00:00Z",
-      rangeEndAt: "2026-07-19T16:00:00Z",
-      limit: 30,
+    expect(composite.readPlanningSnapshot).toHaveBeenCalledTimes(1);
+    expect(composite.readPlanningSnapshot).toHaveBeenCalledWith(actor, {
+      timeZone: "Asia/Singapore",
+      taskQuery: { kind: "all_open", limit: 30 },
+      occurrenceQueries: [
+        {
+          rangeStartDate: "2026-06-19",
+          rangeEndDate: "2026-07-20",
+          rangeStartAt: "2026-06-18T16:00:00Z",
+          rangeEndAt: "2026-07-19T16:00:00Z",
+          limit: 30,
+        },
+        {
+          rangeStartDate: "2026-07-20",
+          rangeEndDate: "2026-09-20",
+          rangeStartAt: "2026-07-19T16:00:00Z",
+          rangeEndAt: "2026-09-19T16:00:00Z",
+          limit: 30,
+        },
+      ],
     });
-    expect(occurrences.readBoundedOccurrences).toHaveBeenNthCalledWith(2, actor, {
-      rangeStartDate: "2026-07-20",
-      rangeEndDate: "2026-09-20",
-      rangeStartAt: "2026-07-19T16:00:00Z",
-      rangeEndAt: "2026-09-19T16:00:00Z",
-      limit: 30,
-    });
+    expect(occurrences.readBoundedOccurrences).not.toHaveBeenCalled();
     expect(projection.doNow[0]).toMatchObject({
       id: taskId,
       occurrenceKey: "o1.spanning",
@@ -197,14 +227,17 @@ describe("planning projection application", () => {
   });
 
   it("emits one nonurgent series summary when the Matrix horizon has no occurrence", async () => {
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue(
-      taskPage([
-        {
-          task: canonicalTask(taskId, { priority: "high" }),
-          schedule: allDaySchedule(taskId, "2026-07-01", "2026-07-02"),
-          recurrenceRoot: true,
-        },
-      ]),
+    vi.mocked(composite.readPlanningSnapshot).mockResolvedValue(
+      compositeResult(
+        taskPage([
+          {
+            task: canonicalTask(taskId, { priority: "high" }),
+            schedule: allDaySchedule(taskId, "2026-07-01", "2026-07-02"),
+            recurrenceRoot: true,
+          },
+        ]),
+        [occurrencePage(), occurrencePage()],
+      ),
     );
 
     const projection = await application().getEisenhower(actor);
@@ -219,23 +252,34 @@ describe("planning projection application", () => {
   });
 
   it("rejects invalid source identities, caps, and injected timezones", async () => {
-    vi.mocked(tasks.readOpenTasks).mockResolvedValueOnce(
-      taskPage([
-        { task: canonicalTask(taskId), schedule: null, recurrenceRoot: false },
-        { task: canonicalTask(taskId), schedule: null, recurrenceRoot: false },
-      ]),
+    vi.mocked(composite.readPlanningSnapshot).mockResolvedValueOnce(
+      compositeResult(
+        taskPage([
+          { task: canonicalTask(taskId), schedule: null, recurrenceRoot: false },
+          { task: canonicalTask(taskId), schedule: null, recurrenceRoot: false },
+        ]),
+        [occurrencePage(), occurrencePage()],
+      ),
     );
     await expect(application().getEisenhower(actor)).rejects.toThrow("duplicate task");
 
-    vi.mocked(occurrences.readBoundedOccurrences).mockClear();
+    vi.mocked(composite.readPlanningSnapshot).mockClear();
     vi.mocked(timeZones.getSavedTimeZone).mockResolvedValue("Mars/Olympus");
     await expect(application().getToday(actor)).rejects.toThrow();
+    expect(composite.readPlanningSnapshot).not.toHaveBeenCalled();
     expect(occurrences.readBoundedOccurrences).not.toHaveBeenCalled();
   });
 });
 
 function application() {
-  return createPlanningProjectionApplication({ tasks, occurrences, timeZones, clock });
+  return createPlanningProjectionApplication({ composite, occurrences, timeZones, clock });
+}
+
+function compositeResult(
+  taskPageResult: PlanningTaskSourcePage,
+  occurrencePages: readonly Awaited<ReturnType<PlanningOccurrenceSourceReader["readBoundedOccurrences"]>>[],
+): Awaited<ReturnType<PlanningCompositeSourceReader["readPlanningSnapshot"]>> {
+  return { taskPage: taskPageResult, occurrencePages };
 }
 
 function taskPage(items: PlanningTaskSourcePage["items"] = [], truncated = false): PlanningTaskSourcePage {
@@ -269,7 +313,14 @@ function recurring(
   return {
     projectionKind: "recurring" as const,
     task,
-    occurrence: { taskId: id, taskVersion: task.version, occurrenceKey, occurrenceState, schedule },
+    occurrence: {
+      taskId: id,
+      taskVersion: task.version,
+      occurrenceKey,
+      occurrenceState,
+      transitionEligible: true,
+      schedule,
+    },
   };
 }
 

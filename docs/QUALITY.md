@@ -126,7 +126,9 @@ demo reset.
 
 Forced: invalid preset/range, cap boundary, DST, month-end, leap-day, cutover boundary,
 duplicate/concurrent occurrence write, monotonic event `task_version`, stale series version, and
-cross-user series/event access.
+cross-user series/event access. Force recurrence-detail, bounded-source, and Today/Matrix composite
+reads across a concurrent recurrence/occurrence cutover and prove each result comes from one
+actor-scoped snapshot rather than a torn aggregate.
 
 ### G6 — Habit lifecycle
 

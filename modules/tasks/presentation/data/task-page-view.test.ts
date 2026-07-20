@@ -46,6 +46,7 @@ describe("task page view", () => {
     const result = {
       task: task(FIRST_TASK_ID, "2026-07-19T01:00:00.000Z"),
       list: { id: LIST_ID, name: "Launch" },
+      recurrence: { status: "active" as const },
       matchedFields: ["title" as const],
       matchingTags: [],
     };

@@ -2,9 +2,13 @@ import type { Database } from "@/shared/db/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const repositories = vi.hoisted(() => ({
+  recurrences: { listForTaskIds: vi.fn() },
   search: { search: vi.fn() },
 }));
 
+vi.mock("../infrastructure/task-recurrence-repository", () => ({
+  createTaskRecurrenceRepository: () => repositories.recurrences,
+}));
 vi.mock("../infrastructure/task-search-repository", () => ({
   createTaskSearchRepository: () => repositories.search,
 }));
@@ -55,6 +59,7 @@ function tag(deletedAt: Date | null = null) {
 describe("search application", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    repositories.recurrences.listForTaskIds.mockResolvedValue([]);
     repositories.search.search.mockResolvedValue({
       items: [
         {
@@ -95,6 +100,7 @@ describe("search application", () => {
             deletedAt: null,
           },
           list: { id: listId, name: "Launch" },
+          recurrence: null,
           matchedFields: ["title", "tag"],
           matchingTags: [
             {
@@ -111,7 +117,28 @@ describe("search application", () => {
       ],
       nextCursor: null,
     });
+    expect(repositories.recurrences.listForTaskIds).toHaveBeenCalledWith(userId, [taskId]);
     expect(JSON.stringify(result)).not.toContain("userId");
+  });
+
+  it("maps an actor-scoped recurrence summary without exposing the stored rule", async () => {
+    repositories.recurrences.listForTaskIds.mockResolvedValueOnce([
+      {
+        taskId,
+        projectionEndDate: null,
+        projectionEndAt: null,
+        rrule: "FREQ=DAILY;INTERVAL=1",
+      },
+    ]);
+
+    const result = await createSearchApplication({ database }).searchTasks(actor, {
+      q: "ship",
+      limit: 20,
+    });
+
+    expect(repositories.recurrences.listForTaskIds).toHaveBeenCalledWith(userId, [taskId]);
+    expect(result.items[0]?.recurrence).toEqual({ status: "active" });
+    expect(JSON.stringify(result)).not.toContain("FREQ=DAILY");
   });
 
   it("round-trips stable cursor coordinates and accepts 120 Unicode code points", async () => {

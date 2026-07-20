@@ -103,9 +103,11 @@ export function TaskRow({
           {task.title}
         </span>
         <span className={styles.metadata} data-ui-part="metadata">
-          {contextLabel && <span>{contextLabel}</span>}
-          {!contextLabel && hasActiveRecurrence && <span>Repeats</span>}
-          {!contextLabel && task.recurrence?.status === "ended" && <span>Repeat ended</span>}
+          {contextLabel && <span className={styles.context}>{contextLabel}</span>}
+          {hasActiveRecurrence && <span className={styles.recurrenceMarker}>Repeat</span>}
+          {task.recurrence?.status === "ended" && (
+            <span className={styles.recurrenceMarker}>Repeat ended</span>
+          )}
           {task.status === "cancelled" && !contextLabel && <span>Cancelled</span>}
           {tags.map((tag) => (
             <span className={styles.tag} data-accent={tag.colorToken} data-ui-part="tag" key={tag.id}>

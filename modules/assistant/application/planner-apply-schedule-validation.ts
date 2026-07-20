@@ -47,6 +47,7 @@ export function preparePlannerApplyScheduleValidation(
   return {
     candidates,
     busyRequest: {
+      timeZone: context.timeZone,
       query: {
         rangeStartDate: proposal.planningDate,
         rangeEndDate: window.nextLocalDate,

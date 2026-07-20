@@ -7,6 +7,11 @@ import type { CalendarProjection } from "../application/public";
 import { CalendarScreen } from "./CalendarScreen";
 import { CalendarTaskCreateDialog } from "./CalendarTaskCreateDialog";
 import { PlanningLiveRegion } from "./PlanningLiveRegion";
+import {
+  applyCalendarOccurrenceWrites,
+  recordCalendarOccurrenceWrite,
+  type CalendarOccurrenceWrites,
+} from "./planning-occurrence-optimism";
 import { resolvePlanningProjectionCondition } from "./planning-projection-condition";
 import { midpointLocalDate } from "./schedule-form-policy";
 import { ScheduleEditorDialog } from "./ScheduleEditorDialog";
@@ -40,16 +45,23 @@ export function CalendarRouteScreen({
   const returnTo = `${pathname}${searchParams.size > 0 ? `?${searchParams.toString()}` : ""}`;
   const [creatingTask, setCreatingTask] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [occurrenceWrites, setOccurrenceWrites] = useState<CalendarOccurrenceWrites>({});
   const addTaskButtonRef = useRef<HTMLButtonElement>(null);
   const scheduleReturnFocus = useRef<HTMLElement | null>(null);
-  const tasks = useMemo(() => projection.events.map(toMutableTask), [projection.events]);
-  const controller = usePlanningTaskController(tasks, projection.timeZone, {
+  const effectiveProjection = useMemo(
+    () => applyCalendarOccurrenceWrites(projection, occurrenceWrites),
+    [occurrenceWrites, projection],
+  );
+  const authoritativeTasks = useMemo(() => projection.events.map(toMutableTask), [projection.events]);
+  const controller = usePlanningTaskController(authoritativeTasks, effectiveProjection.timeZone, {
     authoritativeSource: projection,
-    mutationsDisabled: projection.truncated,
+    mutationsDisabled: effectiveProjection.truncated,
+    onOccurrenceApplied: (result) =>
+      setOccurrenceWrites((current) => recordCalendarOccurrenceWrite(current, result)),
     taskReturnTo: returnTo,
   });
-  const condition = resolvePlanningProjectionCondition(controller.condition, projection);
-  const model = toCalendarPlanningModel(projection, {
+  const condition = resolvePlanningProjectionCondition(controller.condition, effectiveProjection);
+  const model = toCalendarPlanningModel(effectiveProjection, {
     view,
     hasSavedView,
     initialDate,
@@ -104,7 +116,15 @@ export function CalendarRouteScreen({
           setAnnouncement("");
           setCreatingTask(true);
         }}
-        onOpenTask={(taskId) => router.push(planningTaskDetailsHref(taskId, returnTo))}
+        onOpenTask={(taskId, openOptions) =>
+          router.push(
+            planningTaskDetailsHref(taskId, {
+              editSeriesSchedule: openOptions?.editSeriesSchedule,
+              occurrenceKey: openOptions?.occurrenceKey,
+              returnTo,
+            }),
+          )
+        }
         onEditSchedule={editSchedule}
         onOccurrenceTransition={(taskId, occurrenceKey, action, projectionId) =>
           controller.taskActions.onOccurrenceTransition?.(taskId, occurrenceKey, action, projectionId)

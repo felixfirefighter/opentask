@@ -243,6 +243,16 @@ export type BoundedTaskProjection = z.infer<typeof boundedTaskProjectionSchema>;
 export type OccurrenceCommandFailure = z.infer<typeof occurrenceCommandFailureSchema>;
 export type OccurrenceCommandRequest = z.infer<typeof occurrenceCommandRequestSchema>;
 export type OccurrenceCommandResult = z.infer<typeof occurrenceCommandResultSchema>;
+
+/**
+ * An ahead idempotent retry proves the exact event was recorded, but it does
+ * not describe intervening task changes. Only adjacent (or unchanged no-op)
+ * results are therefore safe to project into local task snapshots.
+ */
+export function canApplyOccurrenceResultOptimistically(result: OccurrenceCommandResult) {
+  return result.task.version <= result.expectedVersion + 1;
+}
+
 export type OccurrenceKey = z.infer<typeof occurrenceKeySchema>;
 export type OccurrenceState = z.infer<typeof occurrenceStateSchema>;
 export type OccurrenceTruncation = z.infer<typeof occurrenceTruncationSchema>;

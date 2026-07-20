@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   boundedTaskProjectionSchema,
+  canApplyOccurrenceResultOptimistically,
   occurrenceCommandFailureSchema,
   occurrenceCommandRequestSchema,
   occurrenceCommandResultSchema,
@@ -261,6 +262,49 @@ describe("occurrence contracts", () => {
         eventTaskVersion: 5,
       }),
     ).toThrow(/requested action/i);
+  });
+
+  it("only treats an exact command version as safe for optimistic projection", () => {
+    const common = {
+      action: "complete",
+      occurrenceKey,
+      expectedVersion: 4,
+      occurrenceState: "completed",
+      eventTaskVersion: 5,
+    } as const;
+
+    expect(
+      canApplyOccurrenceResultOptimistically({
+        ...common,
+        outcome: "applied",
+        task: { id: taskId, version: 5 },
+      }),
+    ).toBe(true);
+    expect(
+      canApplyOccurrenceResultOptimistically({
+        ...common,
+        outcome: "idempotent_retry",
+        task: { id: taskId, version: 5 },
+      }),
+    ).toBe(true);
+    expect(
+      canApplyOccurrenceResultOptimistically({
+        ...common,
+        outcome: "idempotent_retry",
+        task: { id: taskId, version: 8 },
+      }),
+    ).toBe(false);
+    expect(
+      canApplyOccurrenceResultOptimistically({
+        action: "undo",
+        occurrenceKey,
+        expectedVersion: 8,
+        occurrenceState: "open",
+        outcome: "no_op",
+        task: { id: taskId, version: 8 },
+        eventTaskVersion: 5,
+      }),
+    ).toBe(true);
   });
 
   it("keeps occurrence failures explicit without accepting client ownership", () => {

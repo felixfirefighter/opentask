@@ -223,6 +223,7 @@ describe("task read contracts", () => {
           {
             task: taskDto,
             list: { id: listId, name: "Launch" },
+            recurrence: { status: "active" },
             matchedFields: ["title", "tag"],
             matchingTags: [],
           },
@@ -236,6 +237,7 @@ describe("task read contracts", () => {
           {
             task: taskDto,
             list: { id: listId, name: "Launch", userId: listId },
+            recurrence: null,
             matchedFields: ["title"],
             matchingTags: [],
           },
@@ -249,7 +251,22 @@ describe("task read contracts", () => {
           {
             task: taskDto,
             list: { id: listId, name: "Launch" },
+            recurrence: null,
             matchedFields: ["tag", "tag"],
+            matchingTags: [],
+          },
+        ],
+        nextCursor: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      taskSearchPageSchema.parse({
+        items: [
+          {
+            task: taskDto,
+            list: { id: listId, name: "Launch" },
+            recurrence: { status: "active", rrule: "FREQ=DAILY" },
+            matchedFields: ["title"],
             matchingTags: [],
           },
         ],

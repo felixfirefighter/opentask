@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { OccurrenceCommandResult } from "@/modules/tasks";
+
 import type { PlanningOccurrenceAction, PlanningPriority, PlanningTaskStatus } from "./planning-screen-model";
 
 const entityRefSchema = z.object({ id: z.uuidv4(), version: z.number().int().positive() });
@@ -58,20 +60,95 @@ const problemSchema = z.object({
   detail: z.string(),
   currentVersion: z.number().int().positive().optional(),
 });
-const occurrenceCommandResultSchema = z.object({
-  outcome: z.enum(["applied", "idempotent_retry", "no_op"]),
+const occurrenceCommandResultFields = {
   action: z.enum(["complete", "skip", "undo"]),
-  occurrenceKey: z.string().min(1),
+  occurrenceKey: z
+    .string()
+    .min(1)
+    .max(80)
+    .regex(/^o[12]\.[A-Za-z0-9_-]+$/),
   expectedVersion: z.number().int().positive(),
   task: entityRefSchema,
   occurrenceState: z.enum(["open", "completed", "skipped"]),
-  eventTaskVersion: z.number().int().positive().nullable(),
-});
+} as const;
+// Keep this browser adapter runtime-local: the tasks root also exposes server
+// composition. The canonical type annotation makes schema drift a type error.
+const occurrenceCommandResultSchema: z.ZodType<OccurrenceCommandResult> = z
+  .discriminatedUnion("outcome", [
+    z.strictObject({
+      outcome: z.literal("applied"),
+      ...occurrenceCommandResultFields,
+      eventTaskVersion: z.number().int().positive(),
+    }),
+    z.strictObject({
+      outcome: z.literal("idempotent_retry"),
+      ...occurrenceCommandResultFields,
+      eventTaskVersion: z.number().int().positive(),
+    }),
+    z.strictObject({
+      outcome: z.literal("no_op"),
+      ...occurrenceCommandResultFields,
+      eventTaskVersion: z.number().int().positive().nullable(),
+    }),
+  ])
+  .superRefine((result, context) => {
+    const expectedState =
+      result.action === "complete" ? "completed" : result.action === "skip" ? "skipped" : "open";
+    if (result.occurrenceState !== expectedState) {
+      context.addIssue({
+        code: "custom",
+        path: ["occurrenceState"],
+        message: "The occurrence state must match the requested action.",
+      });
+    }
 
+    if (result.outcome === "no_op") {
+      if (result.task.version !== result.expectedVersion) {
+        context.addIssue({
+          code: "custom",
+          path: ["task", "version"],
+          message: "A no-op must retain the expected task version.",
+        });
+      }
+      if (result.eventTaskVersion !== null && result.eventTaskVersion > result.task.version) {
+        context.addIssue({
+          code: "custom",
+          path: ["eventTaskVersion"],
+          message: "An effective event cannot be newer than the task.",
+        });
+      }
+      return;
+    }
+
+    const appliedVersion = result.expectedVersion + 1;
+    if (result.eventTaskVersion !== appliedVersion) {
+      context.addIssue({
+        code: "custom",
+        path: ["eventTaskVersion"],
+        message: "An applied event must use expectedVersion + 1.",
+      });
+    }
+    const validTaskVersion =
+      result.outcome === "applied"
+        ? result.task.version === appliedVersion
+        : result.task.version >= appliedVersion;
+    if (!validTaskVersion) {
+      context.addIssue({
+        code: "custom",
+        path: ["task", "version"],
+        message: "The task version is inconsistent with the command outcome.",
+      });
+    }
+  });
 export type PlanningSchedule = z.infer<typeof scheduleSchema>;
+export type PlanningOccurrenceMutationResult = OccurrenceCommandResult;
 export type PlanningQuickAddSuggestion = z.infer<typeof quickAddSchema>["suggestions"][number];
 export type PlanningListOption = z.infer<typeof planningListPageSchema>["items"][number];
 export type PlanningListPage = z.infer<typeof planningListPageSchema>;
+
+export function canApplyPlanningOccurrenceResultOptimistically(result: PlanningOccurrenceMutationResult) {
+  return result.task.version <= result.expectedVersion + 1;
+}
 
 export class PlanningClientError extends Error {
   readonly code: string;

@@ -1,4 +1,4 @@
-import type { Database } from "@/shared/db/client";
+import type { DatabaseTransaction } from "@/shared/db/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const repositories = vi.hoisted(() => ({
@@ -9,19 +9,34 @@ const repositories = vi.hoisted(() => ({
   },
   events: { listLatestForUser: vi.fn() },
 }));
+const repositoryFactories = vi.hoisted(() => ({
+  schedules: vi.fn(),
+  recurrences: vi.fn(),
+  events: vi.fn(),
+}));
 
 vi.mock("../infrastructure/task-schedule-repository", () => ({
-  createTaskScheduleRepository: () => repositories.schedules,
+  createTaskScheduleRepository: (table: unknown, executor: unknown) => {
+    repositoryFactories.schedules(table, executor);
+    return repositories.schedules;
+  },
 }));
 vi.mock("../infrastructure/task-recurrence-repository", () => ({
-  createTaskRecurrenceRepository: () => repositories.recurrences,
+  createTaskRecurrenceRepository: (executor: unknown) => {
+    repositoryFactories.recurrences(executor);
+    return repositories.recurrences;
+  },
 }));
 vi.mock("../infrastructure/task-occurrence-event-repository", () => ({
-  createTaskOccurrenceEventRepository: () => repositories.events,
+  createTaskOccurrenceEventRepository: (executor: unknown) => {
+    repositoryFactories.events(executor);
+    return repositories.events;
+  },
 }));
 
-import { createBoundedOccurrenceReader } from "./occurrence-reader";
+import { createBoundedOccurrenceReader, createBoundedOccurrenceSnapshotReader } from "./occurrence-reader";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
+import type { TaskReadSnapshot } from "./task-read-snapshot";
 import { createOccurrenceKey } from "../domain/recurrence/occurrence-key";
 import type { TaskScheduleTable } from "../infrastructure/schema";
 
@@ -31,7 +46,8 @@ const oneOffTaskId = "20000000-0000-4000-8000-000000000002";
 const listId = "30000000-0000-4000-8000-000000000001";
 const now = new Date("2026-07-20T00:00:00.000Z");
 const actor = { userId };
-const database = {} as Database;
+const transaction = {} as DatabaseTransaction;
+const snapshot: TaskReadSnapshot = { run: vi.fn((work) => work(transaction)) };
 const taskSchedules = {} as TaskScheduleTable;
 const currentKey = createOccurrenceKey(recurringTaskId, {
   kind: "all_day",
@@ -147,10 +163,13 @@ function query(limit = 500) {
 }
 
 function reader(timezone = "Asia/Singapore") {
-  return createBoundedOccurrenceReader({
-    database,
+  const readInSnapshot = createBoundedOccurrenceSnapshotReader({
     taskSchedules,
     expansion,
+  });
+  return createBoundedOccurrenceReader({
+    snapshot,
+    readInSnapshot,
     resolveUserTimezone: vi.fn(async () => timezone),
   });
 }
@@ -205,8 +224,54 @@ describe("bounded occurrence reader", () => {
       occurrenceEventsEvaluated: 2,
       candidateEvaluations: 1,
     });
-    expect(repositories.events.listLatestForUser).toHaveBeenCalledWith(userId, 50_000);
+    expect(snapshot.run).toHaveBeenCalledOnce();
+    expect(repositoryFactories.schedules).toHaveBeenCalledWith(taskSchedules, transaction);
+    expect(repositoryFactories.recurrences).toHaveBeenCalledWith(transaction);
+    expect(repositoryFactories.events).toHaveBeenCalledWith(transaction);
+    expect(repositories.schedules.listActiveOpenOneOffsInRange).toHaveBeenCalledWith(
+      userId,
+      expect.any(Object),
+      transaction,
+    );
+    expect(repositories.events.listLatestForUser).toHaveBeenCalledWith(userId, 50_000, transaction);
     expect(repositories.recurrences.listActiveOpenSourcesForTaskIds).not.toHaveBeenCalled();
+  });
+
+  it("uses one caller-resolved planning timezone throughout the bounded snapshot", async () => {
+    const resolveUserTimezone = vi.fn(async () => "America/New_York");
+    const readInSnapshot = createBoundedOccurrenceSnapshotReader({
+      taskSchedules,
+      expansion,
+    });
+    const read = createBoundedOccurrenceReader({ snapshot, readInSnapshot, resolveUserTimezone });
+
+    await expect(read(actor, query(), "Pacific/Apia")).resolves.toMatchObject({
+      truncation: { truncated: false },
+    });
+    expect(resolveUserTimezone).not.toHaveBeenCalled();
+  });
+
+  it("resolves the saved timezone before opening the read snapshot", async () => {
+    const order: string[] = [];
+    const resolveUserTimezone = vi.fn(async () => {
+      order.push("timezone");
+      return "Asia/Singapore";
+    });
+    const orderedSnapshot: TaskReadSnapshot = {
+      run: vi.fn(async (work) => {
+        order.push("snapshot");
+        return work(transaction);
+      }),
+    };
+    const read = createBoundedOccurrenceReader({
+      snapshot: orderedSnapshot,
+      readInSnapshot: createBoundedOccurrenceSnapshotReader({ taskSchedules, expansion }),
+      resolveUserTimezone,
+    });
+
+    await read(actor, query());
+
+    expect(order.slice(0, 2)).toEqual(["timezone", "snapshot"]);
   });
 
   it("recovers a recorded occurrence after its mutable lower cutover advances beyond the range", async () => {
@@ -254,6 +319,7 @@ describe("bounded occurrence reader", () => {
       userId,
       [recurringTaskId],
       500,
+      transaction,
     );
     expect(expansion.expand).not.toHaveBeenCalled();
   });

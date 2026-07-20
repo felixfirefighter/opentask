@@ -9,13 +9,20 @@ import { calendarFixture } from "./planning-screen-fixtures";
 
 describe("calendar event presentation mapping", () => {
   it("preserves exclusive all-day date strings without inventing a schedule timezone", () => {
-    const allDay = calendarFixture.events.find((event) => event.allDay)!;
+    const allDay = {
+      ...calendarFixture.events.find((event) => event.allDay)!,
+      end: "2026-07-24",
+      scheduleLabel: "Tuesday, July 21–Thursday, July 23, all day",
+    };
     const input = toFullCalendarEvent(allDay, true);
 
     expect(input.start).toBe("2026-07-21");
-    expect(input.end).toBe("2026-07-22");
+    expect(input.end).toBe("2026-07-24");
     expect(input.allDay).toBe(true);
     expect(input).not.toHaveProperty("timeZone");
+    expect(calendarEventAccessibleLabel(allDay)).toBe(
+      "Prepare attendee notes, Tuesday, July 21–Thursday, July 23, all day, Open, Planning",
+    );
   });
 
   it("marks conflicted events read-only and names the conflict", () => {
@@ -31,6 +38,7 @@ describe("calendar event presentation mapping", () => {
       projectionLifecycle: "recurring_occurrence" as const,
       occurrenceKey: "occurrence-1",
       occurrenceState: "completed" as const,
+      transitionEligible: true,
       scheduleInteraction: {
         editScope: "series" as const,
         dragEnabled: false,

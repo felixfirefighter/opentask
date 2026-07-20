@@ -31,6 +31,16 @@ assignees, activity history, templates, estimates, or custom fields.
 ## Actions and save behavior
 
 - Edit fields, complete/undo or skip/reopen an occurrence, cancel/restore, move, and soft-delete.
+- Opening a projected occurrence carries only its opaque identity; task details resolves its
+  authoritative date/time and effective state server-side, labels that selected occurrence, and
+  keeps Complete/Skip/Undo scoped to it. Cross-local-date timed occurrences name both dates;
+  multi-day all-day occurrences name their inclusive displayed range. Invalid or foreign identities
+  reveal no occurrence data.
+  A recorded key outside the current rule remains visible as preserved read-only history after Undo;
+  Complete/Skip are offered only when the server marks the open occurrence transition-eligible.
+  Terminal history offers Undo only while the owning series task is open; completed or cancelled
+  owners show honest read-only guidance until the task is reopened or restored to an open state.
+  Deleted owners use the generic unavailable treatment defined below.
 - Edit/end a recurrence series for future expansion only; no individual occurrence reschedule,
   recurring checklist state, raw RRULE, or “this and future” fork.
 - The recurring schedule editor keeps its all-day or specific-time type fixed. To change type, end
@@ -76,6 +86,11 @@ Recurrence create/edit/end and recurring schedule changes use an explicit submit
 than per-field autosave because the rule, cutover, and task version commit atomically. A response-lost
 result keeps the draft, reloads authoritative series state, and only offers exact retry when the
 server did not apply it.
+
+Occurrence commands use the same authoritative recovery standard. The panel re-resolves the exact
+actor-scoped key after task or series version changes. A response-lost result is called unconfirmed,
+retains the exact versioned command for idempotent retry, and keeps ordinary transitions gated until
+the user retries it or explicitly continues from the freshly loaded server state.
 
 ## Keyboard, touch, and accessibility
 

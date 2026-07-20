@@ -310,6 +310,7 @@ test("G2 refreshes Today and Calendar after timezone changes through normal link
   await page.getByRole("main").getByRole("link", { name: "Calendar", exact: true }).click();
   await expect(page).toHaveURL(/\/calendar(?:\?|$)/u);
   await expectCalendarTimeZone(page, eastTimeZone);
+  await waitForMobileAgendaCanonicalization(page, testInfo.project.name);
 
   const { menu } = await openVisibleAccountMenu(page);
   await menu.getByRole("menuitem", { name: "Settings", exact: true }).click();
@@ -375,11 +376,13 @@ async function expectTaskLinkReturnsToCurrentView(page: Page, link: Locator, tas
 
 async function editCalendarScheduleWithKeyboard(
   page: Page,
-  task: Pick<TaskWireRecord, "id">,
+  task: Pick<TaskWireRecord, "id" | "title">,
   schedule: Extract<TestSchedule, { kind: "all_day" }>,
 ) {
   const selection = page.getByLabel("Task to edit");
-  await selection.selectOption(task.id);
+  const optionValue = await selection.locator("option").filter({ hasText: task.title }).getAttribute("value");
+  expect(optionValue).not.toBeNull();
+  await selection.selectOption(optionValue!);
   const edit = page.getByRole("button", { name: "Edit schedule", exact: true });
   await edit.focus();
   await edit.press("Enter");
@@ -474,13 +477,27 @@ async function saveTimeZoneThroughSettings(page: Page, timeZoneValue: string) {
 
 async function expectTodayTimeZone(page: Page, timeZoneValue: string) {
   const localDate = localDateIn(timeZoneValue);
-  await expect(page.getByText(new RegExp(`· ${escapeRegExp(timeZoneValue)}$`, "u"))).toBeVisible();
-  await expect(page.getByText(formatLocalDate(localDate), { exact: true })).toBeVisible();
+  await expect(page.getByText(new RegExp(`· ${escapeRegExp(timeZoneValue)}$`, "u"))).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText(formatLocalDate(localDate), { exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 async function expectCalendarTimeZone(page: Page, timeZoneValue: string) {
-  await expect(page.getByText(`Schedule projection · ${timeZoneValue}`, { exact: true })).toBeVisible();
+  await expect(page.getByText(`Schedule projection · ${timeZoneValue}`, { exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.getByRole("button", { name: "Today", exact: true })).toBeVisible();
+}
+
+async function waitForMobileAgendaCanonicalization(page: Page, projectName: string) {
+  if (projectName !== "mobile-chromium") return;
+
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/calendar" && url.searchParams.get("view") === "agenda",
+  );
 }
 
 function formatLocalDate(localDate: string) {

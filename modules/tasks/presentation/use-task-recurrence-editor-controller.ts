@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { TaskDetailDto, TaskScheduleValue } from "../application/contracts";
 import type { RecurrenceDefinition, TaskRecurrenceDto } from "../application/contracts/recurrence-contract";
@@ -15,6 +15,7 @@ import { recurrenceAttemptMatches, snapshotTaskSchedule } from "./task-recurrenc
 import { useTaskDraftGuard } from "./task-draft-guard";
 import { useSchedulePreferencesQuery, useTaskScheduleQuery } from "./data/use-task-schedule";
 import { useTaskRecurrenceMutation, useTaskRecurrenceQuery } from "./data/use-task-recurrence";
+import { useTaskRecurrenceVersionFence } from "./use-task-recurrence-version-fence";
 
 type RecurrenceAttempt = "save" | "end";
 
@@ -24,6 +25,13 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
   const preferencesQuery = useSchedulePreferencesQuery();
   const mutation = useTaskRecurrenceMutation();
   const recovery = useTaskConflictRecovery(task, mutation.error);
+  const refetchLatestTask = recovery.refetchLatest;
+  const refetchRecurrence = recurrenceQuery.refetch;
+  const refetchSchedule = scheduleQuery.refetch;
+  const refetchAuthoritativeState = useCallback(
+    () => Promise.all([refetchLatestTask(), refetchRecurrence(), refetchSchedule()]),
+    [refetchLatestTask, refetchRecurrence, refetchSchedule],
+  );
   const [draft, setDraft] = useState<TaskRecurrenceDraft | null>(null);
   const [dirty, setDirty] = useState(false);
   const [validationError, setValidationError] = useState("");
@@ -45,6 +53,16 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
   const recurrence = recurrenceQuery.data ?? null;
   const schedule = scheduleQuery.data ?? null;
   const preferences = preferencesQuery.data;
+  const authoritativeTask =
+    recovery.latestTask.version > task.version && "checklistItems" in recovery.latestTask
+      ? recovery.latestTask
+      : task;
+  const recurrenceFence = useTaskRecurrenceVersionFence({
+    paused: mutation.isPending || recovery.needsLatest,
+    recurrenceVersion: recurrence?.taskVersion ?? null,
+    refetchAll: refetchAuthoritativeState,
+    taskVersion: authoritativeTask.version,
+  });
   const timezone =
     recurrence?.timezone ?? (schedule?.kind === "timed" ? schedule.timezone : preferences?.timeZone);
   const interpretation =
@@ -78,7 +96,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     recovery.latestTask.version === attemptedExpectedVersion &&
     !latestMatchesAttempt;
   const recovering = recovery.needsLatest;
-  const controlsDisabled = disabled || mutation.isPending || recovering;
+  const controlsDisabled = disabled || mutation.isPending || recovering || recurrenceFence.versionMismatch;
   const canRetry =
     mutation.isError &&
     (recovery.outcome === "rejected" ||
@@ -86,7 +104,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
       (recovery.unconfirmed && recoveryReady && (latestMatchesAttempt || serverDidNotApply)));
 
   function beginEditing() {
-    if (!schedule || !timezone) return;
+    if (controlsDisabled || !schedule || !timezone) return;
     setDraft(createTaskRecurrenceDraft(recurrence, schedule, timezone));
     setDirty(false);
     resetFeedback();
@@ -126,7 +144,8 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     if ((controlsDisabled && !recoveryRetry) || authoritativeSchedule === null || !draftGuard.beginWrite()) {
       return;
     }
-    const version = expectedVersion ?? editingBaseVersion ?? recurrence?.taskVersion ?? task.version;
+    const version =
+      expectedVersion ?? editingBaseVersion ?? recurrence?.taskVersion ?? authoritativeTask.version;
     setLastAttempt("save");
     setAttemptedDefinition(definition);
     setAttemptedSchedule(snapshotTaskSchedule(authoritativeSchedule));
@@ -135,7 +154,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     try {
       await mutation.mutateAsync({
         kind: "definition",
-        task,
+        task: authoritativeTask,
         expectedVersion: version,
         definition,
       });
@@ -150,14 +169,15 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
   async function confirmEnd(expectedVersion?: number, recoveryRetry = false) {
     if ((controlsDisabled && !recoveryRetry) || !draftGuard.beginWrite()) return;
     setEndConfirmationOpen(false);
-    const version = expectedVersion ?? editingBaseVersion ?? recurrence?.taskVersion ?? task.version;
+    const version =
+      expectedVersion ?? editingBaseVersion ?? recurrence?.taskVersion ?? authoritativeTask.version;
     setLastAttempt("end");
     setAttemptedDefinition(null);
     setAttemptedSchedule(null);
     setAttemptedExpectedVersion(version);
     setSaveMessage("");
     try {
-      await mutation.mutateAsync({ kind: "end", task, expectedVersion: version });
+      await mutation.mutateAsync({ kind: "end", task: authoritativeTask, expectedVersion: version });
       finishSuccessfulWrite("Recurrence ended");
     } catch {
       // The editor preserves its state until authoritative recurrence reload succeeds.
@@ -305,10 +325,6 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     mutation.reset();
   }
 
-  function refetchAuthoritativeState() {
-    return Promise.all([recovery.refetchLatest(), recurrenceQuery.refetch(), scheduleQuery.refetch()]);
-  }
-
   function resetFeedback() {
     setValidationError("");
     setSaveMessage("");
@@ -336,7 +352,8 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     recurrenceQuery,
     recovery,
     recoveryReady,
-    refreshLatest: refetchAuthoritativeState,
+    recurrenceVersionMismatch: recurrenceFence.versionMismatch,
+    refreshLatest: recurrenceFence.refreshLatest,
     requestSave,
     retry,
     saveMessage,
@@ -346,7 +363,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     setRestartConfirmationOpen,
     restartConfirmationOpen,
     summary,
-    task,
+    task: authoritativeTask,
     timezone,
     useLatest,
     validationError,

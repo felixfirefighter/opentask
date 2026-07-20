@@ -64,6 +64,7 @@ describe("planning projection mapper", () => {
             taskVersion: 1,
             occurrenceKey: "o1.completed",
             occurrenceState: "completed",
+            transitionEligible: true,
             schedule: {
               kind: "timed",
               startAt: "2026-07-20T01:00:00Z",
@@ -95,6 +96,7 @@ describe("planning projection mapper", () => {
         taskVersion: 1,
         occurrenceKey: "o1.same",
         occurrenceState: "open" as const,
+        transitionEligible: true,
         schedule: { kind: "all_day" as const, startDate: "2026-07-20", endDate: "2026-07-21" },
       },
     };

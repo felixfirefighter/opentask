@@ -9,6 +9,7 @@ import { usePlanningTaskController, type MutablePlanningTask } from "./use-plann
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
+  occurrenceApplied: vi.fn(),
   setSchedule: vi.fn(),
   transitionOccurrence: vi.fn(),
   transition: vi.fn(),
@@ -35,7 +36,15 @@ const TASK_ID = "352493c8-1e29-4dc1-bde7-bffac1c190d2";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.updatePriority.mockResolvedValue({ id: TASK_ID, version: 2 });
-  mocks.transitionOccurrence.mockResolvedValue({ task: { id: TASK_ID, version: 2 } });
+  mocks.transitionOccurrence.mockResolvedValue({
+    outcome: "applied",
+    action: "skip",
+    occurrenceKey: "occurrence-key",
+    expectedVersion: 1,
+    task: { id: TASK_ID, version: 2 },
+    occurrenceState: "skipped",
+    eventTaskVersion: 2,
+  });
 });
 
 describe("usePlanningTaskController", () => {
@@ -46,6 +55,17 @@ describe("usePlanningTaskController", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open task" }));
 
     expect(mocks.push).toHaveBeenCalledWith(`/tasks/${TASK_ID}?returnTo=%2Fcalendar%3Fview%3Dweek`);
+  });
+
+  it("deep-links recurring schedule actions to the canonical atomic editor", () => {
+    const client = queryClient();
+    renderWithClient(client, <Harness task={task(1)} destination="Do now" returnTo="/calendar" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit future series schedule" }));
+
+    expect(mocks.push).toHaveBeenCalledWith(
+      `/tasks/${TASK_ID}?returnTo=%2Fcalendar&occurrence=occurrence-key&edit=series-schedule`,
+    );
   });
 
   it("invalidates client projections, refreshes the route, announces the destination, and restores focus", async () => {
@@ -136,11 +156,48 @@ describe("usePlanningTaskController", () => {
       expect(mocks.transitionOccurrence).toHaveBeenCalledWith(TASK_ID, 1, "occurrence-key", "skip"),
     );
     expect(mocks.transition).not.toHaveBeenCalled();
+    expect(mocks.occurrenceApplied).toHaveBeenCalledWith(
+      expect.objectContaining({ occurrenceKey: "occurrence-key", occurrenceState: "skipped" }),
+    );
     expect(invalidate).toHaveBeenCalledOnce();
     expect(mocks.refresh).toHaveBeenCalledOnce();
 
     view.rerender(withClient(client, <Harness task={task(2)} destination="Do now" />));
     await waitFor(() => expect(screen.getByRole("link", { name: "Open Alpha" })).toHaveFocus());
+    expect(screen.getByTestId("announcement")).toHaveTextContent("occurrence was updated");
+  });
+
+  it("fences an ahead idempotent retry until the authoritative projection reaches its version", async () => {
+    mocks.transitionOccurrence.mockResolvedValueOnce({
+      outcome: "idempotent_retry",
+      action: "skip",
+      occurrenceKey: "occurrence-key",
+      expectedVersion: 1,
+      task: { id: TASK_ID, version: 4 },
+      occurrenceState: "skipped",
+      eventTaskVersion: 2,
+    });
+    const client = queryClient();
+    vi.spyOn(client, "invalidateQueries").mockRejectedValueOnce(new TypeError("refresh failed"));
+    const view = renderWithClient(client, <Harness task={task(1)} destination="Do now" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Skip occurrence" }));
+
+    await waitFor(() => expect(screen.getByTestId("condition")).toHaveTextContent("loading"));
+    expect(mocks.occurrenceApplied).not.toHaveBeenCalled();
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Skip occurrence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change priority" }));
+    expect(mocks.transitionOccurrence).toHaveBeenCalledOnce();
+    expect(mocks.updatePriority).not.toHaveBeenCalled();
+
+    view.rerender(withClient(client, <Harness task={task(2)} destination="Do now" />));
+    await waitFor(() => expect(screen.getByTestId("condition")).toHaveTextContent("loading"));
+    expect(screen.getByRole("link", { name: "Open Alpha" })).not.toHaveFocus();
+
+    view.rerender(withClient(client, <Harness task={task(4)} destination="Do now" />));
+    await waitFor(() => expect(screen.getByTestId("condition")).toHaveTextContent("ready"));
     expect(screen.getByTestId("announcement")).toHaveTextContent("occurrence was updated");
   });
 
@@ -177,6 +234,7 @@ function Harness({
     authoritativeSource: task,
     destinationLabelForTask: () => destination,
     mutationsDisabled,
+    onOccurrenceApplied: mocks.occurrenceApplied,
     taskReturnTo: returnTo,
   });
   return (
@@ -190,6 +248,12 @@ function Harness({
       >
         <button type="button" onClick={() => controller.taskActions.onOpenTask?.(task.id)}>
           Open task
+        </button>
+        <button
+          type="button"
+          onClick={() => controller.taskActions.onEditSeriesSchedule?.(task.id, "occurrence-key")}
+        >
+          Edit future series schedule
         </button>
         <button type="button" onClick={() => controller.taskActions.onPriorityChange?.(task.id, "low")}>
           Change priority

@@ -15,6 +15,7 @@ import type {
   CalendarView,
   PlanningOccurrenceAction,
   PlanningScreenCondition,
+  PlanningTaskOpenOptions,
   VisibleCalendarRange,
 } from "./planning-screen-model";
 import styles from "./CalendarScreen.module.css";
@@ -24,7 +25,7 @@ export type CalendarScreenProps = Readonly<{
   condition: PlanningScreenCondition;
   addTaskRef?: Ref<HTMLButtonElement> | undefined;
   onAddTask: () => void;
-  onOpenTask: (taskId: string) => void;
+  onOpenTask: (taskId: string, options?: PlanningTaskOpenOptions) => void;
   onEditSchedule: (taskId: string) => void;
   onOccurrenceTransition: (
     taskId: string,

@@ -4,6 +4,7 @@ export { parseTaskApiCreateKey, parseTaskApiResourceId } from "./application/api
 export { getTasksApplication } from "./application/public";
 export { readPortableTasks } from "./application/task-portability-reader";
 export {
+  canApplyOccurrenceResultOptimistically,
   createChecklistItemRequestSchema,
   createFolderRequestSchema,
   createRegularListRequestSchema,
@@ -22,6 +23,8 @@ export {
   moveRegularListRequestSchema,
   moveTaskRequestSchema,
   occurrenceCommandRequestSchema,
+  occurrenceCommandResultSchema,
+  occurrenceKeySchema,
   positionChecklistItemRequestSchema,
   positionFolderRequestSchema,
   positionSectionRequestSchema,
@@ -42,6 +45,7 @@ export {
   taskQuerySchema,
   taskScheduleRangeQuerySchema,
   taskPlanningSourceQuerySchema,
+  taskPlanningSnapshotRequestSchema,
   reviewedPlanBatchSchema,
   taskSearchQuerySchema,
   terminalTaskQuerySchema,
@@ -85,6 +89,9 @@ export type {
   TaskPlanningSourcePage,
   TaskPlanningSourceQuery,
   TaskPlanningSourceReader,
+  TaskPlanningSnapshotReader,
+  TaskPlanningSnapshotRequest,
+  TaskPlanningSnapshotResult,
   ReviewedPlanApplyContext,
   ReviewedPlanBatch,
   ReviewedPlanBusyIntervalPage,
@@ -97,6 +104,7 @@ export type {
   BoundedTaskProjection,
   OccurrenceCommandRequest,
   OccurrenceCommandResult,
+  TaskOccurrenceDto,
   TaskOccurrenceRangeQuery,
   TaskRecurrenceDto,
   TaskRecurrenceMutationResult,

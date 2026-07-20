@@ -1,11 +1,14 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CalendarProjection } from "../application/public";
 import { CalendarRouteScreen } from "./CalendarRouteScreen";
+import type { PlanningOccurrenceMutationResult } from "./planning-client-api";
+import type { MutablePlanningTask } from "./use-planning-task-controller";
 
 const navigation = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }));
+const controllerHook = vi.hoisted(() => vi.fn());
 const controller = vi.hoisted(() => ({
   announcement: "",
   closeSchedule: vi.fn(),
@@ -90,7 +93,10 @@ vi.mock("./ScheduleEditorDialog", () => ({
   ),
 }));
 vi.mock("./use-planning-task-controller", () => ({
-  usePlanningTaskController: () => controller,
+  usePlanningTaskController: (...args: unknown[]) => {
+    controllerHook(...args);
+    return controller;
+  },
 }));
 
 beforeEach(() => {
@@ -172,6 +178,34 @@ describe("CalendarRouteScreen announcements", () => {
       false,
     );
   });
+
+  it("keeps optimistic Calendar state separate from the authoritative version fence", async () => {
+    render(
+      <CalendarRouteScreen
+        hasSavedView={false}
+        hourCycle="12"
+        inboxId="09d7cb40-9c45-43fc-bb2a-0fa62e920d96"
+        inboxName="Inbox"
+        initialDate="2026-07-20"
+        projection={recurringProjection}
+        view="month"
+        weekStartsOn={1}
+      />,
+    );
+
+    const initialCall = controllerHook.mock.calls.at(-1);
+    expect((initialCall?.[0] as MutablePlanningTask[])[0]?.version).toBe(3);
+    const options = initialCall?.[2] as {
+      onOccurrenceApplied: (result: PlanningOccurrenceMutationResult) => void;
+    };
+
+    act(() => options.onOccurrenceApplied(occurrenceResult));
+
+    await waitFor(() => expect(controllerHook).toHaveBeenCalledTimes(2));
+    const refreshedCall = controllerHook.mock.calls.at(-1);
+    expect((refreshedCall?.[0] as MutablePlanningTask[])[0]?.version).toBe(3);
+    expect(refreshedCall?.[2]).toMatchObject({ authoritativeSource: recurringProjection });
+  });
 });
 
 const projection: CalendarProjection = {
@@ -183,4 +217,42 @@ const projection: CalendarProjection = {
   events: [],
   truncated: false,
   truncationReasons: [],
+};
+
+const recurringTaskId = "352493c8-1e29-4dc1-bde7-bffac1c190d2";
+const recurringProjection: CalendarProjection = {
+  ...projection,
+  events: [
+    {
+      projectionId: `occurrence:${recurringTaskId}:occurrence-key`,
+      taskId: recurringTaskId,
+      title: "Review progress",
+      status: "open",
+      priority: "none",
+      listId: "09d7cb40-9c45-43fc-bb2a-0fa62e920d96",
+      version: 3,
+      kind: "all_day",
+      startDate: "2026-07-20",
+      endDate: "2026-07-21",
+      projectionLifecycle: "recurring_occurrence",
+      occurrenceKey: "occurrence-key",
+      occurrenceState: "completed",
+      transitionEligible: true,
+      recurrenceSummary: "Every day",
+      scheduleInteraction: {
+        editScope: "series",
+        dragEnabled: false,
+        dragDisabledReason: "Recurring occurrences use the series editor.",
+      },
+    },
+  ],
+};
+const occurrenceResult: PlanningOccurrenceMutationResult = {
+  outcome: "applied",
+  action: "undo",
+  occurrenceKey: "occurrence-key",
+  expectedVersion: 3,
+  task: { id: recurringTaskId, version: 4 },
+  occurrenceState: "open",
+  eventTaskVersion: 4,
 };

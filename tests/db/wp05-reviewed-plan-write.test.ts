@@ -247,6 +247,7 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
         ownerA,
         [selected.id],
         {
+          timeZone: "UTC",
           query: {
             rangeStartDate: "2026-07-20",
             rangeEndDate: "2026-07-21",
@@ -338,7 +339,7 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
       application.reviewedPlanWrites.loadApplyContextForUpdate(
         ownerA,
         [],
-        { query: range, excludedTaskIds: [] },
+        { timeZone: "UTC", query: range, excludedTaskIds: [] },
         transaction,
       ),
     );
@@ -355,6 +356,147 @@ describe("reviewed plan task writer PostgreSQL integration", () => {
       },
     ]);
     expect(normalized?.some(({ startAt }) => startAt.includes("T14:00:00"))).toBe(false);
+  });
+
+  it("does not reserve an open historical occurrence after its recurrence cutover advances", async () => {
+    let plannerNow = new Date("2026-07-19T01:00:00.000Z");
+    const plannerApplication = createTasksApplication({
+      database,
+      clock: { now: () => new Date(plannerNow) },
+      taskSchedules: schema.taskSchedules,
+    });
+    const list = await createList(ownerA, "Historical planner context");
+    const recurring = await createScheduled(
+      ownerA,
+      list.id,
+      "Historical occurrence must stay free",
+      "2026-07-20T13:00:00Z",
+    );
+    const initialRule = await plannerApplication.recurrences.setRecurrence(ownerA, recurring.id, {
+      expectedVersion: recurring.version,
+      definition: dailyDefinition(),
+    });
+    const range = {
+      rangeStartDate: "2026-07-20",
+      rangeEndDate: "2026-07-22",
+      rangeStartAt: "2026-07-20T00:00:00Z",
+      rangeEndAt: "2026-07-22T00:00:00Z",
+      limit: 500,
+    } as const;
+    const initialPage = await plannerApplication.occurrences.readBoundedOccurrences(ownerA, range);
+    const firstOccurrence = initialPage.items.find(
+      (item) =>
+        item.projectionKind === "recurring" &&
+        item.task.id === recurring.id &&
+        item.occurrence.schedule.kind === "timed" &&
+        new Date(item.occurrence.schedule.startAt).toISOString() === "2026-07-20T13:00:00.000Z",
+    );
+    if (!firstOccurrence || firstOccurrence.projectionKind !== "recurring") {
+      throw new Error("Expected the first owned recurring occurrence.");
+    }
+    const completed = await plannerApplication.occurrences.transitionOccurrence(ownerA, recurring.id, {
+      action: "complete",
+      occurrenceKey: firstOccurrence.occurrence.occurrenceKey,
+      expectedVersion: initialRule.task.version,
+    });
+
+    plannerNow = new Date("2026-07-20T14:00:00.000Z");
+    const editedRule = await plannerApplication.recurrences.setRecurrence(ownerA, recurring.id, {
+      expectedVersion: completed.task.version,
+      definition: dailyDefinition(),
+    });
+    await plannerApplication.occurrences.transitionOccurrence(ownerA, recurring.id, {
+      action: "undo",
+      occurrenceKey: firstOccurrence.occurrence.occurrenceKey,
+      expectedVersion: editedRule.task.version,
+    });
+
+    const foreignList = await createList(ownerB, "Foreign historical planner context");
+    const foreign = await createScheduled(
+      ownerB,
+      foreignList.id,
+      "Foreign eligible occurrence",
+      "2026-07-21T14:00:00Z",
+    );
+    await plannerApplication.recurrences.setRecurrence(ownerB, foreign.id, {
+      expectedVersion: foreign.version,
+      definition: dailyDefinition(),
+    });
+
+    const ownerPage = await plannerApplication.occurrences.readBoundedOccurrences(ownerA, range);
+    const historical = ownerPage.items.find(
+      (item) =>
+        item.projectionKind === "recurring" &&
+        item.occurrence.occurrenceKey === firstOccurrence.occurrence.occurrenceKey,
+    );
+    if (!historical || historical.projectionKind !== "recurring") {
+      throw new Error("Expected the recorded historical occurrence.");
+    }
+    expect(historical).toMatchObject({
+      task: { id: recurring.id },
+      occurrence: {
+        occurrenceState: "open",
+        transitionEligible: false,
+        schedule: { kind: "timed" },
+      },
+    });
+    if (historical.occurrence.schedule.kind !== "timed") {
+      throw new Error("Expected the historical occurrence to remain timed.");
+    }
+    expect(new Date(historical.occurrence.schedule.startAt).toISOString()).toBe("2026-07-20T13:00:00.000Z");
+    const eligible = ownerPage.items.find(
+      (item) =>
+        item.projectionKind === "recurring" &&
+        item.task.id === recurring.id &&
+        item.occurrence.occurrenceState === "open" &&
+        item.occurrence.transitionEligible &&
+        item.occurrence.schedule.kind === "timed" &&
+        new Date(item.occurrence.schedule.startAt).toISOString() === "2026-07-21T13:00:00.000Z",
+    );
+    expect(eligible).toBeDefined();
+    const foreignPage = await plannerApplication.occurrences.readBoundedOccurrences(ownerB, range);
+    expect(
+      foreignPage.items.find(
+        (item) =>
+          item.projectionKind === "recurring" &&
+          item.task.id === foreign.id &&
+          item.occurrence.occurrenceState === "open" &&
+          item.occurrence.transitionEligible,
+      ),
+    ).toBeDefined();
+    expect(ownerPage.items.some(({ task }) => task.id === foreign.id)).toBe(false);
+    const backgroundTasks = await pool.query<{ id: string }>(
+      `select id
+         from tasks
+        where user_id = $1 and id <> $2`,
+      [ownerA.userId, recurring.id],
+    );
+
+    const context = await database.transaction((transaction) =>
+      plannerApplication.reviewedPlanWrites.loadApplyContextForUpdate(
+        ownerA,
+        [],
+        {
+          timeZone: "UTC",
+          query: range,
+          excludedTaskIds: backgroundTasks.rows.map(({ id }) => id),
+        },
+        transaction,
+      ),
+    );
+
+    expect(context.busyIntervals?.truncation).toEqual(expect.objectContaining({ truncated: false }));
+    expect(
+      context.busyIntervals?.items.map(({ startAt, endAt }) => ({
+        startAt: new Date(startAt).toISOString(),
+        endAt: new Date(endAt).toISOString(),
+      })),
+    ).toEqual([
+      {
+        startAt: "2026-07-21T13:00:00.000Z",
+        endAt: "2026-07-21T13:30:00.000Z",
+      },
+    ]);
   });
 
   it("rejects planner schedule writes for active or ended recurrence rows", async () => {

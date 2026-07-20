@@ -1,5 +1,6 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
-import type { DatabaseExecutor } from "@/shared/db/client";
+import type { DatabaseTransaction } from "@/shared/db/client";
+import { ianaTimeZoneSchema } from "@/shared/validation/time-zone";
 
 import {
   boundedTaskOccurrencePageSchema,
@@ -29,6 +30,7 @@ import { parseStoredRecurrence, type UserTimezoneResolver } from "./recurrence-a
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import { mapSchedule } from "./schedule-application";
 import { mapTask } from "./task-application-support";
+import type { TaskReadSnapshot } from "./task-read-snapshot";
 import type { RecurrenceOccurrenceSchedule } from "../domain/recurrence/recurrence-time-policy";
 import { createTaskOccurrenceEventRepository } from "../infrastructure/task-occurrence-event-repository";
 import {
@@ -49,47 +51,58 @@ type SortableProjection = Readonly<{
   occurrenceKey: string;
 }>;
 
+type BoundedOccurrenceSnapshotDependencies = Readonly<{
+  taskSchedules: TaskScheduleTable;
+  expansion: RecurrenceExpansionPort;
+}>;
+
 export function createBoundedOccurrenceReader(
   dependencies: Readonly<{
-    database: DatabaseExecutor;
-    taskSchedules: TaskScheduleTable;
-    expansion: RecurrenceExpansionPort;
+    snapshot: TaskReadSnapshot;
+    readInSnapshot: ReturnType<typeof createBoundedOccurrenceSnapshotReader>;
     resolveUserTimezone: UserTimezoneResolver;
-    serializeSourceReads?: boolean;
   }>,
 ) {
-  const schedules = createTaskScheduleRepository(dependencies.taskSchedules, dependencies.database);
-  const recurrences = createTaskRecurrenceRepository(dependencies.database);
-  const events = createTaskOccurrenceEventRepository(dependencies.database);
-
   return async function readBoundedOccurrences(
     actor: AuthenticatedActor,
     rawQuery: TaskOccurrenceRangeQuery,
+    projectionTimeZone?: string,
   ): Promise<BoundedTaskOccurrencePage> {
     const query = taskOccurrenceRangeQuerySchema.parse(rawQuery);
+    const timeZone = ianaTimeZoneSchema.parse(
+      projectionTimeZone ?? (await dependencies.resolveUserTimezone(actor)),
+    );
+    return dependencies.snapshot.run((transaction) =>
+      dependencies.readInSnapshot(actor, query, transaction, timeZone),
+    );
+  };
+}
+
+export function createBoundedOccurrenceSnapshotReader(dependencies: BoundedOccurrenceSnapshotDependencies) {
+  return async function readBoundedOccurrencesInSnapshot(
+    actor: AuthenticatedActor,
+    rawQuery: TaskOccurrenceRangeQuery,
+    transaction: DatabaseTransaction,
+    projectionTimeZone: string,
+  ): Promise<BoundedTaskOccurrencePage> {
+    const query = taskOccurrenceRangeQuerySchema.parse(rawQuery);
+    const userTimezone = ianaTimeZoneSchema.parse(projectionTimeZone);
     const range = repositoryRange(query);
+    const schedules = createTaskScheduleRepository(dependencies.taskSchedules, transaction);
+    const recurrences = createTaskRecurrenceRepository(transaction);
+    const events = createTaskOccurrenceEventRepository(transaction);
 
-    async function loadSourcesSequentially() {
-      const oneOffPage = await schedules.listActiveOpenOneOffsInRange(actor.userId, range);
-      const recurrencePage = await recurrences.listActiveOpenSourcesInRange(
-        actor.userId,
-        range,
-        dependencies.database,
-        { serializeReads: true },
-      );
-      const eventPage = await events.listLatestForUser(actor.userId, OCCURRENCE_EVENT_SOURCE_LIMIT);
-      const userTimezone = await dependencies.resolveUserTimezone(actor, dependencies.database);
-      return [oneOffPage, recurrencePage, eventPage, userTimezone] as const;
-    }
-
-    const [oneOffPage, recurrencePage, eventPage, userTimezone] = dependencies.serializeSourceReads
-      ? await loadSourcesSequentially()
-      : await Promise.all([
-          schedules.listActiveOpenOneOffsInRange(actor.userId, range),
-          recurrences.listActiveOpenSourcesInRange(actor.userId, range),
-          events.listLatestForUser(actor.userId, OCCURRENCE_EVENT_SOURCE_LIMIT),
-          dependencies.resolveUserTimezone(actor, dependencies.database),
-        ]);
+    // A transaction owns one pg client. Keep every source read sequential and on the same
+    // actor-scoped repeatable-read snapshot, including late historical-source hydration.
+    const oneOffPage = await schedules.listActiveOpenOneOffsInRange(actor.userId, range, transaction);
+    const recurrencePage = await recurrences.listActiveOpenSourcesInRange(actor.userId, range, transaction, {
+      serializeReads: true,
+    });
+    const eventPage = await events.listLatestForUser(
+      actor.userId,
+      OCCURRENCE_EVENT_SOURCE_LIMIT,
+      transaction,
+    );
     const historicalEvents = selectPotentiallyOverlappingHistoricalEvents(eventPage.items, query);
     const currentSourceTaskIds = new Set(recurrencePage.items.map(({ task }) => task.id));
     const historicalTaskIds = [
@@ -106,6 +119,7 @@ export function createBoundedOccurrenceReader(
             actor.userId,
             historicalTaskIds,
             RECURRENCE_SOURCE_LIMIT,
+            transaction,
           );
     const recurrenceSources = mergeRecurrenceSources(recurrencePage.items, historicalSourcePage.items);
     const reasons = new Set<OccurrenceTruncation["reasons"][number]>();

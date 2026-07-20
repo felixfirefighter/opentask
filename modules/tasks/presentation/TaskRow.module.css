@@ -115,6 +115,16 @@
   color: var(--text-muted);
 }
 
+.context {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recurrenceMarker {
+  flex: 0 0 auto;
+}
+
 .tag {
   padding: 0 var(--space-2);
   border-radius: var(--radius-pill);

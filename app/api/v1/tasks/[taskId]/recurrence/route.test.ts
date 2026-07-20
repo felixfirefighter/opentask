@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
     editRecurringSchedule: vi.fn(),
     endRecurrence: vi.fn(),
   },
-  occurrences: { transitionOccurrence: vi.fn() },
+  occurrences: { readOccurrence: vi.fn(), transitionOccurrence: vi.fn() },
 }));
 
 vi.mock("@/modules/identity", () => ({
@@ -28,6 +28,7 @@ import { GET as getRecurrence, PATCH as setRecurrence } from "./route";
 import { POST as endRecurrence } from "./end/route";
 import { PATCH as editRecurringSchedule } from "./schedule/route";
 import { POST as transitionOccurrence } from "../occurrences/transition/route";
+import { GET as getOccurrence } from "../occurrences/route";
 
 const actor = { userId: "10000000-0000-4000-8000-000000000001" };
 const taskId = "20000000-0000-4000-8000-000000000001";
@@ -104,6 +105,14 @@ describe("recurrence and occurrence API routes", () => {
       occurrenceState: "completed",
       eventTaskVersion: 5,
     });
+    mocks.occurrences.readOccurrence.mockResolvedValue({
+      taskId,
+      taskVersion: 5,
+      occurrenceKey,
+      occurrenceState: "completed",
+      transitionEligible: true,
+      schedule: { kind: "all_day", startDate: "2026-07-21", endDate: "2026-07-22" },
+    });
   });
 
   it("authenticates and gets the actor-scoped recurrence without private caching", async () => {
@@ -116,6 +125,20 @@ describe("recurrence and occurrence API routes", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(mocks.recurrences.getRecurrence).toHaveBeenCalledWith(actor, taskId);
     await expect(response.json()).resolves.toMatchObject({ taskId, lifecycle: "active" });
+  });
+
+  it("gets one exact actor-scoped occurrence without private caching", async () => {
+    const response = await getOccurrence(
+      new Request(
+        `http://localhost:3000/api/v1/tasks/${taskId}/occurrences?occurrenceKey=${encodeURIComponent(occurrenceKey)}`,
+      ),
+      context(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(mocks.occurrences.readOccurrence).toHaveBeenCalledWith(actor, taskId, occurrenceKey);
+    await expect(response.json()).resolves.toMatchObject({ taskId, occurrenceKey });
   });
 
   it("dispatches strict rule, recurring-schedule, end, and occurrence commands", async () => {
@@ -185,6 +208,12 @@ describe("recurrence and occurrence API routes", () => {
         ),
         context(),
       ),
+      getOccurrence(
+        new Request(
+          `http://localhost:3000/api/v1/tasks/${taskId}/occurrences?occurrenceKey=${encodeURIComponent(occurrenceKey)}&unexpected=1`,
+        ),
+        context(),
+      ),
       editRecurringSchedule(
         mutationRequest(
           `/api/v1/tasks/${taskId}/recurrence/schedule`,
@@ -196,13 +225,14 @@ describe("recurrence and occurrence API routes", () => {
       ),
     ]);
 
-    expect(responses.slice(0, 6).map(({ status }) => status)).toEqual([400, 400, 400, 400, 400, 400]);
-    expect(responses[6]?.status).toBe(403);
+    expect(responses.slice(0, 7).map(({ status }) => status)).toEqual([400, 400, 400, 400, 400, 400, 400]);
+    expect(responses[7]?.status).toBe(403);
     expect(mocks.recurrences.getRecurrence).not.toHaveBeenCalled();
     expect(mocks.recurrences.setRecurrence).not.toHaveBeenCalled();
     expect(mocks.recurrences.endRecurrence).not.toHaveBeenCalled();
     expect(mocks.recurrences.editRecurringSchedule).not.toHaveBeenCalled();
     expect(mocks.occurrences.transitionOccurrence).not.toHaveBeenCalled();
+    expect(mocks.occurrences.readOccurrence).not.toHaveBeenCalled();
   });
 
   it("returns private application problems with optimistic-conflict metadata", async () => {
@@ -241,12 +271,19 @@ describe("recurrence and occurrence API routes", () => {
         ),
         context(),
       ),
+      getOccurrence(
+        new Request(
+          `http://localhost:3000/api/v1/tasks/${taskId}/occurrences?occurrenceKey=${encodeURIComponent(occurrenceKey)}`,
+        ),
+        context(),
+      ),
     ]);
 
-    expect(responses.map(({ status }) => status)).toEqual([401, 401, 401, 401]);
+    expect(responses.map(({ status }) => status)).toEqual([401, 401, 401, 401, 401]);
     expect(mocks.recurrences.getRecurrence).not.toHaveBeenCalled();
     expect(mocks.recurrences.setRecurrence).not.toHaveBeenCalled();
     expect(mocks.recurrences.endRecurrence).not.toHaveBeenCalled();
     expect(mocks.occurrences.transitionOccurrence).not.toHaveBeenCalled();
+    expect(mocks.occurrences.readOccurrence).not.toHaveBeenCalled();
   });
 });

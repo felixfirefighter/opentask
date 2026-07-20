@@ -68,6 +68,7 @@ export type ReviewedPlanBusyIntervalPage = Readonly<{
 }>;
 
 export type ReviewedPlanBusyIntervalRequest = Readonly<{
+  timeZone: string;
   query: TaskOccurrenceRangeQuery;
   excludedTaskIds: readonly string[];
 }>;

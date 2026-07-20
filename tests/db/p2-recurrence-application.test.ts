@@ -7,7 +7,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createInboxUseCases } from "../../modules/tasks/application/inbox.ts";
 import { createTasksApplication } from "../../modules/tasks/application/tasks-application.ts";
 import type { BoundedTaskProjection } from "../../modules/tasks/application/contracts/occurrence-contract.ts";
-import { createOccurrenceKey } from "../../modules/tasks/domain/recurrence/occurrence-key.ts";
+import {
+  createOccurrenceKey,
+  createProjectedOccurrenceKey,
+} from "../../modules/tasks/domain/recurrence/occurrence-key.ts";
 import type { AuthenticatedActor } from "../../shared/auth/actor.ts";
 import type { Database } from "../../shared/db/client.ts";
 import { schema } from "../../shared/db/schema.ts";
@@ -111,6 +114,20 @@ describe("P2 recurrence application PostgreSQL golden path", () => {
     ]);
     const july21 = recurringOccurrence(initialPage.items, "2026-07-21");
     const july22 = recurringOccurrence(initialPage.items, "2026-07-22");
+
+    await expect(
+      application.occurrences.readOccurrence(owner, taskId, july21.occurrence.occurrenceKey),
+    ).resolves.toMatchObject({
+      taskId,
+      taskVersion: 2,
+      occurrenceKey: july21.occurrence.occurrenceKey,
+      occurrenceState: "open",
+      transitionEligible: true,
+      schedule: { kind: "all_day", startDate: "2026-07-21", endDate: "2026-07-22" },
+    });
+    await expect(
+      application.occurrences.readOccurrence(stranger, taskId, july21.occurrence.occurrenceKey),
+    ).resolves.toBeNull();
 
     const completed = await application.occurrences.transitionOccurrence(owner, taskId, {
       action: "complete",
@@ -236,6 +253,17 @@ describe("P2 recurrence application PostgreSQL golden path", () => {
         transitionEligible: false,
       },
     });
+    await expect(application.occurrences.readOccurrence(owner, taskId, occurrenceKey)).resolves.toMatchObject(
+      {
+        taskId,
+        taskVersion: 4,
+        occurrenceKey,
+        occurrenceState: "completed",
+        transitionEligible: false,
+        schedule: { kind: "all_day", startDate: "2026-07-18", endDate: "2026-07-19" },
+      },
+    );
+    await expect(application.occurrences.readOccurrence(stranger, taskId, occurrenceKey)).resolves.toBeNull();
     await expect(application.occurrences.readBoundedOccurrences(stranger, pastRange)).resolves.toMatchObject({
       items: [],
     });
@@ -349,6 +377,59 @@ describe("P2 recurrence application PostgreSQL golden path", () => {
     expect(
       adjacentPage.items.filter(({ task }) => task.id === allDayTaskId || task.id === timedTaskId),
     ).toEqual([]);
+  });
+
+  it("reads a date-crossing o2 occurrence only for its owner", async () => {
+    const list = (
+      await application.lists.createRegularList(owner, randomUUID(), {
+        name: "Date gap series list",
+        colorToken: "slate",
+        folderId: null,
+        placement: { kind: "end" },
+      })
+    ).value;
+    const taskId = randomUUID();
+    await application.tasks.createTaskWithSchedule(owner, taskId, {
+      title: "Date gap series",
+      descriptionMd: "",
+      priority: "none",
+      listId: list.id,
+      sectionId: null,
+      parentTaskId: null,
+      placement: { kind: "end" },
+      schedule: {
+        kind: "timed",
+        startAt: "2011-12-29T19:00:00.000Z",
+        endAt: "2011-12-29T20:00:00.000Z",
+        timezone: "Pacific/Apia",
+      },
+    });
+    await application.recurrences.setRecurrence(owner, taskId, {
+      expectedVersion: 1,
+      definition: dailyDefinition(1),
+    });
+    const occurrenceKey = createProjectedOccurrenceKey(
+      taskId,
+      { kind: "timed", startAt: "2011-12-30T19:00:00Z" },
+      { kind: "timed", startLocalDateTime: "2011-12-30T09:00" },
+      "Pacific/Apia",
+    );
+    expect(occurrenceKey).toMatch(/^o2\./);
+
+    await expect(application.occurrences.readOccurrence(owner, taskId, occurrenceKey)).resolves.toEqual({
+      taskId,
+      taskVersion: 2,
+      occurrenceKey,
+      occurrenceState: "open",
+      transitionEligible: true,
+      schedule: {
+        kind: "timed",
+        startAt: "2011-12-30T19:00:00Z",
+        endAt: "2011-12-30T20:00:00Z",
+        timezone: "Pacific/Apia",
+      },
+    });
+    await expect(application.occurrences.readOccurrence(stranger, taskId, occurrenceKey)).resolves.toBeNull();
   });
 
   it("serializes concurrent same-key retries without appending duplicate state", async () => {

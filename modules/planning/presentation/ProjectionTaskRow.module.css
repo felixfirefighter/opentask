@@ -113,6 +113,16 @@
   text-overflow: ellipsis;
 }
 
+.schedule {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobileRecurrence {
+  display: none;
+}
+
 .conflictLabel {
   color: var(--warning);
   font-weight: var(--type-label-weight);
@@ -205,5 +215,12 @@
 
   .context {
     display: none;
+  }
+
+  .mobileRecurrence {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-1);
   }
 }

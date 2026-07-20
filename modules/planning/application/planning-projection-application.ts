@@ -27,9 +27,9 @@ import {
 } from "./projection-query-contract";
 import { buildPlanningProjectionTruncation } from "./projection-truncation";
 import type {
+  PlanningCompositeSourceReader,
   PlanningOccurrenceRangeQuery,
   PlanningOccurrenceSourceReader,
-  PlanningTaskSourceReader,
   PlanningTimeZoneReader,
 } from "./planning-source-reader";
 import { projectAgendaTasks, projectCalendarTasks } from "../domain/projections/calendar-policy";
@@ -48,7 +48,7 @@ const RECURRENCE_MAX_DURATION_DAYS = 31;
 const MATRIX_FORWARD_DAYS = 62;
 
 type PlanningProjectionDependencies = Readonly<{
-  tasks: PlanningTaskSourceReader;
+  composite: PlanningCompositeSourceReader;
   occurrences: PlanningOccurrenceSourceReader;
   timeZones: PlanningTimeZoneReader;
   clock: Clock;
@@ -59,18 +59,18 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
     const query = projectionLimitQuerySchema.parse(rawQuery);
     const context = await loadTimeContext(actor, dependencies);
     const dayRange = buildLocalRange(context.localDate, addLocalDays(context.localDate, 1), context.timeZone);
-    const [oneOffPage, occurrencePage] = await Promise.all([
-      dependencies.tasks.readOpenTasks(actor, {
+    const snapshot = await dependencies.composite.readPlanningSnapshot(actor, {
+      timeZone: context.timeZone,
+      taskQuery: {
         kind: "scheduled_through",
         exclusiveEndDate: dayRange.endDate,
         exclusiveEndAt: dayRange.endAt,
         limit: query.limit,
-      }),
-      dependencies.occurrences.readBoundedOccurrences(
-        actor,
-        toOccurrenceRangeReadQuery(dayRange, query.limit),
-      ),
-    ]);
+      },
+      occurrenceQueries: [toOccurrenceRangeReadQuery(dayRange, query.limit)],
+    });
+    const oneOffPage = snapshot.taskPage;
+    const occurrencePage = requireOccurrencePage(snapshot.occurrencePages, 0);
     const rows = [
       ...mapCanonicalSourcePage(oneOffPage, { limit: query.limit, schedulesRequired: true }),
       ...mapOccurrenceSourcePage(occurrencePage, query.limit).filter(
@@ -101,6 +101,7 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
     const page = await dependencies.occurrences.readBoundedOccurrences(
       actor,
       toOccurrenceRangeReadQuery(range, query.limit),
+      context.timeZone,
     );
     const rows = mapOccurrenceSourcePage(page, query.limit);
     const capped = capUpcoming(projectUpcoming(rows, { range, ...context }), query.limit);
@@ -172,17 +173,17 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
       addLocalDays(context.localDate, MATRIX_FORWARD_DAYS),
       context.timeZone,
     );
-    const [allOpenPage, overlapPage, forwardPage] = await Promise.all([
-      dependencies.tasks.readOpenTasks(actor, { kind: "all_open", limit: query.limit }),
-      dependencies.occurrences.readBoundedOccurrences(
-        actor,
+    const snapshot = await dependencies.composite.readPlanningSnapshot(actor, {
+      timeZone: context.timeZone,
+      taskQuery: { kind: "all_open", limit: query.limit },
+      occurrenceQueries: [
         toOccurrenceRangeReadQuery(overlapRange, query.limit),
-      ),
-      dependencies.occurrences.readBoundedOccurrences(
-        actor,
         toOccurrenceRangeReadQuery(forwardRange, query.limit),
-      ),
-    ]);
+      ],
+    });
+    const allOpenPage = snapshot.taskPage;
+    const overlapPage = requireOccurrencePage(snapshot.occurrencePages, 0);
+    const forwardPage = requireOccurrencePage(snapshot.occurrencePages, 1);
     const allOpenRows = mapCanonicalSourcePage(allOpenPage, {
       limit: query.limit,
       schedulesRequired: false,
@@ -234,6 +235,7 @@ async function loadRange(
   const page = await dependencies.occurrences.readBoundedOccurrences(
     actor,
     toOccurrenceRangeReadQuery(range, query.limit),
+    context.timeZone,
   );
   return {
     context,
@@ -266,6 +268,17 @@ function toOccurrenceRangeReadQuery(
     rangeEndAt: range.endAt,
     limit,
   };
+}
+
+function requireOccurrencePage(
+  pages: readonly Awaited<ReturnType<PlanningOccurrenceSourceReader["readBoundedOccurrences"]>>[],
+  index: number,
+) {
+  const page = pages[index];
+  if (!page) {
+    throw new Error("The planning snapshot did not return every requested occurrence page.");
+  }
+  return page;
 }
 
 function toRangeDto(range: ReturnType<typeof buildLocalRange>) {

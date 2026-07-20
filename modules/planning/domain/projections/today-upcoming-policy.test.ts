@@ -62,6 +62,19 @@ describe("Today projection policy", () => {
     expect(ids(projection.overdue)).toEqual(["ends-today"]);
   });
 
+  it("excludes a reopened historical key that the current rule no longer emits", () => {
+    const schedule = allDay("2026-07-20", "2026-07-21");
+    const projection = projectToday(
+      [
+        recurringOccurrence("preserved", "o1.preserved", schedule, false),
+        recurringOccurrence("current", "o1.current", schedule),
+      ],
+      singaporeContext,
+    );
+
+    expect(ids(projection.anytime)).toEqual(["current"]);
+  });
+
   it("filters terminal and deleted records defensively", () => {
     const schedule = allDay("2026-07-20", "2026-07-21");
     const projection = projectToday(
@@ -175,6 +188,7 @@ function recurringOccurrence(
   taskId: string,
   occurrenceKey: string,
   schedule: ProjectionSchedule,
+  transitionEligible = true,
 ): ProjectionSourceTask {
   return {
     ...task(taskId, schedule),
@@ -182,6 +196,7 @@ function recurringOccurrence(
     projectionLifecycle: "recurring_occurrence",
     occurrenceKey,
     occurrenceState: "open",
+    transitionEligible,
   };
 }
 

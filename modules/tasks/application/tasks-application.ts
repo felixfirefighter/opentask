@@ -16,7 +16,12 @@ import { createSectionApplication } from "./section-application";
 import { createTagApplication } from "./tag-application";
 import { createTaskApplication } from "./task-application";
 import { createTaskSnapshotReader } from "./task-snapshot-reader";
-import { createTaskPlanningSourceReader } from "./task-planning-source-reader";
+import {
+  createTaskPlanningSourceReader,
+  createTaskPlanningSourceSnapshotReader,
+} from "./task-planning-source-reader";
+import { createTaskPlanningSnapshotReader } from "./task-planning-snapshot-reader";
+import { createPostgresTaskReadSnapshot } from "./task-read-snapshot";
 import { createReviewedPlanTaskWriter } from "./reviewed-plan-task-writer";
 import { RruleRecurrenceExpander } from "../infrastructure/recurrence/rrule-expander";
 import type { TaskScheduleTable } from "../infrastructure/schema";
@@ -33,6 +38,27 @@ export function createTasksApplication({
   resolveUserTimezone?: UserTimezoneResolver;
 }) {
   const expansion = new RruleRecurrenceExpander();
+  const readSnapshot = createPostgresTaskReadSnapshot(database);
+  const occurrenceApplication = createTaskOccurrenceApplication({
+    database,
+    clock,
+    taskSchedules,
+    expansion,
+    resolveUserTimezone,
+    createEventId: randomUUID,
+    snapshot: readSnapshot,
+  });
+  const { readBoundedOccurrencesInSnapshot, ...occurrences } = occurrenceApplication;
+  const readOpenTasksInSnapshot = createTaskPlanningSourceSnapshotReader({ taskSchedules });
+  const planningSource = createTaskPlanningSourceReader({
+    snapshot: readSnapshot,
+    readInSnapshot: readOpenTasksInSnapshot,
+  });
+  const planningSnapshot = createTaskPlanningSnapshotReader({
+    snapshot: readSnapshot,
+    readOpenTasksInSnapshot,
+    readOccurrencesInSnapshot: readBoundedOccurrencesInSnapshot,
+  });
   return {
     folders: createFolderApplication({ database, clock }),
     lists: createListApplication({ database, clock }),
@@ -49,21 +75,15 @@ export function createTasksApplication({
       taskSchedules,
       expansion,
       resolveUserTimezone,
+      snapshot: readSnapshot,
     }),
-    occurrences: createTaskOccurrenceApplication({
-      database,
-      clock,
-      taskSchedules,
-      expansion,
-      resolveUserTimezone,
-      createEventId: randomUUID,
-    }),
-    planningSource: createTaskPlanningSourceReader({ database, taskSchedules }),
+    occurrences,
+    planningSource,
+    planningSnapshot,
     reviewedPlanWrites: createReviewedPlanTaskWriter({
       clock,
       taskSchedules,
       recurrenceExpansion: expansion,
-      resolveUserTimezone,
     }),
     taskSnapshots: createTaskSnapshotReader({ database, taskSchedules }),
   } as const;

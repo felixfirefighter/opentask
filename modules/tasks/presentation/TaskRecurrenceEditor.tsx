@@ -128,6 +128,8 @@ export function TaskRecurrenceEditor({
           <>
             <Check size={13} aria-hidden="true" /> {editor.saveMessage}
           </>
+        ) : editor.recurrenceVersionMismatch ? (
+          "Refreshing latest recurrence…"
         ) : disabled ? (
           "Reconnect to edit recurrence."
         ) : (
@@ -160,7 +162,7 @@ function RecurrenceActions({
   editableOwner,
   disabled,
 }: Readonly<{ editor: Editor; editableOwner: boolean; disabled: boolean }>) {
-  const unavailable = disabled || !editableOwner;
+  const unavailable = disabled || editor.controlsDisabled || !editableOwner;
   return (
     <div className={styles.summaryActions}>
       <button className="secondary-button" type="button" disabled={unavailable} onClick={editor.beginEditing}>

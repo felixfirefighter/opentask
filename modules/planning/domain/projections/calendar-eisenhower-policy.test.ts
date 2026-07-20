@@ -179,6 +179,7 @@ function recurringOccurrence(
     projectionLifecycle: "recurring_occurrence",
     occurrenceKey,
     occurrenceState,
+    transitionEligible: true,
   };
 }
 

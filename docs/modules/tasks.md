@@ -159,13 +159,28 @@ No public contract exposes a Drizzle row or an unscoped repository method.
 - Aggregate commands use one lock order: owning task row, recurrence row when present, schedule row
   when present, then occurrence-event reads/appends. Schedule edits, occurrence transitions,
   cancel/reopen, and delete/restore never acquire those resources in another order.
+- Public occurrence reads resolve or receive, then validate, one projection timezone before opening
+  actor-scoped, repeatable-read, read-only snapshots; internal snapshot readers receive that
+  explicit value.
+  Exact occurrence detail and recurrence detail resolve their owning aggregates there. Bounded
+  projections use the same snapshot for one-offs, current recurrence sources, latest events, and
+  late historical-source hydration; repository reads remain sequential on the transaction's one
+  PostgreSQL client. One validated projection-timezone value is held constant for all-day
+  interpretation throughout the read. They never combine a pre-command event with a post-command
+  task version.
+- The public planning composite accepts one independently capped canonical-task query and one or two
+  independently capped occurrence queries plus the validated saved timezone already used to derive
+  their date and instant bounds. Tasks executes every subread sequentially in one actor-scoped
+  repeatable-read snapshot, applies that same timezone to both occurrence pages, and returns only
+  typed application DTOs; no executor or repository crosses the module boundary.
 - Completing or skipping an occurrence never changes the series task status. Normal terminal-state
   commands do not stand in for occurrence actions; an explicit rule edit/end controls future
   expansion. Rule and schedule edits select a future cutover, preserve recorded occurrence events and
   their keys, do not reconstruct unrecorded earlier projections, and cannot create a second identity
   for the same canonical occurrence.
-- The rule timezone must equal the timed schedule timezone. All-day recurrence stores the user's
-  validated IANA timezone at create/edit; a later preference change does not shift its local dates.
+- The rule timezone must equal the timed schedule timezone. All-day recurrence resolves the user's
+  validated IANA timezone before its create/edit write transaction and stores it with the rule; a
+  later preference change does not shift its local dates.
 - Soft-deleted tasks are absent from normal projections and search. Purge is not exposed.
 - Create commands use the client-generated UUIDv4 resource ID as their idempotency key. While a
   resource row is retained, an equivalent retry returns it and a mismatched reuse conflicts;

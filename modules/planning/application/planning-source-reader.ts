@@ -52,6 +52,7 @@ export type PlanningBoundedOccurrenceProjection =
         taskVersion: number;
         occurrenceKey: string;
         occurrenceState: PlanningOccurrenceState;
+        transitionEligible: boolean;
         schedule: TaskScheduleValue;
       }>;
     }>;
@@ -82,11 +83,32 @@ export type PlanningOccurrenceRangeQuery = Readonly<{
   limit: number;
 }>;
 
+export type PlanningCompositeSourceRequest = Readonly<{
+  timeZone: string;
+  taskQuery: PlanningTaskSourceQuery;
+  occurrenceQueries:
+    [PlanningOccurrenceRangeQuery] | [PlanningOccurrenceRangeQuery, PlanningOccurrenceRangeQuery];
+}>;
+
+export type PlanningCompositeSourceResult = Readonly<{
+  taskPage: PlanningTaskSourcePage;
+  occurrencePages: readonly PlanningOccurrenceSourcePage[];
+}>;
+
+/** Narrow structural boundary over the tasks module's repeatable-read planning snapshot. */
+export type PlanningCompositeSourceReader = Readonly<{
+  readPlanningSnapshot(
+    actor: AuthenticatedActor,
+    request: PlanningCompositeSourceRequest,
+  ): Promise<PlanningCompositeSourceResult>;
+}>;
+
 /** Narrow structural boundary over the tasks module's bounded occurrence reader. */
 export type PlanningOccurrenceSourceReader = Readonly<{
   readBoundedOccurrences(
     actor: AuthenticatedActor,
     query: PlanningOccurrenceRangeQuery,
+    projectionTimeZone?: string,
   ): Promise<PlanningOccurrenceSourcePage>;
 }>;
 

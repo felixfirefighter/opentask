@@ -84,12 +84,13 @@ Smart lists, calendar events, agenda rows, and Eisenhower quadrants are projecti
 
 Authenticated server-rendered workspace pages remain dynamic and PostgreSQL-authoritative. After a
 successful task, schedule, planner-apply, or date/time-preference mutation, presentation adapters
-invalidate affected TanStack Query data and mark one workspace-route revision stale. A projection
+invalidate affected TanStack Query data and increment one workspace-route revision. A projection
 route also refreshes its current React Server Component payload when the just-completed command can
-change the visible projection. The shared authenticated shell consumes the stale revision once on
-the next normal pathname transition or browser-history navigation, then clears it; it never forces
-refreshes on every later route for the rest of the session. Browser Back always refreshes once to
-avoid reviving an older Router Cache payload.
+change the visible projection. The shared authenticated shell consumes that revision at most once
+per route key as normal pathname transitions or browser-history navigation revisit cached payloads.
+Its per-route bookkeeping is bounded; an evicted route may conservatively refresh again rather than
+revive stale data. A later revision makes each revisited route eligible once again. Browser Back
+checks the current revision and refreshes stale payloads during history navigation.
 
 This is a presentation cache-invalidation contract, not a second data store or offline protocol.
 Unknown write outcomes retain the user's command/draft, describe the result as unconfirmed, and load
@@ -120,8 +121,15 @@ Domain tests must cover spring-forward/fall-back behavior for at least one repre
 - `modules/tasks` owns task recurrence rules, append-only occurrence events, deterministic occurrence
   identity, and range-bounded expansion. Pure recurrence policy defines presets, limits, calendar
   semantics, and identity; the `rrule` import is confined to a task infrastructure adapter behind an
-  application-owned expansion port. `modules/planning` consumes only the public bounded occurrence
-  projection and never stores recurrence state.
+  application-owned expansion port. Public bounded occurrence reads resolve or receive, then
+  validate, one projection timezone before opening an actor-scoped repeatable-read snapshot;
+  internal snapshot readers accept that explicit value rather than resolving identity inside the
+  transaction. Today/Matrix consume a
+  tasks-owned composite that reads canonical task and occurrence pages sequentially in one snapshot.
+  All-day recurrence mutations resolve the saved timezone before their write transaction. Planning
+  reads the saved timezone once and passes the same validated value used for range construction
+  through every occurrence subread; `modules/planning` receives only typed application DTOs, never a
+  database executor, and never stores recurrence state.
 - `modules/habits` owns habit definitions, schedules, local-day logs, and derived streak/heat-map
   projections. Other modules consume narrow public ownership/snapshot contracts.
 - `modules/focus` owns authoritative active and completed focus/break session state. It accepts only
@@ -158,6 +166,7 @@ Hard rules:
 - No raw model output becomes a repository command.
 - Model fields are semantic suggestions, never trusted database identifiers.
 - Deterministic code owns overlap, work-window, timezone, version, authorization, and allowed-action rules.
+  Planner preview and apply-time busy revalidation use the proposal's same validated timezone.
 - Proposal payload has `schemaVersion`, prompt/model metadata, expiry, and an idempotent apply token.
 - The user sees uncertainties and overflow; the system does not fabricate resolution.
 

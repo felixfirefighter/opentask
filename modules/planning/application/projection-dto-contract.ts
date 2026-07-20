@@ -5,13 +5,25 @@ import { ianaTimeZoneSchema } from "@/shared/validation/time-zone";
 import { compareInstants, compareLocalDates } from "../domain/projections/local-time-policy";
 import { PLANNING_PROJECTION_MAX_ROWS } from "./projection-query-contract";
 import {
+  RECURRENCE_DRAG_DISABLED_REASON,
+  RECURRENCE_MATRIX_EMPTY_SUMMARY,
+  unicodeBoundedString,
+  validateCalendarEventMetadata,
+  validatePlanningTaskMetadata,
+  validateUniqueProjectionRows,
+} from "./projection-dto-validation";
+import {
+  oneOffProjectionId,
+  recurrenceSummaryProjectionId,
+  recurringOccurrenceProjectionId,
+} from "./projection-identity";
+import {
   planningProjectionTruncationFields,
   validatePlanningProjectionTruncation,
 } from "./projection-truncation";
 
-export const RECURRENCE_DRAG_DISABLED_REASON =
-  "Recurring occurrences must be edited through the series schedule.";
-export const RECURRENCE_MATRIX_EMPTY_SUMMARY = "No occurrence in the next 62 days";
+export { RECURRENCE_DRAG_DISABLED_REASON, RECURRENCE_MATRIX_EMPTY_SUMMARY };
+export { oneOffProjectionId, recurrenceSummaryProjectionId, recurringOccurrenceProjectionId };
 
 const entityIdSchema = z.uuidv4();
 const projectionIdSchema = z.string().min(1).max(160);
@@ -19,7 +31,7 @@ const occurrenceKeySchema = z
   .string()
   .min(1)
   .max(80)
-  .regex(/^o1\.[A-Za-z0-9_-]+$/, "The occurrence identity is invalid.");
+  .regex(/^o[12]\.[A-Za-z0-9_-]+$/, "The occurrence identity is invalid.");
 const titleSchema = unicodeBoundedString(500);
 const rankSchema = z.string().min(1).max(128);
 const versionSchema = z.number().int().positive().max(2_147_483_647);
@@ -67,6 +79,7 @@ const planningTaskFields = {
   projectionLifecycle: projectionLifecycleSchema,
   occurrenceKey: occurrenceKeySchema.nullable(),
   occurrenceState: occurrenceStateSchema.nullable(),
+  transitionEligible: z.boolean().nullable(),
   recurrenceSummary: z.string().min(1).max(120).nullable(),
   scheduleInteraction: scheduleInteractionSchema,
   listId: entityIdSchema,
@@ -159,6 +172,7 @@ const calendarEventFields = {
   projectionLifecycle: projectionLifecycleSchema,
   occurrenceKey: occurrenceKeySchema.nullable(),
   occurrenceState: occurrenceStateSchema.nullable(),
+  transitionEligible: z.boolean().nullable(),
   recurrenceSummary: z.string().min(1).max(120).nullable(),
   scheduleInteraction: scheduleInteractionSchema,
   listId: entityIdSchema,
@@ -271,129 +285,3 @@ export type ProjectionLifecycle = z.infer<typeof projectionLifecycleSchema>;
 export type TodayProjection = z.infer<typeof todayProjectionSchema>;
 export type UpcomingProjection = z.infer<typeof upcomingProjectionSchema>;
 export type { PlanningProjectionTruncationReason } from "./projection-truncation";
-
-export function oneOffProjectionId(taskId: string): string {
-  return `task:${taskId}`;
-}
-
-export function recurringOccurrenceProjectionId(taskId: string, occurrenceKey: string): string {
-  return `occurrence:${taskId}:${occurrenceKey}`;
-}
-
-export function recurrenceSummaryProjectionId(taskId: string): string {
-  return `series:${taskId}`;
-}
-
-function validateProjectionMetadata(
-  value: Readonly<{
-    taskId: string;
-    projectionId: string;
-    projectionLifecycle: ProjectionLifecycle;
-    occurrenceKey: string | null;
-    occurrenceState: "open" | "completed" | "skipped" | null;
-    recurrenceSummary: string | null;
-    scheduleInteraction: Readonly<{
-      editScope: "task" | "series";
-      dragEnabled: boolean;
-      dragDisabledReason: string | null;
-    }>;
-  }>,
-  context: z.RefinementCtx,
-) {
-  const recurrenceInteraction =
-    value.scheduleInteraction.editScope === "series" &&
-    !value.scheduleInteraction.dragEnabled &&
-    value.scheduleInteraction.dragDisabledReason === RECURRENCE_DRAG_DISABLED_REASON;
-
-  if (value.projectionLifecycle === "one_off") {
-    if (
-      value.projectionId !== oneOffProjectionId(value.taskId) ||
-      value.occurrenceKey !== null ||
-      value.occurrenceState !== null ||
-      value.recurrenceSummary !== null ||
-      value.scheduleInteraction.editScope !== "task" ||
-      !value.scheduleInteraction.dragEnabled ||
-      value.scheduleInteraction.dragDisabledReason !== null
-    ) {
-      context.addIssue({ code: "custom", message: "The one-off projection metadata is inconsistent." });
-    }
-    return;
-  }
-
-  if (value.projectionLifecycle === "recurring_occurrence") {
-    if (
-      value.occurrenceKey === null ||
-      value.occurrenceState === null ||
-      value.recurrenceSummary !== null ||
-      value.projectionId !== recurringOccurrenceProjectionId(value.taskId, value.occurrenceKey) ||
-      !recurrenceInteraction
-    ) {
-      context.addIssue({ code: "custom", message: "The recurring occurrence metadata is inconsistent." });
-    }
-    return;
-  }
-
-  if (
-    value.projectionId !== recurrenceSummaryProjectionId(value.taskId) ||
-    value.occurrenceKey !== null ||
-    value.occurrenceState !== null ||
-    value.recurrenceSummary !== RECURRENCE_MATRIX_EMPTY_SUMMARY ||
-    !recurrenceInteraction
-  ) {
-    context.addIssue({ code: "custom", message: "The recurrence summary metadata is inconsistent." });
-  }
-}
-
-function validatePlanningTaskMetadata(
-  value: Omit<Parameters<typeof validateProjectionMetadata>[0], "taskId"> &
-    Readonly<{ id: string; schedule: unknown | null }>,
-  context: z.RefinementCtx,
-) {
-  validateProjectionMetadata({ ...value, taskId: value.id }, context);
-  if (value.projectionLifecycle === "recurring_occurrence" && value.schedule === null) {
-    context.addIssue({ code: "custom", path: ["schedule"], message: "An occurrence must be scheduled." });
-  }
-  if (value.projectionLifecycle === "recurrence_summary" && value.schedule !== null) {
-    context.addIssue({
-      code: "custom",
-      path: ["schedule"],
-      message: "A recurrence summary cannot expose the root schedule as an occurrence.",
-    });
-  }
-}
-
-function validateCalendarEventMetadata(
-  value: Parameters<typeof validateProjectionMetadata>[0],
-  context: z.RefinementCtx,
-) {
-  validateProjectionMetadata(value, context);
-  if (value.projectionLifecycle === "recurrence_summary") {
-    context.addIssue({ code: "custom", message: "A recurrence summary cannot be a Calendar event." });
-  }
-}
-
-function validateUniqueProjectionRows(
-  rows: readonly Readonly<{ projectionId: string }>[],
-  surface: string,
-  context: z.RefinementCtx,
-) {
-  if (rows.length > PLANNING_PROJECTION_MAX_ROWS) {
-    context.addIssue({
-      code: "custom",
-      message: `A ${surface} projection cannot exceed ${PLANNING_PROJECTION_MAX_ROWS} rows.`,
-    });
-  }
-  if (new Set(rows.map((row) => row.projectionId)).size !== rows.length) {
-    context.addIssue({ code: "custom", message: `${surface} projection identities must be unique.` });
-  }
-}
-
-function unicodeBoundedString(maximum: number) {
-  return z
-    .string()
-    .trim()
-    .min(1)
-    .refine((value) => Array.from(value).length <= maximum, {
-      message: `Must contain at most ${maximum} Unicode characters.`,
-    });
-}

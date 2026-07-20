@@ -40,9 +40,11 @@ export const taskDetailDtoSchema = taskDtoSchema.extend({
   subtasks: z.array(taskDtoSchema),
 });
 
+const taskRecurrenceSummarySchema = z.strictObject({ status: z.enum(["active", "ended"]) });
+
 export const taskListItemDtoSchema = taskDtoSchema.extend({
   tags: z.array(tagDtoSchema),
-  recurrence: z.strictObject({ status: z.enum(["active", "ended"]) }).nullable(),
+  recurrence: taskRecurrenceSummarySchema.nullable(),
 });
 
 export const taskPageSchema = z.strictObject({
@@ -121,6 +123,7 @@ export const taskSearchQuerySchema = z.strictObject({
 export const taskSearchResultDtoSchema = z.strictObject({
   task: taskDtoSchema,
   list: z.strictObject({ id: entityIdSchema, name: organizerNameSchema }),
+  recurrence: taskRecurrenceSummarySchema.nullable(),
   matchedFields: z
     .array(z.enum(["title", "description", "tag"]))
     .min(1)

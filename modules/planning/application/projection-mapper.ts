@@ -155,6 +155,7 @@ function mapOccurrenceSourceRow(item: PlanningBoundedOccurrenceProjection): Proj
     projectionLifecycle: "recurring_occurrence",
     occurrenceKey: item.occurrence.occurrenceKey,
     occurrenceState: item.occurrence.occurrenceState,
+    transitionEligible: item.occurrence.transitionEligible,
     schedule: mapSchedule(item.occurrence.schedule),
   };
 }
@@ -199,6 +200,7 @@ function projectionMetadata(task: ProjectionSourceTask) {
       projectionLifecycle: task.projectionLifecycle,
       occurrenceKey: null,
       occurrenceState: null,
+      transitionEligible: null,
       recurrenceSummary: null,
       scheduleInteraction: {
         editScope: "task",
@@ -212,6 +214,7 @@ function projectionMetadata(task: ProjectionSourceTask) {
       projectionLifecycle: task.projectionLifecycle,
       occurrenceKey: task.occurrenceKey,
       occurrenceState: task.occurrenceState,
+      transitionEligible: task.transitionEligible,
       recurrenceSummary: null,
       scheduleInteraction: {
         editScope: "series",
@@ -224,6 +227,7 @@ function projectionMetadata(task: ProjectionSourceTask) {
     projectionLifecycle: task.projectionLifecycle,
     occurrenceKey: null,
     occurrenceState: null,
+    transitionEligible: null,
     recurrenceSummary: task.recurrenceSummary,
     scheduleInteraction: {
       editScope: "series",

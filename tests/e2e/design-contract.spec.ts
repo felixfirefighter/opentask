@@ -7,6 +7,20 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { signUpThroughUi } from "./support/wp01-auth";
 import { assertPriorityMarkers, readBaseTaskRowContract } from "./support/task-row-contract";
 import { addTagToTask, quickAddTask, taskRow, updateTask } from "./support/wp03-tasks";
+import {
+  applyOccurrenceWithoutDeliveringResponse,
+  occurrenceDetailPath,
+  P2_OCCURRENCE_DEMO,
+  readOpenDemoOccurrenceKey,
+  unavailableDemoOccurrenceKey,
+} from "./support/p2-occurrence-evidence";
+import {
+  acquireTaskReadBarrier,
+  deleteIsolatedDemoUser,
+  readAuthenticatedUserId,
+  readTaskForConflict,
+  seedOccurrenceAheadOfTask,
+} from "./support/p2-task-route-state-fixture";
 
 const calendarCreateProjects = new Set([
   "desktop-chromium",
@@ -414,6 +428,175 @@ test("the Calendar create form fits every required responsive viewport", async (
   });
 });
 
+test("exact occurrence details preserve every released responsive state", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
+  await page.goto("/");
+  const demoResponse = page.waitForResponse(
+    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Try demo" }).click();
+  expect((await demoResponse).status()).toBe(200);
+  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  const occurrenceKey = await readOpenDemoOccurrenceKey(page);
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/p2/occurrence-details");
+  await mkdir(evidenceDirectory, { recursive: true });
+
+  await page.goto(occurrenceDetailPath(occurrenceKey));
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(P2_OCCURRENCE_DEMO.taskTitle);
+  const occurrence = selectedOccurrencePanel(page);
+  await expect(occurrence.getByRole("heading", { name: "Selected occurrence", exact: true })).toBeVisible();
+  await expect(occurrence.getByRole("button", { name: "Complete occurrence", exact: true })).toBeEnabled();
+  await expect(occurrence.getByRole("button", { name: "Skip occurrence", exact: true })).toBeEnabled();
+  await expectResponsiveTarget(
+    page,
+    page.getByRole("link", { name: "Back to task list", exact: true }),
+    "occurrence details back",
+  );
+  await captureOccurrenceEvidence(page, testInfo.project.name, evidenceDirectory, "default");
+
+  if (["desktop-chromium", "mobile-chromium"].includes(testInfo.project.name)) {
+    await setDocumentTheme(page, "dark");
+    await captureOccurrenceEvidence(page, testInfo.project.name, evidenceDirectory, "default-dark");
+    await setDocumentTheme(page, "light");
+  }
+
+  if (testInfo.project.name === "desktop-chromium") {
+    const initialViewport = page.viewportSize();
+    if (!initialViewport) throw new Error("The desktop occurrence audit requires a viewport.");
+    await page.setViewportSize({ width: 720, height: 900 });
+    await captureOccurrenceEvidence(page, testInfo.project.name, evidenceDirectory, "default-zoom-200");
+    await page.setViewportSize(initialViewport);
+  }
+
+  await page.context().setOffline(true);
+  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
+  await expect(occurrence.getByRole("button", { name: "Complete occurrence", exact: true })).toBeDisabled();
+  await captureOccurrenceEvidence(page, testInfo.project.name, evidenceDirectory, "offline");
+  await page.context().setOffline(false);
+  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeHidden();
+
+  await expect(occurrence.getByRole("button", { name: "Complete occurrence", exact: true })).toBeEnabled();
+  await applyOccurrenceWithoutDeliveringResponse(page);
+  await expect(
+    occurrence.getByRole("button", { name: "Retry exact occurrence change", exact: true }),
+  ).toBeVisible();
+  await expect(
+    occurrence.getByRole("button", { name: "Continue with latest state", exact: true }),
+  ).toBeVisible();
+  await captureOccurrenceEvidence(page, testInfo.project.name, evidenceDirectory, "recovery");
+
+  await page.goto(occurrenceDetailPath(unavailableDemoOccurrenceKey()));
+  const unavailable = selectedOccurrencePanel(page);
+  await expect(
+    unavailable.getByText("This occurrence is no longer available under the current series schedule."),
+  ).toBeVisible();
+  await expect(unavailable.getByRole("button", { name: "Check again", exact: true })).toBeVisible();
+  await captureOccurrenceEvidence(page, testInfo.project.name, evidenceDirectory, "unavailable");
+});
+
+test("task-detail route states preserve every released responsive and recovery contract", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(240_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
+  await page.goto("/");
+  const demoResponse = page.waitForResponse(
+    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Try demo" }).click();
+  expect((await demoResponse).status()).toBe(200);
+  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+
+  const userId = await readAuthenticatedUserId(page);
+  const occurrenceKey = await readOpenDemoOccurrenceKey(page);
+  const occurrencePath = occurrenceDetailPath(occurrenceKey);
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/p2/task-route-states");
+  await mkdir(evidenceDirectory, { recursive: true });
+
+  try {
+    await page.goto(
+      `/tasks/00000000-0000-4000-8000-000000000099?${new URLSearchParams({ returnTo: "/today" })}`,
+    );
+    const permissionHeading = page.getByRole("heading", {
+      level: 1,
+      name: "Task unavailable",
+      exact: true,
+    });
+    await expect(permissionHeading).toBeVisible();
+    await expect(page.getByText("This task could not be found or you may not have access.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
+      "href",
+      "/today",
+    );
+    await captureTaskRouteStateEvidence(page, testInfo.project.name, evidenceDirectory, "permission");
+
+    await page.goto("/today");
+    const occurrenceLink = page
+      .locator(`[data-planning-task-id="${P2_OCCURRENCE_DEMO.taskId}"][data-occurrence-state="open"]`)
+      .locator("[data-planning-task-open]");
+    await expect(occurrenceLink).toBeVisible();
+    const barrier = await acquireTaskReadBarrier();
+    try {
+      await occurrenceLink.evaluate((element) => (element as HTMLElement).click());
+      const loadingHeading = page.getByRole("heading", {
+        level: 1,
+        name: "Opening task details…",
+        exact: true,
+      });
+      await expect(loadingHeading).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator('[data-loading-shape="task-detail"]')).toBeVisible();
+      await expect(page.getByRole("link", { name: "Back to task list", exact: true })).toHaveAttribute(
+        "href",
+        "/today",
+      );
+      await captureTaskRouteStateEvidence(page, testInfo.project.name, evidenceDirectory, "loading");
+    } finally {
+      await barrier.release();
+    }
+    await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(P2_OCCURRENCE_DEMO.taskTitle, {
+      timeout: 30_000,
+    });
+
+    const staleTask = await readTaskForConflict(page, P2_OCCURRENCE_DEMO.taskId);
+    await updateTask(page, staleTask, {
+      descriptionMd: `Responsive conflict proof ${testInfo.project.name}`,
+    });
+    const conflictResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname ===
+          `/api/v1/tasks/${P2_OCCURRENCE_DEMO.taskId}/occurrences/transition` &&
+        response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "Complete occurrence", exact: true }).click();
+    expect((await conflictResponse).status()).toBe(409);
+    await expect(selectedOccurrencePanel(page).getByRole("alert")).toContainText(
+      "This occurrence changed elsewhere. The latest saved state is shown; review it before trying again.",
+    );
+    await captureOccurrenceEvidence(page, testInfo.project.name, evidenceDirectory, "conflict");
+
+    await seedOccurrenceAheadOfTask(userId, P2_OCCURRENCE_DEMO.taskId, occurrenceKey);
+    await page.goto(occurrencePath);
+    const errorHeading = page.getByRole("heading", {
+      level: 1,
+      name: "Task unavailable",
+      exact: true,
+    });
+    await expect(errorHeading).toBeVisible();
+    await expect(errorHeading).toBeFocused();
+    await expect(
+      page.getByText("Task details could not be loaded. Your data was not changed."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible();
+    await captureTaskRouteStateEvidence(page, testInfo.project.name, evidenceDirectory, "error");
+  } finally {
+    await page.goto("about:blank").catch(() => undefined);
+    await deleteIsolatedDemoUser(userId);
+  }
+});
+
 test("every released route reflows at the tablet and minimum-width boundaries", async ({
   page,
 }, testInfo) => {
@@ -607,6 +790,91 @@ async function captureBoundaryRoute(
   });
 }
 
+async function captureOccurrenceEvidence(
+  page: Page,
+  projectName: string,
+  evidenceDirectory: string,
+  state: string,
+) {
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.scrollTo(0, 0);
+  });
+  const occurrence = selectedOccurrencePanel(page);
+  await expect(occurrence).toBeVisible();
+  await occurrence.scrollIntoViewIfNeeded();
+  await expectUsesSans(
+    occurrence.getByRole("heading", { name: "Selected occurrence" }),
+    "occurrence heading",
+  );
+  const layout = await occurrence.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      clientWidth: element.clientWidth,
+      left: rect.left,
+      reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+      right: rect.right,
+      rootClientWidth: document.documentElement.clientWidth,
+      rootScrollWidth: document.documentElement.scrollWidth,
+      scrollWidth: element.scrollWidth,
+      viewportWidth: window.innerWidth,
+    };
+  });
+  expect(layout.rootScrollWidth, `${state} page horizontal overflow`).toBeLessThanOrEqual(
+    layout.rootClientWidth + 1,
+  );
+  expect(layout.scrollWidth, `${state} occurrence horizontal overflow`).toBeLessThanOrEqual(
+    layout.clientWidth + 1,
+  );
+  expect(layout.left).toBeGreaterThanOrEqual(-1);
+  expect(layout.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.reducedMotion).toBe(true);
+  for (const button of await occurrence.getByRole("button").all()) {
+    if (await button.isVisible()) await expectResponsiveTarget(page, button, `${state} occurrence action`);
+  }
+  await page.screenshot({
+    path: path.join(evidenceDirectory, `occurrence-${state}-${projectName}.png`),
+    animations: "disabled",
+  });
+}
+
+async function captureTaskRouteStateEvidence(
+  page: Page,
+  projectName: string,
+  evidenceDirectory: string,
+  state: "error" | "loading" | "permission",
+) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.scrollTo(0, 0);
+  });
+  const heading = page.getByRole("main").getByRole("heading", { level: 1 });
+  await expect(heading).toBeVisible();
+  await expectUsesSans(heading, `${state} task-route heading`);
+  const frame = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(frame.scrollWidth, `${state} task-route horizontal overflow`).toBeLessThanOrEqual(
+    frame.clientWidth + 1,
+  );
+  const controls =
+    state === "loading"
+      ? page.locator('nav[aria-label="Primary navigation"] a, header a, main a, main button')
+      : page.getByRole("main").locator("a, button");
+  for (const control of await controls.all()) {
+    if (await control.isVisible()) await expectResponsiveTarget(page, control, `${state} task-route action`);
+  }
+  await page.screenshot({
+    path: path.join(evidenceDirectory, `task-route-${state}-${projectName}.png`),
+    animations: "disabled",
+    fullPage: true,
+  });
+}
+
 async function expectPlannerStepLabelsUntruncated(page: Page) {
   const labels = page.getByRole("list", { name: "Planning progress" }).locator("strong");
   await expect(labels).toHaveText(["Describe", "Review", "Result"]);
@@ -716,6 +984,19 @@ async function expectUsesSans(locator: Locator, label: string) {
   expect(contract.elementFontFamily, `${label} must use the working sans face`).toBe(
     contract.tokenFontFamily,
   );
+}
+
+function selectedOccurrencePanel(page: Page) {
+  return page.locator('section[aria-labelledby^="occurrence-title-"]');
+}
+
+async function setDocumentTheme(page: Page, theme: "light" | "dark") {
+  await page.evaluate((nextTheme) => {
+    localStorage.setItem("opentask-theme-preference", nextTheme);
+    document.documentElement.dataset.themePreference = nextTheme;
+    document.documentElement.dataset.theme = nextTheme;
+  }, theme);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
 
 function pixels(value: string) {

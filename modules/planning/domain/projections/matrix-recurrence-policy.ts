@@ -19,6 +19,7 @@ export function selectMatrixRecurrenceRows(
     if (
       row.projectionLifecycle !== "recurring_occurrence" ||
       row.occurrenceState !== "open" ||
+      !row.transitionEligible ||
       row.schedule === null
     ) {
       continue;
@@ -30,6 +31,7 @@ export function selectMatrixRecurrenceRows(
     if (
       row.projectionLifecycle === "recurring_occurrence" &&
       row.occurrenceState === "open" &&
+      row.transitionEligible &&
       row.schedule !== null
     ) {
       occurrences.set(row.projectionId, row);

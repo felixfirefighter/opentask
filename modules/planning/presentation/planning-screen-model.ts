@@ -6,6 +6,10 @@ export type PlanningCategory = "coral" | "amber" | "mint" | "sky" | "violet" | "
 export type PlanningProjectionLifecycle = "one_off" | "recurring_occurrence" | "recurrence_summary";
 export type PlanningOccurrenceState = "open" | "completed" | "skipped";
 export type PlanningOccurrenceAction = "complete" | "skip" | "undo";
+export type PlanningTaskOpenOptions = Readonly<{
+  editSeriesSchedule?: boolean | undefined;
+  occurrenceKey?: string | null | undefined;
+}>;
 export type PlanningScheduleInteraction = Readonly<{
   editScope: "task" | "series";
   dragEnabled: boolean;
@@ -22,6 +26,7 @@ export type PlanningTaskRowModel = Readonly<{
   projectionLifecycle: PlanningProjectionLifecycle;
   occurrenceKey: string | null;
   occurrenceState: PlanningOccurrenceState | null;
+  transitionEligible: boolean | null;
   recurrenceSummary: string | null;
   scheduleInteraction: PlanningScheduleInteraction;
   scheduleLabel: string;
@@ -31,7 +36,7 @@ export type PlanningTaskRowModel = Readonly<{
 }>;
 
 export type PlanningTaskActions = Readonly<{
-  onOpenTask?: ((taskId: string) => void) | undefined;
+  onOpenTask?: ((taskId: string, options?: PlanningTaskOpenOptions) => void) | undefined;
   onStatusChange?: ((taskId: string, status: PlanningTaskStatus) => void) | undefined;
   onOccurrenceTransition?:
     | ((
@@ -43,7 +48,7 @@ export type PlanningTaskActions = Readonly<{
     | undefined;
   onPriorityChange?: ((taskId: string, priority: PlanningPriority) => void) | undefined;
   onEditSchedule?: ((taskId: string) => void) | undefined;
-  onEditSeriesSchedule?: ((taskId: string) => void) | undefined;
+  onEditSeriesSchedule?: ((taskId: string, occurrenceKey?: string | null) => void) | undefined;
 }>;
 
 export type PlanningRecoverableCondition =
@@ -117,6 +122,7 @@ export type PlanningCalendarEventModel = Readonly<{
   projectionLifecycle: PlanningProjectionLifecycle;
   occurrenceKey: string | null;
   occurrenceState: PlanningOccurrenceState | null;
+  transitionEligible: boolean | null;
   recurrenceSummary: string | null;
   scheduleInteraction: PlanningScheduleInteraction;
   scheduleLabel: string;

@@ -53,7 +53,7 @@ describe("TaskRow", () => {
       />,
     );
 
-    expect(screen.getByText("Repeats")).toBeInTheDocument();
+    expect(screen.getByText("Repeat")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open recurring task Prepare demo" })).toHaveAttribute(
       "href",
       "/tasks/00000000-0000-4000-8000-000000000010",
@@ -88,6 +88,22 @@ describe("TaskRow", () => {
     );
 
     expect(screen.getByRole("button", { name: "Restore Prepare demo" })).toBeInTheDocument();
+  });
+
+  it("keeps the textual recurrence marker beside terminal context", () => {
+    render(
+      <TaskRow
+        task={taskRow({ status: "cancelled", recurrence: { status: "active" } })}
+        contextLabel="Cancelled July 20"
+        detailsHref="/tasks/00000000-0000-4000-8000-000000000010"
+        onDelete={vi.fn()}
+        onPriorityChange={vi.fn()}
+        onStatusChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Cancelled July 20")).toBeInTheDocument();
+    expect(screen.getByText("Repeat")).toBeInTheDocument();
   });
 });
 

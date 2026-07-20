@@ -6,28 +6,51 @@ import { ApplicationError } from "@/shared/http/application-error";
 
 const mocks = vi.hoisted(() => ({
   getInbox: vi.fn(),
+  getOccurrence: vi.fn(),
   getTask: vi.fn(),
   loadWorkspace: vi.fn(),
 }));
 
 vi.mock("@/modules/tasks", () => ({
   getInbox: mocks.getInbox,
-  getTasksApplication: () => ({ tasks: { getTask: mocks.getTask } }),
+  getTasksApplication: () => ({
+    occurrences: { readOccurrence: mocks.getOccurrence },
+    tasks: { getTask: mocks.getTask },
+  }),
+  occurrenceKeySchema: {
+    safeParse: (value: unknown) =>
+      typeof value === "string" && /^o1\.[A-Za-z0-9_-]+$/u.test(value)
+        ? { success: true, data: value }
+        : { success: false },
+  },
 }));
 
 vi.mock("@/modules/tasks/presentation", () => ({
   TaskCommandPalette: () => null,
   TaskNavigation: () => null,
   TaskDetailScreen: ({
+    initialEditSchedule,
     mode,
+    occurrence,
+    occurrenceRequested,
     returnHref,
     task,
   }: {
+    initialEditSchedule?: boolean;
     mode: string;
+    occurrence?: { occurrenceKey: string } | null;
+    occurrenceRequested?: boolean;
     returnHref: string;
     task: { title: string };
   }) => (
-    <div data-testid="task-detail" data-mode={mode} data-return-href={returnHref}>
+    <div
+      data-testid="task-detail"
+      data-edit-schedule={initialEditSchedule ? "true" : "false"}
+      data-occurrence={occurrence?.occurrenceKey ?? ""}
+      data-occurrence-requested={occurrenceRequested ? "true" : "false"}
+      data-mode={mode}
+      data-return-href={returnHref}
+    >
       {task.title}
     </div>
   ),
@@ -116,6 +139,71 @@ describe("TaskDetailPage", () => {
     expect(mocks.loadWorkspace).toHaveBeenLastCalledWith(`/tasks/${taskId}`);
   });
 
+  it("preserves the approved recurring-schedule edit intent", async () => {
+    mocks.getTask.mockResolvedValue({
+      id: taskId,
+      title: "Prepare demo",
+      listId: "00000000-0000-4000-8000-000000000099",
+    });
+
+    render(
+      await TaskDetailPage({
+        params: Promise.resolve({ taskId }),
+        searchParams: Promise.resolve({ edit: "series-schedule", returnTo: "/calendar" }),
+      }),
+    );
+
+    expect(screen.getByTestId("task-detail")).toHaveAttribute("data-edit-schedule", "true");
+    expect(mocks.loadWorkspace).toHaveBeenCalledWith(
+      `/tasks/${taskId}?returnTo=%2Fcalendar&edit=series-schedule`,
+    );
+  });
+
+  it("loads only a valid actor-scoped occurrence identity into task details", async () => {
+    const occurrenceKey = "o1.current";
+    mocks.getTask.mockResolvedValue({
+      id: taskId,
+      title: "Prepare demo",
+      listId: "00000000-0000-4000-8000-000000000099",
+    });
+    mocks.getOccurrence.mockResolvedValue({ occurrenceKey });
+
+    render(
+      await TaskDetailPage({
+        params: Promise.resolve({ taskId }),
+        searchParams: Promise.resolve({ occurrence: occurrenceKey, returnTo: "/today" }),
+      }),
+    );
+
+    expect(mocks.getOccurrence).toHaveBeenCalledWith(actor, taskId, occurrenceKey);
+    expect(screen.getByTestId("task-detail")).toHaveAttribute("data-occurrence", occurrenceKey);
+    expect(screen.getByTestId("task-detail")).toHaveAttribute("data-occurrence-requested", "true");
+    expect(mocks.loadWorkspace).toHaveBeenCalledWith(
+      `/tasks/${taskId}?returnTo=%2Ftoday&occurrence=${occurrenceKey}`,
+    );
+  });
+
+  it("preserves valid occurrence intent when the actor-scoped identity is unavailable", async () => {
+    const occurrenceKey = "o1.missing";
+    mocks.getTask.mockResolvedValue({
+      id: taskId,
+      title: "Prepare demo",
+      listId: "00000000-0000-4000-8000-000000000099",
+    });
+    mocks.getOccurrence.mockResolvedValue(null);
+
+    render(
+      await TaskDetailPage({
+        params: Promise.resolve({ taskId }),
+        searchParams: Promise.resolve({ occurrence: occurrenceKey, returnTo: "/today" }),
+      }),
+    );
+
+    expect(mocks.getOccurrence).toHaveBeenCalledWith(actor, taskId, occurrenceKey);
+    expect(screen.getByTestId("task-detail")).toHaveAttribute("data-occurrence", "");
+    expect(screen.getByTestId("task-detail")).toHaveAttribute("data-occurrence-requested", "true");
+  });
+
   it("uses the same unavailable state for a missing or foreign task", async () => {
     mocks.getTask.mockRejectedValue(
       new ApplicationError("NOT_FOUND", "The requested resource was not found."),
@@ -131,5 +219,6 @@ describe("TaskDetailPage", () => {
     expect(screen.getByRole("heading", { name: "Task unavailable" })).toBeInTheDocument();
     expect(screen.queryByTestId("task-detail")).not.toBeInTheDocument();
     expect(screen.getByText(/could not be found or you may not have access/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to tasks" })).toHaveAttribute("href", "/inbox");
   });
 });

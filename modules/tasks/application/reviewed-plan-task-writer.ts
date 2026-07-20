@@ -1,6 +1,7 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import type { DatabaseTransaction } from "@/shared/db/client";
 import type { Clock } from "@/shared/time/clock";
+import { ianaTimeZoneSchema } from "@/shared/validation/time-zone";
 
 import {
   reviewedPlanBatchSchema,
@@ -14,8 +15,7 @@ import {
   type TaskScheduleValue,
 } from "./contracts";
 import { generateRanksBetween } from "./ranking";
-import { createBoundedOccurrenceReader } from "./occurrence-reader";
-import type { UserTimezoneResolver } from "./recurrence-application-support";
+import { createBoundedOccurrenceSnapshotReader } from "./occurrence-reader";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
 import { mapSchedule } from "./schedule-application";
 import { assertMutableTask, requireAppliedTask, taskRankLockScope } from "./task-application-support";
@@ -35,12 +35,10 @@ export function createReviewedPlanTaskWriter({
   clock,
   taskSchedules,
   recurrenceExpansion,
-  resolveUserTimezone,
 }: {
   clock: Clock;
   taskSchedules: TaskScheduleTable;
   recurrenceExpansion: RecurrenceExpansionPort;
-  resolveUserTimezone: UserTimezoneResolver;
 }): ReviewedPlanTaskWriter {
   const repository = createReviewedPlanRepository(taskSchedules);
   const tasks = createTaskRepository();
@@ -57,19 +55,22 @@ export function createReviewedPlanTaskWriter({
       const taskIds = parseOptionalTaskIds(rawTaskIds);
       const busyRequest = rawBusyRequest
         ? {
+            timeZone: ianaTimeZoneSchema.parse(rawBusyRequest.timeZone),
             query: taskOccurrenceRangeQuerySchema.parse(rawBusyRequest.query),
             excludedTaskIds: parseOptionalTaskIds(rawBusyRequest.excludedTaskIds),
           }
         : null;
-      const readOccurrences = busyRequest
-        ? createBoundedOccurrenceReader({
-            database: transaction,
+      const readOccurrencesInSnapshot = busyRequest
+        ? createBoundedOccurrenceSnapshotReader({
             taskSchedules,
             expansion: recurrenceExpansion,
-            resolveUserTimezone,
-            serializeSourceReads: true,
           })
         : null;
+      const readOccurrences =
+        readOccurrencesInSnapshot === null || busyRequest === null
+          ? null
+          : (readActor: AuthenticatedActor, query: ReviewedPlanBusyIntervalRequest["query"]) =>
+              readOccurrencesInSnapshot(readActor, query, transaction, busyRequest.timeZone);
       const preview = busyRequest && readOccurrences ? await readOccurrences(actor, busyRequest.query) : null;
       const previewOwnerIds =
         preview && !preview.truncation.truncated ? preview.items.map(({ task }) => task.id) : [];
@@ -270,7 +271,10 @@ async function readStableBusyIntervals(
     actor: AuthenticatedActor;
     request: ReviewedPlanBusyIntervalRequest;
     preview: BoundedTaskOccurrencePage;
-    readOccurrences: ReturnType<typeof createBoundedOccurrenceReader>;
+    readOccurrences: (
+      actor: AuthenticatedActor,
+      query: ReviewedPlanBusyIntervalRequest["query"],
+    ) => Promise<BoundedTaskOccurrencePage>;
     lockedTaskIds: ReadonlySet<string>;
   }>,
 ) {
@@ -287,7 +291,7 @@ async function readStableBusyIntervals(
       const schedule =
         item.projectionKind === "one_off"
           ? item.schedule
-          : item.occurrence.occurrenceState === "open"
+          : item.occurrence.occurrenceState === "open" && item.occurrence.transitionEligible
             ? item.occurrence.schedule
             : null;
       return schedule?.kind === "timed" ? [{ startAt: schedule.startAt, endAt: schedule.endAt }] : [];

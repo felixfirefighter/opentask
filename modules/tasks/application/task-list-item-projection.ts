@@ -20,12 +20,12 @@ export function mapTaskListItems(
     taskListItemDtoSchema.parse({
       ...mapTask(task),
       tags: (tagsByTask.get(task.id) ?? []).map(mapTag),
-      recurrence: mapListRecurrence(recurrenceByTask.get(task.id)),
+      recurrence: mapTaskRecurrenceSummary(recurrenceByTask.get(task.id)),
     }),
   );
 }
 
-function mapListRecurrence(recurrence: StoredTaskRecurrence | undefined) {
+export function mapTaskRecurrenceSummary(recurrence: StoredTaskRecurrence | undefined) {
   if (!recurrence) return null;
   return {
     status:

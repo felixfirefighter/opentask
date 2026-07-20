@@ -4,7 +4,11 @@ import { CalendarClock, ExternalLink } from "lucide-react";
 
 import { Button } from "@/shared/presentation";
 
-import type { PlanningCalendarEventModel, PlanningOccurrenceAction } from "./planning-screen-model";
+import type {
+  PlanningCalendarEventModel,
+  PlanningOccurrenceAction,
+  PlanningTaskOpenOptions,
+} from "./planning-screen-model";
 import styles from "./CalendarScreen.module.css";
 
 export function CalendarScheduleFallback({
@@ -26,7 +30,7 @@ export function CalendarScheduleFallback({
     action: PlanningOccurrenceAction,
     projectionId?: string,
   ) => void;
-  onOpenTask: (taskId: string) => void;
+  onOpenTask: (taskId: string, options?: PlanningTaskOpenOptions) => void;
   onSelectEvent: (eventId: string) => void;
 }>) {
   const selected = events.find((event) => event.projectionId === selectedEventId);
@@ -59,7 +63,7 @@ export function CalendarScheduleFallback({
           type="button"
           variant="secondary"
           disabled={!selected}
-          onClick={() => selected && onOpenTask(selected.taskId)}
+          onClick={() => selected && onOpenTask(selected.taskId, { occurrenceKey: selected.occurrenceKey })}
         >
           <ExternalLink size={16} aria-hidden="true" /> Open task
         </Button>
@@ -75,8 +79,12 @@ export function CalendarScheduleFallback({
           }
           onClick={() => {
             if (!selected) return;
-            if (selected.scheduleInteraction.editScope === "series") onOpenTask(selected.taskId);
-            else onEditSchedule(selected.taskId);
+            if (selected.scheduleInteraction.editScope === "series") {
+              onOpenTask(selected.taskId, {
+                editSeriesSchedule: true,
+                occurrenceKey: selected.occurrenceKey,
+              });
+            } else onEditSchedule(selected.taskId);
           }}
         >
           {selected?.scheduleInteraction.editScope === "series"
@@ -111,6 +119,7 @@ function OccurrenceFallbackActions({
 }>) {
   const occurrenceKey = event.occurrenceKey;
   if (occurrenceKey === null) return null;
+  if (event.occurrenceState === "open" && !event.transitionEligible) return null;
   if (event.occurrenceState !== "open") {
     return (
       <Button

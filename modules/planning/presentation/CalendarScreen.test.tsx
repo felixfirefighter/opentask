@@ -101,7 +101,7 @@ describe("CalendarScreen", () => {
     expect(onEditSchedule).toHaveBeenCalledWith("task-demo");
   });
 
-  it("routes recurring schedule edits to task details and exposes occurrence actions", async () => {
+  it("opens the canonical recurring schedule form and exposes occurrence actions", async () => {
     const user = userEvent.setup();
     const event = recurringEvent("open");
     const onEditSchedule = vi.fn();
@@ -116,7 +116,10 @@ describe("CalendarScreen", () => {
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), event.projectionId);
     await user.click(screen.getByRole("button", { name: "Edit future series schedule" }));
-    expect(onOpenTask).toHaveBeenCalledWith(event.taskId);
+    expect(onOpenTask).toHaveBeenCalledWith(event.taskId, {
+      editSeriesSchedule: true,
+      occurrenceKey: event.occurrenceKey,
+    });
     expect(onEditSchedule).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Complete occurrence" }));
@@ -133,6 +136,23 @@ describe("CalendarScreen", () => {
       "skip",
       event.projectionId,
     );
+  });
+
+  it("keeps a preserved open occurrence selectable without dead Calendar actions", async () => {
+    const user = userEvent.setup();
+    const event = recurringEvent("open", false);
+    const onOccurrenceTransition = vi.fn();
+    renderCalendar({
+      model: { ...calendarFixture, events: [event] },
+      onOccurrenceTransition,
+    });
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), event.projectionId);
+
+    expect(screen.queryByRole("button", { name: "Complete occurrence" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip occurrence" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit future series schedule" })).toBeVisible();
+    expect(onOccurrenceTransition).not.toHaveBeenCalled();
   });
 
   it("keeps terminal occurrences visible with Undo and rejects forced recurring drag", async () => {
@@ -351,13 +371,17 @@ function setMobile(matches: boolean) {
   });
 }
 
-function recurringEvent(occurrenceState: "open" | "completed" | "skipped"): PlanningCalendarEventModel {
+function recurringEvent(
+  occurrenceState: "open" | "completed" | "skipped",
+  transitionEligible = true,
+): PlanningCalendarEventModel {
   return {
     ...calendarFixture.events[0]!,
     projectionId: `occurrence:task-demo:occurrence-${occurrenceState}`,
     projectionLifecycle: "recurring_occurrence",
     occurrenceKey: `occurrence-${occurrenceState}`,
     occurrenceState,
+    transitionEligible,
     scheduleInteraction: {
       editScope: "series",
       dragEnabled: false,

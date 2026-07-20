@@ -39,6 +39,7 @@ export type RecurringOccurrenceProjectionTask = ProjectionTaskFields &
     projectionLifecycle: "recurring_occurrence";
     occurrenceKey: string;
     occurrenceState: ProjectionOccurrenceState;
+    transitionEligible: boolean;
   }>;
 
 export type RecurrenceSummaryProjectionTask = ProjectionTaskFields &
@@ -66,7 +67,9 @@ export function activeTaskProjections(rows: readonly ProjectionSourceTask[]): Op
 /** Actionable rows only; terminal occurrence state never leaks into Today, Upcoming, or Matrix. */
 export function activeOpenTasks(rows: readonly ProjectionSourceTask[]): OpenProjectionTask[] {
   return activeTaskProjections(rows).filter(
-    (row) => row.projectionLifecycle !== "recurring_occurrence" || row.occurrenceState === "open",
+    (row) =>
+      row.projectionLifecycle !== "recurring_occurrence" ||
+      (row.occurrenceState === "open" && row.transitionEligible),
   );
 }
 

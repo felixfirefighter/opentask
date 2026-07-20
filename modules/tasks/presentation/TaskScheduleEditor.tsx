@@ -10,10 +10,15 @@ import { TaskScheduleMutationFeedback } from "./TaskScheduleMutationFeedback";
 import { formatTaskSchedule } from "./task-schedule-form-policy";
 import { useTaskScheduleEditorController } from "./use-task-schedule-editor-controller";
 
-export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: boolean; task: TaskDetailDto }>) {
+export function TaskScheduleEditor({
+  disabled,
+  initiallyEditing = false,
+  task,
+}: Readonly<{ disabled: boolean; initiallyEditing?: boolean | undefined; task: TaskDetailDto }>) {
   const editor = useTaskScheduleEditorController(task, disabled);
   const formRef = useRef<HTMLFormElement>(null);
   const focusFirstFieldRequestedRef = useRef(false);
+  const initialEditPendingRef = useRef(initiallyEditing);
   const mutationFeedbackRef = useRef<HTMLDivElement>(null);
   const saveStateRef = useRef<HTMLParagraphElement>(null);
   const validationRef = useRef<HTMLParagraphElement>(null);
@@ -36,6 +41,21 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
     if (!editor.draft || !focusFirstFieldRequestedRef.current) return;
     focusFirstScheduleField();
   }, [editor.draft]);
+
+  useEffect(() => {
+    if (
+      !initialEditPendingRef.current ||
+      editor.draft ||
+      !editor.schedule ||
+      !editor.recurrence ||
+      editor.scheduleEditDisabled
+    ) {
+      return;
+    }
+    initialEditPendingRef.current = false;
+    focusFirstFieldRequestedRef.current = true;
+    editor.beginEditing();
+  }, [editor]);
 
   function focusFirstScheduleField() {
     focusFirstFieldRequestedRef.current = true;
