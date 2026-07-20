@@ -109,6 +109,29 @@ describe("MatrixScreen", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("A task changed elsewhere");
     expect(screen.getByText("Changed elsewhere")).toBeInTheDocument();
   });
+
+  it("suppresses truncated classifications and offers a safe retry", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    renderMatrix({
+      condition: {
+        kind: "partial",
+        message:
+          "A safety limit was reached during recurrence calculation. Some tasks or occurrences may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_series_candidate_limit"],
+        runtimeCondition: null,
+      },
+      onRetry,
+      taskActions: { onPriorityChange: vi.fn() },
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This planning view is incomplete");
+    expect(screen.getByText("Priority classifications are incomplete")).toBeInTheDocument();
+    expect(screen.queryByText("Confirm the workshop goals")).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: /jump to/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
 });
 
 function emptyMatrix(): MatrixPlanningModel {

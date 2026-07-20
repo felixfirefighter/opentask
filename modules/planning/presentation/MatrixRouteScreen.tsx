@@ -6,6 +6,7 @@ import type { EisenhowerProjection } from "../application/public";
 import { MatrixScreen } from "./MatrixScreen";
 import { PlanningLiveRegion } from "./PlanningLiveRegion";
 import { localDateForInstant } from "./schedule-form-policy";
+import { resolvePlanningProjectionCondition } from "./planning-projection-condition";
 import { ScheduleEditorDialog } from "./ScheduleEditorDialog";
 import { usePlanningProjectionFreshness } from "./use-planning-projection-freshness";
 import { usePlanningTaskController } from "./use-planning-task-controller";
@@ -33,6 +34,7 @@ export function MatrixRouteScreen({
     () => ({
       authoritativeSource: projection,
       destinationLabelForTask: (taskId: string) => destinationByTask.get(taskId) ?? null,
+      mutationsDisabled: projection.truncated,
       taskReturnTo: "/matrix",
     }),
     [destinationByTask, projection],
@@ -47,10 +49,13 @@ export function MatrixRouteScreen({
     hourCycle,
     taskReturnTo: "/matrix",
   });
-  const condition =
-    controller.condition.kind === "ready" && freshness.pendingLocalDateLabel
-      ? ({ kind: "date-changed", currentDateLabel: freshness.pendingLocalDateLabel } as const)
-      : controller.condition;
+  const condition = resolvePlanningProjectionCondition(
+    controller.condition,
+    projection,
+    freshness.pendingLocalDateLabel
+      ? { kind: "date-changed", currentDateLabel: freshness.pendingLocalDateLabel }
+      : null,
+  );
 
   return (
     <>

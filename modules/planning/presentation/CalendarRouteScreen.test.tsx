@@ -25,14 +25,17 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("./CalendarScreen", () => ({
   CalendarScreen: ({
+    condition,
     onAddTask,
     onEditSchedule,
   }: {
+    condition: { kind: string };
     onAddTask: () => void;
     onEditSchedule: (taskId: string) => void;
   }) => (
     <>
-      <button type="button" onClick={onAddTask}>
+      <span data-testid="calendar-condition">{condition.kind}</span>
+      <button type="button" disabled={condition.kind === "partial"} onClick={onAddTask}>
         Add task
       </button>
       <button type="button" onClick={() => onEditSchedule("task-demo")}>
@@ -96,6 +99,28 @@ beforeEach(() => {
 });
 
 describe("CalendarRouteScreen announcements", () => {
+  it("turns application truncation into a partial route condition", () => {
+    render(
+      <CalendarRouteScreen
+        hasSavedView={false}
+        hourCycle="12"
+        inboxId="09d7cb40-9c45-43fc-bb2a-0fa62e920d96"
+        inboxName="Inbox"
+        initialDate="2026-07-20"
+        projection={{
+          ...projection,
+          truncated: true,
+          truncationReasons: ["recurrence_output_limit"],
+        }}
+        view="month"
+        weekStartsOn={1}
+      />,
+    );
+
+    expect(screen.getByTestId("calendar-condition")).toHaveTextContent("partial");
+    expect(screen.getByRole("button", { name: "Add task" })).toBeDisabled();
+  });
+
   it("clears repeated create-success text before announcing the next identical success", async () => {
     const user = userEvent.setup();
     render(
@@ -157,4 +182,5 @@ const projection: CalendarProjection = {
   timeZone: "Asia/Singapore",
   events: [],
   truncated: false,
+  truncationReasons: [],
 };

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import type { TodayProjection } from "../application/public";
 import { PlanningLiveRegion } from "./PlanningLiveRegion";
+import { resolvePlanningProjectionCondition } from "./planning-projection-condition";
 import { nextLocalDate } from "./schedule-form-policy";
 import { ScheduleEditorDialog } from "./ScheduleEditorDialog";
 import { TodayScreen } from "./TodayScreen";
@@ -23,6 +24,7 @@ export function TodayRouteScreen({
   );
   const controller = usePlanningTaskController(tasks, projection.timeZone, {
     authoritativeSource: projection,
+    mutationsDisabled: projection.truncated,
     taskReturnTo: "/today",
   });
   const freshness = usePlanningProjectionFreshness({
@@ -47,10 +49,13 @@ export function TodayRouteScreen({
     timeZone: projection.timeZone,
   });
 
-  const condition =
-    controller.condition.kind === "ready" && freshness.pendingLocalDateLabel
-      ? ({ kind: "date-changed", currentDateLabel: freshness.pendingLocalDateLabel } as const)
-      : controller.condition;
+  const condition = resolvePlanningProjectionCondition(
+    controller.condition,
+    projection,
+    freshness.pendingLocalDateLabel
+      ? { kind: "date-changed", currentDateLabel: freshness.pendingLocalDateLabel }
+      : null,
+  );
 
   return (
     <>

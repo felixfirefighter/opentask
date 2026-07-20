@@ -33,6 +33,12 @@
   omit all recurrence fields. `PlanningTaskRow.id` is the one canonical series task ID and
   `projectionId` is the distinct render identity; rows do not duplicate `id` under a `taskId` alias.
   Calendar events use `taskId` because their `projectionId` is the event identity.
+- Every projection carries an explicit `truncated` flag and unique typed `truncationReasons` mapped
+  from the tasks-owned source, event, candidate, and output caps plus planning's own task/output cap.
+  Presentation treats any truncated result as incomplete and read-only, explains that records may be
+  missing, and offers Retry. It never converts a truncated zero-row result into an authoritative empty
+  state. Matrix suppresses partial classifications because a missing occurrence could change a
+  series' quadrant.
 
 ## Invariants
 

@@ -34,6 +34,7 @@ describe("planning conflict view models", () => {
       ],
       remainingCount: 1,
       truncated: false,
+      truncationReasons: [],
     };
 
     const model = toTodayPlanningModel(projection, {
@@ -77,6 +78,7 @@ describe("planning conflict view models", () => {
         },
       ],
       truncated: false,
+      truncationReasons: [],
     };
 
     const model = toCalendarPlanningModel(projection, {
@@ -149,6 +151,7 @@ describe("planning conflict view models", () => {
         },
       ],
       truncated: false,
+      truncationReasons: [],
     };
 
     const model = toCalendarPlanningModel(projection, {

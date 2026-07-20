@@ -143,20 +143,40 @@ describe("usePlanningTaskController", () => {
     await waitFor(() => expect(screen.getByRole("link", { name: "Open Alpha" })).toHaveFocus());
     expect(screen.getByTestId("announcement")).toHaveTextContent("occurrence was updated");
   });
+
+  it("rejects direct mutation callbacks while an application projection is truncated", async () => {
+    const client = queryClient();
+    renderWithClient(client, <Harness task={task(1)} destination="Do now" mutationsDisabled />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Change priority" }));
+    fireEvent.click(screen.getByRole("button", { name: "Skip occurrence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move calendar event" }));
+
+    expect(mocks.updatePriority).not.toHaveBeenCalled();
+    expect(mocks.transitionOccurrence).not.toHaveBeenCalled();
+    expect(mocks.setSchedule).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(screen.getByTestId("announcement")).toHaveTextContent(
+      "Refresh this incomplete planning view before changing tasks.",
+    );
+  });
 });
 
 function Harness({
   destination,
+  mutationsDisabled = false,
   returnTo,
   task,
 }: {
   destination: string;
+  mutationsDisabled?: boolean;
   returnTo?: string;
   task: MutablePlanningTask;
 }) {
   const controller = usePlanningTaskController([task], "Asia/Singapore", {
     authoritativeSource: task,
     destinationLabelForTask: () => destination,
+    mutationsDisabled,
     taskReturnTo: returnTo,
   });
   return (

@@ -34,6 +34,7 @@ type PlanningMutationKind = "occurrence" | "priority" | "schedule" | "status";
 type PlanningTaskControllerOptions = Readonly<{
   authoritativeSource?: object | undefined;
   destinationLabelForTask?: ((taskId: string) => string | null) | undefined;
+  mutationsDisabled?: boolean | undefined;
   taskReturnTo?: string | null | undefined;
 }>;
 
@@ -113,7 +114,10 @@ export function usePlanningTaskController(
     projectionId: string | null = null,
   ) {
     const task = byId.get(taskId);
-    if (!task || !online || inFlight.current.has(taskId)) {
+    if (!task || !online || options.mutationsDisabled || inFlight.current.has(taskId)) {
+      if (options.mutationsDisabled) {
+        setAnnouncement("Refresh this incomplete planning view before changing tasks.");
+      }
       return { saved: false, conflict: false, unconfirmed: false } as const;
     }
     const sourceHeadingId = restoreFocus ? sourceHeadingForTask(taskId, projectionId) : null;
@@ -187,7 +191,9 @@ export function usePlanningTaskController(
     onPriorityChange: (taskId, priority) => {
       void run(taskId, "priority", (task) => updatePlanningTaskPriority(taskId, task.version, priority));
     },
-    onEditSchedule: setScheduleTaskId,
+    onEditSchedule: (taskId) => {
+      if (!options.mutationsDisabled) setScheduleTaskId(taskId);
+    },
     onEditSeriesSchedule: (taskId) => router.push(planningTaskDetailsHref(taskId, options.taskReturnTo)),
   };
 
@@ -228,7 +234,8 @@ export function usePlanningTaskController(
     condition,
     conflictedTaskId: failure?.conflict ? failure.taskId : null,
     taskActions,
-    scheduleTask: scheduleTaskId ? (byId.get(scheduleTaskId) ?? null) : null,
+    scheduleTask:
+      !options.mutationsDisabled && scheduleTaskId ? (byId.get(scheduleTaskId) ?? null) : null,
     closeSchedule: () => setScheduleTaskId(null),
     editSchedule: setScheduleTaskId,
     saveSchedule,

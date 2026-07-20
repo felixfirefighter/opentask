@@ -4,6 +4,10 @@ import { ianaTimeZoneSchema } from "@/shared/validation/time-zone";
 
 import { compareInstants, compareLocalDates } from "../domain/projections/local-time-policy";
 import { PLANNING_PROJECTION_MAX_ROWS } from "./projection-query-contract";
+import {
+  planningProjectionTruncationFields,
+  validatePlanningProjectionTruncation,
+} from "./projection-truncation";
 
 export const RECURRENCE_DRAG_DISABLED_REASON =
   "Recurring occurrences must be edited through the series schedule.";
@@ -110,9 +114,10 @@ export const todayProjectionSchema = z
     timed: z.array(timedPlanningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
     anytime: z.array(allDayPlanningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
     remainingCount: z.number().int().nonnegative().max(PLANNING_PROJECTION_MAX_ROWS),
-    truncated: z.boolean(),
+    ...planningProjectionTruncationFields,
   })
   .superRefine((projection, context) => {
+    validatePlanningProjectionTruncation(projection, context);
     const rows = [...projection.overdue, ...projection.timed, ...projection.anytime];
     validateUniqueProjectionRows(rows, "Today", context);
     if (projection.remainingCount !== rows.length) {
@@ -133,9 +138,10 @@ export const upcomingProjectionSchema = z
     nowAt: instantSchema,
     days: z.array(upcomingDaySchema).length(7),
     remainingCount: z.number().int().nonnegative().max(PLANNING_PROJECTION_MAX_ROWS),
-    truncated: z.boolean(),
+    ...planningProjectionTruncationFields,
   })
   .superRefine((projection, context) => {
+    validatePlanningProjectionTruncation(projection, context);
     const rows = projection.days.flatMap((day) => day.items);
     validateUniqueProjectionRows(rows, "Upcoming", context);
     if (projection.remainingCount !== rows.length) {
@@ -204,9 +210,12 @@ export const calendarProjectionSchema = z
     rangeEndAt: instantSchema,
     timeZone: ianaTimeZoneSchema,
     events: z.array(calendarEventDtoSchema).max(PLANNING_PROJECTION_MAX_ROWS),
-    truncated: z.boolean(),
+    ...planningProjectionTruncationFields,
   })
-  .superRefine((projection, context) => validateUniqueProjectionRows(projection.events, "Calendar", context));
+  .superRefine((projection, context) => {
+    validatePlanningProjectionTruncation(projection, context);
+    validateUniqueProjectionRows(projection.events, "Calendar", context);
+  });
 
 export const agendaRowSchema = z.strictObject({
   groupDate: localDateSchema,
@@ -221,15 +230,16 @@ export const agendaProjectionSchema = z
     rangeEndAt: instantSchema,
     timeZone: ianaTimeZoneSchema,
     items: z.array(agendaRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
-    truncated: z.boolean(),
+    ...planningProjectionTruncationFields,
   })
-  .superRefine((projection, context) =>
+  .superRefine((projection, context) => {
+    validatePlanningProjectionTruncation(projection, context);
     validateUniqueProjectionRows(
       projection.items.map((row) => row.event),
       "Agenda",
       context,
-    ),
-  );
+    );
+  });
 
 export const eisenhowerProjectionSchema = z
   .strictObject({
@@ -240,9 +250,10 @@ export const eisenhowerProjectionSchema = z
     plan: z.array(planningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
     timeSensitive: z.array(planningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
     later: z.array(planningTaskRowSchema).max(PLANNING_PROJECTION_MAX_ROWS),
-    truncated: z.boolean(),
+    ...planningProjectionTruncationFields,
   })
   .superRefine((projection, context) => {
+    validatePlanningProjectionTruncation(projection, context);
     validateUniqueProjectionRows(
       [...projection.doNow, ...projection.plan, ...projection.timeSensitive, ...projection.later],
       "Matrix",
@@ -259,6 +270,7 @@ export type PlanningTaskRow = z.infer<typeof planningTaskRowSchema>;
 export type ProjectionLifecycle = z.infer<typeof projectionLifecycleSchema>;
 export type TodayProjection = z.infer<typeof todayProjectionSchema>;
 export type UpcomingProjection = z.infer<typeof upcomingProjectionSchema>;
+export type { PlanningProjectionTruncationReason } from "./projection-truncation";
 
 export function oneOffProjectionId(taskId: string): string {
   return `task:${taskId}`;

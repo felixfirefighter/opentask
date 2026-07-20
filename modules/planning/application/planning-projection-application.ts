@@ -25,6 +25,7 @@ import {
   projectionLimitQuerySchema,
   smartDestinationSchema,
 } from "./projection-query-contract";
+import { buildPlanningProjectionTruncation } from "./projection-truncation";
 import type {
   PlanningOccurrenceRangeQuery,
   PlanningOccurrenceSourceReader,
@@ -78,13 +79,18 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
     ];
     const capped = capToday(projectToday(rows, context), query.limit);
 
+    const truncation = buildPlanningProjectionTruncation({
+      taskSourceTruncated: oneOffPage.truncated,
+      occurrenceReasonGroups: [occurrencePage.truncation.reasons],
+      projectionOutputTruncated: capped.outputTruncated,
+    });
     return todayProjectionSchema.parse({
       ...context,
       overdue: capped.overdue.map(toPlanningTaskRow),
       timed: capped.timed.map(toPlanningTaskRow),
       anytime: capped.anytime.map(toPlanningTaskRow),
       remainingCount: capped.total,
-      truncated: oneOffPage.truncated || occurrencePage.truncation.truncated || capped.outputTruncated,
+      ...truncation,
     });
   }
 
@@ -103,6 +109,10 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
       items: day.tasks.map(toPlanningTaskRow),
     }));
 
+    const truncation = buildPlanningProjectionTruncation({
+      occurrenceReasonGroups: [page.truncation.reasons],
+      projectionOutputTruncated: capped.outputTruncated,
+    });
     return upcomingProjectionSchema.parse({
       rangeStartDate: range.startDate,
       rangeEndDate: range.endDate,
@@ -110,7 +120,7 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
       nowAt: context.nowAt,
       days,
       remainingCount: capped.total,
-      truncated: page.truncation.truncated || capped.outputTruncated,
+      ...truncation,
     });
   }
 
@@ -129,7 +139,7 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
       ...toRangeDto(loaded.range),
       timeZone: loaded.context.timeZone,
       events: projectCalendarTasks(loaded.rows, loaded.range).map(toCalendarEvent),
-      truncated: loaded.truncated,
+      ...loaded.truncation,
     });
   }
 
@@ -142,7 +152,7 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
         groupDate: row.groupDate,
         event: toCalendarEvent(row.task),
       })),
-      truncated: loaded.truncated,
+      ...loaded.truncation,
     });
   }
 
@@ -185,6 +195,10 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
     });
     const projection = projectEisenhower(rows, context);
 
+    const truncation = buildPlanningProjectionTruncation({
+      taskSourceTruncated: allOpenPage.truncated,
+      occurrenceReasonGroups: [overlapPage.truncation.reasons, forwardPage.truncation.reasons],
+    });
     return eisenhowerProjectionSchema.parse({
       timeZone: context.timeZone,
       nowAt: context.nowAt,
@@ -193,8 +207,7 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
       plan: projection.plan.map(toPlanningTaskRow),
       timeSensitive: projection.timeSensitive.map(toPlanningTaskRow),
       later: projection.later.map(toPlanningTaskRow),
-      truncated:
-        allOpenPage.truncated || overlapPage.truncation.truncated || forwardPage.truncation.truncated,
+      ...truncation,
     });
   }
 
@@ -226,7 +239,9 @@ async function loadRange(
     context,
     range,
     rows: mapOccurrenceSourcePage(page, query.limit),
-    truncated: page.truncation.truncated,
+    truncation: buildPlanningProjectionTruncation({
+      occurrenceReasonGroups: [page.truncation.reasons],
+    }),
   };
 }
 

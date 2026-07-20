@@ -38,6 +38,7 @@ Mobile uses one vertical stream. Timed/all-day metadata stays visible; opening a
 | Empty | “Nothing planned for today” with “Add a task” as the primary action and a link to Upcoming when useful. If tasks are empty but habits are scheduled, keep the Habits section rather than showing the page-level empty state. Avoid celebration/shame language. |
 | Loading | Keep the date/header stable and show task-row skeletons with one polite status. |
 | Error | Keep safe loaded tasks labeled stale, provide a scoped retry, and restore failed optimistic actions with a statement of what was not saved. |
+| Partial | When a bounded projection safety cap is reached, label loaded tasks incomplete and read-only, name that work may be missing, and offer Retry. A zero-row partial result is not an empty day. |
 | Offline | Previously loaded tasks remain visible and labeled read-only. Disable mutations under the global offline explanation; do not queue local changes. |
 | Permission | Unauthenticated access routes to sign-in. A task that is no longer authorized disappears through a safe refresh without revealing owner information. |
 | Date changed | Announce that Today moved to the new local date and provide “Return to Today” if the user was editing a stale route state; preserve unsaved quick-add text. |

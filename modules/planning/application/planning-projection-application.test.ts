@@ -64,6 +64,7 @@ describe("planning projection application", () => {
     });
     expect(projection.anytime.map((task) => task.id)).toEqual([taskId]);
     expect(projection.truncated).toBe(true);
+    expect(projection.truncationReasons).toEqual(["task_source_limit"]);
   });
 
   it("builds Upcoming from the bounded combined occurrence source", async () => {
@@ -107,6 +108,7 @@ describe("planning projection application", () => {
     expect(projection.remainingCount).toBe(1);
     expect([...projection.overdue, ...projection.timed, ...projection.anytime]).toHaveLength(1);
     expect(projection.truncated).toBe(true);
+    expect(projection.truncationReasons).toEqual(["projection_output_limit"]);
   });
 
   it("preserves completed and skipped recurrence rows for Calendar and Agenda Undo", async () => {
@@ -134,6 +136,8 @@ describe("planning projection application", () => {
     expect(agenda.items.map((row) => row.event.occurrenceState)).toEqual(["completed", "skipped"]);
     expect(calendar.truncated).toBe(true);
     expect(agenda.truncated).toBe(true);
+    expect(calendar.truncationReasons).toEqual(["recurrence_source_limit"]);
+    expect(agenda.truncationReasons).toEqual(["recurrence_source_limit"]);
   });
 
   it("performs the frozen Matrix reads and selects one earliest open occurrence per series", async () => {
@@ -189,6 +193,7 @@ describe("planning projection application", () => {
     });
     expect(projection.later[0]).toMatchObject({ id: secondTaskId, projectionLifecycle: "one_off" });
     expect(projection.truncated).toBe(true);
+    expect(projection.truncationReasons).toEqual(["recurrence_source_limit"]);
   });
 
   it("emits one nonurgent series summary when the Matrix horizon has no occurrence", async () => {

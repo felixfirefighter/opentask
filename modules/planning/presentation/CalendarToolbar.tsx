@@ -16,6 +16,7 @@ const views: readonly Readonly<{ id: CalendarView; label: string }>[] = [
 ];
 
 export function CalendarToolbar({
+  addTaskDisabled,
   disabled,
   addTaskRef,
   rangeLabel,
@@ -24,6 +25,7 @@ export function CalendarToolbar({
   onNavigate,
   onViewChange,
 }: Readonly<{
+  addTaskDisabled: boolean;
   disabled: boolean;
   addTaskRef?: Ref<HTMLButtonElement> | undefined;
   rangeLabel: string;
@@ -71,7 +73,7 @@ export function CalendarToolbar({
           </button>
         ))}
       </div>
-      <Button ref={addTaskRef} type="button" disabled={disabled} onClick={onAddTask}>
+      <Button ref={addTaskRef} type="button" disabled={disabled || addTaskDisabled} onClick={onAddTask}>
         <Plus size={17} aria-hidden="true" /> Add task
       </Button>
     </div>

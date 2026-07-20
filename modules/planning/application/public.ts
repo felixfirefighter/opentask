@@ -50,6 +50,7 @@ export {
   upcomingDaySchema,
   upcomingProjectionSchema,
 } from "./projection-dto-contract";
+export { planningProjectionTruncationReasonSchema } from "./projection-truncation";
 export type {
   CanonicalPlanningTaskRow,
   PlanningTaskSourcePage,
@@ -68,6 +69,7 @@ export type {
   TodayProjection,
   UpcomingProjection,
 } from "./projection-dto-contract";
+export type { PlanningProjectionTruncationReason } from "./projection-truncation";
 export type { PlanningProjectionApplication } from "./planning-projection-application";
 export type {
   BusyInterval,

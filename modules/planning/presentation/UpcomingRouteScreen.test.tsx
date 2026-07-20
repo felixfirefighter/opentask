@@ -37,6 +37,7 @@ const projection: UpcomingProjection = {
   })),
   remainingCount: 0,
   truncated: false,
+  truncationReasons: [],
 };
 
 beforeEach(() => {
@@ -51,6 +52,27 @@ beforeEach(() => {
 });
 
 describe("UpcomingRouteScreen quick add", () => {
+  it("turns application truncation into an explicit read-only partial route", () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <UpcomingRouteScreen
+          hourCycle="12"
+          inboxId={INBOX_ID}
+          projection={{
+            ...projection,
+            truncated: true,
+            truncationReasons: ["recurrence_event_source_limit"],
+          }}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This planning view is incomplete");
+    expect(screen.getByRole("alert")).toHaveTextContent("recurrence history loading");
+    expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
+  });
+
   it("uses the next local day when no date is recognized", async () => {
     const user = userEvent.setup();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

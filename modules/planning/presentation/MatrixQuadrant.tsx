@@ -6,11 +6,13 @@ import styles from "./MatrixScreen.module.css";
 export function MatrixQuadrant({
   actions,
   disabled,
+  disabledReason,
   loading,
   quadrant,
 }: Readonly<{
   actions: PlanningTaskActions;
   disabled: boolean;
+  disabledReason?: string | undefined;
   loading: boolean;
   quadrant: MatrixQuadrantModel;
 }>) {
@@ -39,7 +41,12 @@ export function MatrixQuadrant({
         <div role="list" aria-label={`${quadrant.title}, ${quadrant.ruleLabel}`}>
           {quadrant.tasks.map((task) => (
             <div role="listitem" key={task.projectionId}>
-              <ProjectionTaskRow actions={actions} disabled={disabled || task.conflicted} task={task} />
+              <ProjectionTaskRow
+                actions={actions}
+                disabled={disabled || task.conflicted}
+                disabledReason={disabledReason}
+                task={task}
+              />
             </div>
           ))}
         </div>

@@ -44,6 +44,7 @@ const projection: TodayProjection = {
   anytime: [],
   remainingCount: 0,
   truncated: false,
+  truncationReasons: [],
 };
 
 beforeEach(() => {
@@ -78,6 +79,18 @@ afterEach(() => {
 });
 
 describe("TodayRouteScreen quick add", () => {
+  it("turns application truncation into an explicit read-only partial route", () => {
+    renderToday({
+      ...projection,
+      truncated: true,
+      truncationReasons: ["recurrence_request_candidate_limit"],
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This planning view is incomplete");
+    expect(screen.getByRole("alert")).toHaveTextContent("recurrence calculation");
+    expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
+  });
+
   it("uses today's all-day schedule when no date is recognized", async () => {
     const user = userEvent.setup();
     mocks.parseQuickAdd.mockImplementation((sourceText: string) =>
@@ -269,11 +282,11 @@ describe("TodayRouteScreen quick add", () => {
   });
 });
 
-function renderToday() {
+function renderToday(source: TodayProjection = projection) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <TodayRouteScreen hourCycle="12" inboxId={INBOX_ID} projection={projection} />
+      <TodayRouteScreen hourCycle="12" inboxId={INBOX_ID} projection={source} />
     </QueryClientProvider>,
   );
 }

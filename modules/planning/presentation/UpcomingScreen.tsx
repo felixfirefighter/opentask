@@ -38,7 +38,14 @@ export function UpcomingScreen(props: UpcomingScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const total = model.groups.reduce((sum, group) => sum + group.tasks.length, 0);
   const readOnly =
-    condition.kind === "offline" || condition.kind === "loading" || condition.kind === "date-changed";
+    condition.kind === "offline" ||
+    condition.kind === "loading" ||
+    condition.kind === "partial" ||
+    condition.kind === "date-changed";
+  const disabledReason =
+    condition.kind === "partial"
+      ? "Task changes are unavailable while this planning view is incomplete."
+      : undefined;
 
   return (
     <div className={styles.page}>
@@ -70,8 +77,19 @@ export function UpcomingScreen(props: UpcomingScreenProps) {
           />
           {condition.kind === "loading" ? (
             <LoadingRows label="Loading upcoming tasks" />
-          ) : condition.kind === "error" && total === 0 ? (
-            <UnavailableDataState title="Upcoming tasks are unavailable" />
+          ) : (condition.kind === "error" || condition.kind === "partial") && total === 0 ? (
+            <UnavailableDataState
+              title={
+                condition.kind === "partial"
+                  ? "Upcoming task list is incomplete"
+                  : "Upcoming tasks are unavailable"
+              }
+              message={
+                condition.kind === "partial"
+                  ? "No empty-range conclusion is shown because this bounded result may be missing tasks. Retry to refresh."
+                  : undefined
+              }
+            />
           ) : total === 0 ? (
             <section className={styles.empty} aria-labelledby="upcoming-empty-heading">
               <h2 id="upcoming-empty-heading" tabIndex={-1} data-planning-recovery-focus>
@@ -105,6 +123,7 @@ export function UpcomingScreen(props: UpcomingScreenProps) {
                         <ProjectionTaskRow
                           actions={taskActions}
                           disabled={readOnly || task.conflicted}
+                          disabledReason={disabledReason}
                           task={task}
                         />
                       </div>

@@ -31,6 +31,44 @@ describe("TodayScreen conditions", () => {
     expect(screen.queryByText("Nothing planned for today")).not.toBeInTheDocument();
   });
 
+  it("keeps a truncated result visibly partial, read-only, and retryable", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    renderToday({
+      condition: {
+        kind: "partial",
+        message:
+          "A safety limit was reached during recurrence calculation. Some tasks or occurrences may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_request_candidate_limit"],
+        runtimeCondition: null,
+      },
+      onRetry,
+      taskActions: { onStatusChange: vi.fn() },
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This planning view is incomplete");
+    expect(screen.getByText(todayFixture.timed[0]!.title)).toBeInTheDocument();
+    expect(screen.getByText(/loaded tasks/i)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /complete confirm/i })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("does not claim a truncated empty result is an empty day", () => {
+    renderToday({
+      condition: {
+        kind: "partial",
+        message: "Some tasks may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["projection_output_limit"],
+        runtimeCondition: null,
+      },
+      model: { ...todayFixture, overdue: [], timed: [], anytime: [] },
+    });
+    expect(screen.getByText("Today's task list is incomplete")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing planned for today")).not.toBeInTheDocument();
+  });
+
   it("leaves cached rows visible but disables writes offline", () => {
     renderToday({ condition: { kind: "offline" }, taskActions: { onStatusChange: vi.fn() } });
     expect(screen.getByText("Planning is read-only")).toBeInTheDocument();

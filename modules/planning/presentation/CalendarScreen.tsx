@@ -54,10 +54,14 @@ export function CalendarScreen(props: CalendarScreenProps) {
   const selectedEventId = props.model.events.some((event) => event.projectionId === requestedEventId)
     ? requestedEventId
     : "";
-  const readOnly =
+  const offline =
     props.condition.kind === "offline" ||
+    (props.condition.kind === "partial" && props.condition.runtimeCondition?.kind === "offline");
+  const readOnly =
+    offline ||
     props.condition.kind === "loading" ||
-    props.condition.kind === "error";
+    props.condition.kind === "error" ||
+    props.condition.kind === "partial";
 
   function chooseEvent(eventId: string) {
     setLocalSelectedEventId(eventId);
@@ -90,7 +94,8 @@ export function CalendarScreen(props: CalendarScreenProps) {
         <>
           <CalendarToolbar
             addTaskRef={props.addTaskRef}
-            disabled={props.condition.kind === "offline"}
+            addTaskDisabled={readOnly}
+            disabled={offline}
             rangeLabel={props.model.rangeLabel}
             view={effectiveView}
             onAddTask={props.onAddTask}
@@ -116,10 +121,18 @@ export function CalendarScreen(props: CalendarScreenProps) {
           >
             {props.model.events.length === 0 && props.condition.kind !== "loading" ? (
               <div className={styles.emptyNotice} role="status">
-                {props.condition.kind === "error" ? (
+                {props.condition.kind === "error" || props.condition.kind === "partial" ? (
                   <>
-                    <strong>Calendar data is unavailable</strong>
-                    <span>No partial range is shown as current. Retry to refresh this range.</span>
+                    <strong>
+                      {props.condition.kind === "partial"
+                        ? "Calendar range is incomplete"
+                        : "Calendar data is unavailable"}
+                    </strong>
+                    <span>
+                      {props.condition.kind === "partial"
+                        ? "No empty-range conclusion is shown because some events may be missing. Retry to refresh."
+                        : "No partial range is shown as current. Retry to refresh this range."}
+                    </span>
                   </>
                 ) : (
                   <>

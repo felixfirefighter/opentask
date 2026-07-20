@@ -259,6 +259,62 @@ describe("CalendarScreen", () => {
     expect(screen.getByRole("button", { name: "Edit schedule" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Open task" })).toBeEnabled();
   });
+
+  it("keeps a partial calendar visible but read-only while safe navigation and retry remain", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const partial = renderCalendar({
+      condition: {
+        kind: "partial",
+        message:
+          "A safety limit was reached during result loading. Some tasks or occurrences may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_output_limit"],
+        runtimeCondition: null,
+      },
+      onRetry,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This planning view is incomplete");
+    expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous range" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Add task" })).toBeDisabled();
+    expect(calendarMock.latest?.editable).toBe(false);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "task:task-demo");
+    expect(screen.getByRole("button", { name: "Open task" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Edit schedule" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    partial.unmount();
+
+    renderCalendar({
+      condition: {
+        kind: "partial",
+        message: "Some events may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_source_limit"],
+        runtimeCondition: null,
+      },
+      model: { ...calendarFixture, events: [] },
+    });
+    expect(screen.getByText("Calendar range is incomplete")).toBeInTheDocument();
+    expect(screen.queryByText("No scheduled tasks in this range")).not.toBeInTheDocument();
+  });
+
+  it("preserves offline restrictions and missing-data disclosure together", () => {
+    renderCalendar({
+      condition: {
+        kind: "partial",
+        message: "Some events may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_source_limit"],
+        runtimeCondition: { kind: "offline" },
+      },
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("You are also offline");
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous range" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add task" })).toBeDisabled();
+    expect(calendarMock.latest?.editable).toBe(false);
+  });
 });
 
 function renderCalendar(overrides: Partial<CalendarScreenProps> = {}) {

@@ -101,6 +101,7 @@ describe("planning projection DTO contracts", () => {
         days: [],
         remainingCount: 0,
         truncated: false,
+        truncationReasons: [],
       }),
     ).toThrow();
   });
@@ -145,6 +146,7 @@ describe("planning projection DTO contracts", () => {
         timeZone: "Asia/Singapore",
         events: [],
         truncated: false,
+        truncationReasons: [],
       }),
     ).toMatchObject({ events: [] });
 
@@ -158,8 +160,38 @@ describe("planning projection DTO contracts", () => {
         timeSensitive: [],
         later: [],
         truncated: false,
+        truncationReasons: [],
       }),
     ).toThrow();
+  });
+
+  it("requires explicit, unique projection truncation reasons", () => {
+    const base = {
+      rangeStartDate: "2026-07-20",
+      rangeEndDate: "2026-07-21",
+      rangeStartAt: "2026-07-19T16:00:00Z",
+      rangeEndAt: "2026-07-20T16:00:00Z",
+      timeZone: "Asia/Singapore",
+      events: [],
+    } as const;
+
+    expect(
+      calendarProjectionSchema.parse({
+        ...base,
+        truncated: true,
+        truncationReasons: ["recurrence_event_source_limit"],
+      }),
+    ).toMatchObject({ truncated: true });
+    expect(() => calendarProjectionSchema.parse({ ...base, truncated: true, truncationReasons: [] })).toThrow(
+      /truncation metadata is inconsistent/i,
+    );
+    expect(() =>
+      calendarProjectionSchema.parse({
+        ...base,
+        truncated: true,
+        truncationReasons: ["recurrence_output_limit", "recurrence_output_limit"],
+      }),
+    ).toThrow(/must be unique/i);
   });
 
   it("rejects invalid flattened Calendar event bounds", () => {

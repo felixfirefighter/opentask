@@ -51,6 +51,7 @@ Changing priority or schedule may move a row to a different quadrant after serve
 | Empty | An empty quadrant keeps its heading and says “No tasks in this quadrant”. If all four are empty, use one page-level “No open tasks to prioritize” state while retaining the rule explanation and Add task route. |
 | Loading | Preserve the 2 by 2/stacked geometry with row skeletons and one page status. Do not show temporary zero counts. |
 | Error | Keep safe cached classifications labeled stale, show Retry, and avoid placing partially loaded tasks into a guessed quadrant. Failed mutation restores the row to its authoritative region. |
+| Partial | If a task or recurrence safety cap is reached, label the projection incomplete, suppress all current quadrant classifications, disable mutations, and offer Retry. A partial result can never support an authoritative empty or quadrant claim. |
 | Offline | Loaded quadrants remain visible and read-only under the global banner. Disable status, priority, and schedule mutations; navigation/details may remain available. |
 | Permission | Unauthenticated access routes to sign-in. Removed/foreign task records disappear without metadata; direct task access uses the generic unavailable state. |
 | Conflict | Restore the current server-derived quadrant, identify the task as changed elsewhere, and offer Open details. Do not preserve a stale visual classification. |

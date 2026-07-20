@@ -1,3 +1,5 @@
+import type { PlanningProjectionTruncationReason } from "../application/public";
+
 export type PlanningPriority = "none" | "low" | "medium" | "high";
 export type PlanningTaskStatus = "open" | "completed" | "cancelled";
 export type PlanningCategory = "coral" | "amber" | "mint" | "sky" | "violet" | "slate";
@@ -44,14 +46,23 @@ export type PlanningTaskActions = Readonly<{
   onEditSeriesSchedule?: ((taskId: string) => void) | undefined;
 }>;
 
+export type PlanningRecoverableCondition =
+  | Readonly<{ kind: "error"; message?: string | undefined }>
+  | Readonly<{ kind: "offline" }>
+  | Readonly<{ kind: "conflict"; message?: string | undefined }>
+  | Readonly<{ kind: "date-changed"; currentDateLabel: string }>;
+
 export type PlanningScreenCondition =
   | Readonly<{ kind: "ready" }>
   | Readonly<{ kind: "loading" }>
-  | Readonly<{ kind: "error"; message?: string | undefined }>
-  | Readonly<{ kind: "offline" }>
+  | Readonly<{
+      kind: "partial";
+      message: string;
+      reasons: readonly PlanningProjectionTruncationReason[];
+      runtimeCondition: PlanningRecoverableCondition | null;
+    }>
   | Readonly<{ kind: "permission" }>
-  | Readonly<{ kind: "conflict"; message?: string | undefined }>
-  | Readonly<{ kind: "date-changed"; currentDateLabel: string }>;
+  | PlanningRecoverableCondition;
 
 export type QuickAddTokenModel = Readonly<{
   id: string;

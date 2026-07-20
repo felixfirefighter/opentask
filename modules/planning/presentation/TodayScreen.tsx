@@ -42,7 +42,14 @@ export function TodayScreen(props: TodayScreenProps) {
   const { condition, model } = props;
   const tasks = [...model.overdue, ...model.timed, ...model.anytime];
   const readOnly =
-    condition.kind === "offline" || condition.kind === "loading" || condition.kind === "date-changed";
+    condition.kind === "offline" ||
+    condition.kind === "loading" ||
+    condition.kind === "partial" ||
+    condition.kind === "date-changed";
+  const disabledReason =
+    condition.kind === "partial"
+      ? "Task changes are unavailable while this planning view is incomplete."
+      : undefined;
 
   return (
     <div className={styles.page}>
@@ -78,7 +85,9 @@ export function TodayScreen(props: TodayScreenProps) {
                 ? "Loading today's plan"
                 : condition.kind === "error" && tasks.length === 0
                   ? "Today's plan is unavailable"
-                  : model.remainingLabel}
+                  : condition.kind === "partial"
+                    ? `${tasks.length} loaded ${tasks.length === 1 ? "task" : "tasks"}`
+                    : model.remainingLabel}
             </strong>
             <span>Tasks follow your saved local date and schedule.</span>
           </section>
@@ -93,8 +102,19 @@ export function TodayScreen(props: TodayScreenProps) {
           />
           {condition.kind === "loading" ? (
             <LoadingRows />
-          ) : condition.kind === "error" && tasks.length === 0 ? (
-            <UnavailableDataState title="Today's tasks are unavailable" />
+          ) : (condition.kind === "error" || condition.kind === "partial") && tasks.length === 0 ? (
+            <UnavailableDataState
+              title={
+                condition.kind === "partial"
+                  ? "Today's task list is incomplete"
+                  : "Today's tasks are unavailable"
+              }
+              message={
+                condition.kind === "partial"
+                  ? "No empty-day conclusion is shown because this bounded result may be missing tasks. Retry to refresh."
+                  : undefined
+              }
+            />
           ) : tasks.length === 0 ? (
             <section className={styles.empty} aria-labelledby="today-empty-heading">
               <h2 id="today-empty-heading" tabIndex={-1} data-planning-recovery-focus>
@@ -110,6 +130,7 @@ export function TodayScreen(props: TodayScreenProps) {
               <TaskProjectionSection
                 actions={props.taskActions}
                 disabled={readOnly}
+                disabledReason={disabledReason}
                 headingId="today-overdue"
                 label="Overdue"
                 tasks={model.overdue}
@@ -118,6 +139,7 @@ export function TodayScreen(props: TodayScreenProps) {
               <TaskProjectionSection
                 actions={props.taskActions}
                 disabled={readOnly}
+                disabledReason={disabledReason}
                 headingId="today-timed"
                 label="Timed"
                 tasks={model.timed}
@@ -125,6 +147,7 @@ export function TodayScreen(props: TodayScreenProps) {
               <TaskProjectionSection
                 actions={props.taskActions}
                 disabled={readOnly}
+                disabledReason={disabledReason}
                 headingId="today-anytime"
                 label="Anytime"
                 tasks={model.anytime}

@@ -5,6 +5,7 @@ import styles from "./ProjectionScreen.module.css";
 export function TaskProjectionSection({
   actions,
   disabled,
+  disabledReason,
   headingId,
   label,
   tasks,
@@ -12,6 +13,7 @@ export function TaskProjectionSection({
 }: Readonly<{
   actions: PlanningTaskActions;
   disabled: boolean;
+  disabledReason?: string | undefined;
   headingId: string;
   label: string;
   tasks: readonly PlanningTaskRowModel[];
@@ -30,7 +32,12 @@ export function TaskProjectionSection({
       <div className={styles.rows} role="list" aria-label={`${label}, ${countLabel}`}>
         {tasks.map((task) => (
           <div role="listitem" key={task.projectionId}>
-            <ProjectionTaskRow actions={actions} disabled={disabled || task.conflicted} task={task} />
+            <ProjectionTaskRow
+              actions={actions}
+              disabled={disabled || task.conflicted}
+              disabledReason={disabledReason}
+              task={task}
+            />
           </div>
         ))}
       </div>

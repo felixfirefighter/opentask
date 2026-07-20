@@ -29,7 +29,12 @@ export function MatrixScreen({ condition, model, onRetry, taskActions }: MatrixS
     loading ||
     condition.kind === "offline" ||
     condition.kind === "error" ||
+    condition.kind === "partial" ||
     condition.kind === "date-changed";
+  const disabledReason =
+    condition.kind === "partial"
+      ? "Task changes are unavailable while this planning view is incomplete."
+      : undefined;
 
   return (
     <div className={styles.page}>
@@ -54,7 +59,7 @@ export function MatrixScreen({ condition, model, onRetry, taskActions }: MatrixS
         <PermissionState />
       ) : (
         <>
-          {total > 0 || loading ? (
+          {(total > 0 || loading) && condition.kind !== "partial" ? (
             <nav className={styles.jumpNav} aria-label="Jump to a matrix quadrant">
               {quadrants.map((quadrant) => (
                 <a href={`#${quadrant.id}-quadrant`} key={quadrant.id}>
@@ -63,7 +68,12 @@ export function MatrixScreen({ condition, model, onRetry, taskActions }: MatrixS
               ))}
             </nav>
           ) : null}
-          {condition.kind === "error" && total === 0 ? (
+          {condition.kind === "partial" ? (
+            <UnavailableDataState
+              title="Priority classifications are incomplete"
+              message="No quadrant is shown as current because a bounded result was partial. Retry before changing priority or schedule."
+            />
+          ) : condition.kind === "error" && total === 0 ? (
             <UnavailableDataState title="Priority classifications are unavailable" />
           ) : total === 0 && !loading ? (
             <section className={styles.empty} aria-labelledby="matrix-empty-heading">
@@ -79,6 +89,7 @@ export function MatrixScreen({ condition, model, onRetry, taskActions }: MatrixS
                   key={quadrant.id}
                   actions={taskActions}
                   disabled={readOnly}
+                  disabledReason={disabledReason}
                   loading={loading}
                   quadrant={quadrant}
                 />

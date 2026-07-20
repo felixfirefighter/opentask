@@ -7,6 +7,7 @@ import type { CalendarProjection } from "../application/public";
 import { CalendarScreen } from "./CalendarScreen";
 import { CalendarTaskCreateDialog } from "./CalendarTaskCreateDialog";
 import { PlanningLiveRegion } from "./PlanningLiveRegion";
+import { resolvePlanningProjectionCondition } from "./planning-projection-condition";
 import { midpointLocalDate } from "./schedule-form-policy";
 import { ScheduleEditorDialog } from "./ScheduleEditorDialog";
 import type { CalendarView, VisibleCalendarRange } from "./planning-screen-model";
@@ -44,8 +45,10 @@ export function CalendarRouteScreen({
   const tasks = useMemo(() => projection.events.map(toMutableTask), [projection.events]);
   const controller = usePlanningTaskController(tasks, projection.timeZone, {
     authoritativeSource: projection,
+    mutationsDisabled: projection.truncated,
     taskReturnTo: returnTo,
   });
+  const condition = resolvePlanningProjectionCondition(controller.condition, projection);
   const model = toCalendarPlanningModel(projection, {
     view,
     hasSavedView,
@@ -96,7 +99,7 @@ export function CalendarRouteScreen({
       <CalendarScreen
         addTaskRef={addTaskButtonRef}
         model={model}
-        condition={controller.condition}
+        condition={condition}
         onAddTask={() => {
           setAnnouncement("");
           setCreatingTask(true);
