@@ -3,6 +3,11 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDatabase, type DatabaseExecutor } from "@/shared/db/client";
 import { schema } from "@/shared/db/schema";
 
+import {
+  MAX_OCCURRENCE_EVENTS_PER_REQUEST,
+  MAX_RECURRENCE_ROWS_PER_REQUEST,
+} from "../domain/recurrence/recurrence-limits";
+
 export type StoredTaskOccurrenceEvent = typeof schema.taskOccurrenceEvents.$inferSelect;
 export type StoredOccurrenceEventPage = Readonly<{
   items: readonly StoredTaskOccurrenceEvent[];
@@ -39,11 +44,15 @@ export function createTaskOccurrenceEventRepository(defaultExecutor: DatabaseExe
       executor: DatabaseExecutor = defaultExecutor,
     ): Promise<StoredOccurrenceEventPage> {
       if (taskIds.length === 0) return { items: [], truncated: false };
-      if (taskIds.length > 500 || new Set(taskIds).size !== taskIds.length) {
-        throw new RangeError("Occurrence event task selection must contain at most 500 unique IDs.");
+      if (taskIds.length > MAX_RECURRENCE_ROWS_PER_REQUEST || new Set(taskIds).size !== taskIds.length) {
+        throw new RangeError(
+          `Occurrence event task selection must contain at most ${MAX_RECURRENCE_ROWS_PER_REQUEST} unique IDs.`,
+        );
       }
-      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50_000) {
-        throw new RangeError("Occurrence event source limit must be between 1 and 50000.");
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_OCCURRENCE_EVENTS_PER_REQUEST) {
+        throw new RangeError(
+          `Occurrence event source limit must be between 1 and ${MAX_OCCURRENCE_EVENTS_PER_REQUEST}.`,
+        );
       }
       const rows = await executor
         .selectDistinctOn([schema.taskOccurrenceEvents.taskId, schema.taskOccurrenceEvents.occurrenceKey], {

@@ -3,6 +3,7 @@ import { assertScheduleQueryBounds } from "../schedule/schedule-bounds";
 export const MAX_RECURRENCE_ROWS_PER_REQUEST = 500;
 export const MAX_RECURRENCE_CANDIDATES_PER_SERIES = 1_000;
 export const MAX_RECURRENCE_CANDIDATES_PER_REQUEST = 50_000;
+export const MAX_OCCURRENCE_EVENTS_PER_REQUEST = 50_000;
 export const MAX_SCHEDULE_AND_OCCURRENCE_ROWS = 500;
 
 export type RecurrenceExpansionBudget = Readonly<{

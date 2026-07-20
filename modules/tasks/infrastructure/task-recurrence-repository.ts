@@ -3,6 +3,8 @@ import { and, asc, eq, gt, inArray, isNull, lt, or } from "drizzle-orm";
 import { getDatabase, type DatabaseExecutor } from "@/shared/db/client";
 import { schema } from "@/shared/db/schema";
 
+import { MAX_RECURRENCE_ROWS_PER_REQUEST } from "../domain/recurrence/recurrence-limits";
+
 import type { StoredTaskSchedule } from "./task-schedule-repository";
 
 export type StoredTaskRecurrence = typeof schema.taskRecurrences.$inferSelect;
@@ -41,6 +43,8 @@ type RecurrenceRange = Readonly<{
   rangeEndAt: Date;
   limit: number;
 }>;
+
+type RecurrenceRangeReadOptions = Readonly<{ lockForUpdate?: boolean }>;
 
 export function createTaskRecurrenceRepository(defaultExecutor: DatabaseExecutor = getDatabase()) {
   return {
@@ -162,11 +166,12 @@ export function createTaskRecurrenceRepository(defaultExecutor: DatabaseExecutor
       userId: string,
       range: RecurrenceRange,
       executor: DatabaseExecutor = defaultExecutor,
+      options: RecurrenceRangeReadOptions = {},
     ): Promise<StoredRecurrenceSourcePage> {
       assertSourceLimit(range.limit);
       const [allDayRows, timedRows] = await Promise.all([
-        listSourcesByCutover(executor, userId, range, "all_day"),
-        listSourcesByCutover(executor, userId, range, "timed"),
+        listSourcesByCutover(executor, userId, range, "all_day", options),
+        listSourcesByCutover(executor, userId, range, "timed", options),
       ]);
       const rows = [...allDayRows, ...timedRows].sort(compareSourceTaskId);
       return {
@@ -183,6 +188,7 @@ async function listSourcesByCutover(
   userId: string,
   range: RecurrenceRange,
   kind: "all_day" | "timed",
+  options: RecurrenceRangeReadOptions,
 ): Promise<readonly StoredTaskRecurrenceSource[]> {
   const startColumn =
     kind === "all_day"
@@ -190,7 +196,7 @@ async function listSourcesByCutover(
       : schema.taskRecurrences.projectionStartAt;
   const endColumn =
     kind === "all_day" ? schema.taskRecurrences.projectionEndDate : schema.taskRecurrences.projectionEndAt;
-  return executor
+  const selection = executor
     .select({
       task: schema.tasks,
       schedule: schema.taskSchedules,
@@ -222,6 +228,7 @@ async function listSourcesByCutover(
     )
     .orderBy(asc(startColumn), asc(endColumn), asc(schema.taskRecurrences.taskId))
     .limit(range.limit + 1);
+  return options.lockForUpdate ? selection.for("update") : selection;
 }
 
 function compareSourceTaskId(left: StoredTaskRecurrenceSource, right: StoredTaskRecurrenceSource): number {
@@ -266,7 +273,7 @@ function instantCutoverOverlap(range: RecurrenceRange) {
 }
 
 function assertSourceLimit(limit: number) {
-  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) {
-    throw new RangeError("Recurrence source limit must be between 1 and 500.");
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_RECURRENCE_ROWS_PER_REQUEST) {
+    throw new RangeError(`Recurrence source limit must be between 1 and ${MAX_RECURRENCE_ROWS_PER_REQUEST}.`);
   }
 }
