@@ -10,10 +10,9 @@ documented display/sans hierarchy and uses its recommended open-source EB Garamo
 the licensed Waldenburg face; dense product behavior, accessibility states, and OpenTask identity
 remain repository-owned.
 
-The approved P0.1 proof makes the Editorial Focus shared font/token foundation executable and
-freezes it for P0.2. Broad route-specific restyling now proceeds only through the three approved
-presentation lanes; unmigrated screens may safely inherit shared tokens while retaining their
-existing structural treatment until their lane is completed.
+The Editorial Focus foundation and every current product route form the approved visual baseline.
+Later feature UI extends this system through the routed contracts below; broad restyling or shared
+foundation changes require explicit scope, executable design checks, and new visual approval.
 
 OpenTask uses **Editorial Focus**: an original paper/ink/pine planning system with an editorial voice
 at major orientation moments, readable Inter typography for working UI, comfortable task density,

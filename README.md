@@ -32,7 +32,7 @@ Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, th
 
 The current implemented candidate does not yet include recurrence, habits, focus timers,
 reminders/push, or installability. The active Local-first Full Release plan adds those capabilities in
-audited packages after the Editorial Focus visual proof. Offline mutation synchronization,
+audited packages on the approved Editorial Focus baseline. Offline mutation synchronization,
 collaboration, and premium/billing paths remain excluded. See [docs/SCOPE.md](docs/SCOPE.md) for the
 exact target and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for package order.
 
@@ -40,7 +40,7 @@ exact target and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for 
 
 This project was developed through an iterative collaboration between its owner and Codex. The owner set the open-source product goal, required a scope-locked implementation plan before coding, approved the visual proof before deeper implementation, chose an original warm and precise design direction, and later prioritized the Deadline-safe Core so testing, deployment, and submission time stayed protected.
 
-Codex accelerated competitor research synthesis, specification and architecture drafting, modular implementation, and the scope, authorization, timezone, accessibility, responsive-design, dependency, and release audits. The resulting code keeps product capabilities in explicit feature modules and preserves the owner's key decisions: manual workflows work without AI, task and schedule facts have one canonical representation, and AI output is always reviewed before it can write. The active UI direction is the GetDesign-informed Editorial Focus system, applied across the current product and gated by explicit final migrated screenshot approval before later feature UI begins.
+Codex accelerated competitor research synthesis, specification and architecture drafting, modular implementation, and the scope, authorization, timezone, accessibility, responsive-design, dependency, and release audits. The resulting code keeps product capabilities in explicit feature modules and preserves the owner's key decisions: manual workflows work without AI, task and schedule facts have one canonical representation, and AI output is always reviewed before it can write. The GetDesign-informed Editorial Focus system is the approved baseline across the current product and for later feature UI.
 
 GPT-5.6 powers the optional server-side planning proposal step. It converts a brain dump and selected task context into a schema-validated proposal; deterministic application code owns scheduling, ownership, conflicts, and atomic apply. Codex helped implement that boundary and its refusal, stale-data, no-write-before-apply, and idempotency tests. Git commits and the repository contracts preserve the concrete engineering and design decisions without maintaining a separate progress diary.
 
