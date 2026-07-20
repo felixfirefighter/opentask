@@ -197,7 +197,7 @@ export function TaskEmpty({
 
 export function TaskLoadError({ onRetry }: Readonly<{ onRetry: () => void }>) {
   return (
-    <div className={styles.empty} role="alert">
+    <div className={styles.empty} data-state="error" role="alert">
       <h2>Tasks could not be loaded</h2>
       <p>Your data was not changed. Try loading this view again.</p>
       <button className="secondary-button" type="button" onClick={onRetry}>

@@ -66,6 +66,7 @@ test("the friend-candidate journey renders at every approved viewport", async ({
   for (const route of authenticatedRoutes) {
     await page.goto(route.path);
     await expect(page.getByRole("heading", { name: route.heading, exact: true }).first()).toBeVisible();
+    if (route.slug === "calendar") await expectCalendarInstructionUntruncated(page);
     await captureRoute(page, testInfo, captureDirectory, route.slug);
     if (route.slug === "today" || route.slug === "settings") {
       await setDocumentTheme(page, "dark");
@@ -145,6 +146,23 @@ async function publishEvidence(captureDirectory: string, evidenceDirectory: stri
   await Promise.all(
     files.map((file) => copyFile(path.join(captureDirectory, file), path.join(evidenceDirectory, file))),
   );
+}
+
+async function expectCalendarInstructionUntruncated(page: Page) {
+  const instruction = page.getByText(
+    "Choose any visible task, then open the complete date, time, and timezone form.",
+    { exact: true },
+  );
+  await expect(instruction).toBeVisible();
+  const style = await instruction.evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return {
+      overflow: computed.overflow,
+      textOverflow: computed.textOverflow,
+      whiteSpace: computed.whiteSpace,
+    };
+  });
+  expect(style).toEqual({ overflow: "visible", textOverflow: "clip", whiteSpace: "normal" });
 }
 
 async function setDocumentTheme(page: Page, theme: "light" | "dark") {

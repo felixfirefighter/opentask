@@ -183,6 +183,15 @@
   text-wrap: balance;
 }
 
+.centeredState[data-state="permission"] h2 {
+  font-family: var(--font-sans);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  letter-spacing: normal;
+  line-height: var(--type-section-title-line);
+  text-wrap: wrap;
+}
+
 .centeredState > p:not(.eyebrow) {
   max-width: 52ch;
   margin: 0 0 var(--space-5);
@@ -232,9 +241,20 @@
 }
 
 @media (max-width: 389px) {
+  .steps li {
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .steps li::after {
+    top: calc(var(--control-target-touch) / 2);
+    right: calc(-50% + var(--control-target-touch) / 2 + var(--space-1));
+    left: calc(50% + var(--control-target-touch) / 2 + var(--space-1));
+  }
+
   .steps li strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding-right: 0;
+    background: transparent;
   }
 }

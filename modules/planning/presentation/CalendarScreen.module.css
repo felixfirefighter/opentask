@@ -118,12 +118,9 @@
 }
 
 .scheduleFallback small {
-  overflow: hidden;
   color: var(--text-muted);
   font-size: var(--type-compact-size);
   line-height: var(--type-compact-line);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .scheduleFallback select {

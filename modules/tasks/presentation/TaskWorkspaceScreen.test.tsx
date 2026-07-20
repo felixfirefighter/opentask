@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TaskListItemDto } from "../application/contracts";
 
-import { TaskEmpty } from "./TaskWorkspaceContent";
+import { TaskEmpty, TaskLoadError } from "./TaskWorkspaceContent";
 import { TaskWorkspaceScreen } from "./TaskWorkspaceScreen";
 
 const organizerQueries = vi.hoisted(() => ({ useSectionsQuery: vi.fn() }));
@@ -90,6 +90,15 @@ describe("TaskEmpty", () => {
 
     expect(screen.getByText("Reconnect to add a task.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add a task" })).toBeDisabled();
+  });
+
+  it("keeps task load failures in the operational error treatment", async () => {
+    const onRetry = vi.fn();
+    render(<TaskLoadError onRetry={onRetry} />);
+
+    expect(screen.getByRole("alert")).toHaveAttribute("data-state", "error");
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });
 

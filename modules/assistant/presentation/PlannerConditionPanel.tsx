@@ -59,7 +59,11 @@ export function PlannerUnavailableState({
   calendarHref,
 }: Readonly<{ todayHref: string; calendarHref: string }>) {
   return (
-    <section className={styles.centeredState} aria-labelledby="planner-unavailable-heading">
+    <section
+      className={styles.centeredState}
+      data-state="provider-unavailable"
+      aria-labelledby="planner-unavailable-heading"
+    >
       <KeyRound size={25} aria-hidden="true" />
       <p className="eyebrow">Optional planner</p>
       <h2 id="planner-unavailable-heading">Planning is unavailable because no AI key is configured</h2>
@@ -81,7 +85,11 @@ export function PlannerUnavailableState({
 
 export function PlannerPermissionState() {
   return (
-    <section className={styles.centeredState} aria-labelledby="planner-permission-heading">
+    <section
+      className={styles.centeredState}
+      data-state="permission"
+      aria-labelledby="planner-permission-heading"
+    >
       <ShieldAlert size={25} aria-hidden="true" />
       <p className="eyebrow">Private workspace</p>
       <h2 id="planner-permission-heading">This planning proposal is unavailable</h2>

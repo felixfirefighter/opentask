@@ -368,6 +368,11 @@ test("every released route reflows at the tablet and minimum-width boundaries", 
       .getByRole("heading", { level: 1, name: route.heading, exact: true });
     await expect(heading).toBeVisible();
     await expectUsesSans(heading, `${route.slug} heading`);
+    if (testInfo.project.name === "boundary-320-chromium") {
+      if (route.slug === "list") await expectCompactActionLabel(page, "Add task");
+      if (route.slug === "calendar") await expectCalendarInstructionUntruncated(page);
+      if (route.slug === "ai-review") await expectPlannerStepLabelsUntruncated(page);
+    }
     await captureBoundaryRoute(page, testInfo.project.name, evidenceDirectory, route.slug);
   }
 
@@ -499,6 +504,45 @@ async function captureBoundaryRoute(
     animations: "disabled",
     fullPage: true,
   });
+}
+
+async function expectPlannerStepLabelsUntruncated(page: Page) {
+  const labels = page.getByRole("list", { name: "Planning progress" }).locator("strong");
+  await expect(labels).toHaveText(["Describe", "Review", "Result"]);
+  const clipping = await labels.evaluateAll((elements) =>
+    elements.map((element) => {
+      const style = getComputedStyle(element);
+      return { overflow: style.overflow, textOverflow: style.textOverflow };
+    }),
+  );
+  expect(clipping).toEqual([
+    { overflow: "visible", textOverflow: "clip" },
+    { overflow: "visible", textOverflow: "clip" },
+    { overflow: "visible", textOverflow: "clip" },
+  ]);
+}
+
+async function expectCompactActionLabel(page: Page, name: string) {
+  const action = page.getByRole("main").locator("header").first().getByRole("button", { name, exact: true });
+  await expect(action).toBeVisible();
+  const style = await action.evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return { flexShrink: computed.flexShrink, whiteSpace: computed.whiteSpace };
+  });
+  expect(style).toEqual({ flexShrink: "0", whiteSpace: "nowrap" });
+}
+
+async function expectCalendarInstructionUntruncated(page: Page) {
+  const instruction = page.getByText(
+    "Choose any visible task, then open the complete date, time, and timezone form.",
+    { exact: true },
+  );
+  await expect(instruction).toBeVisible();
+  const clipping = await instruction.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { overflow: style.overflow, textOverflow: style.textOverflow, whiteSpace: style.whiteSpace };
+  });
+  expect(clipping).toEqual({ overflow: "visible", textOverflow: "clip", whiteSpace: "normal" });
 }
 
 async function assertMobileTouchContracts(page: Page, taskId: string) {
