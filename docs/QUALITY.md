@@ -7,7 +7,7 @@ the required evidence for the Local-first Full Release.
 
 | Loop | Commands | When |
 |---|---|---|
-| Fast | `pnpm lint && pnpm typecheck` plus owning focused tests | after each coherent edit |
+| Fast | `pnpm verify:quick` or its affected checks plus owning focused tests | after each coherent edit |
 | Module | lint, typecheck, owning unit/component/database tests | before lane handoff |
 | Design | `pnpm verify:design` plus affected visual proof | every shared presentation/token/type/spacing/radius/target change |
 | Browser | affected Playwright golden path plus `pnpm test:a11y` | after a committed user flow |
@@ -66,7 +66,7 @@ Required projects remain:
 - `boundary-768-chromium` and `boundary-320-chromium` for design contracts.
 
 Run each golden path on desktop/mobile when behavior is responsive. Use semantic selectors and
-deterministic fixtures. P0 approval captures wait for loaded fonts and keep accessibility focus
+deterministic fixtures. Visual evidence waits for loaded fonts and keeps accessibility focus
 evidence separate from presentation-clean comparison captures.
 
 ## Golden paths
@@ -175,8 +175,6 @@ Forced: cache update/removal, no authenticated content in Cache Storage, unsuppo
 
 | Package | Required evidence |
 |---|---|
-| LF00 | conflict-free contracts + existing-core baseline |
-| P0 | approved proof/final screenshots + design/a11y/behavior non-regression |
 | P1 | G1–G4 + atomicity/freshness/origin/provider-degraded tests |
 | P2 | G5 + recurrence migration/time/range/ownership suites |
 | P3 | G6 + habit migration/log/streak/time/ownership suites |
@@ -187,11 +185,12 @@ Forced: cache update/removal, no authenticated content in Cache Storage, unsuppo
 
 ## Candidate gates
 
-### Visual-proof gate
+### Visual-change gate
 
-P0 broad rollout is blocked until the user approves deterministic Landing, Today, Calendar, task
-detail, and populated AI Review evidence. Required light captures are 1440 and 390; include
-representative dark and 768/320 boundary evidence. A requested revision is work, not approval.
+Editorial Focus is the approved baseline. A package that changes shared visual foundations or the
+direction of a primary screen must provide deterministic 1440 and 390 evidence, representative dark
+and 768/320 boundary evidence, and explicit user approval before integration. A requested revision
+is work, not approval.
 
 ### Stable submission-candidate gate
 
@@ -227,7 +226,7 @@ Failure: bypassed layer, ambiguous ownership, duplicate rule, shared feature wid
 
 ### 3. Schema and migrations
 
-- Compare every table/column/index/constraint with `docs/DATA_MODEL.md`; run empty and sequential
+- Run `pnpm check:schema`; compare every table/column/index/constraint with `docs/DATA_MODEL.md`; run empty and sequential
   upgrade migrations.
 - Confirm no cloned occurrence tasks, stored streak/Focus totals, duplicate date/status, generic
   metadata/EAV, or unapproved JSONB.
@@ -321,9 +320,9 @@ Do not downgrade because time is short. A cut requires the five-part user-author
 
 ## Final sign-off
 
-The auditor reports release commit/environment, exact commands/results, LF00 and P0–P7 evidence,
+The auditor reports release commit/environment, exact commands/results, P1-P7 evidence,
 G1–G9 at required widths, visual approvals, migration/worker/PWA/provider smokes, all ten audit
 results, dependency/font/asset licenses, and contract-permitted limitations.
 
 Sign-off is denied for any blocker/critical defect, failed required command, unmapped acceptance,
-unchecked audit, unapproved P0 evidence, or falsely claimed external live smoke.
+unchecked audit, missing required visual approval, or falsely claimed external live smoke.

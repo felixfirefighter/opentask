@@ -17,7 +17,7 @@ At 200% zoom, layouts must naturally collapse to the next appropriate shell rath
 
 ### Module rail
 
-The rail switches product modules, not individual lists. The current-core baseline contains the
+The rail switches product modules, not individual lists. The implemented baseline contains the
 mark/home affordance, Today, Tasks, Calendar, and Plan. P3 adds Habits and P4 adds Focus only when
 their package routes are complete. A labeled account menu at the bottom owns Settings and Sign out.
 Matrix remains available through context navigation and the command palette. Every icon has a

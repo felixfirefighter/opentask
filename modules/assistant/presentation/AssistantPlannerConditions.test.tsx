@@ -49,7 +49,7 @@ describe("Assistant planner conditions", () => {
     expect(
       screen.getByRole("heading", { name: "This planning proposal is unavailable" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Review launch checklist")).not.toBeInTheDocument();
+    expect(screen.queryByText("Review workshop checklist")).not.toBeInTheDocument();
     expect(screen.queryByText(plannerInputFixture.brainDump)).not.toBeInTheDocument();
   });
 });

@@ -35,7 +35,7 @@ describe("TodayScreen conditions", () => {
     renderToday({ condition: { kind: "offline" }, taskActions: { onStatusChange: vi.fn() } });
     expect(screen.getByRole("status")).toHaveTextContent("Planning is read-only");
     expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /complete record/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /complete confirm/i })).toBeDisabled();
   });
 
   it("does not expose task metadata in the permission state", () => {

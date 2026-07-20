@@ -17,7 +17,7 @@ describe("Assistant planner Describe and Processing", () => {
     const create = screen.getByRole("button", { name: "Create proposal" });
     expect(create).toBeDisabled();
     expect(screen.getByText("Add a brain dump or select at least one task.")).toBeInTheDocument();
-    await user.click(screen.getByRole("checkbox", { name: /review launch checklist/i }));
+    await user.click(screen.getByRole("checkbox", { name: /review workshop checklist/i }));
     expect(
       screen.getByText("Choose only the tasks the planner may inspect. 1 selected."),
     ).toBeInTheDocument();
@@ -33,9 +33,9 @@ describe("Assistant planner Describe and Processing", () => {
     const user = userEvent.setup();
     renderPlanner();
     const search = screen.getByRole("searchbox", { name: "Search tasks" });
-    await user.type(search, "demo");
-    expect(screen.getByText("Prepare demo data")).toBeInTheDocument();
-    expect(screen.queryByText("Review launch checklist")).not.toBeInTheDocument();
+    await user.type(search, "attendee");
+    expect(screen.getByText("Prepare attendee notes")).toBeInTheDocument();
+    expect(screen.queryByText("Review workshop checklist")).not.toBeInTheDocument();
     expect(
       screen.getByText("Choose only the tasks the planner may inspect. 2 selected."),
     ).toBeInTheDocument();

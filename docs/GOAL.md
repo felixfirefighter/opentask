@@ -5,13 +5,14 @@ truth, not a progress log. Feature authority remains in `docs/SCOPE.md`.
 
 ## Goal objective
 
-> Implement and audit the OpenTask Local-first Full Release exactly as specified by the repository's current-truth contracts. First migrate the working core to the approved Editorial Focus direction through a user-approved five-screen proof. Then stabilize the existing manual/AI planning core and implement schedule-based task recurrence, habits, authoritative Focus sessions, an installable read-only-offline PWA shell, one optional browser-push task reminder with an active worker, and the expanded portable local release. Follow `docs/IMPLEMENTATION_PLAN.md` dependency gates, keep every provider optional, preserve canonical task/time data and review-before-apply AI, and pass `docs/QUALITY.md`. Do not implement Stage A–D or any excluded feature without another user-authorized scope change.
+> Continue from the implemented, user-approved Editorial Focus baseline and complete the OpenTask Local-first Full Release exactly as specified by the repository's current-truth contracts. Stabilize the existing manual/AI planning core, then implement schedule-based task recurrence, habits, authoritative Focus sessions, an installable read-only-offline PWA shell, one optional browser-push task reminder with an active worker, and the expanded portable local release. Follow the remaining P1-P7 dependency gates in `docs/IMPLEMENTATION_PLAN.md`, keep every provider optional, preserve canonical task/time data and review-before-apply AI, and pass `docs/QUALITY.md`. Do not implement Stage A–D or any excluded feature without another user-authorized scope change.
 
 ## Required reading order
 
-Before the first change in each package, read:
+The repository-level `AGENTS.md` contract already applies. Before the first change in each package,
+read:
 
-1. `AGENTS.md`
+1. `README.md`
 2. `docs/MANIFEST.md`
 3. `docs/PRODUCT.md`
 4. `docs/SCOPE.md`
@@ -29,10 +30,10 @@ Before the first change in each package, read:
 - Implement only the Local-first Full Release. Later Stage A–D items are context, not permission.
 - “Local-first” means local/self-host completion without a hosted prerequisite. It does not authorize
   offline mutations, a sync protocol, or a native application.
-- P0 changes presentation only. Its five-screen proof must receive explicit user screenshot approval
-  before broad restyling or feature UI begins.
-- Preserve the stable deadline candidate while new packages are incomplete. No partial package is
-  merged into the release candidate merely because the submission deadline is close.
+- Editorial Focus is the approved visual baseline. Preserve it for existing and later feature UI;
+  broad restyling or a shared-foundation change requires explicit user approval and new evidence.
+- Preserve the current green baseline while new packages are incomplete. No partial package is
+  merged merely because a deadline is close.
 - Keep one TypeScript repository, one Next.js application, one PostgreSQL database, and one pg-boss
   worker entry point. Do not add a service or framework when the approved stack covers the need.
 - Route/page files stay thin; application/domain rules and ownership checks remain in the owning
@@ -62,7 +63,7 @@ Before the first change in each package, read:
 - Report evidence and options when a committed item is at risk. Do not silently cut acceptance,
   loosen a test, or substitute a later feature.
 - Keep the hackathon submission path safe: if a new package is not green and approved by its cutoff,
-  use the last green candidate rather than rush an unverified merge.
+  use the current green baseline rather than rush an unverified merge.
 
 ## Completion definition
 
@@ -70,7 +71,8 @@ The goal is complete only when all are true:
 
 1. Every active capability and acceptance criterion in `docs/SCOPE.md` has automated evidence, a
    named manual audit, or both.
-2. P0 proof and final migrated screenshots have explicit user approval.
+2. The approved Editorial Focus baseline is preserved, and every later visual change has the
+   responsive evidence and explicit approval required by its package gate.
 3. `pnpm verify` plus clean/upgrade migration, local production Compose, service-worker, worker, and
    provider-degraded gates in `docs/QUALITY.md` pass.
 4. Cross-user authorization denial covers every task/recurrence/occurrence, habit/log, Focus,

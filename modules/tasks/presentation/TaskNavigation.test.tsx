@@ -51,7 +51,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("TaskNavigation", () => {
-  it("renders the deadline-safe planning destinations and groups regular lists under folders", () => {
+  it("renders the implemented planning destinations and groups regular lists under folders", () => {
     render(<TaskNavigation current={{ listId: LIST_ID }} inboxId={INBOX_ID} />);
 
     const navigation = screen.getByRole("navigation", { name: "Task destinations" });

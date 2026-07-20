@@ -14,7 +14,7 @@ Desktop uses a centered 400–440 px card on `canvas`, with product mark, `h1`, 
 
 Sign-up fields: email, password, and password confirmation. Sign-in fields: email and password. Password guidance is visible before validation. Authentication errors are generic enough not to reveal account existence.
 
-The alternate action links to the other auth form. A tertiary “Try demo” link returns to the public demo flow owned by `landing.md`; authentication forms do not expose or autofill shared credentials.
+The alternate action links to the other auth form. A tertiary “Try demo” link returns to the public demo flow owned by `docs/modules/landing.md`; authentication forms do not expose or autofill shared credentials.
 
 ## State contract
 

@@ -34,7 +34,7 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
 
   await enterIsolatedDemo(page, testInfo.project.name);
   await configureTestTimeZone(page);
-  const selectedTask = await quickAddTask(page, "G3 verify the release walkthrough");
+  const selectedTask = await quickAddTask(page, "G3 confirm the venue walkthrough");
   const proposal = createG3Proposal(selectedTask, localDateIn("Asia/Singapore"));
   const scheduledAction = proposal.proposal.actions.find(({ actionId }) => actionId === g3ActionIds.schedule);
   const createdAction = proposal.proposal.actions.find(({ actionId }) => actionId === g3ActionIds.create);
@@ -76,7 +76,7 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
   await page
     .getByRole("textbox", { name: /Brain dump/u })
     .fill(
-      "Prepare the release summary, schedule the verified walkthrough, and keep unclear friend feedback visible.",
+      "Prepare the event summary, schedule the venue walkthrough, and keep unclear volunteer feedback visible.",
     );
   await page.getByRole("checkbox", { name: new RegExp(selectedTask.title, "u") }).check();
   expect(harness.applySelections).toHaveLength(0);
@@ -91,7 +91,7 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
   expect(loadedPending).toMatchObject({ id: proposal.id, status: "pending" });
 
   await expect(page.getByText("Why this change:").first()).toBeVisible();
-  await expect(page.getByText("Confirm the final reviewer before publishing.")).toBeVisible();
+  await expect(page.getByText("Confirm the final coordinator before sharing.")).toBeVisible();
   await expect(page.getByText("No free interval was available inside the work window.")).toBeVisible();
   await expect(page.getByRole("region", { name: "Review every proposed change" })).toBeVisible();
   await expect(page.getByText(proposal.proposal.summary)).toBeVisible();
@@ -104,9 +104,9 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
 
   const updateCard = page.getByText("Update", { exact: true }).locator("xpath=ancestor::article");
   await updateCard.getByRole("button", { name: "Edit change" }).click();
-  const editedTitle = "G3 reviewed release walkthrough";
+  const editedTitle = "G3 reviewed venue walkthrough";
   await updateCard.getByRole("textbox", { name: "Title after apply" }).fill(editedTitle);
-  await page.getByRole("checkbox", { name: "Select defer action for Clarify friend feedback" }).uncheck();
+  await page.getByRole("checkbox", { name: "Select defer action for Clarify volunteer feedback" }).uncheck();
   const apply = page.getByRole("button", { name: "Apply 3 changes" });
   await expect(apply).toBeEnabled();
   expect(harness.applySelections).toHaveLength(0);
@@ -155,7 +155,7 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
     selectedTask: {
       id: selectedTask.id,
       title: editedTitle,
-      descriptionMd: "Add the verified demo outcome.",
+      descriptionMd: "Add the verified setup outcome.",
       priority: "none",
       version: 2,
     },
@@ -168,8 +168,8 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
     },
     createdTask: {
       id: g3ActionIds.create,
-      title: "Draft release summary",
-      descriptionMd: "Capture the deadline-safe core and known limitations.",
+      title: "Draft event summary",
+      descriptionMd: "Capture the workshop plan and known constraints.",
       priority: "medium",
       version: 1,
     },
@@ -199,11 +199,11 @@ test("G3 explicitly applies one real atomic and idempotent plan across task proj
   await page.getByRole("link", { name: "Open Today" }).click();
   await expect(page).toHaveURL(/\/today$/u);
   await expect(planningTaskRow(page, editedTitle)).toBeVisible();
-  await expect(planningTaskRow(page, "Draft release summary")).toBeVisible();
+  await expect(planningTaskRow(page, "Draft event summary")).toBeVisible();
 
   await page.goto(`/calendar?date=${proposal.planningDate}&view=agenda`);
   await expect(calendarEvent(page, editedTitle)).toBeVisible();
-  await expect(calendarEvent(page, "Draft release summary")).toBeVisible();
+  await expect(calendarEvent(page, "Draft event summary")).toBeVisible();
   await publishReviewEvidence(reviewEvidence);
 });
 

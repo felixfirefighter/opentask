@@ -1,9 +1,8 @@
 # Design contract
 
-## Active migration target — Editorial Focus
+## Approved baseline — Editorial Focus
 
-The first Local-first Full Release work package migrates OpenTask to **Editorial Focus**, using the
-visual system documented in the pinned
+OpenTask uses **Editorial Focus**, informed by the visual system documented in the pinned
 [GetDesign ElevenLabs source snapshot](https://github.com/VoltAgent/awesome-design-md/blob/e06a96660396d741d0c106c8972172254dafbdc2/design-md/elevenlabs/DESIGN.md).
 The local application contract is `docs/design/editorial-focus.md`. It follows the reference's
 documented display/sans hierarchy and uses its recommended open-source EB Garamond substitute for
@@ -11,7 +10,7 @@ the licensed Waldenburg face; dense product behavior, accessibility states, and 
 remain repository-owned.
 
 The Editorial Focus foundation and every current product route form the approved visual baseline.
-Later feature UI extends this system through the routed contracts below; broad restyling or shared
+Later feature UI extends this system through the routed contracts below. Broad restyling or shared
 foundation changes require explicit scope, executable design checks, and new visual approval.
 
 OpenTask uses **Editorial Focus**: an original paper/ink/pine planning system with an editorial voice
@@ -53,7 +52,7 @@ Read only the files relevant to the surface being changed, after this file.
 
 | Concern | Source of truth |
 |---|---|
-| Active visual target and migration boundary | `docs/design/editorial-focus.md` |
+| Approved visual baseline and change boundary | `docs/design/editorial-focus.md` |
 | Brand character, hierarchy, type, icon and motion direction | `docs/design/foundations.md` |
 | Semantic colors, spacing, type scale, radii, elevation, motion | `docs/design/tokens.md` |
 | Breakpoints, app shell, panes, navigation, responsive behavior | `docs/design/shell-responsive.md` |

@@ -27,8 +27,9 @@ coding rather than choosing one silently.
 - A researched TickTick feature is not automatically approved for implementation.
 - Only capabilities explicitly promoted into the active release may be implemented. Stage A–D and
   every item still listed outside active scope must not be started under this goal.
-- The Editorial Focus proof is an approval gate: broad restyling and later feature UI cannot pass it
-  without explicit user screenshot approval. Silence is not approval.
+- Editorial Focus is the approved visual baseline. Preserve it for existing and later feature UI;
+  any broad restyling or shared-foundation change requires explicit user approval and fresh visual
+  evidence. Silence is not approval.
 - Do not add a “small improvement” outside the active work package. Record it in the appropriate later-scope section only if it is materially useful.
 - Do not silently cut a committed feature. A cut requires explicit user approval and an update to `docs/SCOPE.md` and `docs/GOAL.md` in the same change.
 - Plans are maintained in place. Do not append status diaries, session logs, or implementation history to planning documents. Git is the history.

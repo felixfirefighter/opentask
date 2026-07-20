@@ -1,11 +1,10 @@
-# Editorial Focus migration target
+# Editorial Focus design system
 
 ## Status and authority
 
-Editorial Focus is the approved visual baseline for the Local-first Full Release. Its shared
-font/token foundation and current product routes are frozen after the proof and final screenshot
-gates. `DESIGN.md`, this contract, `foundations.md`, `tokens.md`, and their executable checks change
-together.
+Editorial Focus is the implemented, user-approved visual baseline for the Local-first Full Release.
+Its shared font/token foundation and current product routes are frozen. `DESIGN.md`, this contract,
+`foundations.md`, `tokens.md`, and their executable checks change together.
 
 This file cannot add product behavior. Feature scope remains owned by `docs/SCOPE.md`.
 
@@ -62,9 +61,9 @@ Editorial Focus should feel:
 - The responsive landing hero follows the reference's 64/1.05/-1.92 px, 48/1.08/-0.96 px, and
   36/1.17/-0.36 px display tiers. Small editorial headings use 24/1.2/0. The weight is 400 only for
   the verified EB Garamond axis caveat above.
-- P0.1 uses 15/22 px task titles, 13/18 px metadata, 64 px fine-pointer rows, and 68 px coarse-pointer
-  rows. `docs/design/tokens.md`, `shared/design/tokens.css`, and computed design tests own these exact
-  values together.
+- The baseline uses 15/22 px task titles, 13/18 px metadata, 64 px fine-pointer rows, and 68 px
+  coarse-pointer rows. `docs/design/tokens.md`, `shared/design/tokens.css`, and computed design tests
+  own these exact values together.
 - Public display type may scale responsively. Authenticated workspace titles remain subordinate to
   the work and cannot consume marketing-scale vertical space.
 
@@ -90,8 +89,8 @@ Editorial Focus should feel:
 - Comfortable text cannot be achieved by enlarging type without rechecking wrapping, row actions,
   calendar density, dialogs, and 320/390 px reflow.
 - Light, dark, and system themes are supported. Color never becomes the only state cue.
-- The migration changes visual treatment only. Existing semantics, focus behavior, announcements,
-  drag alternatives, and state contracts remain intact.
+- Visual-system maintenance changes treatment only. Existing semantics, focus behavior,
+  announcements, drag alternatives, and state contracts remain intact.
 
 ## Originality guardrails
 
@@ -104,21 +103,10 @@ accessibility, or executable repository checks.
 OpenTask retains its own brand mark, Lucide icon system, product voice, application shell, task
 anatomy, screen contracts, and planning-specific interaction model.
 
-## Visual-proof approval gate
+## Change gate
 
-Before the broad migration, render real components with deterministic data for:
-
-1. Landing.
-2. Today.
-3. Calendar.
-4. Task inspector and mobile task details.
-5. Populated AI Review.
-
-Capture each at 1440 and 390 CSS px in light theme, representative dark-theme proofs, and task/landing
-boundary evidence at 768 and 320 px. Include default and one meaningful non-default state where it
-materially changes the visual system. Compare against the current implementation and stop for
-explicit user approval.
-
-The approved proof freezes the shared token and primitive direction. Subsequent presentation lanes
-may implement the remaining screens, but they may not invent a separate palette, type scale,
-button hierarchy, radius system, or atmosphere treatment.
+Later feature screens extend the frozen token and primitive direction; they may not invent a
+separate palette, type scale, button hierarchy, radius system, or atmosphere treatment. A proposed
+broad restyling or shared-foundation change must provide deterministic real-component evidence at
+1440 and 390 CSS px, representative dark-theme evidence, and 768/320 boundary evidence, then stop
+for explicit user approval before rollout.

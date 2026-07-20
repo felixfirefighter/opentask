@@ -4,7 +4,7 @@
 
 ## Responsibilities
 
-- Render the public product story, honest current-candidate/active-release copy, and responsive
+- Render the public product story, honest implemented-baseline/active-release copy, and responsive
   preview composition. Never claim a later package before its full gate passes.
 - Present signed-out and signed-in entry states from route-provided inputs.
 - Accept the identity-owned demo action through composition rather than owning demo creation or reset.

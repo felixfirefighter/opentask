@@ -1,4 +1,4 @@
-export function createModuleLayerExportProbes(probeModule) {
+export function createModuleLayerExportProbes() {
   return [
     {
       filePath: "app/__forbidden_boundary_probe__.ts",
@@ -18,130 +18,130 @@ export function createModuleLayerExportProbes(probeModule) {
       },
     },
     {
-      filePath: `modules/${probeModule}/presentation/leak.ts`,
-      source: 'import "../infrastructure/repository.ts";\n',
+      filePath: "modules/tasks/presentation/leak.ts",
+      source: 'import "../infrastructure/task-repository.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/presentation/server-shared.ts`,
+      filePath: "modules/tasks/presentation/server-shared.ts",
       source: 'import "../../../shared/config/environment.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/cross-module.ts`,
+      filePath: "modules/tasks/application/cross-module.ts",
       source: 'import "../../planning/presentation/TodayScreen.tsx";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/wrong-layer.ts`,
-      source: 'import "../presentation/view.ts";\n',
+      filePath: "modules/tasks/application/wrong-layer.ts",
+      source: 'import "../presentation/TaskList.tsx";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/shared-view.ts`,
+      filePath: "modules/tasks/application/shared-view.ts",
       source: 'import "../../../shared/presentation/Button.tsx";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/direct-database-reexport.ts`,
+      filePath: "modules/tasks/application/direct-database-reexport.ts",
       source: 'export { getDatabasePool } from "../../../shared/db/client.ts";\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/indirect-database-reexport.ts`,
+      filePath: "modules/tasks/application/indirect-database-reexport.ts",
       source: 'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport { pool };\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/aliased-database-reexport.ts`,
+      filePath: "modules/tasks/application/aliased-database-reexport.ts",
       source:
         'import * as database from "../../../shared/db/client.ts";\nconst pool = database.getDatabasePool;\nexport { pool };\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/declared-database-reexport.ts`,
+      filePath: "modules/tasks/application/declared-database-reexport.ts",
       source:
         'import * as database from "../../../shared/db/client.ts";\nexport const pool = database.getDatabasePool;\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/object-database-reexport.ts`,
+      filePath: "modules/tasks/application/object-database-reexport.ts",
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport const api = { pool };\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/called-database-reexport.ts`,
+      filePath: "modules/tasks/application/called-database-reexport.ts",
       source:
         'import { getDatabasePool } from "../../../shared/db/client.ts";\nexport default getDatabasePool();\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/function-database-reexport.ts`,
+      filePath: "modules/tasks/application/function-database-reexport.ts",
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport function leaked() { return pool; }\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/arrow-database-reexport.ts`,
+      filePath: "modules/tasks/application/arrow-database-reexport.ts",
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport const leaked = () => pool;\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/assigned-database-reexport.ts`,
+      filePath: "modules/tasks/application/assigned-database-reexport.ts",
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nlet leaked: unknown = null;\nleaked = pool;\nexport { leaked };\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/wrapped-database-reexport.ts`,
+      filePath: "modules/tasks/application/wrapped-database-reexport.ts",
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nconst identity = <T>(value: T) => value;\nexport const leaked = identity(pool);\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/infrastructure-reexport.ts`,
-      source: 'export * from "../infrastructure/repository.ts";\n',
+      filePath: "modules/tasks/application/infrastructure-reexport.ts",
+      source: 'export * from "../infrastructure/task-repository.ts";\n',
       expected: { "opentask/no-private-runtime-reexports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/domain/wrong-layer.ts`,
-      source: 'import "../presentation/view.ts";\n',
+      filePath: "modules/tasks/domain/wrong-layer.ts",
+      source: 'import "../presentation/TaskList.tsx";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/domain/cross-module.ts`,
+      filePath: "modules/tasks/domain/cross-module.ts",
       source: 'import "../../planning/index.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/domain/server-shared.ts`,
+      filePath: "modules/tasks/domain/server-shared.ts",
       source: 'import "../../../shared/logging/logger.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/infrastructure/shared-view.ts`,
+      filePath: "modules/tasks/infrastructure/shared-view.ts",
       source: 'import "../../../shared/presentation/Button.tsx";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/index.ts`,
-      source: 'export * from "./infrastructure/repository.ts";\n',
+      filePath: "modules/tasks/index.ts",
+      source: 'export * from "./infrastructure/task-repository.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/index.ts`,
-      source: 'export * from "./presentation/view.ts";\n',
+      filePath: "modules/tasks/index.ts",
+      source: 'export * from "./presentation/TaskList.tsx";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/index.ts`,
-      source: 'export * from "./domain/value.ts";\n',
+      filePath: "modules/tasks/index.ts",
+      source: 'export * from "./domain/task-text.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/index.ts`,
+      filePath: "modules/tasks/index.ts",
       source: 'import "pg";\nimport "@/shared/db/client";\n',
       expected: {
         "boundaries/dependencies": 1,
@@ -150,32 +150,32 @@ export function createModuleLayerExportProbes(probeModule) {
       },
     },
     {
-      filePath: `modules/${probeModule}/index.ts`,
+      filePath: "modules/tasks/index.ts",
       source: 'import "../../shared/db/client.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
       filePath: "modules/planning/presentation/root-file.ts",
-      source: `import "../../${probeModule}/private.ts";\n`,
+      source: 'import "../../tasks/domain/task-text.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/public-index.ts`,
+      filePath: "modules/tasks/application/public-index.ts",
       source: 'import "../../planning/index.ts";\n',
       expected: {},
     },
     {
-      filePath: `modules/${probeModule}/infrastructure/public-index.ts`,
+      filePath: "modules/tasks/infrastructure/public-index.ts",
       source: 'import "../../planning/index.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/presentation/public-index.ts`,
+      filePath: "modules/tasks/presentation/public-index.ts",
       source: 'import "../../planning/index.ts";\n',
       expected: {},
     },
     {
-      filePath: `modules/${probeModule}/application/presentation-index.ts`,
+      filePath: "modules/tasks/application/presentation-index.ts",
       source: 'import "../../planning/presentation/index.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
@@ -196,7 +196,7 @@ export function createModuleLayerExportProbes(probeModule) {
     },
     {
       filePath: "app/__module_root_boundary_probe__.ts",
-      source: `import "../modules/${probeModule}/private.ts";\n`,
+      source: 'import "../modules/tasks/domain/task-text.ts";\n',
       expected: { "boundaries/dependencies": 1 },
     },
     {

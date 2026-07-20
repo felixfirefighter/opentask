@@ -7,6 +7,7 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 | Concern | Source of truth |
 |---|---|
 | Agent behavior and hard gates | `AGENTS.md` |
+| Implemented capabilities and local run path | `README.md` |
 | Product purpose and principles | `docs/PRODUCT.md` |
 | Active/rejected/later feature scope | `docs/SCOPE.md` |
 | Goal-feature contract | `docs/GOAL.md` |
@@ -16,13 +17,13 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 | Ordered work packages | `docs/IMPLEMENTATION_PLAN.md` |
 | Tests, audits, completion gates | `docs/QUALITY.md` |
 | Design north star and routing | `DESIGN.md` |
-| Active visual migration target | `docs/design/editorial-focus.md` |
+| Approved visual baseline | `docs/design/editorial-focus.md` |
 | Vendored font asset sources/notices | `app/fonts/README.md` and `docs/STACK.md` |
 | Hackathon constraints/submission | `docs/HACKATHON.md` |
 | Reproducible local/container setup | `docs/SETUP.md` |
 | Hosted Railway deployment | `docs/DEPLOYMENT.md` |
 | Friend candidate handoff | `docs/FRIEND_TEST.md` |
-| TickTick feature research | `docs/research/TICKTICK_FEATURES.md` |
+| Reference-only TickTick feature research | `docs/research/TICKTICK_FEATURES.md` |
 | Research URLs and confidence | `docs/research/SOURCES.md` |
 
 ## Planned repository shape
@@ -81,9 +82,9 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 
 Anything else requires updating this manifest with a concrete reason.
 
-## Required commands after bootstrap
+## Stable command surface
 
-The bootstrap work package must create these stable commands; later agents use them rather than inventing alternatives.
+These commands are the stable repository interface; contributors use them rather than inventing alternatives.
 
 | Command | Contract |
 |---|---|
@@ -96,6 +97,8 @@ The bootstrap work package must create these stable commands; later agents use t
 | `pnpm lint` | static lint |
 | `pnpm format:check` | deterministic formatting gate |
 | `pnpm test:boundaries` | executable negative architecture-boundary probe |
+| `pnpm check:docs` | local Markdown and manifest-route reference audit |
+| `pnpm check:schema` | exact migrated application table/column and Drizzle-composition inventory |
 | `pnpm typecheck` | strict TypeScript |
 | `pnpm test` | unit tests |
 | `pnpm test:db` | database integration tests |
@@ -112,7 +115,7 @@ The bootstrap work package must create these stable commands; later agents use t
 
 - Update a source-of-truth document only when its contract changes.
 - Do not copy the same rule into multiple documents; link to the owner.
-- Do not store progress history in docs. A temporary `CURRENT_WORK.md`, if ever needed, is replaced rather than appended and is deleted at release.
+- Do not store progress history in docs. A temporary current-work note, if ever needed, is replaced rather than appended and is deleted at release.
 - New module contracts belong in `docs/modules/`; new screen contracts belong in `docs/design/screens/`.
 - A later-roadmap contract is not permission to create its routes, tables, jobs, dependencies, or UI
   under the active goal. Active modules still follow the package order and cannot expose dormant

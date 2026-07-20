@@ -34,11 +34,11 @@ describe("MatrixScreen", () => {
     const onPriorityChange = vi.fn();
     renderMatrix({ taskActions: { onEditSchedule, onPriorityChange } });
 
-    await user.click(screen.getByRole("button", { name: "More actions for Tighten the submission story" }));
+    await user.click(screen.getByRole("button", { name: "More actions for Confirm the workshop goals" }));
     await user.click(screen.getByRole("menuitem", { name: "Edit schedule" }));
     expect(onEditSchedule).toHaveBeenCalledWith("task-story");
 
-    await user.click(screen.getByRole("button", { name: "More actions for Tighten the submission story" }));
+    await user.click(screen.getByRole("button", { name: "More actions for Confirm the workshop goals" }));
     await user.click(screen.getByRole("menuitemradio", { name: "Low" }));
     expect(onPriorityChange).toHaveBeenCalledWith("task-story", "low");
   });
@@ -62,19 +62,19 @@ describe("MatrixScreen", () => {
       condition: { kind: "offline" },
       taskActions: { onEditSchedule: vi.fn() },
     });
-    expect(screen.getByRole("button", { name: /more actions for tighten/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /more actions for confirm/i })).toBeDisabled();
     offline.unmount();
 
     renderMatrix({ condition: { kind: "permission" } });
     expect(screen.getByText("This planning view is unavailable")).toBeInTheDocument();
-    expect(screen.queryByText("Tighten the submission story")).not.toBeInTheDocument();
+    expect(screen.queryByText("Confirm the workshop goals")).not.toBeInTheDocument();
   });
 
   it("keeps authoritative rows visible for error and conflict recovery", async () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();
     const error = renderMatrix({ condition: { kind: "error" }, onRetry });
-    expect(screen.getByText("Tighten the submission story")).toBeInTheDocument();
+    expect(screen.getByText("Confirm the workshop goals")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledOnce();
     error.unmount();

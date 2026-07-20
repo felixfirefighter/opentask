@@ -1,36 +1,28 @@
-# Local-first Full Release implementation plan
+# Local-first Full Release forward plan
 
-This is the canonical dependency and delivery plan for the active release in `docs/SCOPE.md`.
-Verification lives in `docs/QUALITY.md`. It replaces the completed/obsolete B0–B7 hackathon build
-sequence; Git retains that history.
+This is the canonical dependency and delivery plan for the unfinished P1-P7 work in
+`docs/SCOPE.md`. The implemented and approved baseline is summarized in `README.md`; completed
+sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
-## Deadline and candidate-safety contract
+## Execution baseline
 
-- Official hackathon deadline: **2026-07-22 08:00 GMT+8**.
-- The last fully green Deadline-safe Core remains the submission fallback while this plan runs on an
-  isolated branch/worktree.
-- A package may replace that fallback only after its complete gate passes. Screenshots, elapsed time,
-  or a partially working feature are not merge criteria.
-- P0 visual proof requires explicit user approval. If approval is pending, agents may perform
-  read-only audits or the specifically independent P1 diagnostic work; silence never authorizes the
-  broad design rollout.
-- If no new package is fully green before submission preparation must begin, ship/test/record the
-  stable core rather than a mixed design or partial feature.
+- `main` stays a green, locally runnable baseline while a later package is incomplete.
+- Editorial Focus is frozen across current routes. Later UI extends it through `DESIGN.md`; broad
+  restyling or shared-foundation changes require explicit user approval and new visual evidence.
+- P1 is the next active package. No P2-P7 table, route, dependency, worker job, service worker, or
+  control may land before its dependency gate.
+- A package integrates only as a coherent unit after its acceptance and audit gates pass. A partial
+  implementation, screenshot, elapsed time, or available agent is not a merge criterion.
+- The remaining work is estimated at **124-188 serial engineering hours** before external-provider
+  and user-approval latency. Estimates guide coordination; they never weaken a gate or authorize a
+  scope cut.
+- Hackathon timing and submission operations live in `docs/HACKATHON.md`, not in this product plan.
 
-The full plan is much larger than the remaining hackathon window. Estimated implementation is
-**156–240 serial engineering hours**, or roughly **78–110 elapsed hours** with four carefully
-partitioned agents, excluding user-approval and external-provider latency. Overnight work can make
-meaningful progress but cannot make this entire contract deadline-safe. No estimate weakens a gate.
-
-## Release dependency graph
+## Remaining dependency graph
 
 ```mermaid
 flowchart LR
-    LF00["LF00: activate contracts and baseline"] --> P0A["P0.1: design foundation and proof"]
-    P0A --> APPROVAL["Explicit visual approval"]
-    APPROVAL --> P0B["P0.2: full visual migration"]
-    P0B --> P0C["P0.3: design audit/freeze"]
-    P0C --> P1["P1: local-core stabilization"]
+    BASELINE["Implemented Editorial Focus baseline"] --> P1["P1: local-core stabilization"]
     P1 --> P2["P2: recurrence"]
     P1 --> P3["P3: habits"]
     P1 --> P5["P5: installable PWA shell"]
@@ -52,22 +44,22 @@ cross-version audit, demo, documentation, and cross-module evidence, not the fir
 
 ## Parallel execution contract
 
-Parallel work is split by capability/layer ownership, never merely by route.
+Parallel work is split by capability and layer ownership, never merely by route.
 
 ### Integration-owner files
 
 Only the integration owner edits or serializes:
 
-- canonical scope/goal/plan/architecture/quality documents;
+- canonical scope, goal, plan, architecture, data, stack, design, and quality contracts;
 - `package.json`, `pnpm-lock.yaml`, shared environment configuration, and license allowlists;
-- shared design tokens until P0 foundation freeze, root shell/navigation, and root route maps;
+- shared design tokens, root shell/navigation, and root route maps;
 - global Drizzle schema aggregation and generated `drizzle/*` migrations;
 - worker composition, export schema version, demo reset composition, Docker/CI/release configuration;
 - full database, browser, service-worker, worker, Docker, and `pnpm verify` gates.
 
 ### Worker rules
 
-- Each lane starts from the same green checkpoint in an isolated worktree/thread and owns an explicit
+- Each lane starts from the same green checkpoint in an isolated worktree/task and owns an explicit
   non-overlapping file list.
 - Pure domain/application/test work may run before a serialized migration only when the public
   contract is frozen and no dormant production export is exposed.
@@ -75,91 +67,9 @@ Only the integration owner edits or serializes:
   boundaries, schema, ownership, security, and dead code before integration.
 - No worker silently edits shared tokens, dependency files, global schemas, migrations, route maps,
   or canonical contracts.
-- Browser/Docker/database/full gates run centrally and sequentially to avoid shared-state and machine
-  resource conflicts.
-
-## LF00 — Activate contracts and protect the green baseline (2–4 hours, serial)
-
-### Boundary
-
-Planning and current-truth repair only. Do not add product code, dependency, route, table, or control.
-
-### Deliverables
-
-- Apply the five-part user-authorized scope change across `AGENTS.md`, scope, goal, plan,
-  architecture, stack, data, module, design, quality, setup, and manifest contracts.
-- Promote only P0–P7. Keep Stage A–D explicit and non-active.
-- Define local/self-host completion and remove hosted deployment as a goal prerequisite without
-  deleting optional deployment guidance.
-- Preserve the current green candidate as the rollback/submission fallback and confirm repository,
-  Node/pnpm, PostgreSQL, migrations, demo entry, and provider-absent baseline.
-- Inventory exact tables/routes/dependencies before later schema changes.
-
-### Gate
-
-- No contradictory active/deferred/zero-job/hosted-prerequisite wording in current-truth docs.
-- Documentation links and manifest routing resolve; no status diary was added.
-- `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm check:design`, and existing focused core
-  tests pass; run `pnpm verify` when PostgreSQL/browser prerequisites are available.
-- No P0–P7 production implementation appears in the LF00 diff.
-
-## P0 — Editorial Focus visual-system migration (24–40 serial hours; 14–22 elapsed)
-
-### Boundary
-
-Presentation/design only for the already-working core. Preserve every route, workflow, state,
-authorization rule, API, data model, module boundary, and information architecture. Follow the
-pinned research source through the application contract in `docs/design/editorial-focus.md`.
-
-### P0.1 — Foundation and five-screen proof (8–12 hours; then stop)
-
-Deliverables:
-
-- Capture the current Landing, Today, Calendar, task-detail, and populated AI Review baselines before
-  changing executable tokens.
-- Finalize original light/dark semantic tokens, contrast pairs, type scale, density, radii,
-  elevation, focus, and motion in docs, CSS, and computed design tests together.
-- Self-host the GetDesign-recommended, reviewed OFL-licensed EB Garamond Variable substitute for
-  display moments and Inter Variable for working UI through `next/font/local`; use only the font's
-  genuine 400–800 axis, commit font licenses, and add no font runtime dependency.
-- Update shared tokens/primitives first. Target task titles near 15/22 px and comfortable two-line
-  rows near 64 px while preserving 36 px fine-pointer controls and 44 px touch targets.
-- Implement only the five real proof surfaces with deterministic demo/fixture data. Keep serif and
-  atmosphere out of dense task/calendar/form content.
-- Capture 1440 and 390 light proofs, representative dark proofs, and 768/320 boundary evidence. AI
-  Review mobile evidence must show both populated proposal content and sticky Apply controls.
-- Present current/new comparison evidence and stop for explicit user approval.
-
-Gate:
-
-- `pnpm check:design`, focused proof component tests, `pnpm verify:design`, affected Playwright proof
-  and fixture paths, `pnpm test:a11y`, `pnpm verify:quick`, and `pnpm build`.
-- Manual contrast, keyboard, route-focus, reduced-motion, 200% zoom, font-load determinism, and
-  responsive overflow review.
-- Diff proves no behavior/API/schema/route change and no copied branding, asset, copy, palette,
-  layout, audio motif, proprietary font, or trade dress.
-- **Explicit user screenshot approval.** P0.2 cannot start without it.
-
-### P0.2 — Approved full-screen migration (12–20 serial hours)
-
-After the shared foundation freezes, run three non-overlapping presentation lanes:
-
-1. Landing, authentication, Settings, loading/offline surfaces, and responsive shell.
-2. Task navigation, rows, quick add, details, editors, overlays, dialogs, and every task state.
-3. Today/Upcoming, Calendar, Matrix, and planner Describe/Processing/Review/Result states.
-
-Each lane preserves behavior tests and covers light/dark/system plus default, empty, loading, error,
-offline, permission, provider, and conflict states. No lane changes shared tokens without
-integration-owner review.
-
-### P0.3 — Integration audit and design freeze (4–8 hours)
-
-- Inspect every route at 1440, 1024, 768, 390, and 320 CSS px, plus coarse pointer, reduced motion,
-  200% zoom, keyboard-only paths, focus entry/return, and light/dark/system themes.
-- Run `pnpm verify:design`, affected G1–G4 paths, `pnpm test:a11y`, `pnpm build`, then `pnpm verify`.
-- Audit that task text is measurably less cramped, operational density remains usable, and no mixed
-  old/new component hierarchy remains.
-- Obtain final migrated screenshot approval before feature UI starts.
+- Browser, Docker, database, and full gates run centrally and sequentially to avoid shared-state and
+  machine-resource conflicts. Static lanes may run concurrently because repository checks must not
+  create lint-visible temporary source files.
 
 ## P1 — Local-core stabilization (10–16 serial hours; 7–10 elapsed)
 
@@ -407,7 +317,6 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 | Active capability | Package | Primary evidence |
 |---|---|---|
-| Editorial Focus | P0 | approved proof/final screenshots + design/a11y gates |
 | Existing identity/tasks/planning/AI | P1 | G1–G4 + authorization/atomicity/freshness tests |
 | Recurrence/occurrences | P2 | recurrence golden path + range/DST/ownership suites |
 | Habits | P3 | Habits golden path + log/streak/time suites |
@@ -420,18 +329,18 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 | Trigger | Required response |
 |---|---|
-| Visual proof awaits approval | stop dependent styling; continue only read-only audits or listed P1 diagnostics |
+| A package proposes a broad visual-system change | stop dependent styling and obtain explicit approval with fresh visual evidence |
 | A lane misses two 90-minute checkpoints | preserve its last green commit, stop the lane, and reassign or reassess; do not hide partial code |
 | Shared contract/schema changes after consumers start | integration owner freezes consumers, updates the contract once, then rebases; consumers do not invent adapters |
 | Browser/Docker resource pressure | keep coding lanes active but run heavy environment gates centrally and one at a time |
-| New package is not fully green before submission work | retain the stable core candidate; do not merge a partial redesign/feature |
+| New package is not fully green before submission work | retain the implemented baseline; do not merge a partial feature |
 | External OpenAI/VAPID/browser permission is absent | keep fixture/provider-degraded paths green and report the exact manual smoke blocker |
 | Time pressure suggests a feature cut | request user approval for whole packages in reverse dependency order; update all five scope-change surfaces |
 | Later-scope code/control/table/dependency appears | remove it before integration regardless of time already spent |
 
 Never cut authorization isolation, manual core behavior, review-before-apply AI, migration integrity,
-export privacy, or required audits to make room for an extension. P0 is coherent or it does not
-replace the existing coherent design.
+export privacy, or required audits to make room for an extension. Each package is coherent or it
+does not replace the implemented baseline.
 
 ## Plan completion
 

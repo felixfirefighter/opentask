@@ -1,6 +1,6 @@
 # Contributing
 
-OpenTask is built as a modular monolith under a fixed Hackathon Release contract. Before editing code, read `AGENTS.md`, `docs/MANIFEST.md`, `docs/SCOPE.md`, and the owning module or screen contract.
+OpenTask is built as a modular monolith under the Local-first Full Release contract. Before editing code, read `AGENTS.md`, `docs/MANIFEST.md`, `docs/SCOPE.md`, and the owning module or screen contract.
 
 ## Working agreement
 

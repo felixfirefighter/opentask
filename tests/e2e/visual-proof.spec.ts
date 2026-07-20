@@ -15,7 +15,7 @@ const publicAuthRoutes = [
 
 const authenticatedRoutes = [
   { slug: "inbox", path: "/inbox", heading: "Inbox" },
-  { slug: "list", path: `/lists/${DEMO_LIST_ID}`, heading: "Hackathon launch" },
+  { slug: "list", path: `/lists/${DEMO_LIST_ID}`, heading: "Community workshop" },
   { slug: "completed", path: "/completed", heading: "Completed / cancelled" },
   { slug: "today", path: "/today", heading: "Today" },
   { slug: "upcoming", path: "/upcoming", heading: "Upcoming" },
@@ -80,7 +80,7 @@ test("the friend-candidate journey renders at every approved viewport", async ({
       ? `/lists/${DEMO_LIST_ID}?task=${DEMO_TASK_ID}`
       : `/tasks/${DEMO_TASK_ID}`;
   await page.goto(taskDetailsPath);
-  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue("Record the two-minute demo");
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue("Outline the workshop agenda");
   if (page.viewportSize()!.width >= 1280) {
     const details = page.getByRole("complementary", { name: "Task details" });
     await expect(details).toBeVisible();

@@ -379,7 +379,7 @@ Do not add speculative indexes. Use `EXPLAIN (ANALYZE, BUFFERS)` against seeded 
 
 ## Migration protocol
 
-1. Run the repository schema inventory command and `rg` for the proposed concept.
+1. Run `pnpm check:schema` and `rg` for the proposed concept.
 2. Update this catalog and owning module contract first or in the same patch.
 3. Change only the owning module's schema file; the global schema index re-exports definitions only.
 4. Generate SQL; inspect every statement, constraint, default, index, and destructive warning.

@@ -1,6 +1,6 @@
 # Approved technology stack
 
-The stack favors one language, one database, few operational services, strong schemas, and common libraries that AI agents can reason about. Versions are pinned in `package.json`/lockfile during bootstrap; major lines below are architectural choices.
+The stack favors one language, one database, few operational services, strong schemas, and common libraries that AI agents can reason about. Exact versions are pinned in `package.json` and `pnpm-lock.yaml`; major lines below are architectural choices.
 
 ## Core platform
 
@@ -31,7 +31,6 @@ Next.js documents App Router as the current route model. Drizzle supports code-f
 | `chrono-node` | English quick-add date/time recognition | Always show parsed tokens for confirmation. |
 | `rrule` (not installed) | P2-gated, range-bounded recurrence expansion | No raw RRULE UI or direct presentation import. Installation is authorized only after the P2 dependency gate below passes. |
 | `temporal-polyfill` | explicit date/time arithmetic used by FullCalendar/domain adapters | Do not use implicit server-local timezone arithmetic. |
-| `date-fns` | display formatting and small date helpers | Temporal/domain value objects own scheduling semantics. |
 | `react-markdown` + `remark-gfm` | safe Markdown task-description rendering | Raw HTML disabled; sanitize any future HTML path. |
 | `fractional-indexing` | stable task/list sort keys | Rebalance through one application use case, not ad hoc updates. |
 | `cmdk` and Sonner (through shadcn) | command palette and undo/error toast | No parallel custom implementations. |
@@ -47,7 +46,8 @@ primitives and keyboard/accessibility hooks. Sources:
 
 ## Vendored font assets
 
-P0.1 self-hosts two roman variable WOFF2 assets through the framework-bundled `next/font/local`;
+The approved baseline self-hosts two roman variable WOFF2 assets through the framework-bundled
+`next/font/local`;
 there is no font runtime package, CDN request, or build-time network dependency. The shipped UI does
 not require italics, so italic binaries are intentionally omitted.
 
@@ -110,7 +110,7 @@ License sources:
 
 Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date library, or a second component system.
 
-### Bootstrap dependency decisions
+### Installed dependency decisions
 
 | Dependency | Uncovered capability | Cost | License | Maintenance signal | Owner |
 |---|---|---|---|---|---|
@@ -126,7 +126,7 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 | `chrono-node` 2.10.0 | Parse English date/time suggestions during quick add without maintaining an error-prone natural-language parser. | Server/application adapter only; recognized source text remains visible and no parser result writes automatically. | MIT | Current stable v2 release with TypeScript declarations and focused locale parsers. | `modules/tasks/application/quick-add-application.ts` |
 | `temporal-polyfill` 1.0.1 | Provide explicit IANA-zone date arithmetic and DST-safe conversions not available through the approved stack. | Loaded only by schedule/planning adapters; avoids implicit server-local `Date` calculations. | MIT | Current stable 1.0 release implementing the standardized Temporal API surface. | `modules/tasks/domain/schedule/` and `modules/planning/domain/` |
 | `openai` 6.48.0 | Implement the optional GPT-5.6 Responses/Structured Outputs provider through the official SDK. | Server-only optional adapter; requests use minimal context, `store:false`, bounded timeout, and no-key capability fallback. | Apache-2.0 | Current stable official JavaScript SDK with maintained Responses and Zod helpers. | `modules/assistant/infrastructure/openai-responses-provider.ts` |
-| `@fullcalendar/react` 7.0.1 | Provide the committed month, week, day, and agenda views plus pointer drag/resize through the v7 React package's standard subpath plugins. | Client-only calendar surface; keyboard/touch schedule forms remain canonical and no premium/resource package is installed. The exact package and its two official transitive v7 packages are lockfile-pinned and explicitly reviewed in `minimumReleaseAgeExclude` for the deadline build. | MIT | Current stable v7 React release, React 19 compatible, with view and interaction plugins consolidated into the connector package. | `modules/planning/presentation/FullCalendarView.tsx` |
+| `@fullcalendar/react` 7.0.1 | Provide the committed month, week, day, and agenda views plus pointer drag/resize through the v7 React package's standard subpath plugins. | Client-only calendar surface; keyboard/touch schedule forms remain canonical and no premium/resource package is installed. The exact package and its two official transitive v7 packages are lockfile-pinned with an explicitly reviewed `minimumReleaseAgeExclude` exception. | MIT | Current stable v7 React release, React 19 compatible, with view and interaction plugins consolidated into the connector package. | `modules/planning/presentation/FullCalendarView.tsx` |
 
 ### Direct runtime license baseline
 
@@ -192,7 +192,7 @@ Local/self-host operation is the release completion path. No hosted deployment i
 
 Railway remains an optional demo target because its official guides support a Next.js service,
 PostgreSQL, a separate worker from the same codebase, private networking, and pre-deploy Drizzle
-migrations. Hosted setup is not a P0-P7 completion gate. If used, configure a hard usage limit and
+migrations. Hosted setup is not a P1-P7 completion gate. If used, configure a hard usage limit and
 do not describe trial or usage-based hosting as permanently free. Sources:
 [Railway Next.js + Postgres](https://docs.railway.com/guides/nextjs),
 [full-stack worker pattern](https://docs.railway.com/guides/fullstack-nextjs),

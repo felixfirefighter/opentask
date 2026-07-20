@@ -1,6 +1,6 @@
 # Friend/local candidate test
 
-Use this as the concise handoff for the current green core candidate. P7 expands it with recurrence,
+Use this as the concise handoff for the implemented baseline. P7 expands it with recurrence,
 Habits, Focus, PWA, and reminder steps only after those packages are fully integrated.
 
 ## Candidate
@@ -41,7 +41,7 @@ Do not enter personal tasks, credentials, API keys, or private information in th
 ## Known boundaries
 
 - AI planning requires the server operator to configure an OpenAI API key; it is not entered in the browser.
-- The current fallback keeps an already rendered page read-only when disconnected; the active PWA
+- The implemented baseline keeps an already rendered page read-only when disconnected; the active PWA
   package adds only an installable static shell/offline fallback and still does not claim sync.
 - Export is JSON only; import/restore is not part of this release.
 - Recurrence, habits, Focus, and reminders are part of the active plan but must not be claimed in a

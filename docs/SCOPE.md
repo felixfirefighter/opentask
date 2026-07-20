@@ -5,7 +5,7 @@ catalogs the competitor surface; this document alone authorizes product behavior
 
 ## Active release: Local-first Full Release
 
-The Local-first Full Release turns the working Deadline-safe Core into a polished, self-hostable
+The Local-first Full Release turns the implemented core into a polished, self-hostable
 personal planning product with recurrence, habits, Focus, installability, and one reliable browser
 reminder. “Full” means every capability committed below is complete; it does not claim full TickTick
 parity. “Local-first” means local/self-host operation is the completion path and no hosted deployment
@@ -15,26 +15,29 @@ Manual tasks, planning, habits, Focus, export, and already loaded UI must remain
 or push configuration is absent. Every capability below must meet its acceptance criteria and the
 gates in `docs/QUALITY.md`.
 
-### 1. Editorial Focus design migration
+### 1. Approved Editorial Focus baseline
 
-- Migrate the existing product to the GetDesign-informed Editorial Focus application direction in
-  `docs/design/editorial-focus.md` without changing product behavior or information architecture.
-- Use an open-source editorial display face only for major moments and a highly readable sans face
-  for working UI; vendor font files and license notices when implementation begins.
-- Increase task-text comfort while retaining productive density, strong form boundaries, semantic
-  status colors, 44 px touch targets, dark/system themes, and keyboard equivalence.
-- Use atmospheric decoration only on public, first-run, empty, and restrained planner-framing
-  surfaces; never as task/calendar/status decoration.
-- The first implementation checkpoint is a deterministic Landing, Today, Calendar, task-details,
-  and populated AI Review proof at desktop/mobile widths. Broad migration stops for explicit user
-  screenshot approval.
+Editorial Focus is already implemented and user-approved across the current product. It is a
+release invariant, not an unfinished work package.
+
+- Preserve the GetDesign-informed, OpenTask-owned application direction in
+  `docs/design/editorial-focus.md` without changing behavior or information architecture merely for
+  visual novelty.
+- Keep the self-hosted editorial display face limited to major moments and the readable sans face in
+  working UI, with committed font sources and license notices.
+- Retain comfortable task text, productive density, strong form boundaries, semantic status colors,
+  44 px touch targets, dark/system themes, and keyboard equivalence.
+- Keep atmospheric decoration on public, first-run, major empty, and restrained planner-framing
+  surfaces only; never use it as task, calendar, or status decoration.
+- Extend this baseline to later feature UI. Any broad restyling or shared-foundation change requires
+  explicit user approval and new visual evidence.
 
 Acceptance:
 
-- The user approves the proof before the remaining routes are restyled.
-- Every active route passes the responsive, theme, zoom, keyboard, and accessibility gates.
-- Existing G1–G4 behavior is unchanged; no route, API, schema, authorization rule, or feature is
-  added by the visual migration.
+- Every current and later active route passes the responsive, theme, zoom, keyboard, accessibility,
+  and executable design gates.
+- Visual-only maintenance does not add or change a route, API, schema, authorization rule, or
+  product feature.
 - No ElevenLabs/GetDesign branding, copy, asset, proprietary font, exact palette/layout, audio motif,
   or trade dress appears in the shipped product.
 
@@ -182,7 +185,7 @@ Acceptance:
 - Deterministic isolated demo/reset covers the full release without exposing shared credentials.
 - Local web, PostgreSQL, migrations, active reminder worker, production build, and health checks run
   reproducibly through documented commands and Docker Compose.
-- Submission/demo material distinguishes the stable deadline candidate from later unmerged work and
+- Submission/demo material distinguishes the implemented baseline from later unmerged work and
   claims only verified behavior.
 
 Acceptance:
@@ -248,7 +251,7 @@ Any addition, cut, or substitution requires all five in one reviewable change:
 2. This file's capabilities and acceptance criteria change.
 3. `docs/GOAL.md` completion changes.
 4. Owning module, data, design, stack, and quality contracts change where affected.
-5. `docs/IMPLEMENTATION_PLAN.md` effort, dependency order, and deadline risk are re-audited.
+5. `docs/IMPLEMENTATION_PLAN.md` effort, dependency order, and delivery risk are re-audited.
 
 Without all five, active scope is unchanged. Time pressure, an available agent, or a researched
 competitor feature is not authorization.

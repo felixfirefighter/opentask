@@ -8,7 +8,7 @@ Include the affected revision, impact, minimal reproduction, and any known mitig
 
 ## Supported version
 
-Before the first public release, only the current `main` revision is supported. Security fixes are not promised for old hackathon snapshots.
+Before the first public release, only the current `main` revision is supported. Security fixes are not promised for older development snapshots.
 
 ## Operational notes
 

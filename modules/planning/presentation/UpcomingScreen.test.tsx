@@ -20,7 +20,7 @@ describe("UpcomingScreen", () => {
   it("groups the same task rows by local date", () => {
     renderUpcoming();
     expect(screen.getByRole("heading", { name: "Monday, 20 July" })).toBeInTheDocument();
-    expect(screen.getByText("Record the two-minute demo")).toBeInTheDocument();
+    expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
     expect(screen.getByLabelText("4 tasks in the next 7 days")).toBeInTheDocument();
   });
 
@@ -36,7 +36,7 @@ describe("UpcomingScreen", () => {
   it("hides private rows when permission is unavailable", () => {
     renderUpcoming({ condition: { kind: "permission" } });
     expect(screen.getByText("This planning view is unavailable")).toBeInTheDocument();
-    expect(screen.queryByText("Record the two-minute demo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Outline the workshop agenda")).not.toBeInTheDocument();
   });
 
   it("covers loading, error, offline, and conflict recovery states", async () => {
@@ -62,7 +62,7 @@ describe("UpcomingScreen", () => {
 
     const offline = renderUpcoming({ condition: { kind: "offline" } });
     expect(screen.getByRole("button", { name: "Add task" })).toBeDisabled();
-    expect(screen.getByText("Record the two-minute demo")).toBeInTheDocument();
+    expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
     offline.unmount();
 
     renderUpcoming({

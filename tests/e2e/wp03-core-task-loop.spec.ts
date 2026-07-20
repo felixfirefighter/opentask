@@ -20,14 +20,14 @@ test("unscheduled quick add can be inspected, enriched, organized, completed, an
   test.skip(!goldenPathProjects.has(testInfo.project.name), "The G1 core loop runs at desktop and mobile.");
 
   await signUpThroughUi(page, testInfo);
-  const list = await createRegularList(page, "Launch work");
-  const section = await createSection(page, list.id, "Demo prep");
+  const list = await createRegularList(page, "Workshop tasks");
+  const section = await createSection(page, list.id, "Agenda");
   await page.reload();
 
-  const task = await quickAddTask(page, "Prepare release walkthrough");
+  const task = await quickAddTask(page, "Prepare workshop outline");
   await openTaskFromRow(page, task);
 
-  const editedTitle = "Prepare concise release walkthrough";
+  const editedTitle = "Prepare concise workshop outline";
   const titleInput = page.getByLabel("Task title", { exact: true });
   await titleInput.fill(editedTitle);
   await titleInput.press("Tab");
@@ -41,10 +41,10 @@ test("unscheduled quick add can be inspected, enriched, organized, completed, an
 
   await page.getByRole("button", { name: /Tags/u }).click();
   const tagsDialog = page.getByRole("dialog", { name: "Tags" });
-  await tagsDialog.getByLabel("New tag", { exact: true }).fill("Launch");
+  await tagsDialog.getByLabel("New tag", { exact: true }).fill("Event");
   await tagsDialog.getByLabel("New tag color").selectOption("sky");
   await tagsDialog.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(tagsDialog.getByRole("checkbox", { name: "Launch" })).toBeChecked();
+  await expect(tagsDialog.getByRole("checkbox", { name: "Event" })).toBeChecked();
   await tagsDialog.getByRole("button", { name: "Save tags" }).click();
   await expect(tagsDialog).toBeHidden();
 
@@ -105,7 +105,7 @@ test("unscheduled quick add can be inspected, enriched, organized, completed, an
   await expect(movedRow).toBeVisible();
   await expect(movedRow.getByRole("link")).toContainText(editedTitle);
   await expect(movedRow.getByRole("img", { name: "high priority" })).toBeVisible();
-  await expect(movedRow).toContainText("Launch");
+  await expect(movedRow).toContainText("Event");
 });
 
 test("task details use a desktop inspector and a mobile full-page route", async ({ page }, testInfo) => {

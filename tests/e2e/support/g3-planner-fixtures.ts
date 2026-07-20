@@ -61,13 +61,13 @@ export function createG3Proposal(
         },
         {
           semanticRef: "new-1",
-          title: "Draft release summary",
+          title: "Draft event summary",
           source: "brain_dump",
           taskId: null,
         },
         {
           semanticRef: "new-2",
-          title: "Clarify friend feedback",
+          title: "Clarify volunteer feedback",
           source: "brain_dump",
           taskId: null,
         },
@@ -79,9 +79,9 @@ export function createG3Proposal(
           semanticRef: "selected-1",
           taskId: task.id,
           before: { title: task.title, descriptionMd: "" },
-          after: { title: `Refine ${task.title}`, descriptionMd: "Add the verified demo outcome." },
+          after: { title: `Refine ${task.title}`, descriptionMd: "Add the verified setup outcome." },
           rationale: "The brain dump adds a concrete completion condition.",
-          uncertainties: ["Confirm the final reviewer before publishing."],
+          uncertainties: ["Confirm the final coordinator before sharing."],
         },
         {
           actionId: ids.schedule,
@@ -103,8 +103,8 @@ export function createG3Proposal(
           kind: "create",
           semanticRef: "new-1",
           after: {
-            title: "Draft release summary",
-            descriptionMd: "Capture the deadline-safe core and known limitations.",
+            title: "Draft event summary",
+            descriptionMd: "Capture the workshop plan and known constraints.",
             priority: "medium",
             schedule: {
               kind: "timed",
@@ -127,7 +127,7 @@ export function createG3Proposal(
       ],
       overflow: [{ semanticRef: "new-2", reason: "NO_FREE_INTERVAL" }],
       conflicts: [],
-      uncertainties: ["Confirm whether friend feedback is required before recording."],
+      uncertainties: ["Confirm whether volunteer feedback is required before finalizing."],
     },
     contextVersions: { [task.id]: task.version },
     status: "pending",

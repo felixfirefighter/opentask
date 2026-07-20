@@ -6,7 +6,7 @@ import { expect, test, type BrowserContext, type Page, type TestInfo } from "@pl
 const demo = {
   listId: "20000000-0000-4000-8000-000000000001",
   scheduledTaskId: "50000000-0000-4000-8000-000000000001",
-  scheduledTaskTitle: "Record the two-minute demo",
+  scheduledTaskTitle: "Outline the workshop agenda",
 } as const;
 
 const publicRoutes = [
@@ -16,7 +16,7 @@ const publicRoutes = [
 ] as const;
 
 const additionalTaskRoutes = [
-  { path: `/lists/${demo.listId}`, heading: "Hackathon launch" },
+  { path: `/lists/${demo.listId}`, heading: "Community workshop" },
   { path: "/completed", heading: "Completed / cancelled" },
   { path: "/settings", heading: "Settings" },
 ] as const;
@@ -159,7 +159,7 @@ test("saved reduced motion reaches a portaled dialog when the OS allows motion",
   await expect(dialog).toBeHidden();
 });
 
-test("one isolated demo covers the deadline-safe core accessibility surface", async ({
+test("one isolated demo covers the implemented baseline accessibility surface", async ({
   context,
   page,
 }, testInfo) => {

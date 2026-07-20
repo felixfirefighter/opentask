@@ -23,6 +23,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
     "test:boundaries": "node scripts/check-boundaries.mjs",
+    "check:docs": "node scripts/check-docs.mjs",
+    "check:schema": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.db.config.ts tests/db/schema-inventory.test.ts",
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:licenses": "node scripts/check-licenses.mjs",
     "check:audit": "pnpm audit --prod --audit-level high",
@@ -36,7 +38,7 @@
     "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
     "test:design": "playwright test tests/e2e/design-contract.spec.ts",
     "test:production": "node scripts/check-production-topology.mjs",
-    "verify:quick": "pnpm format:check && pnpm lint && pnpm test:boundaries && pnpm typecheck && pnpm check:design && pnpm check:secrets && pnpm test",
+    "verify:quick": "pnpm format:check && pnpm lint && pnpm test:boundaries && pnpm check:docs && pnpm typecheck && pnpm check:design && pnpm check:secrets && pnpm test",
     "verify:design": "pnpm check:design && pnpm test:design",
     "verify": "pnpm verify:quick && pnpm db:migrate && pnpm test:db && pnpm worker:smoke && pnpm build && PLAYWRIGHT_SERVER_MODE=production pnpm test:design && PLAYWRIGHT_SERVER_MODE=production pnpm test:e2e && PLAYWRIGHT_SERVER_MODE=production pnpm test:a11y && pnpm check:licenses && pnpm check:audit"
   },

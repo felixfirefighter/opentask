@@ -52,15 +52,15 @@ describe("deterministic isolated demo dataset", () => {
     expect(listsA).toHaveLength(2);
     expect(listsA.filter((list) => list.kind === "inbox")).toHaveLength(1);
     expect(listsA.filter((list) => list.kind === "regular")).toEqual([
-      expect.objectContaining({ name: "Hackathon launch", folderId: expect.any(String) }),
+      expect.objectContaining({ name: "Community workshop", folderId: expect.any(String) }),
     ]);
-    expect(sectionsA).toEqual([expect.objectContaining({ name: "Demo path" })]);
+    expect(sectionsA).toEqual([expect.objectContaining({ name: "This week" })]);
     expect(schedulesA).toHaveLength(4);
     expect(checklistA).toHaveLength(3);
-    expect(tagsA.map((tag) => tag.name).sort()).toEqual(["Design", "Launch", "Product"]);
+    expect(tagsA.map((tag) => tag.name).sort()).toEqual(["Design", "Event", "Planning"]);
 
-    const recordA = tasksA.find((task) => task.title === "Record the two-minute demo")!;
-    const recordB = tasksB.find((task) => task.title === "Record the two-minute demo")!;
+    const recordA = tasksA.find((task) => task.title === "Outline the workshop agenda")!;
+    const recordB = tasksB.find((task) => task.title === "Outline the workshop agenda")!;
     expect(recordA.id).toBe(recordB.id);
     expect(recordA.userId).toBe(ownerA);
     expect(recordB.userId).toBe(ownerB);
@@ -70,8 +70,8 @@ describe("deterministic isolated demo dataset", () => {
       ),
     ).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ title: "Draft the launch narrative", priority: "high" }),
-        expect.objectContaining({ title: "Polish the friend test script", priority: "medium" }),
+        expect.objectContaining({ title: "Draft the welcome message", priority: "high" }),
+        expect.objectContaining({ title: "Send the agenda to volunteers", priority: "medium" }),
       ]),
     );
   });
@@ -80,7 +80,7 @@ describe("deterministic isolated demo dataset", () => {
     const seeder = createDemoDatasetSeeder({ database, clock });
     await Promise.all([seeder.reset(ownerA), seeder.reset(ownerB)]);
     const tasksA = await tasksFor(ownerA);
-    const recordId = tasksA.find((task) => task.title === "Record the two-minute demo")!.id;
+    const recordId = tasksA.find((task) => task.title === "Outline the workshop agenda")!.id;
     const inboxA = await activeInboxId(ownerA);
 
     await database
@@ -114,7 +114,7 @@ describe("deterministic isolated demo dataset", () => {
     const resetA = await tasksFor(ownerA);
     const untouchedB = await tasksFor(ownerB);
     expect(resetA).toHaveLength(10);
-    expect(resetA.some((task) => task.title === "Record the two-minute demo")).toBe(true);
+    expect(resetA.some((task) => task.title === "Outline the workshop agenda")).toBe(true);
     expect(resetA.some((task) => task.title === "Temporary demo edit")).toBe(false);
     expect(untouchedB).toHaveLength(10);
     expect(untouchedB.some((task) => task.title === "Friend-owned edit")).toBe(true);
@@ -126,10 +126,10 @@ describe("deterministic isolated demo dataset", () => {
     await database
       .update(schema.tasks)
       .set({ title: "Preserve this previous demo" })
-      .where(and(eq(schema.tasks.userId, ownerA), eq(schema.tasks.title, "Record the two-minute demo")));
+      .where(and(eq(schema.tasks.userId, ownerA), eq(schema.tasks.title, "Outline the workshop agenda")));
     await database.execute(
       sql`alter table tasks add constraint demo_dataset_forced_failure
-          check (title <> 'Record the two-minute demo')`,
+          check (title <> 'Outline the workshop agenda')`,
     );
 
     try {

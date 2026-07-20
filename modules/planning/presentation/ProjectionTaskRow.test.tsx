@@ -12,9 +12,9 @@ describe("ProjectionTaskRow", () => {
     const onStatusChange = vi.fn();
     render(<ProjectionTaskRow task={planningTaskFixture()} actions={{ onOpenTask, onStatusChange }} />);
 
-    await user.click(screen.getByRole("link", { name: /record the two-minute demo/i }));
+    await user.click(screen.getByRole("link", { name: /outline the workshop agenda/i }));
     expect(onOpenTask).toHaveBeenCalledWith("task-demo");
-    await user.click(screen.getByRole("button", { name: "Complete Record the two-minute demo" }));
+    await user.click(screen.getByRole("button", { name: "Complete Outline the workshop agenda" }));
     expect(onStatusChange).toHaveBeenCalledWith("task-demo", "completed");
   });
 
@@ -30,11 +30,11 @@ describe("ProjectionTaskRow", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "More actions for Record the two-minute demo" }));
+    await user.click(screen.getByRole("button", { name: "More actions for Outline the workshop agenda" }));
     await user.click(screen.getByRole("menuitem", { name: "Edit schedule" }));
     expect(onEditSchedule).toHaveBeenCalledWith("task-demo");
 
-    await user.click(screen.getByRole("button", { name: "More actions for Record the two-minute demo" }));
+    await user.click(screen.getByRole("button", { name: "More actions for Outline the workshop agenda" }));
     await user.click(screen.getByRole("menuitemradio", { name: "Low" }));
     expect(onPriorityChange).toHaveBeenCalledWith("task-demo", "low");
   });
@@ -49,7 +49,7 @@ describe("ProjectionTaskRow", () => {
     );
 
     expect(screen.getByText("Changed elsewhere")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /complete record/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /complete outline/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /more actions/i })).toBeDisabled();
   });
 });

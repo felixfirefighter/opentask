@@ -117,8 +117,8 @@ describe("isolated demo entry", () => {
       .from(schema.tasks)
       .where(eq(schema.tasks.userId, identity!.actor.userId));
     expect(taskRows).toHaveLength(10);
-    expect(taskRows).toContainEqual({ title: "Record the two-minute demo" });
-    expect(taskRows).toContainEqual({ title: "Draft the launch narrative" });
+    expect(taskRows).toContainEqual({ title: "Outline the workshop agenda" });
+    expect(taskRows).toContainEqual({ title: "Draft the welcome message" });
 
     const otherResponse = await POST(demoMutationRequest({ clientAddress: "203.0.113.92" }));
     const otherCookie = cookiesFromSetCookie(otherResponse.headers.getSetCookie());
@@ -153,7 +153,7 @@ describe("isolated demo entry", () => {
       .where(
         and(
           eq(schema.tasks.userId, identity!.actor.userId),
-          eq(schema.tasks.title, "Record the two-minute demo"),
+          eq(schema.tasks.title, "Outline the workshop agenda"),
         ),
       );
     await database
@@ -162,7 +162,7 @@ describe("isolated demo entry", () => {
       .where(
         and(
           eq(schema.tasks.userId, otherIdentity!.actor.userId),
-          eq(schema.tasks.title, "Record the two-minute demo"),
+          eq(schema.tasks.title, "Outline the workshop agenda"),
         ),
       );
     await insertPendingProposal(identity!.actor.userId);
@@ -186,7 +186,7 @@ describe("isolated demo entry", () => {
         .select({ title: schema.tasks.title })
         .from(schema.tasks)
         .where(eq(schema.tasks.userId, identity!.actor.userId)),
-    ).toContainEqual({ title: "Record the two-minute demo" });
+    ).toContainEqual({ title: "Outline the workshop agenda" });
     expect(
       await database
         .select({ title: schema.tasks.title })
@@ -222,14 +222,14 @@ describe("isolated demo entry", () => {
     await database
       .update(schema.tasks)
       .set({ title: "Keep the previous demo after failure" })
-      .where(and(eq(schema.tasks.userId, userId), eq(schema.tasks.title, "Record the two-minute demo")));
+      .where(and(eq(schema.tasks.userId, userId), eq(schema.tasks.title, "Outline the workshop agenda")));
     await database
       .update(schema.tasks)
       .set({ title: "Earlier isolated demo task" })
-      .where(and(ne(schema.tasks.userId, userId), eq(schema.tasks.title, "Record the two-minute demo")));
+      .where(and(ne(schema.tasks.userId, userId), eq(schema.tasks.title, "Outline the workshop agenda")));
     await database.execute(
       sql`alter table tasks add constraint demo_entry_forced_failure
-          check (title <> 'Record the two-minute demo')`,
+          check (title <> 'Outline the workshop agenda')`,
     );
 
     try {

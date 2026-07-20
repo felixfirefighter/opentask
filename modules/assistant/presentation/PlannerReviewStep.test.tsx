@@ -21,7 +21,9 @@ describe("Assistant planner Review", () => {
     expect(screen.getByRole("heading", { name: "Scheduled and updated" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "New tasks" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Deferred and overflow" })).toBeInTheDocument();
-    expect(screen.getByText("Confirm whether the friend tester needs a second account.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Confirm whether the volunteer coordinator needs a second account."),
+    ).toBeInTheDocument();
     expect(screen.getByText("No free interval was available inside the work window.")).toBeInTheDocument();
     expect(screen.getAllByText("Why this change:")).toHaveLength(5);
     expect(screen.getByRole("button", { name: "Apply 5 changes" })).toBeEnabled();
@@ -96,7 +98,7 @@ describe("Assistant planner Review", () => {
       },
     });
     const scheduleSelection = screen.getByRole("checkbox", {
-      name: "Select schedule action for Review launch checklist",
+      name: "Select schedule action for Review workshop checklist",
     });
     expect(scheduleSelection).toBeDisabled();
     expect(screen.getByText("Tomorrow at 10:00 AM")).toBeInTheDocument();
@@ -107,7 +109,7 @@ describe("Assistant planner Review", () => {
   it("keeps a loaded proposal readable but disables every review mutation offline", () => {
     renderReview({ online: false });
     expect(screen.getByRole("status")).toHaveTextContent("Planner actions are unavailable offline");
-    expect(screen.getAllByText("Draft release notes").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Draft workshop notes").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Apply 5 changes" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Reject proposal" })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: /Select create action/i })).toBeDisabled();

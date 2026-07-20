@@ -351,7 +351,7 @@ test("every released route reflows at the tablet and minimum-width boundaries", 
     { path: "/inbox", heading: "Inbox", slug: "inbox" },
     {
       path: "/lists/20000000-0000-4000-8000-000000000001",
-      heading: "Hackathon launch",
+      heading: "Community workshop",
       slug: "list",
     },
     { path: "/completed", heading: "Completed / cancelled", slug: "completed" },
@@ -378,7 +378,7 @@ test("every released route reflows at the tablet and minimum-width boundaries", 
 
   await page.goto("/tasks/50000000-0000-4000-8000-000000000001");
   const taskTitle = page.getByLabel("Task title", { exact: true });
-  await expect(taskTitle).toHaveValue("Record the two-minute demo");
+  await expect(taskTitle).toHaveValue("Outline the workshop agenda");
   await expectUsesSans(taskTitle, "task detail title");
   await captureBoundaryRoute(page, testInfo.project.name, evidenceDirectory, "task-details");
 });
@@ -431,7 +431,7 @@ test("the five proof surfaces reflow at a 200% zoom equivalent and honor reduced
 
   await page.goto("/tasks/50000000-0000-4000-8000-000000000001");
   const taskTitle = page.getByLabel("Task title", { exact: true });
-  await expect(taskTitle).toHaveValue("Record the two-minute demo");
+  await expect(taskTitle).toHaveValue("Outline the workshop agenda");
   await expectUsesSans(taskTitle, "task title");
   await expect(page.getByRole("link", { name: "Back to task list" })).toBeVisible();
   await expect(page.getByText("Title is saved")).toBeVisible();

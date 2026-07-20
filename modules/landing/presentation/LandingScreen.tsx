@@ -120,7 +120,7 @@ function ProductComposition() {
           <span />
           <span />
           <span />
-          <p>Today · Saturday, 18 July</p>
+          <p>Today</p>
         </div>
         <div className={previewStyles.previewBody}>
           <aside className={previewStyles.previewSidebar}>
@@ -133,15 +133,15 @@ function ProductComposition() {
             <div className={previewStyles.previewHeading}>
               <div>
                 <small>Today</small>
-                <strong>Move the launch forward</strong>
+                <strong>Prepare for the workshop</strong>
               </div>
               <span className={previewStyles.previewButton}>Add task</span>
             </div>
             <p className={previewStyles.previewSection}>Timed</p>
-            <PreviewTask title="Record the two-minute demo" time="10:30 AM" tone="coral" />
-            <PreviewTask title="Review landing page on mobile" time="2:00 PM" tone="sky" />
+            <PreviewTask title="Outline the workshop agenda" time="10:30 AM" tone="coral" />
+            <PreviewTask title="Review event page on mobile" time="2:00 PM" tone="sky" />
             <p className={previewStyles.previewSection}>Anytime</p>
-            <PreviewTask title="Prepare clean demo data" time="Today" tone="amber" />
+            <PreviewTask title="Prepare attendee notes" time="Today" tone="amber" />
           </div>
         </div>
       </div>

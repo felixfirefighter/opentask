@@ -12,7 +12,7 @@ Create one Railway project with:
 
 The checked-in `railway.json` selects the production `Dockerfile`, runs committed Drizzle migrations as a pre-deploy command, probes `/api/health/ready`, and bounds crash retries. Railway supports these settings through [Config as Code](https://docs.railway.com/config-as-code/reference), and its pre-deploy container has private-network variables available before the new deployment starts.
 
-The current green fallback does not deploy its zero-job worker. After P6 is integrated, browser
+The implemented baseline does not deploy its zero-job worker. After P6 is integrated, browser
 reminders require a separately configured worker service from the same image; P6 must update this
 document with exact VAPID/encryption variables, process command, health/alerting, and degradation
 checks before any reminder-capable hosted candidate is designated.

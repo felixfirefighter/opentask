@@ -26,7 +26,7 @@ Use a stable progress surface with honest stages: interpreting input, validating
 
 ## Step 2: Review
 
-Start with a summary of proposed, conflicting, deferred/overflow, and uncertain items. Then render proposal cards using `components.md`, grouped by:
+Start with a summary of proposed, conflicting, deferred/overflow, and uncertain items. Then render proposal cards using `docs/design/components.md`, grouped by:
 
 1. Needs attention: invalid, uncertain, stale, or conflicting;
 2. Scheduled/updated;

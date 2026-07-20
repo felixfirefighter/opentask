@@ -136,7 +136,7 @@ describe("CalendarScreen", () => {
 
     const onRetry = vi.fn();
     const error = renderCalendar({ condition: { kind: "error" }, onRetry });
-    expect(screen.getByText("Record the two-minute demo")).toBeInTheDocument();
+    expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledOnce();
     error.unmount();
@@ -151,7 +151,7 @@ describe("CalendarScreen", () => {
 
     renderCalendar({ condition: { kind: "permission" } });
     expect(screen.queryByTestId("fullcalendar")).not.toBeInTheDocument();
-    expect(screen.queryByText("Record the two-minute demo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Outline the workshop agenda")).not.toBeInTheDocument();
   });
 
   it("keeps loaded events read-only offline and identifies conflicts", async () => {
@@ -160,7 +160,7 @@ describe("CalendarScreen", () => {
     expect(screen.getByRole("button", { name: "Previous range" })).toBeDisabled();
     await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "event-demo");
     expect(screen.getByRole("button", { name: "Edit schedule" })).toBeDisabled();
-    expect(screen.getByText("Record the two-minute demo")).toBeInTheDocument();
+    expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
     offline.unmount();
 
     renderCalendar({

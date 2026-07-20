@@ -149,7 +149,7 @@ export function useDeleteTaskMutation(onDeleted?: () => void) {
     mutationFn: (task: TaskDetailDto | TaskListItemDto) => deleteTask(task.id, task.version),
     onSuccess: (deleted) => {
       onDeleted?.();
-      void invalidateTask(queryClient, deleted.id, deleted.listId);
+      void invalidateTask(queryClient, deleted.listId);
       toast.success("Task deleted", {
         action: {
           label: "Undo",
@@ -157,7 +157,7 @@ export function useDeleteTaskMutation(onDeleted?: () => void) {
         },
       });
     },
-    onError: (_error, task) => invalidateTask(queryClient, task.id, task.listId),
+    onError: (_error, task) => invalidateTask(queryClient, task.listId),
   });
 }
 
@@ -183,7 +183,7 @@ async function restoreDeletedTask(
     await restoreTask(task.id, expectedVersion);
   } catch (error) {
     const activeTask = await getTask(task.id).catch(() => null);
-    await invalidateTask(queryClient, task.id, task.listId).catch(() => undefined);
+    await invalidateTask(queryClient, task.listId).catch(() => undefined);
     if (activeTask) {
       toast.success("Task restored");
       return;
@@ -198,7 +198,7 @@ async function restoreDeletedTask(
     });
     return;
   }
-  await invalidateTask(queryClient, task.id, task.listId).catch(() => undefined);
+  await invalidateTask(queryClient, task.listId).catch(() => undefined);
   toast.success("Task restored");
 }
 
@@ -211,7 +211,7 @@ async function reopenTask(
     await transitionTaskStatus(task.id, { expectedVersion, status: "open" });
   } catch (error) {
     const currentTask = await getTask(task.id).catch(() => null);
-    await invalidateTask(queryClient, task.id, task.listId).catch(() => undefined);
+    await invalidateTask(queryClient, task.listId).catch(() => undefined);
     if (currentTask?.status === "open") {
       toast.success("Task restored");
       return;
@@ -226,15 +226,11 @@ async function reopenTask(
     });
     return;
   }
-  await invalidateTask(queryClient, task.id, task.listId).catch(() => undefined);
+  await invalidateTask(queryClient, task.listId).catch(() => undefined);
   toast.success("Task restored");
 }
 
-async function invalidateTask(
-  queryClient: ReturnType<typeof useQueryClient>,
-  taskId: string,
-  listId: string,
-) {
+async function invalidateTask(queryClient: ReturnType<typeof useQueryClient>, listId: string) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: taskQueryKeys.list(listId) }),
     queryClient.invalidateQueries({ queryKey: taskQueryKeys.terminalRoot() }),
