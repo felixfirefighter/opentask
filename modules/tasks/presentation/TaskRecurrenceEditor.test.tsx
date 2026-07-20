@@ -29,18 +29,20 @@ import { TaskRecurrenceEditor } from "./TaskRecurrenceEditor";
 const TASK_ID = "00000000-0000-4000-8000-000000000010";
 const LIST_ID = "00000000-0000-4000-8000-000000000020";
 let savedRecurrence: TaskRecurrenceDto | null;
+let savedSchedule: TaskScheduleDto | null;
 let savedTaskVersion: number;
 
 beforeEach(() => {
   vi.clearAllMocks();
   clearTaskDrafts(TASK_ID);
   savedRecurrence = null;
+  savedSchedule = allDaySchedule();
   savedTaskVersion = 1;
   scheduleApi.getSchedulePreferences.mockResolvedValue({
     timeZone: "Asia/Singapore",
     hourCycle: "h23",
   });
-  scheduleApi.getTaskSchedule.mockResolvedValue(allDaySchedule());
+  scheduleApi.getTaskSchedule.mockImplementation(async () => savedSchedule);
   recurrenceApi.getTaskRecurrence.mockImplementation(async () => savedRecurrence);
   recurrenceApi.setTaskRecurrence.mockImplementation(async (taskId, input) => {
     savedTaskVersion = input.expectedVersion + 1;
@@ -90,6 +92,7 @@ describe("TaskRecurrenceEditor", () => {
     );
     expect(await screen.findByText("Recurrence added")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
+    await waitFor(() => expect(scheduleApi.getTaskSchedule).toHaveBeenCalledTimes(2));
   });
 
   it("confirms a future restart and keeps recorded-history language visible", async () => {
@@ -197,6 +200,92 @@ describe("TaskRecurrenceEditor", () => {
     expect(recurrenceApi.setTaskRecurrence.mock.calls[1]?.[1]).toMatchObject({ expectedVersion: 2 });
   });
 
+  it("refetches an atomic series-schedule conflict before retrying the preserved recurrence", async () => {
+    const monthlyDefinition = {
+      preset: { kind: "monthly", interval: 1 },
+      end: { kind: "never" },
+    } as const;
+    savedRecurrence = recurrence({ definition: monthlyDefinition });
+    recurrenceApi.setTaskRecurrence.mockImplementationOnce(async () => {
+      savedTaskVersion = 2;
+      savedSchedule = allDaySchedule({ startDate: "2026-07-21", endDate: "2026-07-22" });
+      savedRecurrence = recurrence({
+        definition: monthlyDefinition,
+        taskVersion: savedTaskVersion,
+        cutover: {
+          kind: "all_day",
+          projectionStartDate: "2026-07-21",
+          projectionEndDate: null,
+        },
+      });
+      throw new TaskApiError({
+        code: "CONFLICT",
+        status: 409,
+        detail: "A concurrent series-schedule edit won the task lock",
+        currentVersion: savedTaskVersion,
+      });
+    });
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Edit recurrence" }));
+    await user.click(screen.getByRole("button", { name: "Save and restart" }));
+    await user.click(screen.getByRole("button", { name: "Restart future recurrence" }));
+
+    const alert = await screen.findByRole("alert");
+    await waitFor(() => expect(scheduleApi.getTaskSchedule).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(alert).toHaveTextContent("Every month on day 21"));
+    expect(alert).not.toHaveTextContent("matches this attempt");
+
+    await user.click(within(alert).getByRole("button", { name: "Try again" }));
+
+    await waitFor(() => expect(recurrenceApi.setTaskRecurrence).toHaveBeenCalledTimes(2));
+    expect(recurrenceApi.setTaskRecurrence.mock.calls[1]?.[1]).toMatchObject({
+      expectedVersion: 2,
+      definition: monthlyDefinition,
+    });
+    await waitFor(() => expect(scheduleApi.getTaskSchedule).toHaveBeenCalledTimes(4));
+  });
+
+  it("keeps conflict actions blocked until Refresh latest reloads the schedule", async () => {
+    savedRecurrence = recurrence();
+    recurrenceApi.setTaskRecurrence.mockImplementationOnce(async () => {
+      savedTaskVersion = 2;
+      savedRecurrence = recurrence({ taskVersion: savedTaskVersion });
+      scheduleApi.getTaskSchedule.mockRejectedValueOnce(new TypeError("Schedule reload failed"));
+      throw new TaskApiError({
+        code: "CONFLICT",
+        status: 409,
+        detail: "Stale task version",
+        currentVersion: savedTaskVersion,
+      });
+    });
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Edit recurrence" }));
+    fireEvent.change(screen.getByLabelText("Repeat every"), { target: { value: "2" } });
+    await user.click(screen.getByRole("button", { name: "Save and restart" }));
+    await user.click(screen.getByRole("button", { name: "Restart future recurrence" }));
+
+    const alert = await screen.findByRole("alert");
+    const retry = within(alert).getByRole("button", { name: "Try again" });
+    await waitFor(() =>
+      expect(alert).toHaveTextContent("latest recurrence and schedule could not be loaded"),
+    );
+    expect(retry).toBeDisabled();
+
+    const scheduleReads = scheduleApi.getTaskSchedule.mock.calls.length;
+    const recurrenceReads = recurrenceApi.getTaskRecurrence.mock.calls.length;
+    const taskReads = taskApi.getTask.mock.calls.length;
+    await user.click(within(alert).getByRole("button", { name: "Refresh latest" }));
+
+    await waitFor(() => expect(retry).toBeEnabled());
+    expect(scheduleApi.getTaskSchedule).toHaveBeenCalledTimes(scheduleReads + 1);
+    expect(recurrenceApi.getTaskRecurrence).toHaveBeenCalledTimes(recurrenceReads + 1);
+    expect(taskApi.getTask).toHaveBeenCalledTimes(taskReads + 1);
+  });
+
   it("reconciles an applied write after a lost response without writing twice", async () => {
     recurrenceApi.setTaskRecurrence.mockImplementationOnce(async (_taskId, input) => {
       savedTaskVersion = 2;
@@ -296,7 +385,9 @@ function taskDetail(overrides: Partial<TaskDetailDto> = {}): TaskDetailDto {
   };
 }
 
-function allDaySchedule(): TaskScheduleDto {
+function allDaySchedule(
+  overrides: Partial<Extract<TaskScheduleDto, { kind: "all_day" }>> = {},
+): Extract<TaskScheduleDto, { kind: "all_day" }> {
   return {
     taskId: TASK_ID,
     kind: "all_day",
@@ -304,6 +395,7 @@ function allDaySchedule(): TaskScheduleDto {
     endDate: "2026-07-21",
     createdAt: "2026-07-19T00:00:00.000Z",
     updatedAt: "2026-07-19T00:00:00.000Z",
+    ...overrides,
   };
 }
 

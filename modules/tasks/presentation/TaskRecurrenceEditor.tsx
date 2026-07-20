@@ -80,11 +80,7 @@ export function TaskRecurrenceEditor({
       {editor.recurrenceQuery.isError || editor.scheduleQuery.isError ? (
         <div className={styles.stale} role="status">
           <span>Showing the last loaded recurrence. A fresh copy could not be loaded.</span>
-          <button
-            className="quiet-button"
-            type="button"
-            onClick={() => void editor.recurrenceQuery.refetch()}
-          >
+          <button className="quiet-button" type="button" onClick={() => void editor.refreshLatest()}>
             Refresh recurrence
           </button>
         </div>
@@ -103,17 +99,22 @@ export function TaskRecurrenceEditor({
           error={editor.mutation.error}
           latestMatchesAttempt={editor.latestMatchesAttempt}
           latestSummary={latestSummary}
-          latestUnavailable={editor.recovery.latestUnavailable || editor.recurrenceQuery.isError}
-          loadingLatest={editor.recovery.loadingLatest || editor.recurrenceQuery.isFetching}
+          latestUnavailable={
+            editor.recovery.latestUnavailable ||
+            editor.recurrenceQuery.isError ||
+            editor.scheduleQuery.isError
+          }
+          loadingLatest={
+            editor.recovery.loadingLatest ||
+            editor.recurrenceQuery.isFetching ||
+            editor.scheduleQuery.isFetching
+          }
           pending={editor.mutation.isPending}
           proposedSummary={editor.interpretation?.valid ? editor.interpretation.summary : null}
           recovering={editor.recovery.needsLatest}
           recoveryReady={editor.recoveryReady}
           onKeepEditing={editor.keepEditing}
-          onRefreshLatest={() => {
-            void editor.recovery.refetchLatest();
-            void editor.recurrenceQuery.refetch();
-          }}
+          onRefreshLatest={() => void editor.refreshLatest()}
           onRetry={() => void editor.retry()}
           onUseLatest={() => void editor.useLatest()}
         />

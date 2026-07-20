@@ -56,7 +56,7 @@ export function TaskRecurrenceEditorFeedback({
         {permissionSafe
           ? "Your task was not changed."
           : conflict
-            ? "Your entries are preserved while the latest task and series are checked."
+            ? "Your entries are preserved while the latest task, schedule, and recurrence are checked."
             : unknown
               ? "The response did not confirm whether the change was saved. Your entries are preserved while authoritative state is checked."
               : isTaskApiError(error) && error.code === "VALIDATION_FAILED"
@@ -68,9 +68,9 @@ export function TaskRecurrenceEditorFeedback({
           {proposedSummary ? <p>Your choice: {proposedSummary}</p> : null}
           <p>
             {loadingLatest
-              ? "Loading the latest saved recurrence…"
+              ? "Loading the latest saved recurrence and schedule…"
               : latestUnavailable
-                ? "The latest recurrence could not be loaded."
+                ? "The latest recurrence and schedule could not be loaded."
                 : latestSummary
                   ? `Latest saved: ${latestSummary}`
                   : "Latest saved: Does not repeat"}

@@ -97,10 +97,8 @@ export function useTaskRecurrenceMutation() {
     onSettled: (_result, _error, input) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: taskRecurrenceQueryKey(input.task.id) }),
+        queryClient.invalidateQueries({ queryKey: taskQueryKeys.schedule(input.task.id) }),
         queryClient.invalidateQueries({ queryKey: taskQueryKeys.detail(input.task.id) }),
-        ...(input.kind === "schedule"
-          ? [queryClient.invalidateQueries({ queryKey: taskQueryKeys.schedule(input.task.id) })]
-          : []),
         queryClient.invalidateQueries({ queryKey: taskQueryKeys.list(input.task.listId) }),
         queryClient.invalidateQueries({ queryKey: taskQueryKeys.terminalRoot() }),
         queryClient.invalidateQueries({ queryKey: taskQueryKeys.searchRoot() }),

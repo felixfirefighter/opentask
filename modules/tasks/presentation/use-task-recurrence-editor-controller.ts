@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { TaskDetailDto } from "../application/contracts";
+import type { TaskDetailDto, TaskScheduleValue } from "../application/contracts";
 import type { RecurrenceDefinition, TaskRecurrenceDto } from "../application/contracts/recurrence-contract";
 import { useTaskConflictRecovery } from "./use-task-conflict-recovery";
 import {
@@ -11,6 +11,7 @@ import {
   interpretTaskRecurrenceDraft,
   type TaskRecurrenceDraft,
 } from "./task-recurrence-form-policy";
+import { recurrenceAttemptMatches, snapshotTaskSchedule } from "./task-recurrence-recovery-policy";
 import { useTaskDraftGuard } from "./task-draft-guard";
 import { useSchedulePreferencesQuery, useTaskScheduleQuery } from "./data/use-task-schedule";
 import { useTaskRecurrenceMutation, useTaskRecurrenceQuery } from "./data/use-task-recurrence";
@@ -29,6 +30,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
   const [saveMessage, setSaveMessage] = useState("");
   const [lastAttempt, setLastAttempt] = useState<RecurrenceAttempt | null>(null);
   const [attemptedDefinition, setAttemptedDefinition] = useState<RecurrenceDefinition | null>(null);
+  const [attemptedSchedule, setAttemptedSchedule] = useState<TaskScheduleValue | null>(null);
   const [attemptedExpectedVersion, setAttemptedExpectedVersion] = useState<number | null>(null);
   const [editingBaseVersion, setEditingBaseVersion] = useState<number | null>(null);
   const [restartConfirmationOpen, setRestartConfirmationOpen] = useState(false);
@@ -57,13 +59,18 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     recovery.latestReady &&
     !recurrenceQuery.isFetching &&
     recurrenceQuery.isSuccess &&
-    recurrenceQuery.data !== undefined;
-  const latestMatchesAttempt = attemptMatchesRecurrence(
-    lastAttempt,
+    recurrenceQuery.data !== undefined &&
+    !scheduleQuery.isFetching &&
+    scheduleQuery.isSuccess &&
+    scheduleQuery.data !== undefined;
+  const latestMatchesAttempt = recurrenceAttemptMatches({
+    attempt: lastAttempt,
     attemptedDefinition,
-    attemptedExpectedVersion,
+    attemptedSchedule,
+    expectedVersion: attemptedExpectedVersion,
     recurrence,
-  );
+    schedule,
+  });
   const serverDidNotApply =
     recovery.unconfirmed &&
     recoveryReady &&
@@ -114,11 +121,15 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     definition: RecurrenceDefinition,
     expectedVersion?: number,
     recoveryRetry = false,
+    authoritativeSchedule: TaskScheduleValue | null = schedule,
   ) {
-    if ((controlsDisabled && !recoveryRetry) || !draftGuard.beginWrite()) return;
+    if ((controlsDisabled && !recoveryRetry) || authoritativeSchedule === null || !draftGuard.beginWrite()) {
+      return;
+    }
     const version = expectedVersion ?? editingBaseVersion ?? recurrence?.taskVersion ?? task.version;
     setLastAttempt("save");
     setAttemptedDefinition(definition);
+    setAttemptedSchedule(snapshotTaskSchedule(authoritativeSchedule));
     setAttemptedExpectedVersion(version);
     setSaveMessage("");
     try {
@@ -142,6 +153,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     const version = expectedVersion ?? editingBaseVersion ?? recurrence?.taskVersion ?? task.version;
     setLastAttempt("end");
     setAttemptedDefinition(null);
+    setAttemptedSchedule(null);
     setAttemptedExpectedVersion(version);
     setSaveMessage("");
     try {
@@ -156,32 +168,70 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
 
   async function retry() {
     if (!canRetry || !lastAttempt || attemptedExpectedVersion === null) return;
-    if (latestMatchesAttempt) {
+    if (!recovery.needsLatest) {
+      if (lastAttempt === "end") {
+        await confirmEnd(attemptedExpectedVersion, true);
+        return;
+      }
+      const parsed = parseDraft(true);
+      if (parsed) await saveDefinition(parsed.definition, attemptedExpectedVersion, true);
+      return;
+    }
+
+    const [latestTask, latestRecurrence, latestSchedule] = await refetchAuthoritativeState();
+    if (
+      !latestTask.isSuccess ||
+      !latestTask.data ||
+      !latestRecurrence.isSuccess ||
+      !latestSchedule.isSuccess ||
+      latestSchedule.data === undefined
+    ) {
+      return;
+    }
+    const recurrenceAfterRefresh = latestRecurrence.data ?? null;
+    const scheduleAfterRefresh = latestSchedule.data ?? null;
+    const attemptApplied = recurrenceAttemptMatches({
+      attempt: lastAttempt,
+      attemptedDefinition,
+      attemptedSchedule,
+      expectedVersion: attemptedExpectedVersion,
+      recurrence: recurrenceAfterRefresh,
+      schedule: scheduleAfterRefresh,
+    });
+    if (attemptApplied) {
       acceptLatest(true);
       return;
     }
-    const version = recovery.conflict ? recovery.latestTask.version : attemptedExpectedVersion;
+    if (recovery.unconfirmed && latestTask.data.version !== attemptedExpectedVersion) return;
     if (lastAttempt === "end") {
-      await confirmEnd(version, true);
+      await confirmEnd(latestTask.data.version, true);
       return;
     }
-    const parsed = parseDraft(true);
-    if (parsed) await saveDefinition(parsed.definition, version, true);
+    const parsed = parseDraft(true, scheduleAfterRefresh, recurrenceAfterRefresh);
+    if (parsed) {
+      await saveDefinition(parsed.definition, latestTask.data.version, true, scheduleAfterRefresh);
+    }
   }
 
   async function useLatest() {
-    const [latestTask, latestRecurrence] = await Promise.all([
-      recovery.refetchLatest(),
-      recurrenceQuery.refetch(),
-    ]);
-    if (!latestTask.isSuccess || !latestRecurrence.isSuccess) return;
+    const [latestTask, latestRecurrence, latestSchedule] = await refetchAuthoritativeState();
+    if (
+      !latestTask.isSuccess ||
+      !latestRecurrence.isSuccess ||
+      !latestSchedule.isSuccess ||
+      latestSchedule.data === undefined
+    ) {
+      return;
+    }
     acceptLatest(
-      attemptMatchesRecurrence(
-        lastAttempt,
+      recurrenceAttemptMatches({
+        attempt: lastAttempt,
         attemptedDefinition,
-        attemptedExpectedVersion,
-        latestRecurrence.data ?? null,
-      ),
+        attemptedSchedule,
+        expectedVersion: attemptedExpectedVersion,
+        recurrence: latestRecurrence.data ?? null,
+        schedule: latestSchedule.data ?? null,
+      }),
     );
   }
 
@@ -198,11 +248,29 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     resetFeedback();
   }
 
-  function parseDraft(recoveryRetry = false) {
-    if (!draft || !schedule || !timezone || !preferences || (controlsDisabled && !recoveryRetry)) {
+  function parseDraft(
+    recoveryRetry = false,
+    authoritativeSchedule: TaskScheduleValue | null = schedule,
+    authoritativeRecurrence: TaskRecurrenceDto | null = recurrence,
+  ) {
+    const authoritativeTimezone =
+      authoritativeRecurrence?.timezone ??
+      (authoritativeSchedule?.kind === "timed" ? authoritativeSchedule.timezone : preferences?.timeZone);
+    if (
+      !draft ||
+      !authoritativeSchedule ||
+      !authoritativeTimezone ||
+      !preferences ||
+      (controlsDisabled && !recoveryRetry)
+    ) {
       return null;
     }
-    const parsed = interpretTaskRecurrenceDraft(draft, schedule, timezone, preferences.hourCycle);
+    const parsed = interpretTaskRecurrenceDraft(
+      draft,
+      authoritativeSchedule,
+      authoritativeTimezone,
+      preferences.hourCycle,
+    );
     if (!parsed.valid) {
       setValidationError(parsed.message);
       return null;
@@ -225,14 +293,20 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     setValidationError("");
     setLastAttempt(null);
     setAttemptedDefinition(null);
+    setAttemptedSchedule(null);
     setAttemptedExpectedVersion(null);
   }
 
   function resetAttempt() {
     setLastAttempt(null);
     setAttemptedDefinition(null);
+    setAttemptedSchedule(null);
     setAttemptedExpectedVersion(null);
     mutation.reset();
+  }
+
+  function refetchAuthoritativeState() {
+    return Promise.all([recovery.refetchLatest(), recurrenceQuery.refetch(), scheduleQuery.refetch()]);
   }
 
   function resetFeedback() {
@@ -262,6 +336,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     recurrenceQuery,
     recovery,
     recoveryReady,
+    refreshLatest: refetchAuthoritativeState,
     requestSave,
     retry,
     saveMessage,
@@ -276,21 +351,4 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     useLatest,
     validationError,
   } as const;
-}
-
-function attemptMatchesRecurrence(
-  attempt: RecurrenceAttempt | null,
-  definition: RecurrenceDefinition | null,
-  expectedVersion: number | null,
-  recurrence: TaskRecurrenceDto | null,
-): boolean {
-  if (!attempt || expectedVersion === null || !recurrence || recurrence.taskVersion < expectedVersion + 1) {
-    return false;
-  }
-  if (attempt === "end") return recurrence.lifecycle === "ended";
-  return definition !== null && definitionsMatch(definition, recurrence.definition);
-}
-
-function definitionsMatch(left: RecurrenceDefinition, right: RecurrenceDefinition): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
 }
