@@ -12,6 +12,7 @@ import {
   type TaskRecurrenceDto,
 } from "./contracts/recurrence-contract";
 import { parseRecurrenceRule, serializeRecurrenceRule } from "../domain/recurrence/recurrence-codec";
+import { MAX_RECURRENCE_CANDIDATES_PER_SERIES } from "../domain/recurrence/recurrence-limits";
 import {
   initialRecurrenceProjection,
   occurrenceStartsWithinProjection,
@@ -31,8 +32,6 @@ import type {
 } from "../infrastructure/task-recurrence-repository";
 import type { StoredTaskSchedule } from "../infrastructure/task-schedule-repository";
 import type { StoredTask } from "../infrastructure/task-repository";
-
-const FUTURE_CANDIDATE_SEARCH_LIMIT = 1_000;
 
 export type UserTimezoneResolver = (actor: AuthenticatedActor, executor: DatabaseExecutor) => Promise<string>;
 
@@ -111,7 +110,7 @@ export function nextFutureOccurrenceStart(
   now: Date,
 ): RecurrenceOccurrenceStart | null {
   let after = futureSearchCursor(anchor, projection, now);
-  for (let attempt = 0; attempt < FUTURE_CANDIDATE_SEARCH_LIMIT; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_RECURRENCE_CANDIDATES_PER_SERIES; attempt += 1) {
     const candidate = expansion.next({ rule: definition, anchor, after });
     if (candidate === null) return null;
     const start = occurrenceStart(projectRecurrenceCandidate(anchor, candidate));

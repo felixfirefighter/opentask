@@ -3,6 +3,13 @@
 import { type FormEvent, useEffect, useRef } from "react";
 
 import {
+  RECURRENCE_COUNT_MAX,
+  RECURRENCE_COUNT_MIN,
+  RECURRENCE_INTERVAL_MAX,
+  RECURRENCE_INTERVAL_MIN,
+} from "../application/contracts/recurrence-contract";
+
+import {
   recurrenceDraftWithPreset,
   recurrencePresetOptions,
   recurrenceWeekdayOptions,
@@ -65,8 +72,8 @@ export function TaskRecurrenceEditorForm({ editor }: Readonly<{ editor: Editor }
             id={`recurrence-interval-${editor.task.id}`}
             type="number"
             inputMode="numeric"
-            min={1}
-            max={99}
+            min={RECURRENCE_INTERVAL_MIN}
+            max={RECURRENCE_INTERVAL_MAX}
             step={1}
             value={draft.interval}
             disabled={editor.controlsDisabled}
@@ -174,8 +181,8 @@ function RecurrenceEndField({ editor }: Readonly<{ editor: Editor }>) {
         id={`recurrence-count-${editor.task.id}`}
         type="number"
         inputMode="numeric"
-        min={1}
-        max={999}
+        min={RECURRENCE_COUNT_MIN}
+        max={RECURRENCE_COUNT_MAX}
         step={1}
         value={draft.count}
         disabled={editor.controlsDisabled}

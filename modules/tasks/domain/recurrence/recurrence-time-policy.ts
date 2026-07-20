@@ -9,7 +9,9 @@ import {
 } from "./recurrence-policy";
 
 const MINUTE_NANOSECONDS = 60n * 1_000_000_000n;
-const MAX_RECURRING_DURATION_NANOSECONDS = 31n * 24n * 60n * MINUTE_NANOSECONDS;
+export const MAX_RECURRENCE_DURATION_DAYS = 31;
+const MAX_RECURRING_DURATION_NANOSECONDS =
+  BigInt(MAX_RECURRENCE_DURATION_DAYS) * 24n * 60n * MINUTE_NANOSECONDS;
 const supportedIanaTimezones = new Set(Intl.supportedValuesOf("timeZone"));
 
 export type RecurrenceScheduleAnchor =
@@ -63,8 +65,10 @@ export function assertRecurrenceScheduleAnchor(anchor: RecurrenceScheduleAnchor)
     assertCanonicalLocalDate(anchor.startDate, "All-day recurrence start");
     assertCanonicalLocalDate(anchor.endDate, "All-day recurrence end");
     const duration = Temporal.PlainDate.from(anchor.startDate).until(anchor.endDate).days;
-    if (duration < 1 || duration > 31) {
-      throw new RangeError("An all-day recurrence duration must be from 1 to 31 calendar days.");
+    if (duration < 1 || duration > MAX_RECURRENCE_DURATION_DAYS) {
+      throw new RangeError(
+        `An all-day recurrence duration must be from 1 to ${MAX_RECURRENCE_DURATION_DAYS} calendar days.`,
+      );
     }
     return;
   }
@@ -80,7 +84,9 @@ export function assertRecurrenceScheduleAnchor(anchor: RecurrenceScheduleAnchor)
 
   const duration = end.epochNanoseconds - start.epochNanoseconds;
   if (duration < 0n || duration > MAX_RECURRING_DURATION_NANOSECONDS) {
-    throw new RangeError("A timed recurrence duration must be from 0 to 31 exact elapsed days.");
+    throw new RangeError(
+      `A timed recurrence duration must be from 0 to ${MAX_RECURRENCE_DURATION_DAYS} exact elapsed days.`,
+    );
   }
 
   const localStart = instantToLocalDateTime(anchor.startAt, anchor.timezone);

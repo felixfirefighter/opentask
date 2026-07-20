@@ -3,6 +3,10 @@ import { Temporal } from "temporal-polyfill";
 import type { TaskScheduleValue } from "../application/contracts";
 import {
   editRecurringTaskScheduleRequestSchema,
+  RECURRENCE_COUNT_MAX,
+  RECURRENCE_COUNT_MIN,
+  RECURRENCE_INTERVAL_MAX,
+  RECURRENCE_INTERVAL_MIN,
   type RecurrenceDefinition,
   type RecurrencePreset,
   type TaskRecurrenceDto,
@@ -69,7 +73,12 @@ export function interpretTaskRecurrenceDraft(
   timezone: string,
   hourCycle: "h12" | "h23",
 ): RecurrenceDraftInterpretation {
-  const interval = boundedInteger(draft.interval, 1, 99, "Interval must be a whole number from 1 to 99.");
+  const interval = boundedInteger(
+    draft.interval,
+    RECURRENCE_INTERVAL_MIN,
+    RECURRENCE_INTERVAL_MAX,
+    `Interval must be a whole number from ${RECURRENCE_INTERVAL_MIN} to ${RECURRENCE_INTERVAL_MAX}.`,
+  );
   if (typeof interval === "string") return { valid: false, message: interval };
 
   let preset: RecurrencePreset;
@@ -86,9 +95,9 @@ export function interpretTaskRecurrenceDraft(
   if (draft.endKind === "count") {
     const count = boundedInteger(
       draft.count,
-      1,
-      999,
-      "Occurrence count must be a whole number from 1 to 999.",
+      RECURRENCE_COUNT_MIN,
+      RECURRENCE_COUNT_MAX,
+      `Occurrence count must be a whole number from ${RECURRENCE_COUNT_MIN} to ${RECURRENCE_COUNT_MAX}.`,
     );
     if (typeof count === "string") return { valid: false, message: count };
     end = { kind: "count", count };
