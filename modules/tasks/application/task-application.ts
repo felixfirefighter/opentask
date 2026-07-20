@@ -43,6 +43,7 @@ import { mapSchedule, toScheduleWrite } from "./schedule-application";
 import { createTerminalTaskQuery } from "./terminal-task-query";
 import { taskConflict, taskResourceNotFound } from "./task-errors";
 import { mapTaskListItems } from "./task-list-item-projection";
+import { createTaskRecurrenceLifecycle } from "./task-recurrence-lifecycle";
 import { normalizeTaskTitle, validateTaskDescription } from "../domain/task-text";
 import { createChecklistRepository } from "../infrastructure/checklist-repository";
 import { createSectionRepository } from "../infrastructure/section-repository";
@@ -54,6 +55,7 @@ import {
   type StoredTaskSchedule,
 } from "../infrastructure/task-schedule-repository";
 import { createTaskListRepository } from "../infrastructure/task-list-repository";
+import { RruleRecurrenceExpander } from "../infrastructure/recurrence/rrule-expander";
 import type { TaskScheduleTable } from "../infrastructure/schema";
 
 export type TaskCreateResult = Readonly<{ created: boolean; value: TaskDto }>;
@@ -78,8 +80,13 @@ export function createTaskApplication({
   const tags = createTagRepository(database);
   const schedules = createTaskScheduleRepository(taskSchedules, database);
   const recurrences = createTaskRecurrenceRepository(database);
+  const recurrenceLifecycle = createTaskRecurrenceLifecycle({
+    database,
+    expansion: new RruleRecurrenceExpander(),
+    taskSchedules,
+  });
   const placementRepositories = { tasks, lists, sections };
-  const lifecycleCommands = createTaskLifecycleCommands({ database, clock });
+  const lifecycleCommands = createTaskLifecycleCommands({ database, clock, recurrenceLifecycle });
   const terminalQuery = createTerminalTaskQuery({ database });
 
   async function createTaskInTransaction(
@@ -284,6 +291,17 @@ export function createTaskApplication({
         assertMutableTask(current, input.expectedVersion);
         const now = clock.now();
         const transition = decideTaskStatus(current.status, input.status, now, current.version);
+        const recurrenceResources = await recurrenceLifecycle.lockResources(
+          actor.userId,
+          taskId,
+          transaction,
+        );
+        if (input.status === "completed") {
+          recurrenceLifecycle.assertCompletionAllowed(recurrenceResources.recurrence, current.version);
+        }
+        if (current.status === "cancelled" && input.status === "open") {
+          await recurrenceLifecycle.advanceForResume(actor.userId, recurrenceResources, now, transaction);
+        }
         return mapTask(
           requireAppliedTask(
             await tasks.updateStatus(

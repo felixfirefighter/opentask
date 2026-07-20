@@ -4,6 +4,7 @@ import type { Clock } from "@/shared/time/clock";
 
 import { deleteTaskRequestSchema, entityIdSchema, restoreTaskRequestSchema, type TaskDto } from "./contracts";
 import { createTaskLifecycleLocks } from "./task-lifecycle-locks";
+import type { TaskRecurrenceLifecycle } from "./task-recurrence-lifecycle";
 import {
   assertAllowedParent,
   assertMutableTask,
@@ -21,7 +22,15 @@ import { createSectionRepository } from "../infrastructure/section-repository";
 import { createTaskRepository, type StoredTask } from "../infrastructure/task-repository";
 import { createTaskListRepository } from "../infrastructure/task-list-repository";
 
-export function createTaskDeletionCommands({ database, clock }: { database: Database; clock: Clock }) {
+export function createTaskDeletionCommands({
+  database,
+  clock,
+  recurrenceLifecycle,
+}: {
+  database: Database;
+  clock: Clock;
+  recurrenceLifecycle: TaskRecurrenceLifecycle;
+}) {
   const tasks = createTaskRepository(database);
   const lifecycleLocks = createTaskLifecycleLocks({
     tasks,
@@ -64,6 +73,7 @@ export function createTaskDeletionCommands({ database, clock }: { database: Data
         assertMutableTask(current, input.expectedVersion);
         assertObservedScope(current, observed);
         const lockedChildren = requireLockedDirectChildren(children, locked, taskId, current.version);
+        await recurrenceLifecycle.lockResources(actor.userId, taskId, transaction);
         const now = clock.now();
         const deletionInstant =
           current.parentTaskId === null
@@ -161,6 +171,12 @@ export function createTaskDeletionCommands({ database, clock }: { database: Data
           );
         }
         const now = clock.now();
+        const recurrenceResources = await recurrenceLifecycle.lockResources(
+          actor.userId,
+          taskId,
+          transaction,
+        );
+        await recurrenceLifecycle.advanceForResume(actor.userId, recurrenceResources, now, transaction);
         const restored = requireAppliedTask(
           await tasks.restore(
             { userId: actor.userId, id: taskId, expectedVersion: input.expectedVersion, now },

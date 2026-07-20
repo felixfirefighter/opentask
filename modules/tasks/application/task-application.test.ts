@@ -28,7 +28,8 @@ const repositories = vi.hoisted(() => ({
   sections: { findById: vi.fn(), lockById: vi.fn() },
   checklist: { listByTask: vi.fn() },
   tags: { listActiveForTask: vi.fn(), listActiveForTasks: vi.fn() },
-  recurrences: { listForTaskIds: vi.fn() },
+  recurrences: { listForTaskIds: vi.fn(), lockByTaskId: vi.fn(), replace: vi.fn() },
+  schedules: { lockByTaskId: vi.fn() },
   lockRankScope: vi.fn(),
   lockRankScopes: vi.fn(),
 }));
@@ -50,6 +51,9 @@ vi.mock("../infrastructure/tag-repository", () => ({
 }));
 vi.mock("../infrastructure/task-recurrence-repository", () => ({
   createTaskRecurrenceRepository: () => repositories.recurrences,
+}));
+vi.mock("../infrastructure/task-schedule-repository", () => ({
+  createTaskScheduleRepository: () => repositories.schedules,
 }));
 vi.mock("../infrastructure/rank-scope-lock", () => ({
   lockRankScope: repositories.lockRankScope,
@@ -135,6 +139,9 @@ describe("task application", () => {
     repositories.tags.listActiveForTask.mockResolvedValue([]);
     repositories.tags.listActiveForTasks.mockResolvedValue([]);
     repositories.recurrences.listForTaskIds.mockResolvedValue([]);
+    repositories.recurrences.lockByTaskId.mockResolvedValue(null);
+    repositories.recurrences.replace.mockResolvedValue(null);
+    repositories.schedules.lockByTaskId.mockResolvedValue(null);
     repositories.lockRankScope.mockResolvedValue(undefined);
     repositories.lockRankScopes.mockResolvedValue(undefined);
   });

@@ -12,6 +12,7 @@ import {
 } from "./contracts";
 import { createTaskDeletionCommands } from "./task-deletion-commands";
 import { createTaskLifecycleLocks } from "./task-lifecycle-locks";
+import type { TaskRecurrenceLifecycle } from "./task-recurrence-lifecycle";
 import {
   applyTaskSiblingRebalance,
   assertAllowedParent,
@@ -30,14 +31,22 @@ import { createSectionRepository } from "../infrastructure/section-repository";
 import { createTaskRepository } from "../infrastructure/task-repository";
 import { createTaskListRepository } from "../infrastructure/task-list-repository";
 
-export function createTaskLifecycleCommands({ database, clock }: { database: Database; clock: Clock }) {
+export function createTaskLifecycleCommands({
+  database,
+  clock,
+  recurrenceLifecycle,
+}: {
+  database: Database;
+  clock: Clock;
+  recurrenceLifecycle: TaskRecurrenceLifecycle;
+}) {
   const tasks = createTaskRepository(database);
   const lists = createTaskListRepository(database);
   const sections = createSectionRepository(database);
   const lifecycleLocks = createTaskLifecycleLocks({ tasks, lists, sections });
 
   return {
-    ...createTaskDeletionCommands({ database, clock }),
+    ...createTaskDeletionCommands({ database, clock, recurrenceLifecycle }),
 
     async moveTask(
       actor: AuthenticatedActor,
