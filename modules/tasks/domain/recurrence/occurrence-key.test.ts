@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { createOccurrenceKey, decodeOccurrenceKey, OCCURRENCE_KEY_MAX_LENGTH } from "./occurrence-key";
+import {
+  createOccurrenceKey,
+  createProjectedOccurrenceKey,
+  decodeOccurrenceKey,
+  OCCURRENCE_KEY_MAX_LENGTH,
+} from "./occurrence-key";
 
 const taskId = "3f83c816-8db5-4fca-8cd6-4dfa924b7770";
 
@@ -32,6 +37,25 @@ describe("occurrence identity codec", () => {
       kind: "timed",
       epochMilliseconds: 1_784_511_000_000,
       startAt: "2026-07-20T01:30:00Z",
+    });
+  });
+
+  it("encodes a date-crossing timed projection with its distinct nominal local start", () => {
+    const key = createProjectedOccurrenceKey(
+      taskId,
+      { kind: "timed", startAt: "2011-12-30T19:00:00Z" },
+      { kind: "timed", startLocalDateTime: "2011-12-30T09:00" },
+      "Pacific/Apia",
+    );
+
+    expect(key).toMatch(/^o2\./);
+    expect(key.length).toBeLessThanOrEqual(OCCURRENCE_KEY_MAX_LENGTH);
+    expect(decodeOccurrenceKey(key, taskId)).toEqual({
+      taskId,
+      kind: "timed",
+      epochMilliseconds: 1_325_271_600_000,
+      startAt: "2011-12-30T19:00:00Z",
+      startLocalDateTime: "2011-12-30T09:00",
     });
   });
 

@@ -244,7 +244,10 @@ Append-only effective state for a recurring occurrence:
   and `open` transitions rather than overwriting history
 
 `occurrence_key` is derived deterministically from the series identity and canonical all-day local
-date or timed start instant, not a display string, and is 1-80 characters. Checks constrain `state`
+date or timed projected start instant, not a display string, and is 1-80 characters. The versioned
+timed form also carries the nominal local start only when a timezone gap crosses a date boundary;
+this disambiguates two nominal candidates that resolve to one instant without duplicating schedule
+state, and the original timed form remains decodable for immutable history. Checks constrain `state`
 to `completed|skipped|open` and `task_version` to a positive integer. A transition serializes through
 the owning task aggregate so a replayed/no-op command does not append a duplicate event, and accepted
 changes increment the task version exactly once. Effective state is the event with the greatest

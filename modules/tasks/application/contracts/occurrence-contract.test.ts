@@ -37,8 +37,12 @@ function task(version = 4) {
 describe("occurrence contracts", () => {
   it("treats the occurrence identity as one opaque bounded string", () => {
     expect(occurrenceKeySchema.parse(occurrenceKey)).toBe(occurrenceKey);
+    expect(occurrenceKeySchema.parse("o2.11111111111141118111111111111111_abc_def")).toBe(
+      "o2.11111111111141118111111111111111_abc_def",
+    );
     expect(() => occurrenceKeySchema.parse(`${occurrenceKey}|2026-07-20`)).toThrow();
     expect(() => occurrenceKeySchema.parse("2026-07-20")).toThrow();
+    expect(() => occurrenceKeySchema.parse("o3.future-format")).toThrow();
     expect(() => occurrenceKeySchema.parse(`o1.${"a".repeat(80)}`)).toThrow();
   });
 

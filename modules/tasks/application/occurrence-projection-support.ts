@@ -6,7 +6,7 @@ import type {
   TaskOccurrenceDto,
 } from "./contracts/occurrence-contract";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
-import { createOccurrenceKey, type DecodedOccurrenceKey } from "../domain/recurrence/occurrence-key";
+import { createProjectedOccurrenceKey, type DecodedOccurrenceKey } from "../domain/recurrence/occurrence-key";
 import { recurrenceIncludesCandidate } from "../domain/recurrence/recurrence-candidate-membership";
 import {
   occurrenceStartsWithinProjection,
@@ -30,6 +30,15 @@ export type OccurrenceProjectionCandidate = Readonly<{
   sortStart: bigint;
 }>;
 
+export type OccurrenceProjectionIdentity =
+  | Readonly<{ kind: "generated"; candidate: LocalRecurrenceStart }>
+  | Readonly<{ kind: "recorded"; occurrenceKey: string }>;
+
+export type ExpandedOccurrenceSchedule = Readonly<{
+  candidate: LocalRecurrenceStart;
+  schedule: RecurrenceOccurrenceSchedule;
+}>;
+
 export function expandOccurrenceSchedules(
   input: Readonly<{
     expansion: RecurrenceExpansionPort;
@@ -39,7 +48,7 @@ export function expandOccurrenceSchedules(
     query: TaskOccurrenceRangeQuery;
     candidateLimit: number;
   }>,
-): Readonly<{ schedules: readonly RecurrenceOccurrenceSchedule[]; truncated: boolean; evaluated: number }> {
+): Readonly<{ schedules: readonly ExpandedOccurrenceSchedule[]; truncated: boolean; evaluated: number }> {
   const result = input.expansion.expand({
     rule: input.rule,
     anchor: input.anchor,
@@ -48,9 +57,12 @@ export function expandOccurrenceSchedules(
   });
   return {
     schedules: result.candidates
-      .map((candidate) => projectRecurrenceCandidate(input.anchor, candidate))
+      .map((candidate) => ({
+        candidate,
+        schedule: projectRecurrenceCandidate(input.anchor, candidate),
+      }))
       .filter(
-        (schedule) =>
+        ({ schedule }) =>
           occurrenceStartsWithinProjection(input.projection, occurrenceStart(schedule)) &&
           occurrenceOverlapsRange(schedule, input.query),
       ),
@@ -65,8 +77,17 @@ export function createOccurrenceProjection(
   schedule: RecurrenceOccurrenceSchedule,
   occurrenceState: OccurrenceState,
   userTimezone: string,
+  identity: OccurrenceProjectionIdentity,
 ): OccurrenceProjectionCandidate {
-  const key = createOccurrenceKey(taskId, occurrenceStart(schedule));
+  const key =
+    identity.kind === "recorded"
+      ? identity.occurrenceKey
+      : createProjectedOccurrenceKey(
+          taskId,
+          occurrenceStart(schedule),
+          identity.candidate,
+          schedule.timezone,
+        );
   return {
     occurrence: {
       taskId,
@@ -208,6 +229,17 @@ function decodedLocalCandidate(
     return { kind: "all_day", startDate: decoded.startDate };
   }
   if (anchor.kind !== "timed" || decoded.kind !== "timed") return null;
+  if (decoded.startLocalDateTime !== undefined) {
+    const projectedLocalDate = Temporal.Instant.from(decoded.startAt)
+      .toZonedDateTimeISO(anchor.timezone)
+      .toPlainDate()
+      .toString();
+    const candidateLocalDate = Temporal.PlainDateTime.from(decoded.startLocalDateTime)
+      .toPlainDate()
+      .toString();
+    if (projectedLocalDate === candidateLocalDate) return null;
+    return { kind: "timed", startLocalDateTime: decoded.startLocalDateTime };
+  }
   const localDate = Temporal.Instant.from(decoded.startAt).toZonedDateTimeISO(anchor.timezone).toPlainDate();
   const anchorLocalStart = recurrenceAnchorLocalStart(anchor);
   if (anchorLocalStart.kind !== "timed") return null;

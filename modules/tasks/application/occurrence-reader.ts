@@ -22,6 +22,7 @@ import {
   occurrenceOverlapsRange,
   projectRecordedOccurrence,
   scheduleSortStart,
+  type OccurrenceProjectionIdentity,
 } from "./occurrence-projection-support";
 import { parseStoredRecurrence, type UserTimezoneResolver } from "./recurrence-application-support";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
@@ -154,13 +155,15 @@ export function createBoundedOccurrenceReader(
             : "request_candidate_limit",
         );
       }
-      for (const schedule of expanded.schedules) {
+      for (const { candidate, schedule } of expanded.schedules) {
+        const identity = { kind: "generated", candidate } as const satisfies OccurrenceProjectionIdentity;
         const key = createOccurrenceProjection(
           source.task.id,
           source.task.version,
           schedule,
           "open",
           userTimezone,
+          identity,
         ).occurrence.occurrenceKey;
         addRecurringProjection(
           projections,
@@ -168,6 +171,7 @@ export function createBoundedOccurrenceReader(
           schedule,
           latestEvents.get(eventIdentity(source.task.id, key)) ?? "open",
           userTimezone,
+          identity,
         );
       }
       if (
@@ -195,6 +199,7 @@ export function createBoundedOccurrenceReader(
         schedule,
         occurrenceStateSchema.parse(event.state),
         userTimezone,
+        { kind: "recorded", occurrenceKey: event.occurrenceKey },
       );
     }
 
@@ -232,6 +237,7 @@ function addRecurringProjection(
   schedule: RecurrenceOccurrenceSchedule,
   state: OccurrenceState,
   userTimezone: string,
+  identity: OccurrenceProjectionIdentity,
 ) {
   const projected = createOccurrenceProjection(
     source.task.id,
@@ -239,6 +245,7 @@ function addRecurringProjection(
     schedule,
     state,
     userTimezone,
+    identity,
   );
   const item = {
     projectionKind: "recurring" as const,

@@ -146,12 +146,12 @@ function query(limit = 500) {
   };
 }
 
-function reader() {
+function reader(timezone = "Asia/Singapore") {
   return createBoundedOccurrenceReader({
     database,
     taskSchedules,
     expansion,
-    resolveUserTimezone: vi.fn(async () => "Asia/Singapore"),
+    resolveUserTimezone: vi.fn(async () => timezone),
   });
 }
 
@@ -306,4 +306,75 @@ describe("bounded occurrence reader", () => {
     expect(page.truncation.reasons).toEqual(["source_limit"]);
     expect(expansion.expand).not.toHaveBeenCalled();
   });
+
+  it("keeps two whole-day-gap candidates when they share one projected instant", async () => {
+    repositories.schedules.listActiveOpenOneOffsInRange.mockResolvedValueOnce({
+      items: [],
+      truncated: false,
+    });
+    repositories.recurrences.listActiveOpenSourcesInRange.mockResolvedValueOnce({
+      items: [timedGapSource()],
+      truncated: false,
+    });
+    repositories.events.listLatestForUser.mockResolvedValueOnce({ items: [], truncated: false });
+    vi.mocked(expansion.expand).mockReturnValueOnce({
+      candidates: [
+        { kind: "timed", startLocalDateTime: "2011-12-30T09:00" },
+        { kind: "timed", startLocalDateTime: "2011-12-31T09:00" },
+      ],
+      truncated: false,
+    });
+
+    const page = await reader("Pacific/Apia")(actor, {
+      rangeStartDate: "2011-12-30",
+      rangeEndDate: "2012-01-01",
+      rangeStartAt: "2011-12-29T00:00:00Z",
+      rangeEndAt: "2012-01-02T00:00:00Z",
+      limit: 10,
+    });
+    const occurrences = page.items.flatMap((item) =>
+      item.projectionKind === "recurring" ? [item.occurrence] : [],
+    );
+
+    expect(occurrences).toHaveLength(2);
+    expect(new Set(occurrences.map(({ occurrenceKey }) => occurrenceKey)).size).toBe(2);
+    expect(occurrences.map(({ schedule }) => schedule)).toEqual([
+      expect.objectContaining({ kind: "timed", startAt: "2011-12-30T19:00:00Z" }),
+      expect.objectContaining({ kind: "timed", startAt: "2011-12-30T19:00:00Z" }),
+    ]);
+    expect(new Set(occurrences.map(({ occurrenceKey }) => occurrenceKey.slice(0, 3)))).toEqual(
+      new Set(["o1.", "o2."]),
+    );
+  });
 });
+
+function timedGapSource() {
+  return {
+    task: storedTask(recurringTaskId),
+    schedule: {
+      userId,
+      taskId: recurringTaskId,
+      kind: "timed",
+      startDate: null,
+      endDate: null,
+      startAt: new Date("2011-12-29T19:00:00Z"),
+      endAt: new Date("2011-12-29T20:00:00Z"),
+      timezone: "Pacific/Apia",
+      createdAt: now,
+      updatedAt: now,
+    },
+    recurrence: {
+      userId,
+      taskId: recurringTaskId,
+      rrule: "FREQ=DAILY;INTERVAL=1",
+      timezone: "Pacific/Apia",
+      generationMode: "schedule",
+      projectionStartDate: null,
+      projectionStartAt: new Date("2011-12-29T19:00:00Z"),
+      projectionEndDate: null,
+      projectionEndAt: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+  };
+}

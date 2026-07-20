@@ -130,12 +130,15 @@ No public contract exposes a Drizzle row or an unscoped repository method.
 - Ordinary calendar drag/resize is disabled for recurring events because an individual occurrence
   override is outside scope; the canonical form edits the future series schedule instead.
 - An occurrence is a projection of the task schedule and rule, identified by a client-opaque stable
-  key of at most 80 characters: `o1.` plus base64url of the lowercase task UUID and either
-  `|d|YYYY-MM-DD` or `|t|epochMilliseconds`. The server decodes and verifies task/kind/start before a
-  first transition; clients never parse it. It is not a task row and owns no copied schedule,
-  status, checklist, or subtask state. The same canonical start retains the same key across views
-  and rule edits. A key start must leave the frozen maximum 31-day occurrence duration inside
-  Temporal's supported upper bound, so every accepted identity can be projected safely.
+  key of at most 80 characters. `o1` identities encode the lowercase task UUID and an all-day local
+  date or timed projected start instant. A timed candidate whose timezone gap crosses a local-date
+  boundary uses the backward-compatible `o2` form, which carries both the projected instant and
+  nominal local start so two candidates that resolve to the same instant remain distinct. The server
+  decodes and verifies task/kind/start before a first transition; clients never parse it. It is not a
+  task row and owns no copied schedule, status, checklist, or subtask state. The same canonical
+  nominal start and projected instant retain the same key across views and rule edits. A key start
+  must leave the frozen maximum 31-day occurrence duration inside Temporal's supported upper bound,
+  so every accepted identity can be projected safely.
 - Occurrence transitions append immutable `completed`, `skipped`, or `open` events. The effective
   state is the event with the greatest immutable post-command `task_version`; timestamps and UUIDs do
   not order causality. Complete/skip first validates a candidate under the current rule and cutover;

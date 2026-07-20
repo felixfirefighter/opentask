@@ -27,7 +27,7 @@ export const occurrenceKeySchema = z
   .string()
   .min(1)
   .max(80)
-  .regex(/^o1\.[A-Za-z0-9_-]+$/, "The occurrence identity is invalid.");
+  .regex(/^o[12]\.[A-Za-z0-9_-]+$/, "The occurrence identity is invalid.");
 export const occurrenceStateSchema = z.enum(["open", "completed", "skipped"]);
 
 export const taskOccurrenceDtoSchema = z.strictObject({

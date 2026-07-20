@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isEligibleOccurrence } from "./occurrence-projection-support";
+import { createOccurrenceProjection, isEligibleOccurrence } from "./occurrence-projection-support";
 import { createOccurrenceKey, decodeOccurrenceKey } from "../domain/recurrence/occurrence-key";
 import { initialRecurrenceProjection } from "../domain/recurrence/recurrence-cutover-policy";
 import type { RecurrenceRule } from "../domain/recurrence/recurrence-policy";
@@ -53,6 +53,37 @@ describe("occurrence command eligibility", () => {
     expect(eligibleRoundTrip(anchor, candidate)).toBe(true);
     expect(eligibleInstant(anchor, "2026-11-01T06:30:00Z")).toBe(false);
   });
+
+  it("keeps whole-local-day gap candidates distinct even when their projected instants collide", () => {
+    const anchor = timedAnchor("2011-12-29T19:00:00Z", "2011-12-29T20:00:00Z", "Pacific/Apia");
+    const skippedDate = { kind: "timed", startLocalDateTime: "2011-12-30T09:00" } as const;
+    const followingDate = { kind: "timed", startLocalDateTime: "2011-12-31T09:00" } as const;
+    const skippedProjection = generatedProjection(anchor, skippedDate);
+    const followingProjection = generatedProjection(anchor, followingDate);
+
+    expect(skippedProjection.occurrence.schedule).toMatchObject({
+      kind: "timed",
+      startAt: "2011-12-30T19:00:00Z",
+    });
+    expect(followingProjection.occurrence.schedule).toMatchObject({
+      kind: "timed",
+      startAt: "2011-12-30T19:00:00Z",
+    });
+    expect(skippedProjection.occurrence.occurrenceKey).not.toBe(followingProjection.occurrence.occurrenceKey);
+    expect(skippedProjection.occurrence.occurrenceKey).toMatch(/^o2\./);
+    expect(followingProjection.occurrence.occurrenceKey).toMatch(/^o1\./);
+
+    for (const projection of [skippedProjection, followingProjection]) {
+      expect(
+        isEligibleOccurrence({
+          rule: dailyRule,
+          anchor,
+          projection: initialRecurrenceProjection(anchor),
+          decoded: decodeOccurrenceKey(projection.occurrence.occurrenceKey, taskId),
+        }),
+      ).toBe(true);
+    }
+  });
 });
 
 function eligibleRoundTrip(anchor: RecurrenceScheduleAnchor, candidate: LocalRecurrenceStart): boolean {
@@ -69,6 +100,17 @@ function eligibleInstant(anchor: RecurrenceScheduleAnchor, startAt: string): boo
     projection: initialRecurrenceProjection(anchor),
     decoded: decodeOccurrenceKey(key, taskId),
   });
+}
+
+function generatedProjection(anchor: RecurrenceScheduleAnchor, candidate: LocalRecurrenceStart) {
+  return createOccurrenceProjection(
+    taskId,
+    1,
+    projectRecurrenceCandidate(anchor, candidate),
+    "open",
+    anchor.timezone,
+    { kind: "generated", candidate },
+  );
 }
 
 function allDayAnchor(startDate: string): RecurrenceScheduleAnchor {

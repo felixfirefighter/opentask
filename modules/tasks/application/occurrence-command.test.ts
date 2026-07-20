@@ -23,7 +23,7 @@ vi.mock("../infrastructure/task-occurrence-event-repository", () => ({
 }));
 
 import { createOccurrenceCommand } from "./occurrence-command";
-import { createOccurrenceKey } from "../domain/recurrence/occurrence-key";
+import { createOccurrenceKey, createProjectedOccurrenceKey } from "../domain/recurrence/occurrence-key";
 import type { TaskScheduleTable } from "../infrastructure/schema";
 
 const userId = "10000000-0000-4000-8000-000000000001";
@@ -219,6 +219,61 @@ describe("occurrence command", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(repositories.tasks.incrementVersion).not.toHaveBeenCalled();
     expect(repositories.events.append).not.toHaveBeenCalled();
+  });
+
+  it("transitions whole-day-gap candidates independently despite a shared projected instant", async () => {
+    const sharedStartAt = "2011-12-30T19:00:00Z";
+    const gapKey = createProjectedOccurrenceKey(
+      taskId,
+      { kind: "timed", startAt: sharedStartAt },
+      { kind: "timed", startLocalDateTime: "2011-12-30T09:00" },
+      "Pacific/Apia",
+    );
+    const followingKey = createOccurrenceKey(taskId, { kind: "timed", startAt: sharedStartAt });
+    repositories.schedules.lockByTaskId.mockResolvedValue({
+      ...storedSchedule(),
+      kind: "timed",
+      startDate: null,
+      endDate: null,
+      startAt: new Date("2011-12-29T19:00:00Z"),
+      endAt: new Date("2011-12-29T20:00:00Z"),
+      timezone: "Pacific/Apia",
+    });
+    repositories.recurrences.lockByTaskId.mockResolvedValue({
+      ...storedRecurrence(),
+      timezone: "Pacific/Apia",
+      projectionStartDate: null,
+      projectionStartAt: new Date("2011-12-29T19:00:00Z"),
+    });
+
+    await expect(
+      application()(actor, taskId, { action: "complete", occurrenceKey: gapKey, expectedVersion: 4 }),
+    ).resolves.toMatchObject({ outcome: "applied", occurrenceKey: gapKey, eventTaskVersion: 5 });
+
+    repositories.tasks.lockById.mockResolvedValue(storedTask({ version: 5 }));
+    repositories.tasks.incrementVersion.mockResolvedValue({
+      outcome: "applied",
+      task: storedTask({ version: 6 }),
+    });
+    await expect(
+      application()(actor, taskId, {
+        action: "skip",
+        occurrenceKey: followingKey,
+        expectedVersion: 5,
+      }),
+    ).resolves.toMatchObject({ outcome: "applied", occurrenceKey: followingKey, eventTaskVersion: 6 });
+
+    expect(gapKey).not.toBe(followingKey);
+    expect(repositories.events.append).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ occurrenceKey: gapKey, state: "completed", taskVersion: 5 }),
+      transaction,
+    );
+    expect(repositories.events.append).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ occurrenceKey: followingKey, state: "skipped", taskVersion: 6 }),
+      transaction,
+    );
   });
 
   it("rejects an extreme client-controlled timed key before opening a transaction", async () => {
