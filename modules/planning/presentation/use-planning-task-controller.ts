@@ -234,8 +234,7 @@ export function usePlanningTaskController(
     condition,
     conflictedTaskId: failure?.conflict ? failure.taskId : null,
     taskActions,
-    scheduleTask:
-      !options.mutationsDisabled && scheduleTaskId ? (byId.get(scheduleTaskId) ?? null) : null,
+    scheduleTask: !options.mutationsDisabled && scheduleTaskId ? (byId.get(scheduleTaskId) ?? null) : null,
     closeSchedule: () => setScheduleTaskId(null),
     editSchedule: setScheduleTaskId,
     saveSchedule,
