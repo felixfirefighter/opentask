@@ -1,4 +1,4 @@
-import { cp, lstat, mkdir, rm, stat } from "node:fs/promises";
+import { cp, lstat, mkdir, realpath, rm, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
 const supportedTargets = new Set(["windows-x64", "macos-x64", "macos-arm64"]);
@@ -10,6 +10,8 @@ if (!supportedTargets.has(target)) {
 const repositoryRoot = resolve(".");
 const sourceRoot = resolve("desktop/runtime");
 const outputRoot = resolve("dist-desktop-runtime");
+const standaloneNodeModulesRoot = resolve(".next/standalone/node_modules");
+const migrationRuntimePackages = ["drizzle-orm", "zod"];
 if (dirname(outputRoot) !== repositoryRoot) {
   fail(`Refusing to prepare desktop resources outside the repository: ${outputRoot}`);
 }
@@ -29,7 +31,19 @@ await cp(join(sourceRoot, "postgres", target), join(outputRoot, "postgres", targ
   recursive: true,
 });
 
+await requireDirectory(standaloneNodeModulesRoot);
+for (const packageName of migrationRuntimePackages) {
+  const packageSource = await resolveInstalledPackage(packageName);
+  const packageDestination = join(standaloneNodeModulesRoot, packageName);
+  await rm(packageDestination, { force: true, recursive: true });
+  await cp(packageSource, packageDestination, {
+    dereference: true,
+    recursive: true,
+  });
+}
+
 console.log(`Prepared target-specific desktop resources for ${target} at ${outputRoot}.`);
+console.log("Prepared migration runtime dependencies in the standalone server output.");
 
 function detectTarget() {
   if (process.platform === "win32" && process.arch === "x64") return "windows-x64";
@@ -43,6 +57,17 @@ async function refuseSymlink(path) {
     if ((await lstat(path)).isSymbolicLink()) fail(`Refusing to replace symlink ${path}.`);
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
+  }
+}
+
+async function resolveInstalledPackage(packageName) {
+  try {
+    return await realpath(join(repositoryRoot, "node_modules", packageName));
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      fail(`Required migration runtime package is missing: ${packageName}. Run pnpm install first.`);
+    }
+    throw error;
   }
 }
 

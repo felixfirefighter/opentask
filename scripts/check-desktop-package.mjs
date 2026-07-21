@@ -13,6 +13,8 @@ const requiredFiles = [
   "app.asar",
   "next-server/server.js",
   "next-server/scripts/migrate.ts",
+  "next-server/node_modules/drizzle-orm/package.json",
+  "next-server/node_modules/zod/package.json",
   "runtime/manifest.json",
   "runtime/THIRD-PARTY-NOTICES.md",
   `runtime/node/${target}/node${executableSuffix}`,
