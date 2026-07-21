@@ -31,11 +31,22 @@ describe("TodayScreen", () => {
     expect(onQuickAddSubmit).toHaveBeenCalledWith("Call Sam tomorrow at 3pm");
   });
 
-  it("shows the destination empty state without celebration or shame copy", () => {
+  it("shows a task-specific empty state without celebration or shame copy", () => {
     renderToday({
       model: { ...todayFixture, remainingLabel: "0 tasks remaining", overdue: [], timed: [], anytime: [] },
     });
-    expect(screen.getByRole("heading", { name: "Nothing planned for today" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "No tasks planned for today" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open Upcoming" })).toHaveAttribute("href", "/upcoming");
+  });
+
+  it("keeps the independently loaded Habits section mounted beside zero task rows", () => {
+    renderToday({
+      model: { ...todayFixture, remainingLabel: "0 tasks remaining", overdue: [], timed: [], anytime: [] },
+      habitSection: <section aria-label="Scheduled habits">Habit check-in</section>,
+    });
+
+    expect(screen.getByRole("region", { name: "Scheduled habits" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "No tasks planned for today" })).toBeInTheDocument();
+    expect(screen.getByText("0 tasks remaining")).toBeInTheDocument();
   });
 });

@@ -1,0 +1,90 @@
+.navigation {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3) var(--space-5);
+}
+
+.navigation a {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  font-size: var(--type-row-size);
+  line-height: var(--type-row-line);
+}
+
+.navigation a:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.navigation a[aria-current="page"] {
+  background: var(--surface-selected);
+  color: var(--text-selected);
+  font-weight: var(--type-label-weight);
+}
+
+.trigger,
+.close {
+  display: inline-grid;
+  width: var(--control-target-desktop);
+  min-height: var(--control-target-desktop);
+  place-items: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.overlay {
+  position: fixed;
+  z-index: var(--z-sheet);
+  background: color-mix(in srgb, var(--canvas) 58%, transparent);
+  inset: 0;
+}
+
+.drawer {
+  position: fixed;
+  z-index: var(--z-sheet);
+  top: 0;
+  left: 0;
+  width: min(340px, calc(100vw - 52px));
+  height: 100dvh;
+  border-right: var(--border-default) solid var(--border-strong);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+}
+
+.drawer header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-bottom: var(--border-default) solid var(--border);
+}
+
+.drawer h2 {
+  margin: 0;
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-section-title-line);
+}
+.drawer p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+@media (any-pointer: coarse) {
+  .navigation a,
+  .trigger,
+  .close {
+    min-height: var(--control-target-touch);
+  }
+  .trigger,
+  .close {
+    width: var(--control-target-touch);
+  }
+}

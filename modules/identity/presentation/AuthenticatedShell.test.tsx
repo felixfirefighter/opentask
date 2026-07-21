@@ -47,9 +47,36 @@ describe("AuthenticatedShell", () => {
     expect(precedes(main, mobile)).toBe(true);
     expect(screen.getAllByRole("link", { name: "Today" })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: "Calendar" })).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "Habits" })).toHaveAttribute("href", "/habits");
     expect(screen.getAllByRole("link", { name: "Plan" })).toHaveLength(2);
-    expect(screen.queryByRole("link", { name: /habit|focus|reminder/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /focus|reminder/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/fixture/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps Habits reachable and current through the mobile More menu", async () => {
+    const user = userEvent.setup();
+    renderShell("habits");
+
+    const more = screen.getByRole("button", { name: "More" });
+    expect(more).toHaveAttribute("aria-current", "page");
+    await user.click(more);
+
+    expect(screen.getByRole("menuitem", { name: "Habits" })).toHaveAttribute("href", "/habits");
+    expect(screen.getByRole("menuitem", { name: "Habits" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("never marks nullable More destinations as the current page", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const more = screen.getByRole("button", { name: "More" });
+    expect(more).not.toHaveAttribute("aria-current");
+    await user.click(more);
+
+    for (const name of ["Priority matrix", "Upcoming", "Completed / cancelled"]) {
+      expect(screen.getByRole("menuitem", { name })).not.toHaveAttribute("aria-current");
+    }
+    expect(screen.queryByRole("menuitem", { current: "page" })).not.toBeInTheDocument();
   });
 
   it("supports keyboard navigation and focus return for account actions", async () => {
@@ -113,7 +140,7 @@ describe("AuthenticatedShell", () => {
   });
 });
 
-function renderShell(currentDestination: "tasks" | "settings" = "tasks") {
+function renderShell(currentDestination: "tasks" | "habits" | "settings" = "tasks") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });

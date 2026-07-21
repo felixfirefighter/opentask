@@ -1,0 +1,136 @@
+.workspaceList {
+  overflow: hidden;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.summaryRow {
+  display: grid;
+  min-height: 112px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: var(--border-default) solid var(--border);
+}
+
+.summaryRow:last-child {
+  border-bottom: 0;
+}
+
+.summaryIcon,
+.summaryCopy > span,
+.summaryAction,
+.detailIcon,
+.loadingLines > span,
+.daySkeletons > span,
+.actionSkeleton {
+  display: block;
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.summaryIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-card);
+}
+
+.summaryCopy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+
+.summaryCopy > span {
+  width: min(72%, 440px);
+  height: var(--space-4);
+}
+
+.summaryCopy > span:nth-child(2) {
+  width: min(88%, 560px);
+  height: var(--space-3);
+}
+
+.summaryCopy > span:nth-child(3) {
+  width: min(60%, 360px);
+  height: var(--space-3);
+}
+
+.summaryAction {
+  width: 96px;
+  height: var(--control-target-desktop);
+}
+
+.detailIcon {
+  border-radius: var(--radius-card);
+  color: transparent;
+}
+
+.detailCaption {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.loadingLines {
+  display: grid;
+  min-width: min(360px, 55vw);
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.loadingLines > span {
+  width: 100%;
+  height: var(--space-3);
+}
+
+.loadingLines > span:nth-child(2) {
+  width: 76%;
+}
+
+.loadingLines > span:nth-child(3) {
+  width: 88%;
+}
+
+.actionSkeleton {
+  width: 104px;
+  height: var(--control-target-desktop);
+  flex: none;
+}
+
+.daySkeletons {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.daySkeletons > span {
+  min-height: 52px;
+}
+
+@media (max-width: 767px) {
+  .summaryRow {
+    grid-template-columns: 40px minmax(0, 1fr);
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .summaryAction {
+    width: 88px;
+    grid-column: 2;
+  }
+
+  .loadingLines {
+    min-width: min(100%, 280px);
+  }
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .summaryAction,
+  .actionSkeleton {
+    height: var(--control-target-touch);
+  }
+}

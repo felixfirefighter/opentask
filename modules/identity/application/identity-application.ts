@@ -27,7 +27,7 @@ export function createIdentityApplication({
   clock,
   authRuntime,
   inboxPort = createInboxBootstrapPort(database, clock),
-  demoSeeder = createDefaultDemoSeeder(database, clock),
+  demoSeeder = createDefaultDemoSeeder(database),
 }: {
   database: Database;
   clock: Clock;
@@ -131,13 +131,19 @@ export function createIdentityApplication({
   }
 
   async function resetDemoWorkspace(userId: string): Promise<void> {
+    const resetAt = clock.now();
     await database.transaction(async (transaction) => {
-      const resetPreferences = await preferencesRepository.resetToDefaults(transaction, userId, {
-        schemaVersion: preferenceSchemaVersion,
-        preferences: defaultPreferenceDocument,
-      });
+      const resetPreferences = await preferencesRepository.resetToDefaults(
+        transaction,
+        userId,
+        {
+          schemaVersion: preferenceSchemaVersion,
+          preferences: defaultPreferenceDocument,
+        },
+        resetAt,
+      );
       if (!resetPreferences) throw new Error("Demo reset requires canonical user preferences.");
-      await demoSeeder.reset(userId, transaction);
+      await demoSeeder.reset(userId, resetAt, transaction);
     });
   }
 
@@ -153,18 +159,24 @@ export function createIdentityApplication({
   };
 }
 
-function createDefaultDemoSeeder(database: Database, clock: Clock): DemoDatasetSeeder {
-  const tasks = createDemoDatasetSeeder({ database, clock });
+function createDefaultDemoSeeder(database: Database): DemoDatasetSeeder {
   return {
-    async reset(userId: string, existingTransaction?: DatabaseTransaction): Promise<void> {
-      // Load the optional assistant reset adapter only when demo entry runs. A static
-      // identity -> assistant import would close the assistant -> planning -> identity
-      // runtime cycle and prevent ordinary manual planning routes from starting.
-      const { createDemoProposalResetter } = await import("@/modules/assistant");
+    async reset(userId: string, resetAt: Date, existingTransaction?: DatabaseTransaction): Promise<void> {
+      const resetClock: Clock = { now: () => resetAt };
+      // Load cross-module demo adapters only when demo entry runs. A static identity ->
+      // assistant import would close the assistant -> planning -> identity runtime cycle
+      // and prevent ordinary manual planning routes from starting.
+      const [{ createDemoProposalResetter }, { createDemoHabitSeeder }] = await Promise.all([
+        import("@/modules/assistant"),
+        import("@/modules/habits"),
+      ]);
       const proposals = createDemoProposalResetter({ database });
+      const tasks = createDemoDatasetSeeder({ database, clock: resetClock });
+      const habits = createDemoHabitSeeder({ database, clock: resetClock });
       const reset = async (transaction: DatabaseTransaction) => {
         await proposals.reset(userId, transaction);
         await tasks.reset(userId, transaction);
+        await habits.reset(userId, transaction);
       };
 
       if (existingTransaction) await reset(existingTransaction);

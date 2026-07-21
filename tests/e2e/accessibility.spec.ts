@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
 
-import { expect, test, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type BrowserContext, type Locator, type Page, type TestInfo } from "@playwright/test";
 
 import {
   applyOccurrenceWithoutDeliveringResponse,
@@ -17,7 +17,19 @@ import {
   readTaskForConflict,
   seedOccurrenceAheadOfTask,
 } from "./support/p2-task-route-state-fixture";
+import {
+  createHabitViaApi,
+  demoHabits,
+  installHabitApiFailure,
+  readHabitLocalDate,
+  triggerStaleHabitRefresh,
+  type HabitDetailWire,
+  updateHabitViaApi,
+  waitForHabitResponse,
+} from "./support/p3-habits";
+import { acquireHabitReadBarrier } from "./support/p3-habit-read-barrier";
 import { updateTask } from "./support/wp03-tasks";
+import { signUpThroughUi } from "./support/wp01-auth";
 
 const demo = {
   listId: "20000000-0000-4000-8000-000000000001",
@@ -44,6 +56,13 @@ const planningRoutes = [
   { path: "/upcoming", heading: "Upcoming" },
   { path: "/matrix", heading: "Priority matrix" },
 ] as const;
+
+const habitRoutes = [
+  { path: "/habits", heading: "Habits" },
+  { path: `/habits/${demoHabits.activeBooleanId}`, heading: demoHabits.activeBooleanTitle },
+] as const;
+
+const habitStateProjects = new Set(["desktop-chromium", "mobile-chromium"]);
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -196,8 +215,10 @@ test("one isolated demo covers the implemented baseline accessibility surface", 
 
   for (const route of additionalTaskRoutes) await auditRoute(page, route);
   for (const route of planningRoutes) await auditRoute(page, route);
+  for (const route of habitRoutes) await auditRoute(page, route);
 
   await auditCalendar(page);
+  await auditHabitInteraction(context, page);
   await auditSeededTaskDetails(page);
   await auditSeededRecurrenceDetails(context, page);
   await auditNoKeyPlanner(page);
@@ -377,6 +398,7 @@ test("every released route keeps its accessibility contract in the dark theme", 
     { path: "/inbox", heading: "Inbox" },
     ...additionalTaskRoutes,
     ...planningRoutes,
+    ...habitRoutes,
     { path: "/calendar", heading: "Calendar" },
     { path: "/plan", heading: "AI Review" },
   ] as const) {
@@ -385,12 +407,149 @@ test("every released route keeps its accessibility contract in the dark theme", 
     await expectNoPageOverflow(page, route.path);
   }
 
+  await page.goto(`/habits/${demoHabits.activeBooleanId}`);
+  await page.getByRole("button", { name: "Edit habit", exact: true }).click();
+  const darkEditor = page.getByRole("dialog", { name: "Edit habit" });
+  await expect(darkEditor).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expectNoSevereViolations(page, '[role="dialog"]');
+  await darkEditor.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  const darkArchiveTrigger = page.getByRole("button", { name: "Archive", exact: true });
+  await darkArchiveTrigger.click();
+  const darkArchiveDialog = page.getByRole("alertdialog", {
+    name: `Archive “${demoHabits.activeBooleanTitle}”?`,
+    exact: true,
+  });
+  await expect(darkArchiveDialog.getByRole("button", { name: "Keep habit", exact: true })).toBeFocused();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expectNoSevereViolations(page, '[role="alertdialog"]');
+  await darkArchiveDialog.getByRole("button", { name: "Keep habit", exact: true }).click();
+  await expect(darkArchiveTrigger).toBeFocused();
+
   await page.goto(`/tasks/${demo.scheduledTaskId}`);
   await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(demo.scheduledTaskTitle);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expectNoSevereViolations(page);
   await expectNoPageOverflow(page, "/tasks/[taskId]");
 });
+
+test("habit route states pass the accessibility gate", async ({ page }, testInfo) => {
+  test.skip(
+    !habitStateProjects.has(testInfo.project.name),
+    "Desktop and mobile own the independent habit route-state audit.",
+  );
+  test.setTimeout(180_000);
+  await signUpThroughUi(page, testInfo);
+
+  await openRoute(page, { path: "/habits", heading: "Habits" });
+  await expect(page.getByRole("heading", { level: 2, name: "No habits yet", exact: true })).toBeVisible();
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "empty active habits");
+
+  await openRoute(page, { path: "/habits?view=archived", heading: "Habits" });
+  await expect(
+    page.getByRole("heading", { level: 2, name: "No archived habits", exact: true }),
+  ).toBeVisible();
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "empty archived habits");
+
+  await openRoute(page, {
+    path: "/habits/00000000-0000-4000-8000-000000000099",
+    heading: "Habit unavailable",
+  });
+  await expect(page.getByText("This habit could not be found or you may not have access.")).toBeVisible();
+  await expect(page.getByText(demoHabits.activeBooleanTitle, { exact: true })).toHaveCount(0);
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "permission-safe habit detail");
+
+  const localDate = await readHabitLocalDate(page, "Asia/Singapore");
+  const stateHabit = await createHabitViaApi(page, {
+    title: `Accessible route-state habit ${testInfo.project.name}`,
+    icon: "🧭",
+    colorToken: "sky",
+    goal: { goalKind: "boolean", targetValue: null, unit: null },
+    schedule: {
+      kind: "daily",
+      weekdays: null,
+      targetPerWeek: null,
+      timezone: "Asia/Singapore",
+      startDate: localDate,
+      endDate: null,
+    },
+  });
+
+  await page.goto("/inbox");
+  const habitsBarrier = await acquireHabitReadBarrier();
+  try {
+    await clickRouteWithEvidenceQuery(page.locator('a[href="/habits"]').first(), "a11y-habits-loading");
+    const habitWorkspaceLoading = page.getByRole("main").locator('[data-loading-shape="habit-workspace"]');
+    await expect(habitWorkspaceLoading).toBeVisible({ timeout: 15_000 });
+    await expect(
+      habitWorkspaceLoading.getByRole("heading", { level: 1, name: "Habits", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Loading habits" })).toBeVisible();
+    await expectNoSevereViolations(page);
+    await expectNoPageOverflow(page, "habit list loading");
+  } finally {
+    await habitsBarrier.release();
+  }
+  await expect(page.getByRole("heading", { level: 1, name: "Habits", exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
+
+  const detailBarrier = await acquireHabitReadBarrier();
+  try {
+    await clickRouteWithEvidenceQuery(
+      page.getByRole("link", { name: `Open ${stateHabit.habit.title}`, exact: true }),
+      "a11y-habit-detail-loading",
+    );
+    const habitDetailLoading = page.getByRole("main").locator('[data-loading-shape="habit-detail"]');
+    await expect(habitDetailLoading).toBeVisible({ timeout: 15_000 });
+    await expect(
+      habitDetailLoading.getByRole("heading", { level: 1, name: "Habit details", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Loading habit details" })).toBeVisible();
+    await expectNoSevereViolations(page);
+    await expectNoPageOverflow(page, "habit detail loading");
+  } finally {
+    await detailBarrier.release();
+  }
+  await expect(
+    page.getByRole("heading", { level: 1, name: stateHabit.habit.title, exact: true }),
+  ).toBeVisible({ timeout: 30_000 });
+
+  const releaseDetailFailure = await installHabitApiFailure(page, `/api/v1/habits/${stateHabit.habit.id}`);
+  try {
+    await triggerStaleHabitRefresh(page);
+    await expect(page.getByRole("alert").filter({ hasText: "Habits could not be refreshed" })).toBeVisible();
+    await expectNoSevereViolations(page);
+    await expectNoPageOverflow(page, "habit detail error");
+  } finally {
+    await releaseDetailFailure();
+  }
+
+  await page.goto("/habits");
+  const releaseListFailure = await installHabitApiFailure(page, "/api/v1/habits/overviews");
+  try {
+    await triggerStaleHabitRefresh(page);
+    await expect(page.getByRole("alert").filter({ hasText: "Habits could not be refreshed" })).toBeVisible();
+    await expectNoSevereViolations(page);
+    await expectNoPageOverflow(page, "habit list error");
+  } finally {
+    await releaseListFailure();
+  }
+});
+
+async function clickRouteWithEvidenceQuery(link: Locator, label: string): Promise<void> {
+  await link.evaluate((element, evidence) => {
+    if (!(element instanceof HTMLAnchorElement)) throw new Error("Route evidence requires a link.");
+    const destination = new URL(element.href);
+    destination.searchParams.set("evidence", evidence);
+    element.setAttribute("href", `${destination.pathname}${destination.search}`);
+    element.click();
+  }, `${label}-${randomUUID()}`);
+}
 
 async function auditRoute(page: Page, route: Readonly<{ path: string; heading: string }>) {
   await openRoute(page, route);
@@ -478,6 +637,116 @@ async function auditCalendar(page: Page) {
   await expectNoSevereViolations(page, '[role="dialog"]');
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
+}
+
+async function auditHabitInteraction(context: BrowserContext, page: Page) {
+  await page.goto("/habits");
+  await expect(page.getByRole("heading", { level: 1, name: "Habits", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Create habit", exact: true }).click();
+  let dialog = page.getByRole("dialog", { name: "Create habit" });
+  await expect(dialog).toBeVisible();
+  const createTitle = dialog.getByLabel("Title", { exact: true });
+  await expect(createTitle).toBeFocused();
+
+  await dialog.getByRole("button", { name: "Create habit", exact: true }).click();
+  await expectHabitValidationAssociation(dialog, createTitle);
+  await expectNoSevereViolations(page, '[role="dialog"]');
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  await page.getByRole("button", { name: "Create habit", exact: true }).click();
+  dialog = page.getByRole("dialog", { name: "Create habit" });
+  const offlineDraft = dialog.getByLabel("Title", { exact: true });
+  await offlineDraft.fill("Offline draft remains available");
+  await context.setOffline(true);
+  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
+  await expect(dialog.getByRole("status")).toContainText("Reconnect before saving");
+  await expect(dialog.getByRole("button", { name: "Create habit", exact: true })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Cancel", exact: true })).toBeEnabled();
+  await expect(offlineDraft).toHaveValue("Offline draft remains available");
+  await expectNoSevereViolations(page, '[role="dialog"]');
+  await context.setOffline(false);
+  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeHidden();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  await page.goto(`/habits/${demoHabits.activeBooleanId}`);
+  await expect(
+    page.getByRole("heading", { level: 1, name: demoHabits.activeBooleanTitle, exact: true }),
+  ).toBeVisible();
+  const heatMap = page.getByRole("table", {
+    name: new RegExp(`history for ${demoHabits.activeBooleanTitle}`, "u"),
+  });
+  await expect(heatMap).toBeVisible();
+  await heatMap.locator("xpath=..").focus();
+  await expect(heatMap.locator("xpath=..")).toBeFocused();
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "/habits/[habitId]");
+
+  const archiveTrigger = page.getByRole("button", { name: "Archive", exact: true });
+  await archiveTrigger.click();
+  const archiveDialog = page.getByRole("alertdialog", {
+    name: `Archive “${demoHabits.activeBooleanTitle}”?`,
+    exact: true,
+  });
+  await expect(archiveDialog).toBeVisible();
+  await expect(archiveDialog).toContainText(
+    "History will be preserved. This habit will leave Today and your active habits until you restore it.",
+  );
+  const keepHabit = archiveDialog.getByRole("button", { name: "Keep habit", exact: true });
+  await expect(keepHabit).toBeFocused();
+  await expectNoSevereViolations(page, '[role="alertdialog"]');
+  await keepHabit.click();
+  await expect(archiveDialog).toBeHidden();
+  await expect(archiveTrigger).toBeFocused();
+
+  await page.getByRole("button", { name: "Edit habit", exact: true }).click();
+  const editDialog = page.getByRole("dialog", { name: "Edit habit" });
+  const editTitle = editDialog.getByLabel("Title", { exact: true });
+  await expect(editDialog).toBeVisible();
+  await expect(editTitle).toHaveValue(demoHabits.activeBooleanTitle);
+  await expectNoSevereViolations(page, '[role="dialog"]');
+
+  const current = await readHabitDetail(page, demoHabits.activeBooleanId);
+  await updateHabitViaApi(page, demoHabits.activeBooleanId, current.habit.version, { icon: "🌄" });
+  const localTitle = `${demoHabits.activeBooleanTitle} locally reviewed`;
+  await editTitle.fill(localTitle);
+  const conflictResponse = waitForHabitResponse(
+    page,
+    `/api/v1/habits/${demoHabits.activeBooleanId}`,
+    "PATCH",
+  );
+  await editDialog.getByRole("button", { name: "Save habit", exact: true }).click();
+  expect((await conflictResponse).status()).toBe(409);
+  const conflictAlert = editDialog.getByRole("alert");
+  await expect(conflictAlert).toContainText("This habit changed elsewhere");
+  await expect(editDialog.getByRole("button", { name: "Save habit", exact: true })).toBeDisabled();
+  const reviewLatest = editDialog.getByRole("button", { name: "Review latest in this form" });
+  await expect(reviewLatest).toBeVisible();
+  await expectNoSevereViolations(page, '[role="dialog"]');
+
+  await reviewLatest.click();
+  await expect(reviewLatest).toBeHidden();
+  await expect(editTitle).toHaveValue(localTitle);
+  await expect(editDialog.getByLabel("Icon or emoji", { exact: true })).toHaveValue("🌄");
+  await expect(editDialog.getByRole("button", { name: "Save habit", exact: true })).toBeEnabled();
+  await editDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+}
+
+async function expectHabitValidationAssociation(dialog: Locator, field: Locator) {
+  const alert = dialog.getByRole("alert");
+  await expect(alert).toBeVisible();
+  await expect(alert).toBeFocused();
+  await expect(alert).toContainText("Review the highlighted field");
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  const alertId = await alert.getAttribute("id");
+  expect(alertId).toBeTruthy();
+  const descriptionIds = (await field.getAttribute("aria-describedby"))?.split(/\s+/u) ?? [];
+  expect(descriptionIds).toContain(alertId);
+}
+
+async function readHabitDetail(page: Page, habitId: string): Promise<HabitDetailWire> {
+  const response = await page.context().request.get(`/api/v1/habits/${habitId}`);
+  expect(response.status()).toBe(200);
+  return (await response.json()) as HabitDetailWire;
 }
 
 async function auditSeededTaskDetails(page: Page) {

@@ -1,7 +1,7 @@
 # Focus module contract
 
-**Status:** Active in the Local-first Full Release. Implementation begins only in P4 after the P3
-habit ownership/link contract freezes; this contract does not authorize later-scope Focus features.
+**Status:** Active in the Local-first Full Release. Implementation begins only in P4; this contract
+does not authorize later-scope Focus features.
 
 `modules/focus` owns authoritative Pomodoro/stopwatch focus and break session state and derived focus
 totals. Countdown animation is presentation only.

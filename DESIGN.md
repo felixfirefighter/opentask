@@ -66,7 +66,7 @@ Read only the files relevant to the surface being changed, after this file.
 | Inspector and mobile task-detail route | `docs/design/screens/task-details.md` |
 | Month, week, day, and agenda planning | `docs/design/screens/calendar.md` |
 | Derived Eisenhower projection | `docs/design/screens/matrix.md` |
-| Habit management and history after P3 | `docs/design/screens/habits.md` |
+| Habit management and history | `docs/design/screens/habits.md` |
 | Pomodoro, stopwatch, and Focus history after P4 | `docs/design/screens/focus.md` |
 | Reality-aware planner input, review, and apply | `docs/design/screens/assistant.md` |
 

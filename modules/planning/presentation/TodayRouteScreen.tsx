@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import type { TodayProjection } from "../application/public";
 import { PlanningLiveRegion } from "./PlanningLiveRegion";
@@ -15,9 +15,15 @@ import { toTodayPlanningModel } from "./planning-view-model";
 
 export function TodayRouteScreen({
   hourCycle,
+  habitSection,
   inboxId,
   projection,
-}: Readonly<{ hourCycle: "12" | "24"; inboxId: string; projection: TodayProjection }>) {
+}: Readonly<{
+  hourCycle: "12" | "24";
+  habitSection: ReactNode;
+  inboxId: string;
+  projection: TodayProjection;
+}>) {
   const tasks = useMemo(
     () => [...projection.overdue, ...projection.timed, ...projection.anytime],
     [projection],
@@ -65,6 +71,7 @@ export function TodayRouteScreen({
         quickAdd={quickAdd.model}
         taskActions={controller.taskActions}
         calendarHref="/calendar"
+        habitSection={habitSection}
         upcomingHref="/upcoming"
         onQuickAddChange={quickAdd.change}
         onQuickAddSubmit={(value) => void quickAdd.submit(value)}

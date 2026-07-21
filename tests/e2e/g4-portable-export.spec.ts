@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 
 import { expect, test, type APIResponse, type Page } from "@playwright/test";
 
@@ -48,6 +49,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   const recurrence = await setDailyRecurrence(page, task.id, scheduled.task.version);
   const occurrence = await readRecurringOccurrence(page, task.id);
   await completeOccurrence(page, task.id, occurrence.occurrenceKey, recurrence.task.version);
+  const portableHabit = await createPortableHabit(page);
 
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
@@ -68,7 +70,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   expect(exportResponse.headers()["content-type"]).toContain("application/json");
   expect(exportResponse.headers()["pragma"]).toBe("no-cache");
   expect(exportResponse.headers()["x-content-type-options"]).toBe("nosniff");
-  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("2");
+  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("3");
 
   const downloadedPath = await download.path();
   expect(downloadedPath).not.toBeNull();
@@ -76,15 +78,16 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   const expectedFilename = `opentask-export-${new Date(envelope.exportedAt).toISOString().slice(0, 10)}.json`;
   expect(exportResponse.headers()["content-disposition"]).toBe(`attachment; filename="${expectedFilename}"`);
   expect(download.suggestedFilename()).toBe(expectedFilename);
-  await expect(page.getByText(`Downloaded ${expectedFilename} · schema v2.`)).toBeVisible();
+  await expect(page.getByText(`Downloaded ${expectedFilename} · schema v3.`)).toBeVisible();
   expect(envelope).toMatchObject({
-    schemaVersion: 2,
+    schemaVersion: 3,
     identity: {
       schemaVersion: 1,
       profile: { email: owner.email },
       preferences: { schemaVersion: 1, timezone: expect.any(String) },
     },
     tasks: { schemaVersion: 2 },
+    habits: { schemaVersion: 1 },
     assistant: { schemaVersion: 1, proposals: expect.any(Array) },
   });
   expect(Number.isNaN(Date.parse(envelope.exportedAt))).toBe(false);
@@ -129,6 +132,33 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
       taskVersion: recurrence.task.version + 1,
     }),
   );
+  expect(envelope.habits.habits).toContainEqual(
+    expect.objectContaining({
+      id: portableHabit.id,
+      title: portableHabit.title,
+      goalKind: "quantity",
+      targetValue: 20,
+      unit: "minutes",
+    }),
+  );
+  expect(envelope.habits.schedules).toContainEqual(
+    expect.objectContaining({
+      habitId: portableHabit.id,
+      kind: "daily",
+      timezone: "UTC",
+      startDate: portableHabit.localDate,
+    }),
+  );
+  expect(envelope.habits.logs).toContainEqual(
+    expect.objectContaining({
+      id: portableHabit.logId,
+      habitId: portableHabit.id,
+      localDate: portableHabit.localDate,
+      state: "completed",
+      quantity: 24.5,
+      note: portableHabit.note,
+    }),
+  );
 
   const serializedOwnerExport = JSON.stringify(envelope);
   expect(serializedOwnerExport).not.toContain(owner.password);
@@ -157,6 +187,9 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   expect(serializedOtherExport).not.toContain(task.id);
   expect(serializedOtherExport).not.toContain(task.title);
   expect(serializedOtherExport).not.toContain(list.id);
+  expect(serializedOtherExport).not.toContain(portableHabit.id);
+  expect(serializedOtherExport).not.toContain(portableHabit.title);
+  expect(serializedOtherExport).not.toContain(portableHabit.note);
 
   const crossUserTask = await page.context().request.get(`/api/v1/tasks/${task.id}`);
   expect(crossUserTask.status()).toBe(404);
@@ -216,8 +249,50 @@ type PortableExportEnvelope = Readonly<{
     occurrenceEvents: ReadonlyArray<Record<string, unknown>>;
     tags: ReadonlyArray<Record<string, unknown>>;
   };
+  habits: {
+    schemaVersion: number;
+    habits: ReadonlyArray<Record<string, unknown>>;
+    schedules: ReadonlyArray<Record<string, unknown>>;
+    logs: ReadonlyArray<Record<string, unknown>>;
+  };
   assistant: { schemaVersion: number; proposals: readonly unknown[] };
 }>;
+
+async function createPortableHabit(page: Page) {
+  const id = randomUUID();
+  const logId = randomUUID();
+  const title = "G4 owner-only reading habit";
+  const note = "G4 owner-only habit note";
+  const localDate = new Date().toISOString().slice(0, 10);
+  const createResponse = await page.context().request.post("/api/v1/habits", {
+    data: {
+      title,
+      icon: "📚",
+      colorToken: "violet",
+      goal: { goalKind: "quantity", targetValue: 20, unit: "minutes" },
+      schedule: {
+        kind: "daily",
+        weekdays: null,
+        targetPerWeek: null,
+        timezone: "UTC",
+        startDate: localDate,
+        endDate: null,
+      },
+    },
+    headers: { origin: appOrigin, "idempotency-key": id },
+  });
+  expect(createResponse.status()).toBe(201);
+
+  const logResponse = await page.context().request.post(`/api/v1/habits/${id}/logs`, {
+    data: {
+      localDate,
+      value: { state: "completed", quantity: 24.5, note },
+    },
+    headers: { origin: appOrigin, "idempotency-key": logId },
+  });
+  expect(logResponse.status()).toBe(201);
+  return { id, logId, localDate, note, title } as const;
+}
 
 async function setAllDaySchedule(page: Page, taskId: string, version: number) {
   const response = await page.context().request.patch(`/api/v1/tasks/${taskId}/schedule`, {

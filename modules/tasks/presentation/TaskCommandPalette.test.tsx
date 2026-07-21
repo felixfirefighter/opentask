@@ -95,6 +95,7 @@ describe("TaskCommandPalette", () => {
       "true",
     );
     expect(screen.getByRole("option", { name: "Launch. List" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Habits. Destination" })).toBeInTheDocument();
 
     await user.keyboard("{ArrowDown}{Enter}");
 

@@ -9,6 +9,8 @@ export function findExportRelationshipErrors(envelope: UserExportEnvelope): read
   const tags = uniqueIds(envelope.tasks.tags, "tag", errors);
   uniqueIds(envelope.tasks.checklistItems, "checklist item", errors);
   uniqueIds(envelope.tasks.occurrenceEvents, "occurrence event", errors);
+  const habits = uniqueIds(envelope.habits.habits, "habit", errors);
+  uniqueIds(envelope.habits.logs, "habit log", errors);
 
   for (const list of envelope.tasks.lists) {
     if (list.folderId !== null && !folders.has(list.folderId)) {
@@ -110,6 +112,28 @@ export function findExportRelationshipErrors(envelope: UserExportEnvelope): read
         errors.push(`Occurrence event ${event.id} is newer than its owning task.`);
       }
     }
+  }
+
+  const habitSchedules = uniqueForeignRows(
+    envelope.habits.schedules,
+    ({ habitId }) => habitId,
+    "habit schedule",
+    errors,
+  );
+  for (const habit of envelope.habits.habits) {
+    if (!habitSchedules.has(habit.id)) errors.push(`Habit ${habit.id} has no schedule.`);
+  }
+  const habitLogDates = new Set<string>();
+  for (const schedule of envelope.habits.schedules) {
+    if (!habits.has(schedule.habitId)) {
+      errors.push(`Habit schedule references unknown habit ${schedule.habitId}.`);
+    }
+  }
+  for (const log of envelope.habits.logs) {
+    if (!habits.has(log.habitId)) errors.push(`Habit log ${log.id} references an unknown habit.`);
+    const key = `${log.habitId}:${log.localDate}`;
+    if (habitLogDates.has(key)) errors.push(`Habit day ${key} is duplicated.`);
+    habitLogDates.add(key);
   }
 
   const proposalIds = new Set<string>();

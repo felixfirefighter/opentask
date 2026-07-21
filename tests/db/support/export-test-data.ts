@@ -35,6 +35,10 @@ export const portableEntityIds = {
   allDayReopenedEvent: "90000000-0000-4000-8000-000000000002",
   timedSkippedEvent: "90000000-0000-4000-8000-000000000003",
   concurrentOccurrenceEvent: "90000000-0000-4000-8000-000000000004",
+  booleanHabit: "a0000000-0000-4000-8000-000000000001",
+  quantityHabit: "a0000000-0000-4000-8000-000000000002",
+  booleanHabitLog: "b0000000-0000-4000-8000-000000000001",
+  quantityHabitLog: "b0000000-0000-4000-8000-000000000002",
 } as const;
 
 export const APIA_DATE_CROSSING_OCCURRENCE_KEY = createProjectedOccurrenceKey(
@@ -63,6 +67,7 @@ export async function seedPortableTenant(pool: Pool, input: TenantSeedInput) {
     await seedIdentity(client, input, values.secretCanaries);
     await seedOrganization(client, input);
     await seedTasks(client, input, values);
+    await seedHabits(client, input);
     await seedPlannerProposals(client, input, values);
     await client.query("commit");
   } catch (error) {
@@ -72,6 +77,56 @@ export async function seedPortableTenant(pool: Pool, input: TenantSeedInput) {
     client.release();
   }
   return values;
+}
+
+async function seedHabits(client: PoolClient, input: TenantSeedInput) {
+  await client.query(
+    `insert into habits
+       (id, user_id, title, icon, color_token, goal_kind, target_value, unit, version,
+        created_at, updated_at, archived_at)
+     values
+       ($1, $3, $4, '✓', 'slate', 'boolean', null, null, 2, $5, $5, $5),
+       ($2, $3, $6, '📚', 'mint', 'quantity', 20.000, 'minutes', 1, $5, $5, null)`,
+    [
+      portableEntityIds.booleanHabit,
+      portableEntityIds.quantityHabit,
+      input.actor.userId,
+      `${input.marker} archived habit`,
+      RECORD_INSTANT,
+      `${input.marker} reading habit`,
+    ],
+  );
+  await client.query(
+    `insert into habit_schedules
+       (user_id, habit_id, kind, weekdays, target_per_week, timezone, start_date, end_date,
+        created_at, updated_at)
+     values
+       ($1, $2, 'daily', null, null, $4, '2026-07-01', null, $5, $5),
+       ($1, $3, 'weekly_target', null, 4, $4, '2026-07-01', null, $5, $5)`,
+    [
+      input.actor.userId,
+      portableEntityIds.booleanHabit,
+      portableEntityIds.quantityHabit,
+      input.timezone,
+      RECORD_INSTANT,
+    ],
+  );
+  await client.query(
+    `insert into habit_logs
+       (id, user_id, habit_id, local_date, state, quantity, note, version, created_at, updated_at)
+     values
+       ($1, $3, $4, '2026-07-19', 'completed', null, null, 1, $6, $6),
+       ($2, $3, $5, '2026-07-20', 'completed', 24.500, $7, 1, $6, $6)`,
+    [
+      portableEntityIds.booleanHabitLog,
+      portableEntityIds.quantityHabitLog,
+      input.actor.userId,
+      portableEntityIds.booleanHabit,
+      portableEntityIds.quantityHabit,
+      RECORD_INSTANT,
+      `${input.marker} private habit note`,
+    ],
+  );
 }
 
 function tenantValues(input: TenantSeedInput) {

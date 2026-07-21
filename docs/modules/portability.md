@@ -19,14 +19,15 @@
 
 - `exportUserData(actor)` opens a consistent read snapshot and composes authorized identity, tasks,
   assistant, habits, Focus, and notifications records through their public export readers.
-- `getExportSchemaVersion()` exposes the current document version.
+- `USER_EXPORT_SCHEMA_VERSION` exposes the current document version through the module root.
 - Public contracts: `UserExportEnvelope`, module-specific export DTOs, and canonical `UserExportSchema`.
 
 The envelope contains `schemaVersion`, export timestamp, portable user profile/preferences, and
 independently versioned module sections. An envelope bump records a composition change; a module
 section version changes only when that section changes. The current envelope and tasks section use
-version 2 while identity and assistant remain version 1. Internal database/provider row shapes are
-never reused directly.
+versions 3 and 2 respectively; habits, identity, and assistant use section version 1. Focus and
+notification sections join through later package-owned envelope bumps. Internal database/provider
+row shapes are never reused directly.
 
 ## Invariants
 

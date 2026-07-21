@@ -164,7 +164,7 @@ describe("TodayRouteScreen quick add", () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const view = render(
       <QueryClientProvider client={queryClient}>
-        <TodayRouteScreen hourCycle="12" inboxId={INBOX_ID} projection={projection} />
+        <TodayRouteScreen habitSection={null} hourCycle="12" inboxId={INBOX_ID} projection={projection} />
       </QueryClientProvider>,
     );
 
@@ -207,6 +207,7 @@ describe("TodayRouteScreen quick add", () => {
     view.rerender(
       <QueryClientProvider client={queryClient}>
         <TodayRouteScreen
+          habitSection={null}
           hourCycle="12"
           inboxId={INBOX_ID}
           projection={{
@@ -256,7 +257,7 @@ describe("TodayRouteScreen quick add", () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const view = render(
       <QueryClientProvider client={queryClient}>
-        <TodayRouteScreen hourCycle="12" inboxId={INBOX_ID} projection={projection} />
+        <TodayRouteScreen habitSection={null} hourCycle="12" inboxId={INBOX_ID} projection={projection} />
       </QueryClientProvider>,
     );
     const input = screen.getByRole("textbox", { name: "Add a task" });
@@ -266,7 +267,7 @@ describe("TodayRouteScreen quick add", () => {
     const nextProjection = { ...projection, timeZone: "America/New_York" };
     view.rerender(
       <QueryClientProvider client={queryClient}>
-        <TodayRouteScreen hourCycle="12" inboxId={INBOX_ID} projection={nextProjection} />
+        <TodayRouteScreen habitSection={null} hourCycle="12" inboxId={INBOX_ID} projection={nextProjection} />
       </QueryClientProvider>,
     );
 
@@ -286,7 +287,7 @@ function renderToday(source: TodayProjection = projection) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <TodayRouteScreen hourCycle="12" inboxId={INBOX_ID} projection={source} />
+      <TodayRouteScreen habitSection={null} hourCycle="12" inboxId={INBOX_ID} projection={source} />
     </QueryClientProvider>,
   );
 }

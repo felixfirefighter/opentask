@@ -5,6 +5,7 @@ import type { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { readPortablePlannerProposals } from "../../modules/assistant/index.ts";
+import { readPortableHabits } from "../../modules/habits/index.ts";
 import { readPortableIdentity } from "../../modules/identity/index.ts";
 import {
   createPortabilityApplication,
@@ -56,6 +57,7 @@ describe("portable export PostgreSQL snapshot", () => {
         return identity;
       },
       readTasks: readPortableTasks,
+      readHabits: readPortableHabits,
       readProposals: readPortablePlannerProposals,
     });
 
@@ -79,6 +81,12 @@ describe("portable export PostgreSQL snapshot", () => {
     const recurrenceDuringMutation = duringMutation.tasks.recurrenceDefinitions.find(
       ({ taskId }) => taskId === portableEntityIds.allDayTask,
     );
+    const habitDuringMutation = duringMutation.habits.habits.find(
+      ({ id }) => id === portableEntityIds.quantityHabit,
+    );
+    const habitLogDuringMutation = duringMutation.habits.logs.find(
+      ({ id }) => id === portableEntityIds.quantityHabitLog,
+    );
     expect(duringMutation.identity.profile.name).toBe(seed.ownerName);
     expect(rootDuringMutation).toMatchObject({ title: seed.rootTaskTitle, version: 1 });
     expect(allDayDuringMutation?.version).toBe(3);
@@ -86,6 +94,11 @@ describe("portable export PostgreSQL snapshot", () => {
       kind: "all_day",
       projectionEndDate: null,
     });
+    expect(habitDuringMutation).toMatchObject({
+      title: "SNAPSHOT_BEFORE reading habit",
+      version: 1,
+    });
+    expect(habitLogDuringMutation).toMatchObject({ quantity: 24.5, version: 1 });
     expect(
       duringMutation.tasks.occurrenceEvents.some(
         ({ id }) => id === portableEntityIds.concurrentOccurrenceEvent,
@@ -101,6 +114,12 @@ describe("portable export PostgreSQL snapshot", () => {
     const recurrenceAfterCommit = afterCommit.tasks.recurrenceDefinitions.find(
       ({ taskId }) => taskId === portableEntityIds.allDayTask,
     );
+    const habitAfterCommit = afterCommit.habits.habits.find(
+      ({ id }) => id === portableEntityIds.quantityHabit,
+    );
+    const habitLogAfterCommit = afterCommit.habits.logs.find(
+      ({ id }) => id === portableEntityIds.quantityHabitLog,
+    );
     expect(afterCommit.identity.profile.name).toBe("SNAPSHOT_AFTER owner");
     expect(rootAfterCommit).toMatchObject({
       title: seed.updatedRootTaskTitle,
@@ -111,6 +130,16 @@ describe("portable export PostgreSQL snapshot", () => {
     expect(recurrenceAfterCommit).toMatchObject({
       kind: "all_day",
       projectionEndDate: "2026-07-21",
+      updatedAt: "2026-07-19T16:30:45.678Z",
+    });
+    expect(habitAfterCommit).toMatchObject({
+      title: "SNAPSHOT_AFTER reading habit",
+      version: 2,
+      updatedAt: "2026-07-19T16:30:45.678Z",
+    });
+    expect(habitLogAfterCommit).toMatchObject({
+      quantity: 30,
+      version: 2,
       updatedAt: "2026-07-19T16:30:45.678Z",
     });
     expect(
@@ -161,6 +190,23 @@ async function commitConcurrentMutation() {
         portableEntityIds.allDayTask,
         "2026-07-19T16:30:45.678Z",
       ],
+    );
+    await client.query(
+      `update habits
+          set title = $1, version = version + 1, updated_at = $2
+        where user_id = $3 and id = $4`,
+      [
+        "SNAPSHOT_AFTER reading habit",
+        "2026-07-19T16:30:45.678Z",
+        owner.userId,
+        portableEntityIds.quantityHabit,
+      ],
+    );
+    await client.query(
+      `update habit_logs
+          set quantity = 30.000, version = version + 1, updated_at = $1
+        where user_id = $2 and id = $3`,
+      ["2026-07-19T16:30:45.678Z", owner.userId, portableEntityIds.quantityHabitLog],
     );
     await client.query("commit");
   } catch (error) {

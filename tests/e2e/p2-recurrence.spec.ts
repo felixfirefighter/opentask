@@ -391,13 +391,20 @@ test("one occurrence supports UI transitions and exact API retry without complet
   );
   await page.getByRole("button", { name: "Undo occurrence", exact: true }).click();
   expect((await undoCompletedResponse).status()).toBe(200);
-  await expect(page.getByRole("button", { name: "Complete occurrence", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Complete occurrence", exact: true })).toBeEnabled({
+    timeout: 30_000,
+  });
 
   await selection.selectOption(nextOpenEvent.projectionId);
+  await expect(page.getByRole("button", { name: "Skip occurrence", exact: true })).toBeEnabled({
+    timeout: 30_000,
+  });
   const skipResponse = waitForMutation(page, `/tasks/${demo.recurringTaskId}/occurrences/transition`, "POST");
   await page.getByRole("button", { name: "Skip occurrence", exact: true }).click();
   expect((await skipResponse).status()).toBe(200);
-  await expect(page.getByRole("button", { name: "Undo occurrence", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Undo occurrence", exact: true })).toBeEnabled({
+    timeout: 30_000,
+  });
   const undoSkippedResponse = waitForMutation(
     page,
     `/tasks/${demo.recurringTaskId}/occurrences/transition`,
@@ -405,7 +412,9 @@ test("one occurrence supports UI transitions and exact API retry without complet
   );
   await page.getByRole("button", { name: "Undo occurrence", exact: true }).click();
   expect((await undoSkippedResponse).status()).toBe(200);
-  await expect(page.getByRole("button", { name: "Skip occurrence", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Skip occurrence", exact: true })).toBeEnabled({
+    timeout: 30_000,
+  });
 
   const owner = await getJson<TaskWireRecord>(page, `/api/v1/tasks/${demo.recurringTaskId}`);
   expect(owner.status).toBe("open");

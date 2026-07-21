@@ -228,6 +228,7 @@
   .topBarIdentity {
     display: flex;
     min-width: 0;
+    min-height: var(--control-target-desktop);
     align-items: center;
     gap: var(--space-3);
     border-radius: var(--radius-control);
@@ -297,6 +298,10 @@
 
   .topBarActions > button {
     min-width: var(--control-target-touch);
+  }
+
+  .topBarIdentity {
+    min-height: var(--control-target-touch);
   }
 
   .mobileDestination,

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Inbox, ListTodo, Plus, RefreshCw } from "lucide-react";
+import { CheckCircle2, Inbox, ListTodo, Plus, RefreshCw, Sprout } from "lucide-react";
 import { Command } from "cmdk";
 
 import type { RegularListDto, TaskSearchResultDto } from "../application/contracts";
@@ -106,6 +106,15 @@ export function TaskCommandPaletteResults({
               meta="Destination"
               value="navigate completed cancelled"
               onSelect={() => onNavigate("/completed")}
+            />
+          ) : null}
+          {destinationMatches("Habits") ? (
+            <ResultItem
+              icon={<Sprout size={18} />}
+              label="Habits"
+              meta="Destination"
+              value="navigate habits"
+              onSelect={() => onNavigate("/habits")}
             />
           ) : null}
           {visibleLists.map((list) => (

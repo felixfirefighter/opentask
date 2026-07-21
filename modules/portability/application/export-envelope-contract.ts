@@ -3,6 +3,7 @@ import { z } from "zod";
 import { portableAssistantSectionSchema } from "./export-assistant-contract";
 import { USER_EXPORT_SCHEMA_VERSION, portableInstantSchema } from "./export-contract-primitives";
 import { portableIdentitySectionSchema } from "./export-identity-contract";
+import { portableHabitsSectionSchema } from "./export-habits-contract";
 import { portableTasksSectionSchema } from "./export-tasks-contract";
 
 export const userExportEnvelopeSchema = z.strictObject({
@@ -10,6 +11,7 @@ export const userExportEnvelopeSchema = z.strictObject({
   exportedAt: portableInstantSchema,
   identity: portableIdentitySectionSchema,
   tasks: portableTasksSectionSchema,
+  habits: portableHabitsSectionSchema,
   assistant: portableAssistantSectionSchema,
 });
 

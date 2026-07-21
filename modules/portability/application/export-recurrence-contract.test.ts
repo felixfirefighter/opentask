@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   PORTABLE_SECTION_SCHEMA_VERSION,
+  PORTABLE_HABITS_SECTION_SCHEMA_VERSION,
   PORTABLE_TASKS_SECTION_SCHEMA_VERSION,
   USER_EXPORT_SCHEMA_VERSION,
 } from "./export-contract-primitives";
@@ -19,16 +20,18 @@ const unknownTaskId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const instant = "2026-07-20T02:00:00.000Z";
 
 describe("portable recurrence export contract", () => {
-  it("freezes envelope and tasks at version 2 while unchanged sections remain version 1", () => {
+  it("preserves tasks version 2 inside the version 3 habits envelope", () => {
     const envelope = userExportEnvelopeSchema.parse(buildEnvelope());
 
-    expect(USER_EXPORT_SCHEMA_VERSION).toBe(2);
+    expect(USER_EXPORT_SCHEMA_VERSION).toBe(3);
     expect(PORTABLE_TASKS_SECTION_SCHEMA_VERSION).toBe(2);
     expect(PORTABLE_SECTION_SCHEMA_VERSION).toBe(1);
+    expect(PORTABLE_HABITS_SECTION_SCHEMA_VERSION).toBe(1);
     expect(envelope).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       identity: { schemaVersion: 1 },
       tasks: { schemaVersion: 2 },
+      habits: { schemaVersion: 1 },
       assistant: { schemaVersion: 1 },
     });
     expect(findExportRelationshipErrors(envelope)).toEqual([]);
@@ -205,7 +208,7 @@ function envelopeEventId(index: number) {
 
 function buildEnvelope(): UserExportEnvelope {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     exportedAt: instant,
     identity: {
       schemaVersion: 1,
@@ -317,6 +320,7 @@ function buildEnvelope(): UserExportEnvelope {
       tags: [],
       taskTags: [],
     },
+    habits: { schemaVersion: 1, habits: [], schedules: [], logs: [] },
     assistant: { schemaVersion: 1, proposals: [] },
   };
 }

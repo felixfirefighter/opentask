@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { getHabitsApplication } from "@/modules/habits";
+import { TodayHabitsRouteSection } from "@/modules/habits/presentation";
 import { AuthenticatedShell } from "@/modules/identity/presentation";
 import { getPlanningProjectionApplication } from "@/modules/planning";
 import { TodayRouteScreen } from "@/modules/planning/presentation";
@@ -13,9 +15,12 @@ export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
   const workspace = await loadWorkspace("/today");
-  const [inbox, projection] = await Promise.all([
+  const [inbox, projection, habitProjection] = await Promise.all([
     getInbox(workspace.identity.actor),
     getPlanningProjectionApplication().getToday(workspace.identity.actor, { limit: 250 }),
+    getHabitsApplication()
+      .projections.getHabitToday(workspace.identity.actor, { limit: 50 })
+      .catch(() => undefined),
   ]);
 
   return (
@@ -30,6 +35,13 @@ export default async function TodayPage() {
     >
       <TodayRouteScreen
         projection={projection}
+        habitSection={
+          habitProjection === undefined ? (
+            <TodayHabitsRouteSection />
+          ) : (
+            <TodayHabitsRouteSection initialProjection={habitProjection} />
+          )
+        }
         inboxId={inbox.id}
         hourCycle={workspace.preferences.hourCycle === "h12" ? "12" : "24"}
       />

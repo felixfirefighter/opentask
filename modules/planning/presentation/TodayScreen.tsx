@@ -2,7 +2,7 @@
 
 import { CalendarDays } from "lucide-react";
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 
 import { Button } from "@/shared/presentation";
 
@@ -28,6 +28,7 @@ export type TodayScreenProps = Readonly<{
   quickAdd: QuickAddModel;
   taskActions: PlanningTaskActions;
   calendarHref: string;
+  habitSection: ReactNode;
   upcomingHref: string;
   onQuickAddChange: (value: string) => void;
   onQuickAddSubmit: (value: string) => void;
@@ -76,7 +77,10 @@ export function TodayScreen(props: TodayScreenProps) {
         onReturnToToday={props.onReturnToToday}
       />
       {condition.kind === "permission" ? (
-        <PermissionState />
+        <div className={styles.sections}>
+          <PermissionState />
+          {props.habitSection}
+        </div>
       ) : (
         <>
           <section className={styles.summary} aria-label="Today summary">
@@ -100,60 +104,63 @@ export function TodayScreen(props: TodayScreenProps) {
             onEditToken={props.onEditQuickAddToken}
             onRemoveToken={props.onRemoveQuickAddToken}
           />
-          {condition.kind === "loading" ? (
-            <LoadingRows />
-          ) : (condition.kind === "error" || condition.kind === "partial") && tasks.length === 0 ? (
-            <UnavailableDataState
-              title={
-                condition.kind === "partial"
-                  ? "Today's task list is incomplete"
-                  : "Today's tasks are unavailable"
-              }
-              message={
-                condition.kind === "partial"
-                  ? "No empty-day conclusion is shown because this bounded result may be missing tasks. Retry to refresh."
-                  : undefined
-              }
-            />
-          ) : tasks.length === 0 ? (
-            <section className={styles.empty} aria-labelledby="today-empty-heading">
-              <h2 id="today-empty-heading" tabIndex={-1} data-planning-recovery-focus>
-                Nothing planned for today
-              </h2>
-              <p>Add a task above or look ahead without turning an empty day into a score.</p>
-              <Button asChild variant="secondary">
-                <Link href={props.upcomingHref}>Open Upcoming</Link>
-              </Button>
-            </section>
-          ) : (
-            <div className={styles.sections}>
-              <TaskProjectionSection
-                actions={props.taskActions}
-                disabled={readOnly}
-                disabledReason={disabledReason}
-                headingId="today-overdue"
-                label="Overdue"
-                tasks={model.overdue}
-                tone="danger"
+          <div className={styles.sections}>
+            {condition.kind === "loading" ? (
+              <LoadingRows />
+            ) : (condition.kind === "error" || condition.kind === "partial") && tasks.length === 0 ? (
+              <UnavailableDataState
+                title={
+                  condition.kind === "partial"
+                    ? "Today's task list is incomplete"
+                    : "Today's tasks are unavailable"
+                }
+                message={
+                  condition.kind === "partial"
+                    ? "No empty-day conclusion is shown because this bounded result may be missing tasks. Retry to refresh."
+                    : undefined
+                }
               />
-              <TaskProjectionSection
-                actions={props.taskActions}
-                disabled={readOnly}
-                disabledReason={disabledReason}
-                headingId="today-timed"
-                label="Timed"
-                tasks={model.timed}
-              />
-              <TaskProjectionSection
-                actions={props.taskActions}
-                disabled={readOnly}
-                disabledReason={disabledReason}
-                headingId="today-anytime"
-                label="Anytime"
-                tasks={model.anytime}
-              />
-            </div>
-          )}
+            ) : tasks.length === 0 ? (
+              <section className={styles.empty} aria-labelledby="today-empty-heading">
+                <h2 id="today-empty-heading" tabIndex={-1} data-planning-recovery-focus>
+                  No tasks planned for today
+                </h2>
+                <p>Add a task above or look ahead without turning an empty day into a score.</p>
+                <Button asChild variant="secondary">
+                  <Link href={props.upcomingHref}>Open Upcoming</Link>
+                </Button>
+              </section>
+            ) : (
+              <>
+                <TaskProjectionSection
+                  actions={props.taskActions}
+                  disabled={readOnly}
+                  disabledReason={disabledReason}
+                  headingId="today-overdue"
+                  label="Overdue"
+                  tasks={model.overdue}
+                  tone="danger"
+                />
+                <TaskProjectionSection
+                  actions={props.taskActions}
+                  disabled={readOnly}
+                  disabledReason={disabledReason}
+                  headingId="today-timed"
+                  label="Timed"
+                  tasks={model.timed}
+                />
+                <TaskProjectionSection
+                  actions={props.taskActions}
+                  disabled={readOnly}
+                  disabledReason={disabledReason}
+                  headingId="today-anytime"
+                  label="Anytime"
+                  tasks={model.anytime}
+                />
+              </>
+            )}
+            {props.habitSection}
+          </div>
         </>
       )}
     </div>

@@ -1,6 +1,6 @@
 # Local-first Full Release forward plan
 
-This is the canonical dependency and delivery plan for the unfinished P3-P7 work in
+This is the canonical dependency and delivery plan for the unfinished P4-P7 work in
 `docs/SCOPE.md`. The implemented and approved baseline is summarized in `README.md`; completed
 sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
@@ -9,12 +9,12 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 - `main` stays a green, locally runnable baseline while a later package is incomplete.
 - Editorial Focus is frozen across current routes. Later UI extends it through `DESIGN.md`; broad
   restyling or shared-foundation changes require explicit user approval and new visual evidence.
-- P3 is the next active package in numbered execution order. P5 is dependency-unblocked but remains
+- P4 is the next active package in numbered execution order. P5 is dependency-unblocked but remains
   unstarted; no package may expose a table, route, dependency, worker job, service worker, or control
   before its own gate.
 - A package integrates only as a coherent unit after its acceptance and audit gates pass. A partial
   implementation, screenshot, elapsed time, or available agent is not a merge criterion.
-- The remaining work is estimated at **90-136 serial engineering hours** before external-provider
+- The remaining work is estimated at **68-102 serial engineering hours** before external-provider
   and user-approval latency. Estimates guide coordination; they never weaken a gate or authorize a
   scope cut.
 - Hackathon timing and submission operations live in `docs/HACKATHON.md`, not in this product plan.
@@ -23,22 +23,19 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
 ```mermaid
 flowchart LR
-    BASELINE["Implemented local core + recurrence"] --> P3["P3: habits"]
+    BASELINE["Implemented local core + recurrence + habits"] --> P4["P4: Focus"]
     BASELINE --> P5["P5: installable PWA shell"]
-    P3 --> P4["P4: Focus"]
-    P5 --> P6
-    P3 --> P7
-    P4 --> P7
+    P5 --> P6["P6: browser reminder + worker"]
+    P4 --> P7["P7: release audit"]
     P5 --> P7
     P6 --> P7
 ```
 
-P3 and P5 may run in parallel from the implemented recurrence baseline. P4 may begin pure domain
-work after the Habits ownership-validator contract freezes. P6 waits for the service-worker
-contract; its recurrence dependency is already satisfied. P3, P4, and P6 each supply and integrate
-their portable representation; the integration owner serializes export-schema version bumps as
-those packages land. P5 adds only an exclusion regression and never changes the export document or
-its versions. P7 owns the final cross-version audit, demo, documentation, and cross-module evidence,
+P4 and P5 may run in parallel from the implemented habits baseline. P6 waits for the service-worker
+contract; its recurrence dependency is already satisfied. P4 and P6 each supply and integrate their
+portable representation; the integration owner serializes export-schema version bumps as those
+packages land. P5 adds only an exclusion regression and never changes the export document or its
+versions. P7 owns the final cross-version audit, demo, documentation, and cross-module evidence,
 not the first export integration.
 
 ## Parallel execution contract
@@ -69,40 +66,6 @@ Only the integration owner edits or serializes:
 - Browser, Docker, database, and full gates run centrally and sequentially to avoid shared-state and
   machine-resource conflicts. Static lanes may run concurrently because repository checks must not
   create lint-visible temporary source files.
-
-## P3 — Habits (22–34 serial hours; 13–19 elapsed)
-
-### Boundary
-
-`modules/habits` owns definitions, schedules, local-day logs, and derived projections. No task,
-Focus, reminder, social, achievement, or health behavior is hidden inside it.
-
-### Deliverables
-
-- Promote `habits`, `habit_schedules`, and `habit_logs` through one reviewed migration and narrow
-  public application contracts.
-- Create/edit/archive/restore boolean or numeric habits with daily, selected-weekday, or target-per-
-  week schedules in an IANA timezone.
-- Today check-in, quantity/note edit, undo, skip, and unachieved with one effective log per local day.
-- Freeze ISO Monday-Sunday weekly-target behavior: show every in-range day until achieved; count each
-  successful day once; keep a below-target current week in progress; fail it only after Sunday;
-  preserve edit/undo after achievement without presenting more required work.
-- Derived current/best streaks, seven-day strip, and compact monthly heat-map data; never store
-  counters.
-- Responsive Habits list/detail/create UI and Today integration with default, empty, loading, error,
-  offline, permission, and conflict states.
-- Integrated, version-bumped portable habit section and deterministic demo fixture before the P3
-  gate; the integration owner serializes the shared export schema.
-- Before migration generation, freeze exact title/icon/unit/note/value/quantity/weekly-target bounds
-  in the module and data contracts so Zod, domain, PostgreSQL, and form copy share one definition.
-
-### Gate
-
-- Goal/schedule discriminant and DB constraints; cross-user and same-day concurrent-write denial.
-- Daily/weekday/weekly-target, DST/week-boundary, quantity, edit/undo/skip/unachieved, archive/restore,
-  Today, streak, and heat-map fixtures.
-- Desktop/mobile Habits golden path; keyboard/screen-reader heat-map, responsive/design/a11y checks.
-- Empty and upgrade migration, `pnpm verify`.
 
 ## P4 — Focus (18–26 serial hours; 11–15 elapsed)
 
@@ -236,8 +199,7 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 | Active capability | Package | Primary evidence |
 |---|---|---|
-| Existing identity/tasks/planning/AI/recurrence | Implemented baseline | G1–G5 + authorization/atomicity/time/ownership suites |
-| Habits | P3 | Habits golden path + log/streak/time suites |
+| Existing identity/tasks/planning/AI/recurrence/habits | Implemented baseline | G1–G6 + authorization/atomicity/time/ownership/log/streak suites |
 | Focus | P4 | Focus golden path + state/race/clock suites |
 | Installable shell | P5 | manifest/cache/offline fallback audit |
 | Browser reminder/worker | P6 | reminder/push golden path + idempotency/provider suites |

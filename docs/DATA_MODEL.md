@@ -319,8 +319,11 @@ a worker job.
 - `goal_kind`: `boolean` or `quantity`; `target_value`, nullable `unit`
 - `version`, `created_at`, `updated_at`, `archived_at`
 
-Checks require a positive `target_value` and bounded unit for quantity goals and reject quantity-only
-fields for boolean goals.
+`title` is NFC-normalized, trimmed, nonblank, and limited to 200 Unicode code points; `icon` follows
+the same rules with a 16-code-point limit. `color_token` is one of the six approved semantic
+category tokens. Quantity goals require `target_value numeric(12,3)` from `0.001` through
+`999999999.999` and a nonblank NFC-normalized `unit` of at most 40 Unicode code points. Boolean
+goals require both fields to be null. Checks reject every mixed goal shape.
 
 ### `habit_schedules` — habits
 
@@ -331,8 +334,12 @@ One row per habit:
 - `timezone`, `start_date`, nullable `end_date`
 - timestamps
 
-Checks enforce the fields allowed for each discriminant, unique ISO weekday values, a positive
-weekly target, a valid IANA timezone, and an inclusive `end_date >= start_date` when an end exists.
+Checks enforce the fields allowed for each discriminant, one to seven unique ascending ISO weekday
+values for `weekdays`, an integer `target_per_week` from one through seven for `weekly_target`, a
+canonical IANA timezone of at most 128 characters, and an inclusive `end_date >= start_date` when an
+end exists. Canonical timezones come from the generated allowlist consumed by both TypeScript and
+the migration, rather than PostgreSQL's alias-bearing timezone catalog. Schedule dates are limited
+to `0001-01-01` through `9999-12-31`; infinity values and BC dates are rejected.
 A schedule change increments the habit version once in the same transaction.
 
 ### `habit_logs` — habits
@@ -343,7 +350,15 @@ A schedule change increments the habit version once in the same transaction.
 - `version`, `created_at`, `updated_at`
 - unique `(user_id, habit_id, local_date)` with a tenant-leading owning foreign key
 
-Streaks and heat maps are projections; do not store counters on `habits`.
+`quantity` is `numeric(12,3)`: new or edited completions under a numeric goal require a value from
+zero through `999999999.999`; new or edited boolean completions and all skipped/unachieved logs
+require it to be null. Changing a habit's goal kind preserves previously completed historical facts,
+so an untouched old numeric completion may retain its quantity under a current boolean goal and an
+untouched old boolean completion may retain a null quantity under a current numeric goal. A later
+log edit revalidates and reshapes the fact against the current goal. `local_date` uses the same
+`0001-01-01` through `9999-12-31` range as schedules. `note` is NFC-normalized and limited to 1,000
+Unicode code points. Success is always derived against the current owning-habit target rather than
+duplicated on the log. Streaks and heat maps are projections; do not store counters on `habits`.
 
 ### `focus_sessions` — focus
 
@@ -392,7 +407,8 @@ At minimum, migration review checks:
 - active recurrence cutovers by `(user_id, projection_start_date, projection_end_date, task_id)` and
   `(user_id, projection_start_at, projection_end_at, task_id)`, and occurrence events by
   `(user_id, task_id, occurrence_key, task_version DESC)` for latest-state lookup;
-- active habits and habit schedules by user, habit logs by user/habit/local date and user/local date;
+- active and archived habit keyset pages by `(user_id, updated_at DESC, id)` under lifecycle-partial
+  indexes, habit schedules by user, and habit logs by user/habit/local date and user/local date;
 - the partial one-unfinished-Focus-session index plus completed Focus history by user/end time;
 - reminders by user/task, active subscriptions by user/endpoint hash, and deliveries by unique
   idempotency key plus user/state/scheduled time;

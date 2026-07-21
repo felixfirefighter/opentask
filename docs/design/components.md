@@ -82,7 +82,7 @@ Event blocks contain time when relevant, truncated title, status, and optional l
 
 ## Habit check-in
 
-This primitive becomes active with P3 and must not render before that package gate.
+This primitive is active in the implemented Habits surface.
 
 The row/card includes icon/emoji, title, schedule/goal, current progress, streak summary, and an action whose label reflects goal type. Numeric habits open a quantity form instead of assuming one unit. Check-in success is reversible. Skip and unachieved are menu actions with explicit labels.
 

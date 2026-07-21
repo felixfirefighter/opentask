@@ -78,6 +78,11 @@ Smart lists, calendar events, agenda rows, and Eisenhower quadrants are projecti
   events are source state, not materialized task clones.
 - Habit streaks/heat maps and Focus totals are derived from their canonical logs/sessions; counters
   and summary rows are not stored.
+- Habit collection projections use actor-scoped keyset pages, not offset or unbounded array reads.
+  Each opaque cursor is bound to one projection scope and lifecycle and its exact anchor is
+  revalidated inside the page's repeatable-read snapshot. Lifetime habit logs are consumed in
+  fixed-size repository pages by a constant-state streak reducer; finite history and month views use
+  explicit local-date ranges. A page boundary never truncates the derived streak.
 - Do not create materialized projection tables during the Local-first Full Release.
 
 ### Client route freshness

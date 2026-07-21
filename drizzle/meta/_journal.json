@@ -92,6 +92,13 @@
       "when": 1784563200000,
       "tag": "0012_p2-occurrence-append-only-hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1784569686979,
+      "tag": "0013_p3-habits",
+      "breakpoints": true
     }
   ]
 }

@@ -1,10 +1,12 @@
 import { createAssistantSchema } from "../../modules/assistant/infrastructure/schema.ts";
 import { createIdentitySchema } from "../../modules/identity/infrastructure/schema.ts";
+import { createHabitSchema } from "../../modules/habits/infrastructure/schema.ts";
 import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 
 // This is the sole schema composition root. Feature modules own table definitions;
 // consumers import the composed instances from here so references stay canonical.
 const identitySchema = createIdentitySchema();
+const habitSchema = createHabitSchema(() => identitySchema.user.id);
 const taskSchema = createTaskSchema(() => identitySchema.user.id);
 const assistantSchema = createAssistantSchema(() => identitySchema.user.id);
 
@@ -14,6 +16,9 @@ export const account = identitySchema.account;
 export const verification = identitySchema.verification;
 export const rateLimit = identitySchema.rateLimit;
 export const userPreferences = identitySchema.userPreferences;
+export const habits = habitSchema.habits;
+export const habitSchedules = habitSchema.habitSchedules;
+export const habitLogs = habitSchema.habitLogs;
 export const listFolders = taskSchema.listFolders;
 export const taskLists = taskSchema.taskLists;
 export const listSections = taskSchema.listSections;
@@ -33,6 +38,9 @@ export const schema = {
   verification,
   rateLimit,
   userPreferences,
+  habits,
+  habitSchedules,
+  habitLogs,
   listFolders,
   taskLists,
   listSections,

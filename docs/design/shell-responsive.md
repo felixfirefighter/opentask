@@ -18,8 +18,8 @@ At 200% zoom, layouts must naturally collapse to the next appropriate shell rath
 ### Module rail
 
 The rail switches product modules, not individual lists. The implemented baseline contains the
-mark/home affordance, Today, Tasks, Calendar, and Plan. P3 adds Habits and P4 adds Focus only when
-their package routes are complete. A labeled account menu at the bottom owns Settings and Sign out.
+mark/home affordance, Today, Tasks, Calendar, Plan, and Habits. P4 adds Focus only when its package
+routes are complete. A labeled account menu at the bottom owns Settings and Sign out.
 Matrix remains available through context navigation and the command palette. Every icon has a
 tooltip and accessible name; the selected item uses icon plus selected surface and current-page
 semantics.
@@ -31,7 +31,7 @@ The sidebar changes with the active module:
 - Tasks: Inbox, Today, Upcoming, Completed/Cancelled, Matrix, folders, lists, and list creation.
 - Calendar: view navigation and date context, without inventing an unscheduled backlog.
 - Plan: Describe, Review, and Result route-preserved steps.
-- Habits: Active/Archived navigation and current habit context after P3.
+- Habits: Active/Archived navigation and current habit context.
 - Focus: timer and recent-history context after P4; do not create project/list navigation for Focus.
 
 Folders disclose their lists inline. Manual reorder uses an explicit handle plus the menu fallback from `components.md`. The immutable Inbox never shows rename/delete actions.
@@ -55,7 +55,7 @@ At 1280 px and wider, selecting a task opens a 360 px inspector without replacin
 ## Mobile shell
 
 - Bottom navigation contains Today, Tasks, Calendar, Plan, and More.
-- More opens a labeled sheet with Matrix, Upcoming, Completed/Cancelled, Habits after P3, Focus after
+- More opens a labeled sheet with Matrix, Upcoming, Completed/Cancelled, Habits, Focus after
   P4, settings, and sign out. Do not render dormant entries before their package gates.
 - The selected tab uses icon, short label, and current-page semantics. Do not use icon-only mobile navigation.
 - The top bar contains the current destination, an optional back action, and no more than two context actions. Less common actions go in the overflow menu.

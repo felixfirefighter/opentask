@@ -7,9 +7,13 @@ import { renderToday } from "./planning-screen-test-support";
 
 describe("TodayScreen conditions", () => {
   it("preserves geometry and announces loading", () => {
-    renderToday({ condition: { kind: "loading" } });
+    renderToday({
+      condition: { kind: "loading" },
+      habitSection: <section aria-label="Scheduled habits">Habits loading independently</section>,
+    });
     expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
     expect(screen.getByText(/Loading planning tasks/u)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Scheduled habits" })).toBeInTheDocument();
   });
 
   it("keeps safe rows stale and retries an error", async () => {
@@ -26,9 +30,11 @@ describe("TodayScreen conditions", () => {
     renderToday({
       condition: { kind: "error" },
       model: { ...todayFixture, overdue: [], timed: [], anytime: [] },
+      habitSection: <section aria-label="Scheduled habits">Habit error stays scoped</section>,
     });
     expect(screen.getByText("Today's tasks are unavailable")).toBeInTheDocument();
-    expect(screen.queryByText("Nothing planned for today")).not.toBeInTheDocument();
+    expect(screen.queryByText("No tasks planned for today")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Scheduled habits" })).toBeInTheDocument();
   });
 
   it("keeps a truncated result visibly partial, read-only, and retryable", async () => {
@@ -66,7 +72,7 @@ describe("TodayScreen conditions", () => {
       model: { ...todayFixture, overdue: [], timed: [], anytime: [] },
     });
     expect(screen.getByText("Today's task list is incomplete")).toBeInTheDocument();
-    expect(screen.queryByText("Nothing planned for today")).not.toBeInTheDocument();
+    expect(screen.queryByText("No tasks planned for today")).not.toBeInTheDocument();
   });
 
   it("leaves cached rows visible but disables writes offline", () => {

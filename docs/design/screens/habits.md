@@ -1,7 +1,6 @@
 # Habits screen
 
-**Status:** Active in P3 of the Local-first Full Release. Do not expose the route or navigation
-before the P3 package gate.
+**Status:** Implemented in the Local-first Full Release under the approved Editorial Focus baseline.
 
 ## Purpose and routes
 

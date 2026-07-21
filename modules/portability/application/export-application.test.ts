@@ -16,12 +16,14 @@ describe("user export application", () => {
     const transaction = {} as DatabaseTransaction;
     const readIdentity = vi.fn(async () => identitySource());
     const readTasks = vi.fn(async () => tasksSource());
+    const readHabits = vi.fn(async () => habitsSource());
     const readProposals = vi.fn(async () => []);
     const application = createPortabilityApplication({
       snapshot: { run: (work) => work(transaction) },
       clock: { now: () => new Date(instant) },
       readIdentity,
       readTasks,
+      readHabits,
       readProposals,
     });
 
@@ -29,13 +31,14 @@ describe("user export application", () => {
 
     expect(userExportEnvelopeSchema.parse(envelope)).toEqual(envelope);
     expect(envelope).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       exportedAt: instant,
       identity: { schemaVersion: 1, profile: { id: userId } },
       tasks: { schemaVersion: 2, tasks: [{ id: taskId }] },
+      habits: { schemaVersion: 1, habits: [] },
       assistant: { schemaVersion: 1, proposals: [] },
     });
-    for (const reader of [readIdentity, readTasks, readProposals]) {
+    for (const reader of [readIdentity, readTasks, readHabits, readProposals]) {
       expect(reader).toHaveBeenCalledWith({ userId }, transaction);
     }
     expect(buildUserExportFilename(envelope.exportedAt)).toBe("opentask-export-2026-07-19.json");
@@ -56,14 +59,19 @@ describe("user export application", () => {
   });
 });
 
-function createExport(overrides: { identity?: unknown; tasks?: unknown }) {
+function createExport(overrides: { identity?: unknown; tasks?: unknown; habits?: unknown }) {
   return createPortabilityApplication({
     snapshot: { run: (work) => work({} as DatabaseTransaction) },
     clock: { now: () => new Date(instant) },
     readIdentity: async () => overrides.identity ?? identitySource(),
     readTasks: async () => overrides.tasks ?? tasksSource(),
+    readHabits: async () => overrides.habits ?? habitsSource(),
     readProposals: async () => [],
   }).exportUserData({ userId });
+}
+
+function habitsSource() {
+  return { habits: [], schedules: [], logs: [] } as const;
 }
 
 function identitySource() {
