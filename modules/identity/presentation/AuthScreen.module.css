@@ -170,7 +170,7 @@
 }
 
 .errorSummary,
-.offlineMessage {
+.connectivityMessage {
   padding: var(--space-3);
   border: var(--border-default) solid color-mix(in srgb, currentColor 44%, transparent);
   border-radius: var(--radius-card);
@@ -194,9 +194,41 @@
   text-underline-offset: 2px;
 }
 
-.offlineMessage {
+.connectivityMessage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   background: color-mix(in srgb, var(--warning) 9%, var(--surface));
   color: var(--warning);
+}
+
+.connectivityMessage p {
+  min-width: 0;
+  margin: 0;
+}
+
+.connectivityMessage button {
+  flex: none;
+  margin-left: auto;
+}
+
+.connectivityMessage button:disabled {
+  border-color: var(--border);
+  background: var(--surface-subtle);
+  color: var(--text-disabled);
+  cursor: wait;
+}
+
+@media (max-width: 359px) {
+  .connectivityMessage {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .connectivityMessage button {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 .submitButton {

@@ -3,6 +3,7 @@ import { useDataExport } from "./useDataExport";
 
 export function DataExportCard({ online }: { online: boolean }) {
   const exporter = useDataExport(online);
+  const statusMessage = !online ? "Offline · reconnect before requesting an export." : exporter.message;
 
   return (
     <section className={styles.card} aria-labelledby="data-export-title">
@@ -19,7 +20,7 @@ export function DataExportCard({ online }: { online: boolean }) {
       </p>
       <div className={styles.cardActions}>
         <p className={styles.saveStatus} aria-live="polite">
-          {!online ? "Offline · reconnect before requesting an export." : exporter.message}
+          {statusMessage}
         </p>
         <button
           type="button"

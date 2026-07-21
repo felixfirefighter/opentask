@@ -1,6 +1,6 @@
 # Local-first Full Release forward plan
 
-This is the canonical dependency and delivery plan for the unfinished P5-P7 work in
+This is the canonical dependency and delivery plan for the unfinished P6-P7 work in
 `docs/SCOPE.md`. The implemented and approved baseline is summarized in `README.md`; completed
 sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
@@ -9,11 +9,11 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 - `main` stays a green, locally runnable baseline while a later package is incomplete.
 - Editorial Focus is frozen across current routes. Later UI extends it through `DESIGN.md`; broad
   restyling or shared-foundation changes require explicit user approval and new visual evidence.
-- P5 is the next active package in numbered execution order. No package may expose a table, route,
+- P6 is the next active package in numbered execution order. No package may expose a table, route,
   dependency, worker job, service worker, or control before its own gate.
 - A package integrates only as a coherent unit after its acceptance and audit gates pass. A partial
   implementation, screenshot, elapsed time, or available agent is not a merge criterion.
-- The remaining work is estimated at **50-76 serial engineering hours** before external-provider
+- The remaining work is estimated at **40-60 serial engineering hours** before external-provider
   and user-approval latency. Estimates guide coordination; they never weaken a gate or authorize a
   scope cut.
 - Hackathon timing and submission operations live in `docs/HACKATHON.md`, not in this product plan.
@@ -22,16 +22,13 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
 ```mermaid
 flowchart LR
-    BASELINE["Implemented local core + recurrence + habits + Focus"] --> P5["P5: installable PWA shell"]
-    P5 --> P6["P6: browser reminder + worker"]
-    P5 --> P7
+    BASELINE["Implemented core + recurrence + habits + Focus + installable PWA"] --> P6["P6: browser reminder + worker"]
     P6 --> P7
 ```
 
-P6 waits for the P5 service-worker contract; its recurrence dependency is already satisfied. P6
+P6 builds on the implemented PWA service-worker boundary and satisfied recurrence dependency. P6
 supplies and integrates its portable representation, and the integration owner serializes that
-export-schema version bump. P5 adds only an exclusion regression and never changes the export
-document or its versions. P7 owns the final cross-version audit, demo, documentation, and
+export-schema version bump. P7 owns the final cross-version audit, demo, documentation, and
 cross-module evidence, not the first export integration.
 
 ## Parallel execution contract
@@ -62,35 +59,6 @@ Only the integration owner edits or serializes:
 - Browser, Docker, database, and full gates run centrally and sequentially to avoid shared-state and
   machine-resource conflicts. Static lanes may run concurrently because repository checks must not
   create lint-visible temporary source files.
-
-## P5 — Installable PWA shell with honest offline fallback (10–16 serial hours)
-
-### Boundary
-
-Installability and static shell resilience only. Do not persist authenticated API/user content in
-Cache Storage, add IndexedDB domain data, accept offline writes, register background sync, or imply
-offline-first behavior.
-
-### Deliverables
-
-- Original maskable/standard icons, manifest metadata, standalone display, scope/start URL, theme
-  metadata, and install guidance where supported.
-- A small versioned service worker caching only fingerprinted public/static assets and a dedicated
-  content-free offline fallback; explicit activate/update/reload and old-cache cleanup behavior.
-- Preserve already rendered content read-only when connectivity drops, disable all domain writes,
-  and recover cleanly online.
-- Clear capability/error/update UI and service-worker registration isolated behind a presentation
-  adapter; no second UI framework or speculative native layer.
-- Add an export regression proving PWA/device/cache operational details are not portable; do not add
-  a data section or change an export version because P5 has no portable data.
-
-### Gate
-
-- Manifest/icon/scope/installability audit; cold offline fallback and online recovery.
-- Cache inventory proves no authenticated HTML/API, task/planner/export, provider, mutation, or
-  secret-bearing response is stored.
-- Upgrade/old-cache cleanup and corrupted/missing-cache recovery tests.
-- Standalone desktop/mobile responsive/a11y/offline-write-denial paths and `pnpm verify`.
 
 ## P6 — One browser-push task reminder and active worker (24–36 serial hours; 14–20 elapsed)
 
@@ -163,8 +131,7 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 | Active capability | Package | Primary evidence |
 |---|---|---|
-| Existing identity/tasks/planning/AI/recurrence/habits/Focus | Implemented baseline | G1–G7 + authorization/atomicity/time/ownership/log/streak/state/race/clock suites |
-| Installable shell | P5 | manifest/cache/offline fallback audit |
+| Existing identity/tasks/planning/AI/recurrence/habits/Focus/installable shell | Implemented baseline | G1–G7 + install/cache/fallback/privacy/offline-write suites |
 | Browser reminder/worker | P6 | reminder/push golden path + idempotency/provider suites |
 | Export/demo/local release | P7 | expanded export + fresh-clone/Compose/full audit |
 

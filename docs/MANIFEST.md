@@ -66,7 +66,9 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 
 ## Approved shared surfaces
 
-- `shared/presentation`: shadcn primitives, generic layout primitives, generic hooks.
+- `shared/presentation`: shadcn primitives, generic layout primitives and hooks, plus the narrow
+  cross-cutting browser connectivity and service-worker lifecycle adapters. Product-facing PWA
+  cards and banners remain owned by the composing feature module.
 - `shared/design`: tokens and theme plumbing.
 - `shared/auth`: provider-neutral actor/session contracts and authentication errors; no provider
   implementation or feature authorization policies.

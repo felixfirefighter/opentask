@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import styles from "./AppClientProviders.module.css";
+import { PwaProvider } from "./pwa/PwaProvider";
 
 export function AppClientProviders({ children }: Readonly<{ children: ReactNode }>) {
   const [queryClient] = useState(
@@ -16,30 +17,35 @@ export function AppClientProviders({ children }: Readonly<{ children: ReactNode 
             retry: 1,
             refetchOnWindowFocus: false,
           },
-          mutations: { retry: false },
+          mutations: {
+            networkMode: "always",
+            retry: false,
+          },
         },
       }),
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      <Toaster
-        position="bottom-right"
-        closeButton
-        toastOptions={{
-          classNames: {
-            toast: styles.toast ?? "",
-            title: styles.title ?? "",
-            description: styles.description ?? "",
-            actionButton: styles.action ?? "",
-            cancelButton: styles.cancel ?? "",
-            closeButton: styles.close ?? "",
-            error: styles.error ?? "",
-            success: styles.success ?? "",
-          },
-        }}
-      />
-    </QueryClientProvider>
+    <PwaProvider>
+      <QueryClientProvider client={queryClient}>
+        {children}
+        <Toaster
+          position="bottom-right"
+          closeButton
+          toastOptions={{
+            classNames: {
+              toast: styles.toast ?? "",
+              title: styles.title ?? "",
+              description: styles.description ?? "",
+              actionButton: styles.action ?? "",
+              cancelButton: styles.cancel ?? "",
+              closeButton: styles.close ?? "",
+              error: styles.error ?? "",
+              success: styles.success ?? "",
+            },
+          }}
+        />
+      </QueryClientProvider>
+    </PwaProvider>
   );
 }

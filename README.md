@@ -40,6 +40,9 @@ The implemented baseline includes:
 - authoritative Pomodoro, stopwatch, and explicit break sessions with optional task/habit links,
   pause/reconnect/resume/finish/discard controls, corrected or deleted completed history, derived
   today/seven-day totals, deterministic demo data, and completed-focus export;
+- an installable web app with original icons, standalone metadata, explicit update activation, a
+  public-static-only cache, and a content-free cold-offline fallback; already loaded work stays
+  visible and read-only while every domain write remains disabled until recovery;
 - an optional GPT-5.6 proposal flow whose output is editable and cannot write until explicit Apply;
 - persisted planner Review/Result restoration after refresh or navigation, plus an explicit no-key
   capability state in Settings;
@@ -48,12 +51,11 @@ The implemented baseline includes:
 
 Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
 
-The next unfinished package is P5, the installable static PWA shell with an honest read-only offline
-fallback. Reminders/push and final release portability remain later packages in the active
-Local-first Full Release.
+The next unfinished package is P6, one optional browser-push task reminder with an active worker.
+Final release portability and release evidence follow in P7.
 Offline mutation synchronization, collaboration, and premium/billing paths remain excluded. See
 [docs/SCOPE.md](docs/SCOPE.md) for the exact target and
-[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the remaining P5-P7 order.
+[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the remaining P6-P7 order.
 
 ## Built with Codex and GPT-5.6
 
@@ -72,7 +74,7 @@ Install Playwright Chromium once with `pnpm exec playwright install chromium`, t
 
 - [Development setup](docs/SETUP.md) for host, PostgreSQL, Docker, health, and migration commands;
 - [Railway deployment](docs/DEPLOYMENT.md) for the hosted web/PostgreSQL path and cost controls;
-- [Friend test](docs/FRIEND_TEST.md) for the five-minute candidate checklist and feedback format.
+- [Friend test](docs/FRIEND_TEST.md) for the seven-minute candidate checklist and feedback format.
 
 For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository-owned design tokens and contracts in [DESIGN.md](DESIGN.md) remain authoritative.
 

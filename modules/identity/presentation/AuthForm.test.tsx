@@ -197,6 +197,63 @@ describe("AuthForm requests", () => {
     );
     expect(screen.queryByText("EMAIL_ALREADY_IN_USE")).not.toBeInTheDocument();
   });
+
+  it("distinguishes a transport failure from invalid credentials and recovers explicitly", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(Response.json({ status: "ok" }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AuthForm mode="sign-in" navigate={vi.fn()} />);
+    await fillCredentials(user, "person@example.test", "correct-password");
+
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(
+      await screen.findByText("OpenTask can’t reach the server. Check the connection and try again."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Try connection" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled());
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/health/live", {
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { accept: "application/json" },
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("names the recovery probe while account access remains disabled", async () => {
+    const user = userEvent.setup();
+    let resolveProbe: ((response: Response) => void) | undefined;
+    const probe = new Promise<Response>((resolve) => {
+      resolveProbe = resolve;
+    });
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockReturnValueOnce(probe);
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AuthForm mode="sign-up" navigate={vi.fn()} />);
+    await fillCredentials(user, "person@example.test", "correct-password");
+    await user.type(screen.getByLabelText("Confirm password", { selector: "input" }), "correct-password");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    await user.click(await screen.findByRole("button", { name: "Try connection" }));
+
+    expect(
+      screen.getByText("Checking the connection. You can create an account when OpenTask responds."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Checking…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Create account" })).toBeDisabled();
+
+    resolveProbe?.(Response.json({ status: "ok" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create account" })).toBeEnabled());
+  });
 });
 
 describe("AuthForm offline and return behavior", () => {

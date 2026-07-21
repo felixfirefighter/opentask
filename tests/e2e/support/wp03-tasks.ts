@@ -23,7 +23,7 @@ export type OrganizerWireRecord = Readonly<{
 }>;
 
 export function taskRow(page: Page, taskId: string) {
-  return page.locator(`[data-ui="task-row"][data-task-id="${taskId}"]`);
+  return page.getByRole("main").locator(`[data-ui="task-row"][data-task-id="${taskId}"]`);
 }
 
 export async function quickAddTask(page: Page, title: string): Promise<TaskWireRecord> {
@@ -31,8 +31,8 @@ export async function quickAddTask(page: Page, title: string): Promise<TaskWireR
     const request = response.request();
     return new URL(response.url()).pathname === "/api/v1/tasks" && request.method() === "POST";
   });
-  const input = page.getByLabel("New task", { exact: true });
-  const composer = page.locator("form").filter({ has: input });
+  const input = page.getByRole("main").getByLabel("New task", { exact: true });
+  const composer = input.locator("xpath=ancestor::form");
 
   await page.getByRole("button", { name: "Add task", exact: true }).first().click();
   await expect(input).toBeFocused();

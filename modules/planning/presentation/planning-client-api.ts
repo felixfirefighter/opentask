@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { OccurrenceCommandResult } from "@/modules/tasks";
+import { fetchWithConnectivity } from "@/shared/presentation";
 
 import type { PlanningOccurrenceAction, PlanningPriority, PlanningTaskStatus } from "./planning-screen-model";
 
@@ -233,7 +234,7 @@ export function createPlanningTaskWithSchedule(
 export async function listPlanningTaskLists(cursor?: string): Promise<PlanningListPage> {
   const query = new URLSearchParams({ limit: "100" });
   if (cursor) query.set("cursor", cursor);
-  const response = await fetch(`/api/v1/lists?${query.toString()}`, {
+  const response = await fetchWithConnectivity(`/api/v1/lists?${query.toString()}`, {
     credentials: "same-origin",
     headers: { accept: "application/json" },
   });
@@ -259,7 +260,7 @@ async function mutate<T>(
   const headers = new Headers(extraHeaders);
   headers.set("accept", "application/json");
   headers.set("content-type", "application/json");
-  const response = await fetch(path, {
+  const response = await fetchWithConnectivity(path, {
     method,
     body: JSON.stringify(body),
     credentials: "same-origin",

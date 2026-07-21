@@ -10,6 +10,7 @@ import {
 } from "./AuthenticatedNavigation";
 import styles from "./AuthenticatedShell.module.css";
 import { OfflineBanner } from "./OfflineBanner";
+import { PwaUpdateBanner } from "./PwaUpdateBanner";
 import { RouteFocus } from "./RouteFocus";
 import { type ThemePreference, ThemePreferenceSync } from "./theme-client";
 
@@ -57,7 +58,10 @@ export function AuthenticatedShell({
         identity={identity}
         topBarActions={topBarActions}
       />
-      <OfflineBanner />
+      <div className={styles.conditionStack}>
+        <OfflineBanner />
+        <PwaUpdateBanner />
+      </div>
 
       <main id="main-content" className={styles.main} tabIndex={-1}>
         {children}

@@ -131,19 +131,31 @@ describe("AuthenticatedShell", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Sign out failed");
   });
 
-  it("announces offline state and removes the banner after reconnection", async () => {
+  it("announces offline state and a verified recovery before restoring writes", async () => {
     let online = true;
     vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ status: "ok" }));
+    vi.stubGlobal("fetch", fetchMock);
     renderShell();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
 
     online = false;
     act(() => window.dispatchEvent(new Event("offline")));
-    expect(await screen.findByRole("status")).toHaveTextContent("Writes are disabled");
+    expect(await screen.findByRole("status")).toHaveTextContent(/writes are disabled/iu);
 
     online = true;
     act(() => window.dispatchEvent(new Event("online")));
-    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Connection restored. Writes are available again.",
+      ),
+    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/health/live", {
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { accept: "application/json" },
+      signal: expect.any(AbortSignal),
+    });
   });
 
   it("moves focus to the route heading after navigation content mounts", async () => {

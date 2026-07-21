@@ -74,7 +74,11 @@ Feature scope remains owned by `docs/SCOPE.md`; a design document cannot add a f
 
 ## Implementation rules
 
-- Components consume semantic CSS variables or token-backed Tailwind utilities. Raw color literals belong only in the token definition layer.
+- Components consume semantic CSS variables or token-backed Tailwind utilities. Raw color literals
+  belong only in the token definition layer. Original icon SVG sources, the content-free static
+  offline document, and its emergency service-worker fallback are the only static-asset exceptions:
+  they may mirror tested values from `shared/design/pwa-metadata.json` because they cannot depend on
+  application CSS.
 - Shared presentation primitives consume token-backed typography and radii; `pnpm verify:design` rejects local replacements and checks browser-computed component contracts.
 - Use shadcn/Radix primitives and Lucide icons from `docs/STACK.md`; do not create a second component system.
 - Prefer a 4 px spacing grid and align row metadata to stable columns on wide screens.

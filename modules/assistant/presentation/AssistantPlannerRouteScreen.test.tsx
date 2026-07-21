@@ -185,6 +185,7 @@ describe("Assistant planner route controller", () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(jsonResponse(plannerProposalFixture, 201))
       .mockRejectedValueOnce(new TypeError("connection lost after send"))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(jsonResponse(proposalWithStatus("applied")));
     vi.stubGlobal("fetch", fetchMock);
     renderRoute();
@@ -195,10 +196,13 @@ describe("Assistant planner route controller", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("apply result could not be confirmed");
     expect(screen.queryByText("No changes were applied")).not.toBeInTheDocument();
 
+    window.dispatchEvent(new Event("focus"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByRole("heading", { name: "This proposal was already applied" })).toHaveFocus();
-    expect(fetchMock.mock.calls[2]?.[0]).toBe(`/api/v1/planner/proposals/${plannerProposalFixture.id}`);
-    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("GET");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/health/live");
+    expect(fetchMock.mock.calls[3]?.[0]).toBe(`/api/v1/planner/proposals/${plannerProposalFixture.id}`);
+    expect(fetchMock.mock.calls[3]?.[1]?.method).toBe("GET");
     await waitFor(() => expect(navigation.refresh).toHaveBeenCalledOnce());
   });
 

@@ -54,7 +54,9 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your data" })).toBeVisible();
-  await expect(page.getByText(/Passwords, sessions, provider keys, and raw brain dumps/u)).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText(/Passwords, sessions, provider keys, and raw brain dumps/u),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   const exportResponsePromise = page.waitForResponse(

@@ -291,12 +291,13 @@ test("a deterministic demo supports the complete habit lifecycle at desktop and 
   await exerciseNumericHabitLifecycle(page, numeric, localDate);
 
   await page.goto(`/habits/${habitId}`);
+  const habitDetail = page.getByRole("main");
   const fullDate = fullLocalDate(localDate);
-  await expect(page.getByRole("list", { name: `Seven-day history for ${editedTitle}` })).toContainText(
+  await expect(habitDetail.getByRole("list", { name: `Seven-day history for ${editedTitle}` })).toContainText(
     localDate.slice(-2).replace(/^0/u, ""),
   );
-  await expect(page.getByText(`${fullDate}: Completed`, { exact: true })).toBeAttached();
-  const archiveTrigger = page.getByRole("button", { name: "Archive", exact: true });
+  await expect(habitDetail.getByText(`${fullDate}: Completed`, { exact: true })).toBeAttached();
+  const archiveTrigger = habitDetail.getByRole("button", { name: "Archive", exact: true });
   await archiveTrigger.click();
   let archiveDialog = page.getByRole("alertdialog", {
     name: `Archive “${editedTitle}”?`,
@@ -311,7 +312,7 @@ test("a deterministic demo supports the complete habit lifecycle at desktop and 
   await keepHabit.click();
   await expect(archiveDialog).toBeHidden();
   await expect(archiveTrigger).toBeFocused();
-  await expect(page.getByRole("button", { name: "Restore", exact: true })).toHaveCount(0);
+  await expect(habitDetail.getByRole("button", { name: "Restore", exact: true })).toHaveCount(0);
 
   await archiveTrigger.click();
   archiveDialog = page.getByRole("alertdialog", {
@@ -326,21 +327,24 @@ test("a deterministic demo supports the complete habit lifecycle at desktop and 
   await expect(archiveResponse.json()).resolves.toMatchObject({
     habit: { id: habitId, title: editedTitle, version: 4, archivedAt: expect.any(String) },
   });
-  await expect(page.getByRole("button", { name: "Restore", exact: true })).toBeVisible();
-  await expect(page.getByText(`${fullDate}: Completed`, { exact: true })).toBeAttached();
+  await expect(habitDetail.getByRole("button", { name: "Restore", exact: true })).toBeVisible();
+  await expect(habitDetail.getByText(`${fullDate}: Completed`, { exact: true })).toBeAttached();
 
-  await page.getByRole("link", { name: "Back to habits", exact: true }).click();
+  await habitDetail.getByRole("link", { name: "Back to habits", exact: true }).click();
   await expect(page).toHaveURL(/\/habits\?view=archived$/u);
   await expect(page.getByRole("region", { name: "Archived habits" })).toContainText(editedTitle);
-  await page.getByRole("link", { name: `Open ${editedTitle}`, exact: true }).click();
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: `Open ${editedTitle}`, exact: true })
+    .click();
   const restoreResponsePromise = waitForHabitResponse(page, `/api/v1/habits/${habitId}/restore`, "POST");
-  await page.getByRole("button", { name: "Restore", exact: true }).click();
+  await page.getByRole("main").getByRole("button", { name: "Restore", exact: true }).click();
   const restoreResponse = await restoreResponsePromise;
   expect(restoreResponse.status()).toBe(200);
   await expect(restoreResponse.json()).resolves.toMatchObject({
     habit: { id: habitId, title: editedTitle, version: 5, archivedAt: null },
   });
-  await expect(page.getByRole("button", { name: "Archive", exact: true })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("button", { name: "Archive", exact: true })).toBeVisible();
   await page.goto("/habits");
   const restoredList = page.getByRole("region", { name: "Active habits" });
   for (const title of [
@@ -525,7 +529,9 @@ test("a second user receives only generic habit denial and no private content", 
 
   await page.goto(`/habits/${habit.habit.id}`);
   await expect(page.getByRole("heading", { name: "Habit unavailable" })).toBeVisible();
-  await expect(page.getByText("This habit could not be found or you may not have access.")).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("This habit could not be found or you may not have access."),
+  ).toBeVisible();
   await expect(page.getByText(privateTitle, { exact: true })).toHaveCount(0);
   await expect(page.getByText(privateNote, { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "permission-safe habit detail");
@@ -614,7 +620,7 @@ async function exerciseNumericHabitLifecycle(
   const detail = page.getByRole("main");
   await expect(detail.getByRole("heading", { name: numeric.habit.title, level: 1 })).toBeVisible();
   await expect(
-    page.getByText(`${fullLocalDate(localDate)}: Recorded, 12.5 minutes, below target`, {
+    detail.getByText(`${fullLocalDate(localDate)}: Recorded, 12.5 minutes, below target`, {
       exact: true,
     }),
   ).toBeAttached();
@@ -640,7 +646,7 @@ async function exerciseNumericHabitLifecycle(
     version: 2,
   });
   await expect(
-    page.getByText(`${fullLocalDate(localDate)}: Completed, 25 minutes`, { exact: true }),
+    detail.getByText(`${fullLocalDate(localDate)}: Completed, 25 minutes`, { exact: true }),
   ).toBeAttached();
 
   await openCheckInMenu(detail, numeric.habit.title);
@@ -658,7 +664,7 @@ async function exerciseNumericHabitLifecycle(
     successful: false,
     version: 3,
   });
-  await expect(page.getByText(`${fullLocalDate(localDate)}: Skipped`, { exact: true })).toBeAttached();
+  await expect(detail.getByText(`${fullLocalDate(localDate)}: Skipped`, { exact: true })).toBeAttached();
 
   await openCheckInMenu(detail, numeric.habit.title);
   const unachievedResponsePromise = waitForHabitResponse(
@@ -676,7 +682,7 @@ async function exerciseNumericHabitLifecycle(
     version: 4,
   });
   await expect(
-    page.getByText(`${fullLocalDate(localDate)}: Marked unachieved`, { exact: true }),
+    detail.getByText(`${fullLocalDate(localDate)}: Marked unachieved`, { exact: true }),
   ).toBeAttached();
 
   await openCheckInMenu(detail, numeric.habit.title);
@@ -695,7 +701,7 @@ async function exerciseNumericHabitLifecycle(
 }
 
 function habitArticle(page: Page, title: string): Locator {
-  return page.getByRole("article").filter({ hasText: title });
+  return page.getByRole("main").getByRole("article").filter({ hasText: title });
 }
 
 async function openCheckInMenu(row: Locator, title: string) {

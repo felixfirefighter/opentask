@@ -4,6 +4,7 @@ const expectedServices = ["postgres", "web", "worker"];
 
 const live = await readHealth("live", "ok");
 const ready = await readHealth("ready", "ready");
+await verifyPwaSurface();
 
 if (live.status !== "ok" || ready.status !== "ready") {
   throw new Error("Production health endpoints returned an unexpected payload.");
@@ -88,6 +89,79 @@ async function readHealth(path, expectedStatus) {
     throw new Error(`Production ${path} health returned an unexpected status.`);
   }
   return body;
+}
+
+async function verifyPwaSurface() {
+  const manifestResponse = await readPublicPwaResource("/manifest.webmanifest");
+  const manifestContentType = manifestResponse.headers.get("content-type") ?? "";
+  if (!manifestContentType.includes("application/manifest+json")) {
+    throw new Error("Production manifest has an unexpected content type.");
+  }
+  const manifest = await manifestResponse.json();
+  if (
+    manifest.id !== "/" ||
+    manifest.scope !== "/" ||
+    manifest.start_url !== "/today" ||
+    manifest.display !== "standalone" ||
+    manifest.prefer_related_applications !== false
+  ) {
+    throw new Error("Production manifest does not match the installable shell contract.");
+  }
+
+  const expectedIcons = new Map([
+    ["/icons/opentask-192.png", "192x192"],
+    ["/icons/opentask-512.png", "512x512"],
+    ["/icons/opentask-maskable-512.png", "512x512"],
+  ]);
+  for (const icon of manifest.icons ?? []) {
+    if (expectedIcons.get(icon.src) !== icon.sizes || icon.type !== "image/png") {
+      throw new Error("Production manifest contains an unreviewed icon entry.");
+    }
+    const iconResponse = await readPublicPwaResource(icon.src);
+    if (iconResponse.headers.get("content-type") !== "image/png") {
+      throw new Error(`Production icon ${icon.src} has an unexpected content type.`);
+    }
+    if ((await iconResponse.arrayBuffer()).byteLength < 256) {
+      throw new Error(`Production icon ${icon.src} is empty or truncated.`);
+    }
+    expectedIcons.delete(icon.src);
+  }
+  if (expectedIcons.size > 0) throw new Error("Production manifest is missing a required app icon.");
+
+  const workerResponse = await readPublicPwaResource("/sw.js");
+  const workerContentType = workerResponse.headers.get("content-type") ?? "";
+  if (!workerContentType.includes("javascript")) {
+    throw new Error("Production service worker has an unexpected content type.");
+  }
+  if (!workerResponse.headers.get("cache-control")?.includes("no-store")) {
+    throw new Error("Production service worker is missing its update-safe cache policy.");
+  }
+  if (workerResponse.headers.get("service-worker-allowed") !== "/") {
+    throw new Error("Production service worker is missing its explicit root scope.");
+  }
+  const workerSource = await workerResponse.text();
+  for (const marker of ["opentask-static-", "SKIP_WAITING", "REPAIR_STATIC_SHELL"]) {
+    if (!workerSource.includes(marker)) throw new Error(`Production service worker is missing ${marker}.`);
+  }
+
+  const fallbackResponse = await readPublicPwaResource("/offline.html");
+  if (!fallbackResponse.headers.get("content-type")?.includes("text/html")) {
+    throw new Error("Production offline fallback has an unexpected content type.");
+  }
+  const fallback = await fallbackResponse.text();
+  if (
+    !fallback.includes('data-opentask-offline-fallback="content-free"') ||
+    !fallback.includes("no account or task data")
+  ) {
+    throw new Error("Production offline fallback does not prove its content-free contract.");
+  }
+}
+
+async function readPublicPwaResource(path) {
+  const response = await fetch(`http://127.0.0.1:3000${path}`);
+  if (!response.ok) throw new Error(`Production PWA resource ${path} returned HTTP ${response.status}.`);
+  assertSecurityHeaders(response.headers);
+  return response;
 }
 
 function assertSecurityHeaders(headers) {

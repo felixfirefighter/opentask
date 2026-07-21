@@ -182,6 +182,12 @@
   overscroll-behavior-y: contain;
 }
 
+.conditionStack {
+  min-width: 0;
+  grid-column: 3;
+  grid-row: 1;
+}
+
 @media (min-width: 1024px) and (max-width: 1279px) {
   .shell {
     grid-template-columns: 52px 240px minmax(0, 1fr);
@@ -270,6 +276,11 @@
   .main {
     grid-column: 1;
     grid-row: 3;
+  }
+
+  .conditionStack {
+    grid-column: 1;
+    grid-row: 2;
   }
 }
 

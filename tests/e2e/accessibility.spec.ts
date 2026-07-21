@@ -303,16 +303,19 @@ test("task-detail loading, error, permission, and conflict states pass the acces
   const userId = await readAuthenticatedUserId(page);
   const occurrenceKey = await readOpenDemoOccurrenceKey(page);
   const occurrencePath = occurrenceDetailPath(occurrenceKey);
+  const activeMain = page.getByRole("main");
 
   try {
     await page.goto(
       `/tasks/00000000-0000-4000-8000-000000000099?${new URLSearchParams({ returnTo: "/today" })}`,
     );
     await expect(
-      page.getByRole("heading", { level: 1, name: "Task unavailable", exact: true }),
+      activeMain.getByRole("heading", { level: 1, name: "Task unavailable", exact: true }),
     ).toBeVisible();
-    await expect(page.getByText("This task could not be found or you may not have access.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
+    await expect(
+      activeMain.getByText("This task could not be found or you may not have access."),
+    ).toBeVisible();
+    await expect(activeMain.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
       "href",
       "/today",
     );
@@ -320,7 +323,7 @@ test("task-detail loading, error, permission, and conflict states pass the acces
     await expectNoPageOverflow(page, "task-detail permission");
 
     await page.goto("/today");
-    const occurrenceLink = page
+    const occurrenceLink = activeMain
       .locator(`[data-planning-task-id="${P2_OCCURRENCE_DEMO.taskId}"][data-occurrence-state="open"]`)
       .locator("[data-planning-task-open]");
     await expect(occurrenceLink).toBeVisible();
@@ -328,14 +331,14 @@ test("task-detail loading, error, permission, and conflict states pass the acces
     try {
       await occurrenceLink.evaluate((element) => (element as HTMLElement).click());
       await expect(
-        page.getByRole("heading", {
+        activeMain.getByRole("heading", {
           level: 1,
           name: "Opening task details…",
           exact: true,
         }),
       ).toBeVisible({ timeout: 15_000 });
-      await expect(page.locator('[data-loading-shape="task-detail"]')).toBeVisible();
-      await expect(page.getByRole("link", { name: "Back to task list", exact: true })).toHaveAttribute(
+      await expect(activeMain.locator('[data-loading-shape="task-detail"]')).toBeVisible();
+      await expect(activeMain.getByRole("link", { name: "Back to task list", exact: true })).toHaveAttribute(
         "href",
         "/today",
       );
@@ -344,9 +347,10 @@ test("task-detail loading, error, permission, and conflict states pass the acces
     } finally {
       await barrier.release();
     }
-    await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(P2_OCCURRENCE_DEMO.taskTitle, {
-      timeout: 30_000,
-    });
+    await expect(activeMain.getByLabel("Task title", { exact: true })).toHaveValue(
+      P2_OCCURRENCE_DEMO.taskTitle,
+      { timeout: 30_000 },
+    );
 
     const staleTask = await readTaskForConflict(page, P2_OCCURRENCE_DEMO.taskId);
     await updateTask(page, staleTask, {
@@ -358,7 +362,7 @@ test("task-detail loading, error, permission, and conflict states pass the acces
           `/api/v1/tasks/${P2_OCCURRENCE_DEMO.taskId}/occurrences/transition` &&
         response.request().method() === "POST",
     );
-    await page.getByRole("button", { name: "Complete occurrence", exact: true }).click();
+    await activeMain.getByRole("button", { name: "Complete occurrence", exact: true }).click();
     expect((await conflictResponse).status()).toBe(409);
     await expect(selectedOccurrencePanel(page).getByRole("alert")).toContainText(
       "This occurrence changed elsewhere. The latest saved state is shown; review it before trying again.",
@@ -368,7 +372,7 @@ test("task-detail loading, error, permission, and conflict states pass the acces
 
     await seedOccurrenceAheadOfTask(userId, P2_OCCURRENCE_DEMO.taskId, occurrenceKey);
     await page.goto(occurrencePath);
-    const errorHeading = page.getByRole("heading", {
+    const errorHeading = activeMain.getByRole("heading", {
       level: 1,
       name: "Task unavailable",
       exact: true,
@@ -376,9 +380,9 @@ test("task-detail loading, error, permission, and conflict states pass the acces
     await expect(errorHeading).toBeVisible();
     await expect(errorHeading).toBeFocused();
     await expect(
-      page.getByText("Task details could not be loaded. Your data was not changed."),
+      activeMain.getByText("Task details could not be loaded. Your data was not changed."),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible();
+    await expect(activeMain.getByRole("button", { name: "Try again", exact: true })).toBeVisible();
     await expectNoSevereViolations(page);
     await expectNoPageOverflow(page, "task-detail error");
   } finally {
@@ -472,8 +476,11 @@ test("habit route states pass the accessibility gate", async ({ page }, testInfo
     path: "/habits/00000000-0000-4000-8000-000000000099",
     heading: "Habit unavailable",
   });
-  await expect(page.getByText("This habit could not be found or you may not have access.")).toBeVisible();
-  await expect(page.getByText(demoHabits.activeBooleanTitle, { exact: true })).toHaveCount(0);
+  const activeMain = page.getByRole("main");
+  await expect(
+    activeMain.getByText("This habit could not be found or you may not have access."),
+  ).toBeVisible();
+  await expect(activeMain.getByText(demoHabits.activeBooleanTitle, { exact: true })).toHaveCount(0);
   await expectNoSevereViolations(page);
   await expectNoPageOverflow(page, "permission-safe habit detail");
 
@@ -939,7 +946,7 @@ async function auditOfflineWorkspace(context: BrowserContext, page: Page) {
 }
 
 function selectedOccurrencePanel(page: Page) {
-  return page.locator('section[aria-labelledby^="occurrence-title-"]');
+  return page.getByRole("main").locator('section[aria-labelledby^="occurrence-title-"]');
 }
 
 async function setDocumentTheme(page: Page, theme: "light" | "dark") {

@@ -143,8 +143,9 @@ Domain tests must cover spring-forward/fall-back behavior for at least one repre
 - `modules/notifications` owns the one-task-reminder policy, push subscriptions, delivery records,
   provider adapter, and reminder worker use cases. Task changes call its injected public reconciler;
   notifications never write task schedule, recurrence, or status tables.
-- PWA manifest, registration, update state, and content-free offline fallback are presentation/static
-  infrastructure, not a domain module or a synchronization layer.
+- PWA manifest, registration/update lifecycle adapter, and content-free offline fallback are
+  cross-cutting presentation/static infrastructure, not a domain module or a synchronization
+  layer. Product-facing PWA cards and banners belong to the composing identity shell.
 
 These boundaries authorize only the capabilities listed in `docs/SCOPE.md`. Stage A-D remain later
 roadmap context and contribute no dormant route, table, provider, or framework to this release.
@@ -213,9 +214,11 @@ process supervision; the UI says liveness is not verified rather than showing a 
 
 ## Browser, PWA, and offline boundary
 
-P5 adds an installable web manifest, original icons, and one small versioned service worker. Its
-cache boundary is limited to fingerprinted public/static application assets and a dedicated
-content-free offline fallback.
+P5 adds an installable web manifest, original icons, and one small build-versioned service worker.
+Its cache boundary is limited to fingerprinted public/static application assets and a dedicated
+content-free offline fallback. Activation retains at most the immediately previous application
+cache so existing tabs can reload safely, and notifies those tabs when another tab applies an
+update.
 
 - When the running page detects lost connectivity or a network failure, keep already rendered data visible as stale and disable domain mutations with clear feedback.
 - Do not cache authenticated HTML, API responses, task/planner/export data, provider responses, or

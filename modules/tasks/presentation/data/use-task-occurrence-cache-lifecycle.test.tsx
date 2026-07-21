@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, type InfiniteData } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -109,7 +109,7 @@ describe("occurrence mutation cache lifecycle", () => {
       await expect(result.current.mutateAsync(request)).rejects.toThrow("Failed to fetch");
     });
 
-    expect(result.current.variables).toEqual(request);
+    await waitFor(() => expect(result.current.variables).toEqual(request));
     expectInvalidated(client, caches.invalidated);
     expectUnchanged(client, [
       [caches.detail, caches.detailSnapshot],

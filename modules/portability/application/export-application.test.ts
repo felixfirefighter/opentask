@@ -72,6 +72,45 @@ describe("user export application", () => {
       createExport({ identity: { ...identitySource(), password: "never-export-this" } }),
     ).rejects.toBeDefined();
   });
+
+  it("keeps device and PWA cache operations outside the unchanged portable document", async () => {
+    const envelope = await createExport({});
+
+    expect(envelope.schemaVersion).toBe(4);
+    expect(Object.keys(envelope)).toEqual([
+      "schemaVersion",
+      "exportedAt",
+      "identity",
+      "tasks",
+      "habits",
+      "focus",
+      "assistant",
+    ]);
+
+    const exportedKeys = new Set(allKeys(envelope));
+    for (const operationalKey of [
+      "cacheName",
+      "cacheStorage",
+      "deviceId",
+      "displayMode",
+      "installPrompt",
+      "installationId",
+      "manifest",
+      "pwa",
+      "registration",
+      "serviceWorker",
+    ]) {
+      expect(exportedKeys.has(operationalKey)).toBe(false);
+    }
+
+    const serialized = JSON.stringify(envelope);
+    expect(serialized).not.toContain("/manifest.webmanifest");
+    expect(serialized).not.toContain("/sw.js");
+    expect(serialized).not.toContain("opentask-static-");
+    expect(userExportEnvelopeSchema.safeParse({ ...envelope, pwa: {} }).success).toBe(false);
+    expect(userExportEnvelopeSchema.safeParse({ ...envelope, device: {} }).success).toBe(false);
+    expect(userExportEnvelopeSchema.safeParse({ ...envelope, cache: {} }).success).toBe(false);
+  });
 });
 
 function createExport(overrides: { identity?: unknown; tasks?: unknown; habits?: unknown; focus?: unknown }) {
@@ -176,4 +215,10 @@ function tasksSource() {
     tags: [],
     taskTags: [],
   } as const;
+}
+
+function allKeys(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(allKeys);
+  if (value === null || typeof value !== "object") return [];
+  return Object.entries(value).flatMap(([key, nested]) => [key, ...allKeys(nested)]);
 }

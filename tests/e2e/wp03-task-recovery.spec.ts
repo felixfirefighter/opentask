@@ -233,7 +233,7 @@ test("keyboard and touch-menu reorder remain available while offline writes are 
 
   await context.setOffline(true);
   await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
-  await expect(page.getByLabel("New task", { exact: true })).toBeDisabled();
+  await expect(page.getByRole("main").getByLabel("New task", { exact: true })).toBeDisabled();
   await expect(movedRow.getByRole("button", { name: `Complete ${alpha.title}` })).toBeDisabled();
   await expect(movedReorder).toBeDisabled();
 

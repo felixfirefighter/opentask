@@ -430,19 +430,19 @@ test("task-detail permission recovery keeps a validated origin without leaking r
   const missingTaskId = randomUUID();
 
   await page.goto(`/tasks/${missingTaskId}?returnTo=${encodeURIComponent("/calendar?view=week")}`);
-  await expect(page.getByRole("heading", { name: "Task unavailable", exact: true })).toBeVisible();
-  await expect(page.getByText("This task could not be found or you may not have access.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
+  const main = page.getByRole("main");
+  await expect(main.getByRole("heading", { name: "Task unavailable", exact: true })).toBeVisible();
+  await expect(main.getByText("This task could not be found or you may not have access.")).toBeVisible();
+  await expect(main.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
     "href",
     "/calendar?view=week",
   );
-  await expect(page.locator("main")).not.toContainText(missingTaskId);
+  await expect(main).not.toContainText(missingTaskId);
 
   await page.goto(`/tasks/${missingTaskId}?returnTo=${encodeURIComponent("//attacker.example/steal")}`);
-  await expect(page.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
-    "href",
-    "/inbox",
-  );
+  await expect(
+    page.getByRole("main").getByRole("link", { name: "Back to tasks", exact: true }),
+  ).toHaveAttribute("href", "/inbox");
 });
 
 type TaskWireRecord = Readonly<{ id: string; priority: string; status: string; version: number }>;

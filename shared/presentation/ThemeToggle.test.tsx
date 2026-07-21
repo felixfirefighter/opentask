@@ -1,9 +1,12 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import pwaMetadata from "@/shared/design/pwa-metadata.json";
+
 import { ThemeToggle } from "./ThemeToggle";
 
 afterEach(() => {
+  document.head.querySelectorAll("[data-opentask-theme-color-test]").forEach((element) => element.remove());
   delete document.documentElement.dataset.theme;
   delete document.documentElement.dataset.themePreference;
   delete document.documentElement.dataset.themeTransition;
@@ -13,6 +16,7 @@ afterEach(() => {
 
 describe("ThemeToggle", () => {
   it("tracks OS color-scheme changes while the saved preference is system", () => {
+    const themeColor = installThemeColorFixture();
     const colorScheme = mockColorScheme(false);
     const root = document.documentElement;
     root.dataset.theme = "light";
@@ -28,6 +32,7 @@ describe("ThemeToggle", () => {
     expect(root.dataset.theme).toBe("dark");
     expect(root.dataset.themePreference).toBe("system");
     expect(root.dataset.themeTransition).toBeUndefined();
+    expect(themeColor).toHaveAttribute("content", pwaMetadata.darkThemeColor);
     expect(flush).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Use light theme" })).toBeVisible();
 
@@ -52,6 +57,14 @@ describe("ThemeToggle", () => {
     expect(screen.getByRole("button", { name: "Use dark theme" })).toBeVisible();
   });
 });
+
+function installThemeColorFixture() {
+  const element = document.createElement("meta");
+  element.name = "theme-color";
+  element.dataset.opentaskThemeColorTest = "";
+  document.head.append(element);
+  return element;
+}
 
 function mockColorScheme(initialDark: boolean) {
   let dark = initialDark;

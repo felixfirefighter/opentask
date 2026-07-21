@@ -1,11 +1,12 @@
 "use client";
 
-import { markWorkspaceRoutesStale } from "@/shared/presentation";
+import { markWorkspaceRoutesStale, useUnsavedNavigationGuard } from "@/shared/presentation";
 
 import { AppearancePreferencesCard } from "./AppearancePreferencesCard";
 import { DateTimePreferencesCard } from "./DateTimePreferencesCard";
 import { DataExportCard } from "./DataExportCard";
 import { OptionalAiSettingsCard, type OptionalAiCapability } from "./OptionalAiSettingsCard";
+import { PwaSettingsCard } from "./PwaSettingsCard";
 import styles from "./SettingsScreen.module.css";
 import { applyThemePreference } from "./theme-client";
 import { mergePreferenceDraft, usePreferencesEditor } from "./usePreferencesEditor";
@@ -19,6 +20,11 @@ export function SettingsScreen({
   initialPreferences: UserPreferences;
 }) {
   const editor = usePreferencesEditor(initialPreferences);
+  useUnsavedNavigationGuard(
+    editor.dirty,
+    "Discard unsaved Settings changes before leaving or updating OpenTask?",
+    editor.discardDraft,
+  );
 
   function updateAppearance(patch: UserPreferencesPatch) {
     const next = mergePreferenceDraft(editor.draft, patch);
@@ -47,7 +53,7 @@ export function SettingsScreen({
         <h1 id="page-heading" tabIndex={-1} data-route-focus>
           Settings
         </h1>
-        <p>Choose how dates, time, color, and motion appear in your workspace.</p>
+        <p>Choose how dates, time, appearance, and this browser’s app shell work.</p>
       </header>
 
       <DateTimePreferencesCard
@@ -76,6 +82,8 @@ export function SettingsScreen({
       />
 
       <OptionalAiSettingsCard capability={aiCapability} />
+
+      <PwaSettingsCard />
 
       <DataExportCard online={editor.online} />
     </div>

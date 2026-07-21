@@ -131,7 +131,7 @@ export function CardActions({
   return (
     <div className={styles.cardActions}>
       <p className={styles.saveStatus} aria-live="polite">
-        {!online ? "Offline · saved values are shown, but changes cannot be saved." : message}
+        {message ?? (!online ? "Offline · saved values are shown, but changes cannot be saved." : undefined)}
       </p>
       {saveState === "conflict" && (
         <button type="button" className="secondary-button" onClick={onReviewLatest}>

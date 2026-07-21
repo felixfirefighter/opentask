@@ -1,6 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { confirmUnsavedNavigation } from "@/shared/presentation";
 
 import type { UserPreferences } from "../application/preferences-contract";
 import { SettingsScreen } from "./SettingsScreen";
@@ -32,6 +34,33 @@ afterEach(() => {
 });
 
 describe("SettingsScreen", () => {
+  it("keeps the five P5 cards in the approved document order without exposing reminders", () => {
+    render(<SettingsScreen aiCapability={availableAi} initialPreferences={initialPreferences} />);
+
+    expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent)).toEqual([
+      "Date and time",
+      "Appearance",
+      "Optional AI",
+      "App",
+      "Your data",
+    ]);
+    expect(screen.queryByText(/reminder/iu)).not.toBeInTheDocument();
+  });
+
+  it("registers edited preferences with the shared reload guard", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<SettingsScreen aiCapability={availableAi} initialPreferences={initialPreferences} />);
+
+    await user.selectOptions(screen.getByLabelText("Week starts on"), "0");
+    act(() => expect(confirmUnsavedNavigation()).toBe(false));
+
+    expect(confirm).toHaveBeenCalledWith(
+      "Discard unsaved Settings changes before leaving or updating OpenTask?",
+    );
+    expect(screen.getByLabelText("Week starts on")).toHaveValue("0");
+  });
+
   it("saves each card with an optimistic version and preserves edits in the other card", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
@@ -256,7 +285,9 @@ describe("SettingsScreen", () => {
       <SettingsScreen aiCapability={availableAi} initialPreferences={initialPreferences} />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("Available");
+    const availableSection = screen.getByRole("heading", { name: "Optional AI" }).closest("section");
+    expect(availableSection).not.toBeNull();
+    expect(within(availableSection!).getByRole("status")).toHaveTextContent("Available");
     expect(screen.getByRole("link", { name: "Open AI Review" })).toHaveAttribute("href", "/plan");
     expect(screen.getByRole("link", { name: "Plan manually in Today" })).toHaveAttribute("href", "/today");
     expect(screen.getByRole("link", { name: "Open Calendar" })).toHaveAttribute("href", "/calendar");
@@ -267,7 +298,9 @@ describe("SettingsScreen", () => {
         initialPreferences={initialPreferences}
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Not configured");
+    const disabledSection = screen.getByRole("heading", { name: "Optional AI" }).closest("section");
+    expect(disabledSection).not.toBeNull();
+    expect(within(disabledSection!).getByRole("status")).toHaveTextContent("Not configured");
     expect(
       screen.getByText(/Manual task and calendar planning continue to work without it/u),
     ).toBeInTheDocument();

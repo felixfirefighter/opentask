@@ -202,7 +202,7 @@ A new package may replace the existing fallback only when:
 - desktop 1440 and mobile 390 primary screenshots are approved where visuals changed;
 - no blocker/critical defect, authorization/privacy regression, mixed design, dead later control, or
   failed package gate remains;
-- the exact candidate commit, local run path, five-minute test, and known limitations agree.
+- the exact candidate commit, local run path, seven-minute test, and known limitations agree.
 
 Hosted deployment is optional for this goal. If used for the hackathon, it receives the same clean-
 browser health/demo/privacy checks and is evidence, not a substitute for local reproducibility.

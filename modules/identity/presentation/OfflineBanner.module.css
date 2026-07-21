@@ -10,8 +10,6 @@
   color: var(--text);
   font-size: var(--type-compact-size);
   line-height: var(--type-compact-line);
-  grid-column: 3;
-  grid-row: 1;
 }
 
 .offlineBanner svg {
@@ -19,9 +17,32 @@
   color: var(--warning);
 }
 
-@media (max-width: 1023px) {
+.offlineBanner span {
+  min-width: 0;
+}
+
+.offlineBanner button {
+  flex: none;
+  margin-left: auto;
+}
+
+.recovered {
+  border-bottom-color: color-mix(in srgb, var(--success) 30%, var(--border));
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
+}
+
+.recovered svg {
+  color: var(--success);
+}
+
+@media (max-width: 359px) {
   .offlineBanner {
-    grid-column: 1;
-    grid-row: 2;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .offlineBanner button {
+    width: 100%;
+    margin-left: 0;
   }
 }

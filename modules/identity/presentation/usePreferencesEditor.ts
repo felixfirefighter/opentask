@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { useOnlineStatus } from "@/shared/presentation";
+import { fetchWithConnectivity, useOnlineStatus } from "@/shared/presentation";
 
 import {
   userPreferencesSchema,
@@ -34,6 +34,7 @@ export function usePreferencesEditor(initialPreferences: UserPreferences) {
   const savedRef = useRef(saved);
   const draftRef = useRef(draft);
   const online = useOnlineStatus();
+  const dirty = preferencesDiffer(draft, saved);
 
   const updateDraft = useCallback((patch: UserPreferencesPatch) => {
     setDraft((current) => {
@@ -52,7 +53,7 @@ export function usePreferencesEditor(initialPreferences: UserPreferences) {
       setMessages((current) => ({ ...current, [card]: "Saving…" }));
 
       try {
-        const response = await fetch("/api/v1/preferences", {
+        const response = await fetchWithConnectivity("/api/v1/preferences", {
           method: "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ expectedVersion: savedRef.current.version, patch }),
@@ -117,7 +118,7 @@ export function usePreferencesEditor(initialPreferences: UserPreferences) {
 
   const reviewLatest = useCallback(async (card: PreferenceCard) => {
     try {
-      const response = await fetch("/api/v1/preferences", { cache: "no-store" });
+      const response = await fetchWithConnectivity("/api/v1/preferences", { cache: "no-store" });
       if (!response.ok) throw new Error("Latest preferences could not be loaded");
       const latest = userPreferencesSchema.parse(await response.json());
       const attemptedPatch = attemptedCardPatches.current[card];
@@ -148,7 +149,37 @@ export function usePreferencesEditor(initialPreferences: UserPreferences) {
     }
   }, []);
 
-  return { draft, messages, online, reviewLatest, save, saved, states, updateDraft };
+  const discardDraft = useCallback(() => {
+    const currentSaved = savedRef.current;
+    draftRef.current = currentSaved;
+    setDraft(currentSaved);
+    setStates({ "date-time": "idle", appearance: "idle" });
+    setMessages({});
+    applyThemePreference(currentSaved.theme, currentSaved.reducedMotion);
+  }, []);
+
+  return {
+    dirty,
+    discardDraft,
+    draft,
+    messages,
+    online,
+    reviewLatest,
+    save,
+    saved,
+    states,
+    updateDraft,
+  };
+}
+
+function preferencesDiffer(left: UserPreferences, right: UserPreferences) {
+  return (
+    left.timezone !== right.timezone ||
+    left.weekStart !== right.weekStart ||
+    left.hourCycle !== right.hourCycle ||
+    left.theme !== right.theme ||
+    left.reducedMotion !== right.reducedMotion
+  );
 }
 
 function cardMatchesPatch(latest: UserPreferences, card: PreferenceCard, patch: UserPreferencesPatch) {

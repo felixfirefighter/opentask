@@ -72,7 +72,7 @@ test("production TaskRow preserves the approved density, typography, and action 
   await expect(status).toBeFocused();
   await more.focus();
   await expect(more).toBeFocused();
-  await assertPriorityMarkers(page);
+  await assertPriorityMarkers(row);
 
   const contract = await readBaseTaskRowContract(row);
   expect(contract.tokens).toEqual({
@@ -702,7 +702,9 @@ test("Habit route states fit every required responsive viewport", async ({ page 
   });
   await expect(unavailableHeading).toBeVisible();
   await expectUsesSans(unavailableHeading, "Habit permission heading");
-  await expect(page.getByText("This habit could not be found or you may not have access.")).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("This habit could not be found or you may not have access."),
+  ).toBeVisible();
   await expect(page.getByText(demoHabits.activeBooleanTitle, { exact: true })).toHaveCount(0);
   await expectResponsiveTarget(
     page,
@@ -731,7 +733,7 @@ test("Habit route states fit every required responsive viewport", async ({ page 
   const habitsBarrier = await acquireHabitReadBarrier();
   try {
     const habitsLink = page.locator('a[href="/habits"]').first();
-    await clickRouteWithEvidenceQuery(habitsLink, "habits-loading");
+    await navigateToRouteWithEvidenceQuery(page, habitsLink, "habits-loading");
     const habitWorkspaceLoading = page.getByRole("main").locator('[data-loading-shape="habit-workspace"]');
     await expect(habitWorkspaceLoading).toBeVisible({ timeout: 15_000 });
     await expect(
@@ -748,7 +750,8 @@ test("Habit route states fit every required responsive viewport", async ({ page 
 
   const detailBarrier = await acquireHabitReadBarrier();
   try {
-    await clickRouteWithEvidenceQuery(
+    await navigateToRouteWithEvidenceQuery(
+      page,
       page.getByRole("link", { name: `Open ${stateHabit.habit.title}`, exact: true }),
       "habit-detail-loading",
     );
@@ -1001,7 +1004,9 @@ test("task-detail route states preserve every released responsive and recovery c
       exact: true,
     });
     await expect(permissionHeading).toBeVisible();
-    await expect(page.getByText("This task could not be found or you may not have access.")).toBeVisible();
+    await expect(
+      page.getByRole("main").getByText("This task could not be found or you may not have access."),
+    ).toBeVisible();
     await expect(page.getByRole("link", { name: "Back to tasks", exact: true })).toHaveAttribute(
       "href",
       "/today",
@@ -1010,6 +1015,7 @@ test("task-detail route states preserve every released responsive and recovery c
 
     await page.goto("/today");
     const occurrenceLink = page
+      .getByRole("main")
       .locator(`[data-planning-task-id="${P2_OCCURRENCE_DEMO.taskId}"][data-occurrence-state="open"]`)
       .locator("[data-planning-task-open]");
     await expect(occurrenceLink).toBeVisible();
@@ -1184,13 +1190,14 @@ test("the released proof surfaces reflow at a 200% zoom equivalent and honor red
 
   await page.goto("/focus");
   const focusHeading = page.getByRole("heading", { name: "Focus", exact: true }).first();
-  const focusTimer = page.getByLabel("Planned focus duration", { exact: true });
+  const activeMain = page.getByRole("main");
+  const focusTimer = activeMain.getByLabel("Planned focus duration", { exact: true });
   const startFocus = page.getByRole("button", { name: "Start focus", exact: true });
   await expect(focusHeading).toBeVisible();
   await expect(focusTimer).toBeVisible();
   await expectUsesSans(focusHeading, "Focus heading");
   await expectFocusTimerVisualContract(
-    page.locator('section[aria-labelledby="focus-timer-heading"]'),
+    activeMain.locator('section[aria-labelledby="focus-timer-heading"]'),
     focusTimer,
     "200% Focus timer",
   );
@@ -1233,7 +1240,7 @@ test("the released proof surfaces reflow at a 200% zoom equivalent and honor red
   await expect(taskTitle).toHaveValue("Outline the workshop agenda");
   await expectUsesSans(taskTitle, "task title");
   await expect(page.getByRole("link", { name: "Back to task list" })).toBeVisible();
-  await expect(page.getByText("Title is saved")).toBeVisible();
+  await expect(page.getByRole("main").getByText("Title is saved")).toBeVisible();
   await auditZoomSurface(page, evidenceDirectory, "task-details");
 
   await page.goto("/plan");
@@ -1356,14 +1363,13 @@ async function readHabitDetail(page: Page, habitId: string): Promise<HabitDetail
   return (await response.json()) as HabitDetailWire;
 }
 
-async function clickRouteWithEvidenceQuery(link: Locator, label: string): Promise<void> {
-  await link.evaluate((element, evidence) => {
-    if (!(element instanceof HTMLAnchorElement)) throw new Error("Route evidence requires a link.");
-    const destination = new URL(element.href);
-    destination.searchParams.set("evidence", evidence);
-    element.setAttribute("href", `${destination.pathname}${destination.search}`);
-    element.click();
-  }, `${label}-${randomUUID()}`);
+async function navigateToRouteWithEvidenceQuery(page: Page, link: Locator, label: string): Promise<void> {
+  const href = await link.getAttribute("href");
+  if (!href) throw new Error("Route evidence requires a link destination.");
+
+  const destination = new URL(href, page.url());
+  destination.searchParams.set("evidence", `${label}-${randomUUID()}`);
+  await page.goto(`${destination.pathname}${destination.search}`, { waitUntil: "commit" });
 }
 
 async function captureHabitRouteStateEvidence(
@@ -1534,10 +1540,11 @@ async function expectCompactActionLabel(page: Page, name: string) {
 }
 
 async function expectCalendarInstructionUntruncated(page: Page) {
-  const instruction = page.getByText(
-    "Choose any visible task, then open the complete date, time, and timezone form.",
-    { exact: true },
-  );
+  const instruction = page
+    .getByRole("main")
+    .getByText("Choose any visible task, then open the complete date, time, and timezone form.", {
+      exact: true,
+    });
   await expect(instruction).toBeVisible();
   const clipping = await instruction.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -1555,7 +1562,7 @@ async function assertMobileTouchContracts(page: Page, taskId: string) {
 
   await page.goto("/calendar");
   await expect(page.getByRole("heading", { name: "Calendar", exact: true }).first()).toBeVisible();
-  const calendarControls = page.locator('[aria-label="Calendar controls"]');
+  const calendarControls = page.getByRole("main").locator('[aria-label="Calendar controls"]');
   const rangeLabel = calendarControls.locator("strong");
   await expect(rangeLabel).toBeVisible();
   const rangeContract = await rangeLabel.evaluate((element) => ({
@@ -1651,7 +1658,7 @@ async function expectUsesSans(locator: Locator, label: string) {
 }
 
 function selectedOccurrencePanel(page: Page) {
-  return page.locator('section[aria-labelledby^="occurrence-title-"]');
+  return page.getByRole("main").locator('section[aria-labelledby^="occurrence-title-"]');
 }
 
 async function setDocumentTheme(page: Page, theme: "light" | "dark") {

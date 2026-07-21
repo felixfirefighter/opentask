@@ -55,4 +55,29 @@ describe("DemoEntryAction", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Try demo" })).toBeEnabled();
   });
+
+  it("distinguishes an unreachable server and verifies recovery before enabling demo entry", async () => {
+    const fetchRequest = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("network unreachable"))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "ok" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchRequest);
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+    const user = userEvent.setup();
+
+    render(<DemoEntryAction />);
+    await user.click(screen.getByRole("button", { name: "Try demo" }));
+
+    const retry = await screen.findByRole("button", { name: "Try connection" });
+    expect(screen.getByText(/can’t reach the server/iu)).toBeInTheDocument();
+    await user.click(retry);
+
+    expect(await screen.findByRole("button", { name: "Try demo" })).toBeEnabled();
+    expect(fetchRequest).toHaveBeenNthCalledWith(2, "/api/health/live", {
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { accept: "application/json" },
+      signal: expect.any(AbortSignal),
+    });
+  });
 });

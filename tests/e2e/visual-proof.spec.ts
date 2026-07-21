@@ -104,7 +104,13 @@ test("the friend-candidate journey renders at every approved viewport", async ({
   await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
   await page.context().setOffline(true);
-  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
+  const offlineStatus = page
+    .getByRole("status")
+    .filter({ hasText: "You’re offline. Writes are disabled until you reconnect." });
+  await expect(async () => {
+    await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+    await expect(offlineStatus).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 15_000 });
   await captureRoute(page, testInfo, captureDirectory, "inbox-offline");
   await page.context().setOffline(false);
   await page.close();
@@ -149,10 +155,11 @@ async function publishEvidence(captureDirectory: string, evidenceDirectory: stri
 }
 
 async function expectCalendarInstructionUntruncated(page: Page) {
-  const instruction = page.getByText(
-    "Choose any visible task, then open the complete date, time, and timezone form.",
-    { exact: true },
-  );
+  const instruction = page
+    .getByRole("main")
+    .getByText("Choose any visible task, then open the complete date, time, and timezone form.", {
+      exact: true,
+    });
   await expect(instruction).toBeVisible();
   const style = await instruction.evaluate((element) => {
     const computed = getComputedStyle(element);

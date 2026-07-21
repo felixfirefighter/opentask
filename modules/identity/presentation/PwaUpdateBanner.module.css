@@ -1,0 +1,44 @@
+.banner {
+  display: flex;
+  min-width: 0;
+  min-height: 40px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--border-default) solid color-mix(in srgb, var(--info) 30%, var(--border));
+  background: color-mix(in srgb, var(--info) 10%, var(--surface));
+  color: var(--text);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.banner svg {
+  flex: none;
+  color: var(--info);
+}
+
+.banner span {
+  min-width: 0;
+}
+
+.banner button {
+  flex: none;
+  margin-left: auto;
+}
+
+.banner button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 359px) {
+  .banner {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .banner button {
+    width: 100%;
+    margin-left: 0;
+  }
+}

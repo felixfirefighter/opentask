@@ -14,13 +14,14 @@ and adds no Focus Settings card.
 
 ## Layout
 
-Use one bounded column with a page `h1` and five cards after P6:
+Use one bounded column with a page `h1` and five cards after P5; P6 extends the fourth card:
 
 1. **Date and time:** IANA timezone search/select, week start, and 12/24-hour display.
 2. **Appearance:** light/dark/system theme and reduced motion.
 3. **Optional AI:** planner available/unavailable status and a link to manual planning.
-4. **App and reminders:** install/update state where supported, push capability/permission,
-   subscription enable/revoke, and provider/worker degraded explanation without secret values.
+4. **App and reminders:** P5 owns install/update state and honest offline limits. P6 adds push
+   capability/permission, subscription enable/revoke, and provider/worker degraded explanation
+   without secret values.
 5. **Your data:** versioned JSON export.
 
 Each editable card has its own explicit Save action and local save/error feedback. Theme may preview immediately but rolls back if the server save fails. AI status is read-only. Do not expose server environment values or operational secrets.

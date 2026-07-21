@@ -48,7 +48,7 @@ export async function readTaskSchedule(page: Page, taskId: string) {
 }
 
 export function planningTaskRow(page: Page, title: string): Locator {
-  return page.locator('[data-ui="planning-task-row"]').filter({ hasText: title });
+  return page.getByRole("main").locator('[data-ui="planning-task-row"]').filter({ hasText: title });
 }
 
 export function calendarEvent(page: Page, title: string): Locator {
