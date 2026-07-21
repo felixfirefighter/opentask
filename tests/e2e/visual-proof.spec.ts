@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
+import { postDemoFromPage } from "./support/wp01-auth";
+
 const DEMO_TASK_ID = "50000000-0000-4000-8000-000000000001";
 const DEMO_LIST_ID = "20000000-0000-4000-8000-000000000001";
 
@@ -30,18 +32,15 @@ test("the friend-candidate journey renders at every approved viewport", async ({
   await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
+  await expect(page.getByRole("region", { name: "OpenTask onboarding" })).toBeVisible();
   await captureRoute(page, testInfo, captureDirectory, "app-launch");
   await page.getByRole("button", { name: "Use dark theme" }).click();
   await captureRoute(page, testInfo, captureDirectory, "app-launch-dark");
   await page.getByRole("button", { name: "Use light theme" }).click();
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Set up your profile" })).toBeVisible();
-
-  await page.getByLabel("Profile username", { exact: true }).fill("Visual proof user");
-  await page.getByRole("button", { name: "Open workspace" }).click();
-  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  expect(await postDemoFromPage(page)).toBe(200);
+  await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
   const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
   await expect(dismissTips).toBeVisible();

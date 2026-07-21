@@ -44,8 +44,9 @@ pnpm electron:dev
 `pnpm electron:dev` starts Docker PostgreSQL, applies migrations, compiles the Electron TypeScript
 entrypoint, and launches Electron. The local browser/API contract remains unchanged. OpenAI remains
 optional; `OPENAI_API_KEY` may be present in `.env.local` for planner development but is never exposed
-to the renderer. Packaged-user key entry through the OS keychain is not implemented in this slice;
-production operators currently provide `OPENAI_API_KEY` to the app process or ship with AI disabled.
+to the renderer. A profile-owned key can also be added from Settings and is encrypted in the local
+database. `OPENAI_API_KEY_ENCRYPTION_KEY` may be set separately so rotating the auth secret does not
+invalidate saved provider credentials.
 
 If the Electron process is running but no window is visible, stop it with `Ctrl+C` and run
 `pnpm electron:dev` again. The Electron main process is compiled at startup; an already-running

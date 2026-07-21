@@ -43,6 +43,7 @@ BETTER_AUTH_SECRET=<output of: openssl rand -base64 32>
 BETTER_AUTH_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
 LOG_LEVEL=info
 OPENAI_API_KEY=<optional server-only key>
+OPENAI_API_KEY_ENCRYPTION_KEY=<optional separate key for encrypted Settings credentials>
 ```
 
 Use Railway's `DATABASE_URL` reference rather than the public database URL so web-to-database traffic stays on private networking. The reference syntax and Next.js/PostgreSQL workflow are documented by Railway's [variables reference](https://docs.railway.com/variables/reference) and [Next.js guide](https://docs.railway.com/guides/nextjs).
@@ -64,6 +65,6 @@ curl --fail --silent --show-error https://<candidate-host>/api/health/live
 curl --fail --silent --show-error https://<candidate-host>/api/health/ready
 ```
 
-Then complete [FRIEND_TEST.md](FRIEND_TEST.md) twice: once with `OPENAI_API_KEY` configured and once after confirming the no-key explanatory state in a separate local environment. Verify direct launch/profile setup, health endpoints, workspace isolation, export privacy, desktop 1440 px, and mobile 390 px.
+Then complete [FRIEND_TEST.md](FRIEND_TEST.md) twice: once with a provider configured and once after confirming the no-key explanatory state in a separate local environment. Verify direct launch/profile setup, workspace isolation, Settings key save/remove, reset confirmation, export privacy, desktop 1440 px, and mobile 390 px.
 
 Do not designate a friend candidate until migrations, health, demo isolation, G1–G4, and the release commit all refer to the same deployment.

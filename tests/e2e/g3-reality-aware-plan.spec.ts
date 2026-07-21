@@ -17,7 +17,7 @@ import {
   planningTaskRow,
 } from "./support/golden-path-planning";
 import { createG3Proposal, g3ActionIds, installPlannerRouteFixtures } from "./support/g3-planner-fixtures";
-import { enterWorkspaceThroughUi } from "./support/wp01-auth";
+import { enterWorkspaceThroughUi, postDemoFromPage } from "./support/wp01-auth";
 import { quickAddTask } from "./support/wp03-tasks";
 
 const APP_ORIGIN = "http://127.0.0.1:3107";
@@ -288,14 +288,8 @@ async function enterIsolatedDemo(page: Page, projectName: string) {
   const seed = randomUUID().replaceAll("-", "");
   const clientAddress = `2001:db8:${seed.slice(0, 4)}:${seed.slice(4, 8)}:${seed.slice(8, 12)}:${seed.slice(12, 16)}::1`;
   await page.setExtraHTTPHeaders({ "x-real-ip": clientAddress });
-  await page.goto("/");
-  const responsePromise = page.waitForResponse(
-    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
-  );
-  await page.getByLabel("Profile username", { exact: true }).fill("Planner user");
-  await page.getByRole("button", { name: "Open workspace" }).click();
-  expect((await responsePromise).status(), `${projectName} demo entry`).toBe(200);
-  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  expect(await postDemoFromPage(page), `${projectName} demo entry`).toBe(200);
+  await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
   const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
   if (await dismissTips.isVisible()) await dismissTips.click();

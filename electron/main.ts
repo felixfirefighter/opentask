@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +18,16 @@ const hasSingleInstance = app.requestSingleInstanceLock();
 let window: BrowserWindow | undefined;
 let runtime: DesktopRuntime | undefined;
 let stopping = false;
+
+const windowThemeColors = {
+  light: { background: "#f4f1e9", symbol: "#24251f" },
+  dark: { background: "#181914", symbol: "#f3f0e7" },
+} as const;
+
+ipcMain.on("opentask-window-theme", (event, theme: unknown) => {
+  if (event.sender !== window?.webContents || (theme !== "light" && theme !== "dark")) return;
+  applyWindowTheme(window, theme);
+});
 
 if (!hasSingleInstance) {
   app.quit();
@@ -52,6 +62,7 @@ async function launch(): Promise<void> {
     resourcesPath: process.resourcesPath,
     userDataPath: app.getPath("userData"),
   });
+  nativeTheme.themeSource = "light";
 
   window = new BrowserWindow({
     width: 1440,
@@ -59,6 +70,16 @@ async function launch(): Promise<void> {
     minWidth: 960,
     minHeight: 640,
     show: false,
+    backgroundColor: windowThemeColors.light.background,
+    ...(process.platform === "win32" || process.platform === "linux"
+      ? {
+          titleBarOverlay: {
+            color: windowThemeColors.light.background,
+            symbolColor: windowThemeColors.light.symbol,
+            height: 36,
+          },
+        }
+      : {}),
     webPreferences: {
       contextIsolation: true,
       preload: resolve(moduleDirectory, "preload.cjs"),
@@ -79,6 +100,19 @@ async function launch(): Promise<void> {
   window.center();
   window.show();
   if (smoke) setTimeout(() => app.quit(), 1_000);
+}
+
+function applyWindowTheme(target: BrowserWindow, theme: "light" | "dark") {
+  const colors = windowThemeColors[theme];
+  nativeTheme.themeSource = theme;
+  target.setBackgroundColor(colors.background);
+  if (process.platform === "win32" || process.platform === "linux") {
+    target.setTitleBarOverlay({
+      color: colors.background,
+      symbolColor: colors.symbol,
+      height: 36,
+    });
+  }
 }
 
 function handleLaunchFailure(error: unknown): void {

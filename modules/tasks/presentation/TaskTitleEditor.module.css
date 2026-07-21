@@ -27,8 +27,7 @@
   line-height: var(--type-section-title-line);
 }
 
-.input:hover,
-.input:focus {
+.input:hover {
   border-color: var(--border-strong);
   background: var(--surface-subtle);
 }

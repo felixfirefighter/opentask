@@ -47,6 +47,46 @@ describe("identity authentication and request security", () => {
     ).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
   });
 
+  it("resets only the authenticated profile and cascades its workspace and provider credential", async () => {
+    const application = createApplication();
+    const owner = await createAuthenticatedAccount(application, "reset-owner@example.test");
+    const other = await createAuthenticatedAccount(application, "reset-other@example.test");
+    const ownerIdentity = await application.resolveActor(new Headers({ cookie: owner.cookie }));
+    const otherIdentity = await application.resolveActor(new Headers({ cookie: other.cookie }));
+
+    await database.insert(schema.openaiCredentials).values({
+      userId: ownerIdentity.userId,
+      encryptedApiKey: "encrypted-test-value",
+      initializationVector: "test-iv",
+      authenticationTag: "test-tag",
+      encryptionVersion: 1,
+    });
+
+    await application.resetApp(ownerIdentity);
+
+    await expect(application.resolveActor(new Headers({ cookie: owner.cookie }))).rejects.toMatchObject({
+      code: "UNAUTHENTICATED",
+    });
+    await expect(application.resolveActor(new Headers({ cookie: other.cookie }))).resolves.toEqual(
+      otherIdentity,
+    );
+    expect(
+      await database
+        .select({ id: schema.user.id })
+        .from(schema.user)
+        .where(eq(schema.user.id, ownerIdentity.userId)),
+    ).toEqual([]);
+    expect(
+      await database
+        .select()
+        .from(schema.openaiCredentials)
+        .where(eq(schema.openaiCredentials.userId, ownerIdentity.userId)),
+    ).toEqual([]);
+    expect(
+      await database.select().from(schema.taskLists).where(eq(schema.taskLists.userId, otherIdentity.userId)),
+    ).not.toEqual([]);
+  });
+
   it("returns generic cookie-free signup responses for new and existing email addresses", async () => {
     const application = createApplication();
     const email = "generic-signup@example.test";

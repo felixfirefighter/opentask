@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { getOpenAISettings } from "@/modules/assistant";
 import { AuthenticatedShell, SettingsScreen } from "@/modules/identity/presentation";
 import { getInbox } from "@/modules/tasks";
 import { TaskCommandPalette } from "@/modules/tasks/presentation";
@@ -11,7 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const workspace = await loadWorkspace("/settings");
-  const inbox = await getInbox(workspace.identity.actor);
+  const [inbox, openAISettings] = await Promise.all([
+    getInbox(workspace.identity.actor),
+    getOpenAISettings(workspace.identity.actor),
+  ]);
 
   return (
     <AuthenticatedShell
@@ -21,7 +25,7 @@ export default async function SettingsPage() {
       currentDestination="settings"
       topBarActions={<TaskCommandPalette inbox={inbox} />}
     >
-      <SettingsScreen initialPreferences={workspace.preferences} />
+      <SettingsScreen initialPreferences={workspace.preferences} initialOpenAISettings={openAISettings} />
     </AuthenticatedShell>
   );
 }

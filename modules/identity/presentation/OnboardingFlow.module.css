@@ -1,0 +1,247 @@
+.flow {
+  display: grid;
+  width: min(100%, 620px);
+  min-height: min(720px, 100dvh);
+  align-content: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-6);
+  color: var(--text);
+}
+
+.inputPhase {
+  align-content: start;
+}
+
+.nameStep {
+  display: grid;
+  width: 100%;
+  gap: var(--space-8);
+  animation: settleName var(--motion-panel) var(--ease-standard);
+}
+
+.namePrompt {
+  display: grid;
+  max-width: 560px;
+  gap: var(--space-2);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4vw, 36px);
+  line-height: 1.18;
+}
+
+.namePrompt em {
+  color: var(--brand);
+  font-style: normal;
+}
+
+.goalStep {
+  display: grid;
+  width: 100%;
+  gap: var(--space-8);
+  animation: settleName var(--motion-panel) var(--ease-standard);
+}
+
+.goalPrompt {
+  max-width: 560px;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-section-title-line);
+}
+
+.goalPrompt em {
+  color: var(--brand);
+  font-style: normal;
+}
+
+.messages {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 560px;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4vw, 36px);
+  line-height: 1.18;
+}
+
+.messages em {
+  color: var(--brand);
+  font-style: normal;
+}
+
+.messageLine {
+  animation: appear var(--motion-panel) var(--ease-standard);
+}
+
+.compactMessageLine {
+  color: var(--text-muted);
+  font-size: var(--type-display-sm-size);
+  line-height: var(--type-display-sm-line);
+}
+
+.messages :global([role="status"]:first-child) {
+  color: var(--text);
+}
+
+.controls {
+  display: grid;
+  gap: var(--space-4);
+  animation: appear var(--motion-standard) var(--ease-standard);
+}
+
+.underlineInput {
+  width: min(100%, 440px);
+  min-height: var(--control-target-touch);
+  padding: 8px 0;
+  border: 0;
+  border-bottom: var(--border-default) solid var(--border-strong);
+  border-radius: 0;
+  outline-offset: 8px;
+  background: transparent;
+  font-size: 18px;
+}
+
+.nameForm {
+  display: grid;
+  width: min(100%, 440px);
+  gap: var(--space-4);
+}
+
+.nameActions {
+  display: flex;
+  justify-content: flex-end;
+  animation: appear var(--motion-panel) var(--ease-standard);
+}
+
+.nameContinue {
+  min-height: var(--control-target-touch);
+  padding: 8px 14px;
+  border-radius: var(--radius-control);
+  background: var(--action);
+  color: var(--text-on-strong);
+  cursor: pointer;
+  font-size: var(--type-body-size);
+}
+
+.nameContinue:hover {
+  background: var(--action-hover);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.goalActions {
+  width: min(100%, 560px);
+  justify-content: flex-end;
+}
+
+.keyActions {
+  width: min(100%, 440px);
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+
+.keyActions .keyActionButton {
+  min-height: var(--control-target-touch);
+  padding: 8px 24px;
+  font-size: var(--type-section-title-size);
+}
+
+.keyActionButtonNoPadding {
+  min-height: var(--control-target-touch);
+  font-size: var(--type-section-title-size);
+}
+
+.quietLink {
+  min-height: var(--control-target-touch);
+  padding: 8px 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  min-height: var(--control-target-touch);
+  padding: 8px 14px;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.chip[data-selected="true"] {
+  border-color: var(--brand);
+  background: var(--surface-selected);
+  color: var(--text-selected);
+}
+
+.helper {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+}
+
+.status {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes settleName {
+  from {
+    opacity: 0.84;
+    transform: translateY(var(--space-8));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .controls,
+  .messageLine,
+  .nameStep,
+  .goalStep,
+  .nameActions {
+    animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .flow {
+    min-height: 100dvh;
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .messages,
+  .namePrompt {
+    font-size: 28px;
+  }
+}

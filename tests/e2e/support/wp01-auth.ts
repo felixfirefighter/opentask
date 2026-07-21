@@ -27,23 +27,31 @@ export async function enterWorkspaceThroughUi(
   const destination = returnTo ?? "/inbox";
 
   // Exercise the real database limiter while keeping parallel browser projects in separate client buckets.
+  // The dedicated identity-shell spec covers the scripted onboarding UI; the other golden paths need
+  // a fast authenticated fixture and should not duplicate that conversation on every route test.
   await page.setExtraHTTPHeaders({ "x-real-ip": clientAddress });
   await page.goto(`/?resume=${encodeURIComponent(destination)}`);
-  const setupDialog = page.getByRole("dialog", { name: "Set up your profile" });
-  if (await setupDialog.isVisible()) {
-    await setupDialog
-      .getByLabel("Profile username", { exact: true })
-      .fill(`Test ${randomUUID().slice(0, 8)}`);
-    await setupDialog.getByRole("button", { name: "Open workspace" }).click();
-  }
+  const demoStatus = await postDemoFromPage(page);
+  expect(demoStatus).toBe(200);
+  await page.goto(destination);
 
   await expect(page).toHaveURL(destination, { timeout: 30_000 });
   await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
-  await page.waitForLoadState("networkidle");
   const exportResponse = await page.context().request.get("/api/v1/export");
   expect(exportResponse.status()).toBe(200);
   const exportEnvelope = (await exportResponse.json()) as { identity?: { profile?: { email?: string } } };
   return { ...account, email: exportEnvelope.identity?.profile?.email ?? account.email };
+}
+
+export async function postDemoFromPage(page: Page): Promise<number> {
+  return page.evaluate(async () => {
+    const response = await fetch("/api/v1/demo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    return response.status;
+  });
 }
 
 export async function openVisibleProfileMenu(page: Page) {

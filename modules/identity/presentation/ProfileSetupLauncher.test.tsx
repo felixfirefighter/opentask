@@ -4,51 +4,74 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProfileSetupLauncher } from "./ProfileSetupLauncher";
 
+const baseOnboarding = {
+  complete: false,
+  completedAt: null,
+  goals: [],
+  checkins: [],
+  todayCheckin: null,
+} as const;
+
 describe("ProfileSetupLauncher", () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.restoreAllMocks();
     vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal("matchMedia", () => ({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
   });
 
-  it("requires a username and bootstraps before caching it", async () => {
+  it("runs the scripted first-run flow and persists before entering Today", async () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ redirectTo: "/inbox" }),
-    } as Response);
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(Response.json({ redirectTo: "/inbox" }))
+      .mockResolvedValueOnce(Response.json(baseOnboarding))
+      .mockResolvedValueOnce(Response.json({ configured: false, source: "none" }))
+      .mockResolvedValueOnce(Response.json({ ...baseOnboarding, complete: true, goals: ["tasks"] }));
     render(<ProfileSetupLauncher navigate={navigate} />);
 
-    await user.click(screen.getByRole("button", { name: "Open workspace" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Enter a username");
+    const name = await screen.findByRole("textbox", { name: "Your name" }, { timeout: 8_000 });
+    await user.type(name, "  Ekko  ");
+    await user.click(await screen.findByRole("button", { name: /^Continue$/u }));
+    await user.click(await screen.findByRole("button", { name: "Skip for now" }, { timeout: 8_000 }));
+    await user.click(await screen.findByRole("button", { name: "tracking tasks" }, { timeout: 8_000 }));
+    await user.click(await screen.findByRole("button", { name: "Continue" }));
+    await user.click(await screen.findByRole("button", { name: "Let's start" }));
 
-    await user.type(screen.getByLabelText("Profile username"), "  Ekko  ");
-    await user.click(screen.getByRole("button", { name: "Open workspace" }));
-
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/inbox"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/today"));
     expect(window.localStorage.getItem("opentask.profile.username")).toBe("Ekko");
-    expect(fetch).toHaveBeenCalledWith("/api/v1/demo", expect.objectContaining({ method: "POST" }));
-  });
+    expect(fetch).toHaveBeenCalledWith("/api/v1/onboarding", expect.objectContaining({ method: "POST" }));
+  }, 30_000);
 
-  it("keeps setup open when workspace bootstrap fails", async () => {
+  it("keeps setup readable when the workspace bootstrap fails", async () => {
     const user = userEvent.setup();
-    vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ ok: false }, { status: 503 }));
     render(<ProfileSetupLauncher navigate={vi.fn()} />);
 
-    await user.type(screen.getByLabelText("Profile username"), "Ekko");
-    await user.click(screen.getByRole("button", { name: "Open workspace" }));
+    const name = await screen.findByRole("textbox", { name: "Your name" }, { timeout: 8_000 });
+    await user.type(name, "Ekko");
+    await user.click(await screen.findByRole("button", { name: /^Continue$/u }, { timeout: 8_000 }));
 
-    await expect(screen.findByRole("alert")).resolves.toHaveTextContent("could not be opened");
+    expect(
+      await screen.findByRole("heading", { name: "We couldn’t open your workspace." }),
+    ).toBeInTheDocument();
     expect(window.localStorage.getItem("opentask.profile.username")).toBeNull();
   });
 
-  it("opens a cached profile directly", async () => {
+  it("gates a returning profile behind the scripted no-key check-in", async () => {
     window.localStorage.setItem("opentask.profile.username", "Ekko");
-    const navigate = vi.fn();
-    render(<ProfileSetupLauncher navigate={navigate} />);
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(Response.json({ ...baseOnboarding, complete: true }))
+      .mockResolvedValueOnce(Response.json({ configured: false, source: "none" }));
+    render(<ProfileSetupLauncher navigate={vi.fn()} />);
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/inbox"));
-    expect(screen.queryByRole("dialog", { name: "Set up your profile" })).not.toBeInTheDocument();
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByRole("group", { name: "How you are arriving today" }, { timeout: 8_000 }),
+    ).toBeInTheDocument();
   });
 });

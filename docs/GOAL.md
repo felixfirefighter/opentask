@@ -41,7 +41,9 @@ Before the first change in each package, read:
 - Reuse canonical data concepts. Schema changes pass the `docs/DATA_MODEL.md` placement and migration
   gates; projections never store duplicate task status, schedule, streak, Focus total, or due state.
 - OpenAI and Web Push are optional server providers. Manual task, planning, habit, Focus, export, and
-  local startup paths remain usable without either.
+  local startup paths remain usable without either. Settings may manage one encrypted profile-owned
+  OpenAI key without exposing it to the browser, and Reset app must remove the current profile and
+  restart through direct launch.
 - AI produces a typed proposal only; deterministic code validates/schedules it and only explicit
   review/apply can write. Push jobs reload current state before sending and contain opaque IDs only.
 - Offline support is honest: cache public/static shell assets only, keep already rendered data

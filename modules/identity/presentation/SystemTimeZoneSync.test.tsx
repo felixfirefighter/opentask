@@ -22,13 +22,14 @@ describe("SystemTimeZoneSync", () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(
         Response.json({
-          schemaVersion: 1,
+          schemaVersion: 2,
           version: 3,
           timezone: "UTC",
           weekStart: 1,
           hourCycle: "h12",
           theme: "system",
           reducedMotion: false,
+          onboarding: { complete: false, completedAt: null, goals: [], checkins: [] },
         }),
       )
       .mockResolvedValueOnce(Response.json({}));
@@ -50,13 +51,14 @@ describe("SystemTimeZoneSync", () => {
     } as Intl.ResolvedDateTimeFormatOptions);
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({
-        schemaVersion: 1,
+        schemaVersion: 2,
         version: 1,
         timezone: "UTC",
         weekStart: 1,
         hourCycle: "h12",
         theme: "system",
         reducedMotion: false,
+        onboarding: { complete: false, completedAt: null, goals: [], checkins: [] },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);

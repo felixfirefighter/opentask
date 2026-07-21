@@ -6,13 +6,19 @@ import type { UserPreferences } from "../application/preferences-contract";
 import { SettingsScreen } from "./SettingsScreen";
 
 const initialPreferences: UserPreferences = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   version: 1,
   timezone: "UTC",
   weekStart: 1,
   hourCycle: "h12",
   theme: "light",
   reducedMotion: false,
+  onboarding: {
+    complete: false,
+    completedAt: null,
+    goals: [],
+    checkins: [],
+  },
 };
 
 afterEach(() => {

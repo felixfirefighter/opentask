@@ -48,8 +48,9 @@ type OpenAIResponsesProviderOptions<TRequest, TOutput> = {
 
 export function createConfiguredOpenAIResponsesProvider<TRequest, TOutput>(
   options: Omit<OpenAIResponsesProviderOptions<TRequest, TOutput>, "apiKey">,
+  configuredApiKey?: string | null,
 ) {
-  const apiKey = getEnvironment().OPENAI_API_KEY;
+  const apiKey = configuredApiKey ?? getEnvironment().OPENAI_API_KEY;
   if (!apiKey) return null;
   return createOpenAIResponsesProvider({ ...options, apiKey });
 }

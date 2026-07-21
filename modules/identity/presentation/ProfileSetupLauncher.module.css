@@ -29,6 +29,29 @@
   text-align: center;
 }
 
+.launchError {
+  display: grid;
+  width: min(100%, 440px);
+  gap: var(--space-3);
+  padding: var(--space-8);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.launchError h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-display-sm-size);
+  font-weight: var(--type-display-sm-weight);
+  line-height: var(--type-display-sm-line);
+}
+
+.launchError p:not(.eyebrow) {
+  margin: 0;
+  color: var(--text-muted);
+}
+
 .fallbackContent h1 {
   margin: var(--space-3) 0 0;
   font-family: var(--font-editorial);

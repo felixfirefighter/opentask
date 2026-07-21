@@ -1,14 +1,22 @@
 "use client";
 
 import { AppearancePreferencesCard } from "./AppearancePreferencesCard";
+import { AppResetCard } from "./AppResetCard";
 import { DateTimePreferencesCard } from "./DateTimePreferencesCard";
 import { DataExportCard } from "./DataExportCard";
+import { OpenAISettingsCard, type OpenAISettingsState } from "./OpenAISettingsCard";
 import styles from "./SettingsScreen.module.css";
 import { applyThemePreference } from "./theme-client";
 import { mergePreferenceDraft, usePreferencesEditor } from "./usePreferencesEditor";
 import type { UserPreferences, UserPreferencesPatch } from "../application/preferences-contract";
 
-export function SettingsScreen({ initialPreferences }: { initialPreferences: UserPreferences }) {
+export function SettingsScreen({
+  initialOpenAISettings = { configured: false, source: "none" },
+  initialPreferences,
+}: {
+  initialPreferences: UserPreferences;
+  initialOpenAISettings?: OpenAISettingsState;
+}) {
   const editor = usePreferencesEditor(initialPreferences);
 
   function updateAppearance(patch: UserPreferencesPatch) {
@@ -57,7 +65,9 @@ export function SettingsScreen({ initialPreferences }: { initialPreferences: Use
         onReviewLatest={editor.reviewLatest}
       />
 
+      <OpenAISettingsCard initialSettings={initialOpenAISettings} online={editor.online} />
       <DataExportCard online={editor.online} />
+      <AppResetCard />
     </div>
   );
 }

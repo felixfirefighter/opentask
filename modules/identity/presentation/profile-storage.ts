@@ -16,6 +16,16 @@ export function saveProfileUsername(value: string): string {
   return username;
 }
 
+export function clearAppLocalState(): void {
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith("opentask")) window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Browser storage can be unavailable without making the server reset fail.
+  }
+}
+
 export function validateProfileUsername(value: string): string | null {
   const username = normalizeProfileUsername(value);
   if (!username) return "Enter a username to open your workspace.";

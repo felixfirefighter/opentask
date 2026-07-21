@@ -14,6 +14,7 @@ export const account = identitySchema.account;
 export const verification = identitySchema.verification;
 export const rateLimit = identitySchema.rateLimit;
 export const userPreferences = identitySchema.userPreferences;
+export const openaiCredentials = assistantSchema.openaiCredentials;
 export const listFolders = taskSchema.listFolders;
 export const taskLists = taskSchema.taskLists;
 export const listSections = taskSchema.listSections;
@@ -31,6 +32,7 @@ export const schema = {
   verification,
   rateLimit,
   userPreferences,
+  openaiCredentials,
   listFolders,
   taskLists,
   listSections,

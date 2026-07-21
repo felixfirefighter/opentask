@@ -20,7 +20,7 @@ export const portableIdentitySectionSchema = z.strictObject({
     updatedAt: portableInstantSchema,
   }),
   preferences: z.strictObject({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     version: portableVersionSchema,
     timezone: ianaTimeZoneSchema,
     weekStart: z.union([
@@ -35,6 +35,20 @@ export const portableIdentitySectionSchema = z.strictObject({
     hourCycle: z.enum(["h12", "h23"]),
     theme: z.enum(["light", "dark", "system"]),
     reducedMotion: z.boolean(),
+    onboarding: z.strictObject({
+      complete: z.boolean(),
+      completedAt: z.string().datetime({ offset: true }).nullable(),
+      goals: z.array(z.string()).max(7),
+      checkins: z
+        .array(
+          z.strictObject({
+            date: z.iso.date(),
+            mood: z.enum(["good", "tired", "heavy", "ready"]),
+            note: z.string().max(500).optional(),
+          }),
+        )
+        .max(30),
+    }),
     createdAt: portableInstantSchema,
     updatedAt: portableInstantSchema,
   }),

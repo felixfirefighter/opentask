@@ -6,11 +6,6 @@
   background: var(--surface-elevated);
 }
 
-.composer:focus-within {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
 .label {
   display: block;
   margin: 0 0 var(--space-2);

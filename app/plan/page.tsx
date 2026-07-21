@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { getPlannerCapability } from "@/modules/assistant";
+import { getPlannerCapabilityForActor } from "@/modules/assistant";
 import { AssistantPlannerRouteScreen, type PlannerTaskOption } from "@/modules/assistant/presentation";
 import { AuthenticatedShell } from "@/modules/identity/presentation";
 import { getPlanningProjectionApplication, type EisenhowerProjection } from "@/modules/planning";
@@ -30,7 +30,7 @@ export default async function PlanPage() {
       topBarActions={<TaskCommandPalette inbox={inbox} />}
     >
       <AssistantPlannerRouteScreen
-        capability={getPlannerCapability()}
+        capability={await getPlannerCapabilityForActor(workspace.identity.actor)}
         tasks={unscheduledOptions(matrix)}
         initialInput={{
           brainDump: "",

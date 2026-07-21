@@ -53,6 +53,8 @@ Acceptance:
   unscheduled task is not urgent.
 - Optional GPT-5.6 planner remains a proposal/review/apply pipeline with no write before explicit
   Apply and a complete no-key/manual fallback.
+- Settings may store one profile-owned OpenAI API key encrypted on the server, without returning the
+  secret to the browser; resetting the profile removes the key and all owned workspace data.
 - Close the audited local-core gaps: contextual quick add uses the current Inbox or regular list with
   no schedule, Today with an all-day schedule for today, and Upcoming with an all-day schedule for
   the next local day. A visibly recognized, editable date/time may override that default before the

@@ -17,6 +17,28 @@ export const preferenceDocumentSchema = z
     hourCycle: z.enum(["h12", "h23"]),
     theme: z.enum(["light", "dark", "system"]),
     reducedMotion: z.boolean(),
+    onboarding: z.strictObject({
+      complete: z.boolean(),
+      completedAt: z.string().datetime({ offset: true }).nullable(),
+      goals: z
+        .array(
+          z.union([
+            z.enum(["discipline", "tasks", "habits", "reminders", "daily_planning", "scheduling", "other"]),
+            z.string().regex(/^other:.{1,160}$/u),
+          ]),
+        )
+        .max(7)
+        .refine((goals) => new Set(goals).size === goals.length, "Goals must be unique."),
+      checkins: z
+        .array(
+          z.strictObject({
+            date: z.iso.date(),
+            mood: z.enum(["good", "tired", "heavy", "ready"]),
+            note: z.string().max(500).optional(),
+          }),
+        )
+        .max(30),
+    }),
   })
   .strict();
 
@@ -31,7 +53,7 @@ export const updateUserPreferencesRequestSchema = z
   })
   .strict();
 
-export const preferenceSchemaVersion = 1 as const;
+export const preferenceSchemaVersion = 2 as const;
 
 export const userPreferencesSchema = preferenceDocumentSchema
   .extend({
@@ -44,8 +66,14 @@ export const defaultPreferenceDocument: PreferenceDocument = {
   timezone: "UTC",
   weekStart: 1,
   hourCycle: "h12",
-  theme: "system",
+  theme: "light",
   reducedMotion: false,
+  onboarding: {
+    complete: false,
+    completedAt: null,
+    goals: [],
+    checkins: [],
+  },
 };
 
 export type PreferenceDocument = z.infer<typeof preferenceDocumentSchema>;

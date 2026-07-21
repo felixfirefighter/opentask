@@ -4,7 +4,11 @@
 
 ## Responsibilities
 
-- Report disabled/unavailable state when `OPENAI_API_KEY` is absent.
+- Report disabled/unavailable state when neither a profile key nor `OPENAI_API_KEY` is present.
+- Let a profile owner add, replace, or remove one OpenAI API key from Settings; store it encrypted
+  server-side and never return the secret to the browser.
+- Provide an optional returning-user companion check-in response using the existing encrypted
+  profile key; provider failure degrades to the scripted local response.
 - Authorize and load minimal selected task/context data for a brain dump, planning date, work window, default duration, and buffer.
 - Call the OpenAI Responses API with `gpt-5.6`, `store: false`, and Structured Outputs backed by the canonical Zod schema.
 - Validate/refusal-handle model output, then call planning's deterministic interval scheduler.
@@ -13,13 +17,16 @@
 
 ## Owned persistence
 
-- `planner_proposals`.
+- `openai_credentials` and `planner_proposals`.
 
 The raw brain dump is not persisted by default.
 
 ## Public use cases and contracts
 
-- `getPlannerCapability()` returns configured/disabled state without exposing keys.
+- `getPlannerCapability(actor)` returns configured/disabled state without exposing keys.
+- `getOpenAISettings(actor)` and `updateOpenAIKey(actor, key)` own the redacted provider-settings contract.
+- `createCompanionCheckin(actor, name, context)` returns a short non-persistent check-in response or
+  an unavailable result without mutating domain data.
 - `createPlannerProposal(actor, input)` performs authorize, model, validation, deterministic scheduling, and proposal persistence.
 - `getPlannerProposal`, `rejectPlannerProposal`, and expiry handling.
 - `applyPlannerProposal(actor, proposalId, selection, idempotencyKey)` revalidates and commits selected changes.
@@ -31,6 +38,8 @@ The raw brain dump is not persisted by default.
 
 - OpenAI is optional; its absence cannot prevent identity, tasks, planning, or export from starting.
 - The browser never receives an OpenAI key or calls OpenAI directly.
+- Companion responses are optional, short-lived, and never persisted as task or profile data.
+- Profile keys are encrypted at rest with a server-only encryption secret and are deleted by profile reset.
 - Requests send only selected/minimal context, use `store: false`, and logs contain no brain dump, task content, model input, or model output.
 - Model output contains semantic suggestions, not trusted database IDs, ownership, overlap decisions, or repository commands.
 - The same Zod schema validates Structured Output and persisted proposal documents; refusals, timeouts, and schema/semantic failures write no domain changes.

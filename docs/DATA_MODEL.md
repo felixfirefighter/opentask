@@ -125,10 +125,25 @@ One row per user.
 
 - `user_id` PK/FK
 - `schema_version`
-- `preferences` JSONB: timezone, week start, hour cycle, theme, reduced motion
+- `preferences` JSONB: timezone, week start, hour cycle, theme, reduced motion, onboarding completion,
+  selected goals, and the capped last 30 daily check-ins
+- `schema_version` is currently `2`; version 2 adds the bounded onboarding document and migrates
+  existing rows with setup incomplete and no check-ins
 - `version`, `created_at`, `updated_at`
 
 The timezone must be a validated IANA zone. The application bootstrap creates this row and the Inbox atomically.
+
+### `openai_credentials` — assistant
+
+One optional profile-owned provider credential. This is a provider-specific table, not a preference
+JSON field:
+
+- `user_id` PK/FK with cascade on profile deletion
+- `encrypted_api_key`, `initialization_vector`, `authentication_tag`
+- `encryption_version`, `created_at`, `updated_at`
+
+The plaintext key is never persisted, exported, logged, or returned to the browser. A personal key
+overrides the server `OPENAI_API_KEY`; removing the row restores that fallback.
 
 ### `list_folders` — tasks
 

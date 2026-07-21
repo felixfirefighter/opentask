@@ -28,7 +28,7 @@ The Deadline-safe Core includes:
 - a private versioned JSON export from **Settings → Your data**;
 - isolated demo entry, health endpoints, and reproducible Docker deployment.
 
-Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
+Set `OPENAI_API_KEY` only on the server, or add a profile-owned key from Settings, to enable `/plan`. When neither is present, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
 
 The current implemented candidate does not yet include recurrence, habits, focus timers,
 reminders/push, or installability. The active Local-first Full Release plan adds those capabilities in

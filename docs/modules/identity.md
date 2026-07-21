@@ -8,12 +8,17 @@ to preserve server-side ownership and authorization for the current PostgreSQL-b
 
 - Render the direct-launch profile setup dialog and cache one validated username in browser local
   storage. The cached value is a display preference, not an authentication credential.
+- Run the scripted first-run onboarding and the returning-user check-in gate before opening Today.
+- Persist onboarding completion, selected goals, and at most one daily check-in through the versioned
+  preferences document; the local username remains browser-only.
 - Bootstrap an isolated workspace through the existing server-side session boundary without asking
   the user to create an account, sign in, or sign out.
 - Resolve the internal provider-neutral actor for protected application routes and APIs.
 - Atomically bootstrap one personal Inbox and one preferences row for a workspace actor.
 - Apply the browser-detected system timezone and read/update week start, hour cycle, theme, and
   reduced-motion preferences.
+- Reset the current profile/workspace account transactionally so the next direct launch starts at
+  profile setup again.
 
 ## Owned persistence
 
@@ -32,6 +37,8 @@ identity or copied into the server auth tables.
 - `enterDemo(headers)` is the internal isolated-workspace bootstrap used by the direct-launch flow.
 - `getUserPreferences(actor)` and `updateUserPreferences(actor, expectedVersion, patch)` own the
   canonical preferences contract.
+- `getOnboardingState(actor)`, `completeOnboarding(actor, goals)`, and `recordCheckin(actor, mood, note)`
+  own onboarding state transitions.
 - `getIdentityRequestSecurity()` exposes only trusted-origin configuration needed by the bootstrap
   route.
 
@@ -49,6 +56,8 @@ identity or copied into the server auth tables.
 - An unauthenticated internal actor cannot read or mutate domain data; a browser-local username never
   bypasses this rule.
 - Demo/workspace data remains isolated by its server actor and reset cannot touch another actor.
+- Reset deletes only the authenticated actor's account; foreign actors and server-level configuration
+  remain untouched.
 
 ## Dependencies
 

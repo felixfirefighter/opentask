@@ -176,7 +176,7 @@ describe("isolated demo entry", () => {
       .from(schema.plannerProposals);
     expect(proposals).toEqual([{ userId: otherIdentity!.actor.userId }]);
     expect(await application.getUserPreferences(identity!.actor)).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       version: changedPreferences.version + 1,
       ...defaultPreferenceDocument,
     });

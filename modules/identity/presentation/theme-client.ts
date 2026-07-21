@@ -26,6 +26,14 @@ export function applyThemePreference(theme: ThemePreference, reducedMotion: bool
     root.dataset.themePreference = theme;
     root.dataset.reducedMotion = String(reducedMotion);
   });
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (themeColor) themeColor.content = getComputedStyle(root).getPropertyValue("--canvas").trim();
+  const desktopWindow = (
+    window as typeof window & {
+      opentaskDesktop?: { setWindowTheme?: (theme: ResolvedTheme) => void };
+    }
+  ).opentaskDesktop;
+  desktopWindow?.setWindowTheme?.(resolvedTheme);
   try {
     localStorage.setItem("opentask-theme-preference", theme);
   } catch {

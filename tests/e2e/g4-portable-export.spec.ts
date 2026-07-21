@@ -77,7 +77,7 @@ test("a private versioned export is downloadable and excludes credentials", asyn
     identity: {
       schemaVersion: 1,
       profile: { email: owner.email },
-      preferences: { schemaVersion: 1, timezone: expect.any(String) },
+      preferences: { schemaVersion: 2, timezone: expect.any(String) },
     },
     tasks: { schemaVersion: 1 },
     assistant: { schemaVersion: 1, proposals: expect.any(Array) },
