@@ -11,8 +11,10 @@ duplicate priority, occurrence due field, or second schedule. Classification is 
 - every task belongs to one of the remaining combinations.
 
 The due boundary is the timed end or exclusive all-day end interpreted at midnight in the user's
-saved IANA timezone. For a recurring series, classify its next eligible open occurrence within the
-bounded projection and do not render the series twice. The boundary is derived from the canonical
+saved IANA timezone. For a recurring series, inspect today through the next 62 local days, classify
+its earliest eligible open occurrence, and do not render the series twice. When no occurrence exists
+in that horizon, render the series once as nonurgent with “No occurrence in the next 62 days”; high
+priority maps to Plan and every other priority to Later. The boundary is derived from the canonical
 schedule/rule and never persisted as a second field; unscheduled tasks are not urgent.
 
 Use plain secondary labels so the surface is actionable without implying collaboration:
@@ -49,6 +51,7 @@ Changing priority or schedule may move a row to a different quadrant after serve
 | Empty | An empty quadrant keeps its heading and says “No tasks in this quadrant”. If all four are empty, use one page-level “No open tasks to prioritize” state while retaining the rule explanation and Add task route. |
 | Loading | Preserve the 2 by 2/stacked geometry with row skeletons and one page status. Do not show temporary zero counts. |
 | Error | Keep safe cached classifications labeled stale, show Retry, and avoid placing partially loaded tasks into a guessed quadrant. Failed mutation restores the row to its authoritative region. |
+| Partial | If a task or recurrence safety cap is reached, label the projection incomplete, suppress all current quadrant classifications, disable mutations, and offer Retry. A partial result can never support an authoritative empty or quadrant claim. |
 | Offline | Loaded quadrants remain visible and read-only under the global banner. Disable status, priority, and schedule mutations; navigation/details may remain available. |
 | Permission | Unauthenticated access routes to sign-in. Removed/foreign task records disappear without metadata; direct task access uses the generic unavailable state. |
 | Conflict | Restore the current server-derived quadrant, identify the task as changed elsewhere, and offer Open details. Do not preserve a stale visual classification. |

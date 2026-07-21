@@ -1,69 +1,39 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { useId, useRef, useState, type FormEvent } from "react";
+import { Clock3, Pencil, Plus, X } from "lucide-react";
+import { useId, type FormEvent } from "react";
 
-import { useOnlineStatus } from "@/shared/presentation";
-
-import { isTaskApiError } from "./data/task-api-request";
-import { useCreateTaskMutation } from "./data/use-task-editor-mutations";
 import styles from "./TaskQuickAdd.module.css";
+import { TaskQuickAddScheduleDialog } from "./TaskQuickAddScheduleDialog";
+import { useTaskQuickAddController } from "./useTaskQuickAddController";
 
 export function TaskQuickAdd({
   listId,
   listName,
   sectionId = null,
-}: Readonly<{ listId: string; listName: string; sectionId?: string | null }>) {
+  timeZone,
+  hourCycle,
+}: Readonly<{
+  hourCycle: "h12" | "h23";
+  listId: string;
+  listName: string;
+  sectionId?: string | null;
+  timeZone: string;
+}>) {
   const inputId = useId();
-  const [title, setTitle] = useState("");
-  const [requestPending, setRequestPending] = useState(false);
-  const draftResourceId = useRef<string | null>(null);
-  const requestInFlight = useRef(false);
-  const titleRef = useRef("");
-  const online = useOnlineStatus();
-  const create = useCreateTaskMutation();
-  const createPending = requestPending || create.isPending;
+  const controller = useTaskQuickAddController({ hourCycle, listId, sectionId, timeZone });
+  const describedBy = !controller.online
+    ? `${inputId}-offline`
+    : controller.errorMessage
+      ? `${inputId}-error`
+      : controller.suggestionWarning
+        ? `${inputId}-warning`
+        : undefined;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const cleanTitle = title.trim();
-    if (!cleanTitle || !online || requestInFlight.current || create.isPending) return;
-    const submittedTitle = title;
-    draftResourceId.current ??= crypto.randomUUID();
-    const resourceId = draftResourceId.current;
-    requestInFlight.current = true;
-    setRequestPending(true);
-    try {
-      await create.mutateAsync({
-        resourceId,
-        input: {
-          title: cleanTitle,
-          descriptionMd: "",
-          priority: "none",
-          listId,
-          sectionId,
-          parentTaskId: null,
-          placement: { kind: "start" },
-        },
-      });
-      if (draftResourceId.current === resourceId && titleRef.current === submittedTitle) {
-        draftResourceId.current = null;
-        titleRef.current = "";
-        setTitle("");
-      }
-    } catch {
-      // React Query exposes the error below while the draft remains in the field.
-    } finally {
-      requestInFlight.current = false;
-      setRequestPending(false);
-    }
+    void controller.submit();
   }
-
-  const errorMessage = create.error
-    ? isTaskApiError(create.error)
-      ? create.error.message
-      : "The task was not added. Your title is still here so you can try again."
-    : null;
 
   return (
     <div className={styles.composer}>
@@ -82,28 +52,18 @@ export function TaskQuickAdd({
             type="text"
             maxLength={500}
             autoComplete="off"
-            value={title}
-            onChange={(event) => {
-              if (requestInFlight.current || create.isPending) return;
-              const nextTitle = event.target.value;
-              titleRef.current = nextTitle;
-              setTitle(nextTitle);
-              draftResourceId.current = null;
-              create.reset();
-            }}
+            value={controller.title}
+            onChange={(event) => controller.changeTitle(event.currentTarget.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && event.shiftKey) event.preventDefault();
               if (event.key === "Escape") {
-                if (requestInFlight.current || create.isPending) return;
-                titleRef.current = "";
-                setTitle("");
-                draftResourceId.current = null;
-                create.reset();
+                event.preventDefault();
+                controller.escape();
               }
             }}
             placeholder="Add a task…"
-            disabled={!online || createPending}
-            aria-describedby={!online ? `${inputId}-offline` : errorMessage ? `${inputId}-error` : undefined}
+            disabled={!controller.online || controller.isPending || controller.retryLocked}
+            aria-describedby={describedBy}
           />
           <span className={styles.destination} title={`Add to ${listName}`}>
             {listName}
@@ -111,25 +71,63 @@ export function TaskQuickAdd({
           <button
             className="primary-button"
             type="submit"
-            disabled={!online || createPending || title.trim().length === 0}
+            disabled={!controller.online || controller.isPending || controller.title.trim().length === 0}
           >
-            {createPending ? "Adding…" : "Add task"}
+            {controller.isPending ? "Adding…" : "Add task"}
           </button>
         </div>
       </form>
-      {!online && (
+      {controller.suggestionLabel ? (
+        <div className={styles.confirmationRow}>
+          <span className={styles.destinationToken}>
+            <Clock3 size={14} aria-hidden="true" /> {listName}
+          </span>
+          <span className={styles.scheduleToken}>
+            <button
+              type="button"
+              disabled={!controller.online || controller.isPending || controller.retryLocked}
+              aria-label={`Edit recognized value ${controller.suggestionLabel}`}
+              onClick={controller.editSchedule}
+            >
+              <Pencil size={12} aria-hidden="true" /> {controller.suggestionLabel}
+            </button>
+            <button
+              type="button"
+              disabled={controller.isPending || controller.retryLocked}
+              aria-label={`Clear recognized value ${controller.suggestionLabel}`}
+              onClick={controller.removeSchedule}
+            >
+              <X size={13} aria-hidden="true" />
+            </button>
+          </span>
+        </div>
+      ) : null}
+      {controller.suggestionWarning ? (
+        <p className={styles.warning} id={`${inputId}-warning`} role="status">
+          {controller.suggestionWarning}
+        </p>
+      ) : null}
+      {!controller.online && (
         <p className={styles.explanation} id={`${inputId}-offline`}>
           Reconnect to add tasks.
         </p>
       )}
-      {errorMessage && (
+      {controller.errorMessage && (
         <p className={styles.error} id={`${inputId}-error`} role="alert">
-          {errorMessage}
+          {controller.errorMessage}
         </p>
       )}
       <span className="sr-only" role="status" aria-live="polite">
-        {create.isSuccess ? "Task added" : ""}
+        {controller.announcement}
       </span>
+      <TaskQuickAddScheduleDialog
+        hourCycle={hourCycle}
+        onClose={controller.closeSchedule}
+        onSave={controller.saveSchedule}
+        open={controller.scheduleEditorOpen}
+        schedule={controller.acceptedSchedule}
+        timeZone={timeZone}
+      />
     </div>
   );
 }

@@ -1,167 +1,92 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import type { TodayProjection } from "../application/public";
-import {
-  createPlanningTask,
-  parsePlanningQuickAdd,
-  setPlanningTaskSchedule,
-  type PlanningSchedule,
-  type PlanningQuickAddSuggestion,
-} from "./planning-client-api";
-import { editedQuickAddScheduleLabel } from "./quick-add-schedule-label";
+import { PlanningLiveRegion } from "./PlanningLiveRegion";
+import { resolvePlanningProjectionCondition } from "./planning-projection-condition";
 import { nextLocalDate } from "./schedule-form-policy";
 import { ScheduleEditorDialog } from "./ScheduleEditorDialog";
 import { TodayScreen } from "./TodayScreen";
+import { usePlanningQuickAdd } from "./use-planning-quick-add";
+import { usePlanningProjectionFreshness } from "./use-planning-projection-freshness";
 import { usePlanningTaskController } from "./use-planning-task-controller";
 import { toTodayPlanningModel } from "./planning-view-model";
 
 export function TodayRouteScreen({
   hourCycle,
+  habitSection,
   inboxId,
   projection,
-}: Readonly<{ hourCycle: "12" | "24"; inboxId: string; projection: TodayProjection }>) {
-  const router = useRouter();
-  const [quickAdd, setQuickAdd] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [suggestions, setSuggestions] = useState<readonly PlanningQuickAddSuggestion[]>([]);
-  const [removedTokens, setRemovedTokens] = useState<ReadonlySet<number>>(new Set());
-  const [editedTokens, setEditedTokens] = useState<ReadonlySet<number>>(new Set());
-  const [editingToken, setEditingToken] = useState<number | null>(null);
-  const [quickAddError, setQuickAddError] = useState("");
-  const draft = useRef<Readonly<{ text: string; id: string }> | null>(null);
+}: Readonly<{
+  hourCycle: "12" | "24";
+  habitSection: ReactNode;
+  inboxId: string;
+  projection: TodayProjection;
+}>) {
   const tasks = useMemo(
     () => [...projection.overdue, ...projection.timed, ...projection.anytime],
     [projection],
   );
-  const controller = usePlanningTaskController(tasks, projection.timeZone);
-  const model = toTodayPlanningModel(projection, { hourCycle });
-  const editingSuggestion = editingToken === null ? undefined : suggestions[editingToken];
-  const quickAddEditorTask = editingSuggestion
-    ? {
-        id: String(editingToken),
-        title: quickAdd.trim() || "new task",
-        version: 1,
-        schedule: editingSuggestion.schedule,
-      }
-    : null;
-
-  useEffect(() => {
-    if (!quickAdd.trim()) return;
-    const timeout = window.setTimeout(() => {
-      void parsePlanningQuickAdd(quickAdd, projection.timeZone)
-        .then((result) => setSuggestions(result.sourceText === quickAdd ? result.suggestions : []))
-        .catch(() => setSuggestions([]));
-    }, 350);
-    return () => window.clearTimeout(timeout);
-  }, [projection.timeZone, quickAdd]);
-
-  async function submitQuickAdd(value: string) {
-    const title = value.trim();
-    if (!title || submitting) return;
-    if (!draft.current || draft.current.text !== title)
-      draft.current = { text: title, id: crypto.randomUUID() };
-    const resourceId = draft.current.id;
-    const selectedSuggestion = suggestions.find((_, index) => !removedTokens.has(index));
-    const schedule = selectedSuggestion?.schedule ?? {
-      kind: "all_day" as const,
+  const controller = usePlanningTaskController(tasks, projection.timeZone, {
+    authoritativeSource: projection,
+    mutationsDisabled: projection.truncated,
+    taskReturnTo: "/today",
+  });
+  const freshness = usePlanningProjectionFreshness({
+    projectedLocalDate: projection.localDate,
+    timeZone: projection.timeZone,
+  });
+  const model = toTodayPlanningModel(projection, {
+    conflictedTaskId: controller.conflictedTaskId,
+    hourCycle,
+    taskReturnTo: "/today",
+  });
+  const quickAdd = usePlanningQuickAdd({
+    defaultSchedule: {
+      kind: "all_day",
       startDate: projection.localDate,
       endDate: nextLocalDate(projection.localDate),
-    };
-    setSubmitting(true);
-    setQuickAddError("");
-    try {
-      const created = await createPlanningTask(resourceId, { title, listId: inboxId });
-      await setPlanningTaskSchedule(created.id, created.version, schedule);
-      draft.current = null;
-      setQuickAdd("");
-      setSuggestions([]);
-      setRemovedTokens(new Set());
-      setEditedTokens(new Set());
-      setEditingToken(null);
-      router.refresh();
-    } catch {
-      setQuickAddError(
-        "The task could not be fully added to Today. Your text is still here; check Inbox before retrying.",
-      );
-      router.refresh();
-    } finally {
-      setSubmitting(false);
-    }
-  }
+    },
+    destinationLabel: "Today · Anytime unless a date is recognized",
+    hourCycle,
+    inboxId,
+    placeholder: "Add a task for today…",
+    timeZone: projection.timeZone,
+  });
 
-  const condition =
-    quickAddError && controller.condition.kind === "ready"
-      ? ({ kind: "error", message: quickAddError } as const)
-      : controller.condition;
-
-  async function saveEditedQuickAddSchedule(tokenId: string, schedule: PlanningSchedule) {
-    const index = Number(tokenId);
-    if (!Number.isInteger(index) || !suggestions[index] || removedTokens.has(index)) return false;
-    setSuggestions((current) =>
-      current.map((suggestion, suggestionIndex) =>
-        suggestionIndex === index ? { ...suggestion, schedule } : suggestion,
-      ),
-    );
-    setEditedTokens((current) => new Set(current).add(index));
-    setEditingToken(null);
-    return true;
-  }
+  const condition = resolvePlanningProjectionCondition(
+    controller.condition,
+    projection,
+    freshness.pendingLocalDateLabel
+      ? { kind: "date-changed", currentDateLabel: freshness.pendingLocalDateLabel }
+      : null,
+  );
 
   return (
     <>
       <TodayScreen
         model={model}
         condition={condition}
-        quickAdd={{
-          value: quickAdd,
-          submitting,
-          destinationLabel: "Today · Anytime unless a date is recognized",
-          tokens: suggestions.flatMap((suggestion, index) =>
-            removedTokens.has(index)
-              ? []
-              : [
-                  {
-                    id: String(index),
-                    label: editedTokens.has(index)
-                      ? editedQuickAddScheduleLabel(suggestion.recognizedText, suggestion.schedule, hourCycle)
-                      : suggestion.recognizedText,
-                  },
-                ],
-          ),
-        }}
+        quickAdd={quickAdd.model}
         taskActions={controller.taskActions}
         calendarHref="/calendar"
+        habitSection={habitSection}
         upcomingHref="/upcoming"
-        onQuickAddChange={(value) => {
-          setQuickAdd(value);
-          if (!value.trim()) setSuggestions([]);
-          setQuickAddError("");
-          setRemovedTokens(new Set());
-          setEditedTokens(new Set());
-          setEditingToken(null);
-          if (draft.current?.text !== value.trim()) draft.current = null;
-        }}
-        onQuickAddSubmit={(value) => void submitQuickAdd(value)}
-        onEditQuickAddToken={(tokenId) => {
-          const index = Number(tokenId);
-          if (Number.isInteger(index) && suggestions[index] && !removedTokens.has(index)) {
-            setEditingToken(index);
-          }
-        }}
-        onRemoveQuickAddToken={(tokenId) =>
-          setRemovedTokens((current) => new Set(current).add(Number(tokenId)))
-        }
+        onQuickAddChange={quickAdd.change}
+        onQuickAddSubmit={(value) => void quickAdd.submit(value)}
+        onEditQuickAddToken={quickAdd.editToken}
+        onRemoveQuickAddToken={quickAdd.removeToken}
         onRetry={controller.retry}
+        onReturnToToday={freshness.refresh}
       />
+      <PlanningLiveRegion messages={[freshness.announcement, controller.announcement]} />
       <ScheduleEditorDialog
         localDate={projection.localDate}
-        task={quickAddEditorTask}
+        task={quickAdd.editingTask}
         timeZone={projection.timeZone}
-        onClose={() => setEditingToken(null)}
-        onSave={saveEditedQuickAddSchedule}
+        onClose={quickAdd.closeEditor}
+        onSave={quickAdd.saveEditedSchedule}
       />
       <ScheduleEditorDialog
         localDate={projection.localDate}

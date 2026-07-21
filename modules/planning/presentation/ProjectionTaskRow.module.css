@@ -47,7 +47,8 @@
 }
 
 .statusDone,
-.statusCancelled {
+.statusCancelled,
+.statusSkipped {
   display: flex;
   width: var(--task-status-indicator-size);
   height: var(--task-status-indicator-size);
@@ -63,6 +64,11 @@
 
 .statusCancelled {
   background: var(--text-muted);
+}
+
+.statusSkipped {
+  background: var(--surface-selected);
+  color: var(--text-selected);
 }
 
 .content {
@@ -105,6 +111,16 @@
 .context {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.schedule {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobileRecurrence {
+  display: none;
 }
 
 .conflictLabel {
@@ -199,5 +215,12 @@
 
   .context {
     display: none;
+  }
+
+  .mobileRecurrence {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-1);
   }
 }

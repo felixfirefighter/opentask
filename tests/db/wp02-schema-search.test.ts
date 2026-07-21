@@ -18,33 +18,33 @@ describe("WP02 search index plans", () => {
       const listId = randomUUID();
       await pool.query(
         `insert into task_lists (id, user_id, name, color_token, rank, kind)
-         values ($1, $2, 'Search list', 'slate', 'a0', 'regular')`,
+           values ($1, $2, 'Search list', 'slate', 'a0', 'regular')`,
         [listId, ownerId],
       );
       await pool.query(
         `insert into tasks (id, user_id, list_id, title, description_md, rank)
-         select gen_random_uuid(), $1, $2,
-                case when $3::boolean and number = 777
-                     then 'Violet nebula signal' else 'Ordinary task ' || number end,
-                case when $3::boolean and number = 888
-                     then 'Copper orbit signal' else 'Routine description ' || number end,
-                'a' || lpad(number::text, 5, '0')
-           from generate_series(1, 4000) number`,
+           select gen_random_uuid(), $1, $2,
+                  case when $3::boolean and number = 777
+                       then 'Violet nebula signal' else 'Ordinary task ' || number end,
+                  case when $3::boolean and number = 888
+                       then 'Copper orbit signal' else 'Routine description ' || number end,
+                  'a' || lpad(number::text, 5, '0')
+             from generate_series(1, 4000) number`,
         [ownerId, listId, ownerIndex === 0],
       );
       await pool.query(
         `insert into tags (id, user_id, name, color_token)
-         select gen_random_uuid(), $1,
-                case when $2::boolean and number = 555
-                     then 'Cerulean focus signal' else 'Search tag ' || number end,
-                'slate'
-           from generate_series(1, 10000) number`,
+           select gen_random_uuid(), $1,
+                  case when $2::boolean and number = 555
+                       then 'Cerulean focus signal' else 'Search tag ' || number end,
+                  'slate'
+             from generate_series(1, 10000) number`,
         [ownerId, ownerIndex === 0],
       );
     }
     await pool.query("analyze tasks");
     await pool.query("analyze tags");
-  });
+  }, 60_000);
 
   afterAll(async () => fixture.teardown());
 

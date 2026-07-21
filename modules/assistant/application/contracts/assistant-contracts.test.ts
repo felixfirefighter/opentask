@@ -176,6 +176,20 @@ describe("model extraction contract", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("rejects recurrence creation or editing from model output", () => {
+    expect(
+      modelExtractionSchema.safeParse({
+        ...modelExtraction(),
+        tasks: [
+          {
+            ...modelExtraction().tasks[0],
+            recurrence: { preset: "daily", interval: 1 },
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("versioned proposal contracts", () => {
@@ -225,6 +239,36 @@ describe("versioned proposal contracts", () => {
         taskId,
         rationale: "Wait for clarification.",
         uncertainties: ["The owner is unclear."],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("cannot encode recurrence creation or editing as a review action", () => {
+    expect(
+      plannerActionSchema.safeParse({
+        actionId,
+        kind: "edit_recurrence",
+        semanticRef: "selected-1",
+        taskId,
+        after: { preset: "daily", interval: 1 },
+        rationale: "Repeat this every day.",
+        uncertainties: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      plannerActionSchema.safeParse({
+        actionId,
+        kind: "create",
+        semanticRef: "new-1",
+        after: {
+          title: "Daily review",
+          descriptionMd: "",
+          priority: "none",
+          schedule: null,
+          recurrence: { preset: "daily", interval: 1 },
+        },
+        rationale: "Review each day.",
+        uncertainties: [],
       }).success,
     ).toBe(false);
   });

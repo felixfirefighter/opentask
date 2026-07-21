@@ -17,6 +17,8 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
+import { createTaskRecurrenceSchema } from "./recurrence-schema.ts";
+
 type TaskOwnershipColumns = Readonly<{ userId: AnyPgColumn; id: AnyPgColumn }>;
 export type TaskScheduleTable = ReturnType<typeof createTaskScheduleTable>;
 
@@ -186,6 +188,7 @@ export function createTaskSchema(authUserId: () => AnyPgColumn) {
   );
 
   const taskSchedules = createTaskScheduleTable(tasks);
+  const recurrenceSchema = createTaskRecurrenceSchema(tasks);
 
   const checklistItems = pgTable(
     "checklist_items",
@@ -266,7 +269,17 @@ export function createTaskSchema(authUserId: () => AnyPgColumn) {
     ],
   );
 
-  return { listFolders, taskLists, listSections, tasks, taskSchedules, checklistItems, tags, taskTags };
+  return {
+    listFolders,
+    taskLists,
+    listSections,
+    tasks,
+    taskSchedules,
+    ...recurrenceSchema,
+    checklistItems,
+    tags,
+    taskTags,
+  };
 }
 
 function createTaskScheduleTable(tasks: TaskOwnershipColumns) {

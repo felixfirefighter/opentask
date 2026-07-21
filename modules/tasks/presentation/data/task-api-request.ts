@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { fetchWithConnectivity } from "@/shared/presentation";
+
 const taskProblemSchema = z.strictObject({
   type: z.string(),
   title: z.string(),
@@ -44,7 +46,7 @@ export async function requestTaskJson<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set("accept", "application/json");
-  const response = await fetch(path, { ...init, credentials: "same-origin", headers });
+  const response = await fetchWithConnectivity(path, { ...init, credentials: "same-origin", headers });
   if (!response.ok) throw await readTaskProblem(response);
   try {
     return schema.parse(await response.json());

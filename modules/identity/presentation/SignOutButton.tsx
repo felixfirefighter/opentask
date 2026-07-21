@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
 
+import { fetchWithConnectivity } from "@/shared/presentation";
+
 import styles from "./AccountMenu.module.css";
 
 type SignOutState = "idle" | "pending" | "error";
@@ -21,7 +23,7 @@ export function SignOutButton({ onSignedOut = redirectToSignIn }: SignOutButtonP
     setState("pending");
 
     try {
-      const response = await fetch("/api/auth/sign-out", {
+      const response = await fetchWithConnectivity("/api/auth/sign-out", {
         method: "POST",
         credentials: "same-origin",
         headers: { accept: "application/json", "content-type": "application/json" },

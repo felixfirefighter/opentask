@@ -1,0 +1,139 @@
+.page {
+  width: min(100%, 920px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+.pageHeader {
+  display: flex;
+  min-height: 56px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-default) solid var(--border);
+}
+
+.pageHeader h1 {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+}
+.pageHeader > div > p:last-child {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.viewControl {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin: var(--space-5) 0;
+  padding: var(--space-1);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+}
+
+.viewControl a {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+}
+
+.viewControl a[aria-current="page"] {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.list {
+  overflow: hidden;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.continuation {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.continuation p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+  text-align: center;
+}
+
+.continuation button {
+  min-height: var(--control-target-touch);
+}
+
+.empty {
+  display: grid;
+  min-height: 280px;
+  place-content: center;
+  justify-items: center;
+  padding: var(--space-8);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface);
+  text-align: center;
+}
+
+.empty h2 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-family: var(--font-display);
+  font-size: var(--type-display-sm-size);
+  font-weight: var(--type-display-sm-weight);
+  line-height: var(--type-display-sm-line);
+}
+.empty p {
+  max-width: 44ch;
+  margin: 0 0 var(--space-5);
+  color: var(--text-muted);
+}
+.empty[data-state="error"] h2 {
+  font-family: var(--font-sans);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+@media (max-width: 767px) {
+  .page {
+    width: 100%;
+    padding: var(--space-5) var(--space-4) var(--space-16);
+  }
+  .pageHeader {
+    align-items: flex-start;
+  }
+  .pageHeader button {
+    flex: none;
+    white-space: nowrap;
+  }
+  .viewControl {
+    display: flex;
+  }
+  .viewControl a {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .viewControl a {
+    min-height: var(--control-target-touch);
+  }
+}

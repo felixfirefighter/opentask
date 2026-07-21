@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { buildDeterministicPlan, type PlanningBusyIntervalReader } from "@/modules/planning";
 import type { TasksApplication } from "@/modules/tasks";
 import { ApplicationError } from "@/shared/http/application-error";
 
@@ -14,7 +15,6 @@ import {
   type ProposalContextVersions,
 } from "./contracts";
 import type {
-  PlannerBusyScheduleReader,
   PlannerProposalWriter,
   PlannerSelectedTaskReader,
   PlannerSelectedTaskSnapshot,
@@ -26,10 +26,10 @@ import type { PlannerProposalLifecycle } from "./proposal-lifecycle";
 const selectedTaskPortConforms: TasksApplication["taskSnapshots"] extends PlannerSelectedTaskReader
   ? true
   : false = true;
-const busySchedulePortConforms: TasksApplication["schedules"] extends PlannerBusyScheduleReader
-  ? true
-  : false = true;
 const proposalWriterConforms: PlannerProposalLifecycle extends PlannerProposalWriter ? true : false = true;
+type BusyContextTruncationReason = Awaited<
+  ReturnType<PlanningBusyIntervalReader["readBusyIntervals"]>
+>["truncation"]["reasons"][number];
 
 const actor = { userId: "11111111-1111-4111-8111-111111111111" } as const;
 const taskId = "22222222-2222-4222-8222-222222222222";
@@ -119,8 +119,8 @@ function createHarness(
     extraction?: ModelExtraction;
     providerError?: unknown;
     snapshots?: readonly PlannerSelectedTaskSnapshot[];
-    busyItems?: Awaited<ReturnType<PlannerBusyScheduleReader["listRange"]>>["items"];
-    busyTruncated?: boolean;
+    busyItems?: Awaited<ReturnType<PlanningBusyIntervalReader["readBusyIntervals"]>>["items"];
+    busyTruncationReason?: BusyContextTruncationReason;
     provider?: PlannerExtractionProvider | null;
   } = {},
 ) {
@@ -146,12 +146,18 @@ function createHarness(
       return options.snapshots ?? [selectedSnapshot];
     },
   };
-  const busySchedules: PlannerBusyScheduleReader = {
-    async listRange(_actor, query) {
+  const busyIntervals: PlanningBusyIntervalReader = {
+    async readBusyIntervals(_actor, query) {
       busyCalls(query);
       return {
         items: options.busyItems ?? [],
-        truncated: options.busyTruncated ?? false,
+        truncation: {
+          truncated: options.busyTruncationReason !== undefined,
+          reasons: options.busyTruncationReason ? [options.busyTruncationReason] : [],
+          recurrenceRowsEvaluated: 0,
+          occurrenceEventsEvaluated: 0,
+          candidateEvaluations: 0,
+        },
       };
     },
   };
@@ -175,24 +181,22 @@ function createHarness(
     },
   };
   let nextActionId = 0;
+  const schedule = vi.fn(buildDeterministicPlan);
   const creator = createPlannerProposalCreator({
     provider,
     selectedTasks,
-    busySchedules,
+    busyIntervals,
     proposals,
+    schedule,
     createActionId: () => actionIds[nextActionId++] ?? crypto.randomUUID(),
   });
 
-  return { creator, requests, persisted, providerCalls, selectedCalls, busyCalls };
+  return { creator, requests, persisted, providerCalls, selectedCalls, busyCalls, schedule };
 }
 
 describe("planner proposal creation", () => {
-  it("accepts the existing task snapshot, schedule, and proposal lifecycle services as adapters", () => {
-    expect([selectedTaskPortConforms, busySchedulePortConforms, proposalWriterConforms]).toEqual([
-      true,
-      true,
-      true,
-    ]);
+  it("accepts the existing task snapshot and proposal lifecycle services as adapters", () => {
+    expect([selectedTaskPortConforms, proposalWriterConforms]).toEqual([true, true]);
   });
 
   it("authorizes selected snapshots, sends minimal semantic context, and persists a review-only diff", async () => {
@@ -204,6 +208,7 @@ describe("planner proposal creation", () => {
     expect(harness.selectedCalls).toHaveBeenCalledWith([taskId]);
     expect(harness.providerCalls).toHaveBeenCalledOnce();
     expect(harness.busyCalls).toHaveBeenCalledWith({
+      timeZone: "Asia/Singapore",
       rangeStartDate: "2026-07-20",
       rangeEndDate: "2026-07-21",
       rangeStartAt: "2026-07-20T01:00:00Z",
@@ -327,17 +332,13 @@ describe("planner proposal creation", () => {
     expect(harness.persisted[0]?.contextVersions).toEqual({ [taskId]: 7, [secondTaskId]: 3 });
   });
 
-  it("respects fixed busy intervals and excludes all-day due dates from occupied time", async () => {
+  it("respects the content-free occurrence intervals supplied by planning", async () => {
     const harness = createHarness({
       extraction: newTaskExtraction(),
       busyItems: [
-        { schedule: { kind: "all_day" } },
         {
-          schedule: {
-            kind: "timed",
-            startAt: "2026-07-20T01:00:00Z",
-            endAt: "2026-07-20T02:00:00Z",
-          },
+          startAt: "2026-07-20T01:00:00Z",
+          endAt: "2026-07-20T02:00:00Z",
         },
       ],
     });
@@ -360,11 +361,8 @@ describe("planner proposal creation", () => {
       extraction: newTaskExtraction(),
       busyItems: [
         {
-          schedule: {
-            kind: "timed",
-            startAt: "2026-07-20T01:00:00Z",
-            endAt: "2026-07-20T02:00:00Z",
-          },
+          startAt: "2026-07-20T01:00:00Z",
+          endAt: "2026-07-20T02:00:00Z",
         },
       ],
     });
@@ -486,7 +484,18 @@ describe("planner proposal failure containment", () => {
         },
       },
       selectedTasks,
-      busySchedules: { listRange: async () => ({ items: [], truncated: false }) },
+      busyIntervals: {
+        readBusyIntervals: async () => ({
+          items: [],
+          truncation: {
+            truncated: false,
+            reasons: [],
+            recurrenceRowsEvaluated: 0,
+            occurrenceEventsEvaluated: 0,
+            candidateEvaluations: 0,
+          },
+        }),
+      },
       proposals: {
         persist: async () => {
           throw new Error("must not persist");
@@ -536,12 +545,23 @@ describe("planner proposal failure containment", () => {
     expect(malformed.persisted).toHaveLength(0);
   });
 
-  it("refuses a truncated busy range rather than risk an overlapping plan", async () => {
-    const harness = createHarness({ extraction: newTaskExtraction(), busyTruncated: true });
+  it.each([
+    "source_limit",
+    "event_source_limit",
+    "series_candidate_limit",
+    "request_candidate_limit",
+    "output_limit",
+  ] as const)("refuses %s occurrence truncation rather than plan against partial context", async (reason) => {
+    const harness = createHarness({
+      extraction: newTaskExtraction(),
+      busyTruncationReason: reason,
+    });
 
     await expect(harness.creator.create(actor, plannerInput({ selectedTaskIds: [] }))).rejects.toMatchObject({
       code: "VALIDATION_FAILED",
+      message: expect.stringMatching(/recurring occurrence context was truncated/i),
     });
+    expect(harness.schedule).not.toHaveBeenCalled();
     expect(harness.persisted).toHaveLength(0);
   });
 });

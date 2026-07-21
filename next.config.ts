@@ -1,6 +1,14 @@
+import { createHash } from "node:crypto";
+
 import type { NextConfig } from "next";
 
 const development = process.env.NODE_ENV !== "production";
+const generatedBuildVersion = `${String(Date.now()).padStart(13, "0")}-${createHash("sha256")
+  .update(process.cwd())
+  .update(process.version)
+  .digest("hex")
+  .slice(0, 8)}`;
+const openTaskBuildVersion = generatedBuildVersion;
 const developmentOutputWatchIgnores = [
   "**/test-results",
   "**/test-results/**",
@@ -50,10 +58,35 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   devIndicators: false,
+  env: {
+    NEXT_PUBLIC_OPENTASK_BUILD_VERSION: openTaskBuildVersion,
+  },
+  generateBuildId: async () => openTaskBuildVersion,
   reactStrictMode: true,
   turbopack: {},
   async headers() {
-    return [{ source: "/(.*)", headers: [...securityHeaders] }];
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
+        source: "/manifest.webmanifest",
+        headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }],
+      },
+      {
+        source: "/offline.html",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, must-revalidate" },
+          { key: "X-OpenTask-Offline-Fallback", value: "content-free" },
+          { key: "X-Robots-Tag", value: "noindex" },
+        ],
+      },
+      { source: "/(.*)", headers: [...securityHeaders] },
+    ];
   },
   webpack(config, { dev }) {
     if (!dev) return config;

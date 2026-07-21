@@ -50,10 +50,10 @@ describe("quick-add parsing", () => {
   it("keeps unrelated text and returns no invented schedule", () => {
     expect(
       createQuickAddApplication({ clock: singaporeClock }).parseQuickAdd({
-        text: "Prepare clean demo data",
+        text: "Prepare attendee notes",
         timezone: "Asia/Singapore",
       }),
-    ).toEqual({ sourceText: "Prepare clean demo data", suggestions: [] });
+    ).toEqual({ sourceText: "Prepare attendee notes", suggestions: [] });
   });
 
   it("surfaces deterministic DST gap and fold choices instead of hiding ambiguity", () => {

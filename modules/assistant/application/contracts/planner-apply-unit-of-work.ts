@@ -1,3 +1,4 @@
+import type { PlanningBusyIntervalPage, PlanningBusyIntervalQuery } from "@/modules/planning";
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import type { DatabaseTransaction } from "@/shared/db/client";
 
@@ -7,10 +8,21 @@ import type {
   PlannerSchedule,
   ProposalContextVersions,
 } from "./proposal-contract";
-import type { PlannerBusyScheduleQuery, PlannerSelectedTaskSnapshot } from "./proposal-creation-contract";
+import type { PlannerSelectedTaskSnapshot } from "./proposal-creation-contract";
 
 export type PlannerApplyTaskSnapshot = PlannerSelectedTaskSnapshot &
   Readonly<{ schedule: PlannerSchedule | null }>;
+
+export type PlannerApplyBusyIntervalRequest = Readonly<{
+  timeZone: string;
+  query: Omit<PlanningBusyIntervalQuery, "timeZone">;
+  excludedTaskIds: readonly string[];
+}>;
+
+export type PlannerApplyContext = Readonly<{
+  tasks: readonly PlannerApplyTaskSnapshot[];
+  busyIntervals: PlanningBusyIntervalPage | null;
+}>;
 
 /** Runs proposal and task writes against one shared PostgreSQL transaction. */
 export interface PlannerApplyTransactionRunner {
@@ -44,22 +56,13 @@ export interface PlannerApplyProposalRepository {
  * actor's immutable Inbox. Defer actions perform no task write.
  */
 export interface PlannerApplyTaskWriter {
-  loadOwnedOpenForUpdate(
+  prepareReminderReconciliation(actor: AuthenticatedActor, taskIds: readonly string[]): Promise<void>;
+  loadApplyContextForUpdate(
     actor: AuthenticatedActor,
     taskIds: readonly string[],
+    busyIntervals: PlannerApplyBusyIntervalRequest | null,
     transaction: DatabaseTransaction,
-  ): Promise<readonly PlannerApplyTaskSnapshot[]>;
-  loadBusySchedulesForUpdate(
-    actor: AuthenticatedActor,
-    query: PlannerBusyScheduleQuery,
-    excludedTaskIds: readonly string[],
-    transaction: DatabaseTransaction,
-  ): Promise<
-    Readonly<{
-      items: readonly Readonly<{ schedule: PlannerSchedule }>[];
-      truncated: boolean;
-    }>
-  >;
+  ): Promise<PlannerApplyContext>;
   applyAllowedActions(
     actor: AuthenticatedActor,
     actions: readonly PlannerAction[],

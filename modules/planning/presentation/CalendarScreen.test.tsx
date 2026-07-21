@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CalendarScreen, type CalendarScreenProps } from "./CalendarScreen";
 import { calendarFixture } from "./planning-screen-fixtures";
+import type { PlanningCalendarEventModel } from "./planning-screen-model";
 
 const calendarMock = vi.hoisted(() => ({ latest: null as CalendarOptions | null }));
 
@@ -58,7 +59,7 @@ describe("CalendarScreen", () => {
     const eventAfterClass = calendarMock.latest?.eventAfterClass;
     if (typeof eventAfterClass !== "function") throw new Error("Missing end-resize class hook.");
     const displayInfo = {
-      event: { id: calendarFixture.events[0]!.id },
+      event: { id: calendarFixture.events[0]!.projectionId },
       isEndResizable: true,
     } as EventDisplayInfo;
     const generatedClass = eventAfterClass(displayInfo);
@@ -95,9 +96,106 @@ describe("CalendarScreen", () => {
     const onEditSchedule = vi.fn();
     renderCalendar({ onEditSchedule });
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "event-demo");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "task:task-demo");
     await user.click(screen.getByRole("button", { name: "Edit schedule" }));
     expect(onEditSchedule).toHaveBeenCalledWith("task-demo");
+  });
+
+  it("opens the canonical recurring schedule form and exposes occurrence actions", async () => {
+    const user = userEvent.setup();
+    const event = recurringEvent("open");
+    const onEditSchedule = vi.fn();
+    const onOccurrenceTransition = vi.fn();
+    const onOpenTask = vi.fn();
+    renderCalendar({
+      model: { ...calendarFixture, events: [event] },
+      onEditSchedule,
+      onOccurrenceTransition,
+      onOpenTask,
+    });
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), event.projectionId);
+    await user.click(screen.getByRole("button", { name: "Edit future series schedule" }));
+    expect(onOpenTask).toHaveBeenCalledWith(event.taskId, {
+      editSeriesSchedule: true,
+      occurrenceKey: event.occurrenceKey,
+    });
+    expect(onEditSchedule).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Complete occurrence" }));
+    expect(onOccurrenceTransition).toHaveBeenCalledWith(
+      event.taskId,
+      event.occurrenceKey,
+      "complete",
+      event.projectionId,
+    );
+    await user.click(screen.getByRole("button", { name: "Skip occurrence" }));
+    expect(onOccurrenceTransition).toHaveBeenCalledWith(
+      event.taskId,
+      event.occurrenceKey,
+      "skip",
+      event.projectionId,
+    );
+  });
+
+  it("keeps a preserved open occurrence selectable without dead Calendar actions", async () => {
+    const user = userEvent.setup();
+    const event = recurringEvent("open", false);
+    const onOccurrenceTransition = vi.fn();
+    renderCalendar({
+      model: { ...calendarFixture, events: [event] },
+      onOccurrenceTransition,
+    });
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), event.projectionId);
+
+    expect(screen.queryByRole("button", { name: "Complete occurrence" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip occurrence" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit future series schedule" })).toBeVisible();
+    expect(onOccurrenceTransition).not.toHaveBeenCalled();
+  });
+
+  it("keeps terminal occurrences visible with Undo and rejects forced recurring drag", async () => {
+    const user = userEvent.setup();
+    const event = recurringEvent("skipped");
+    const onEventMove = vi.fn().mockResolvedValue({ ok: true });
+    const onOccurrenceTransition = vi.fn();
+    renderCalendar({
+      model: { ...calendarFixture, events: [event] },
+      onEventMove,
+      onOccurrenceTransition,
+    });
+
+    expect(calendarMock.latest?.events).toEqual([
+      expect.objectContaining({ id: event.projectionId, editable: false }),
+    ]);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), event.projectionId);
+    await user.click(screen.getByRole("button", { name: "Undo occurrence" }));
+    expect(onOccurrenceTransition).toHaveBeenCalledWith(
+      event.taskId,
+      event.occurrenceKey,
+      "undo",
+      event.projectionId,
+    );
+
+    const revert = vi.fn();
+    const focus = vi.fn();
+    await act(async () => {
+      await calendarMock.latest?.eventDrop?.({
+        event: {
+          id: event.projectionId,
+          startStr: "2026-07-20T12:00:00+08:00",
+          endStr: "2026-07-20T13:00:00+08:00",
+          allDay: false,
+        },
+        el: { focus },
+        revert,
+      } as unknown as EventDropInfo);
+    });
+    expect(revert).toHaveBeenCalledOnce();
+    expect(focus).toHaveBeenCalledOnce();
+    expect(onEventMove).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("Per-occurrence rescheduling is not available");
   });
 
   it("reverts a rejected pointer move and names what was restored", async () => {
@@ -109,7 +207,7 @@ describe("CalendarScreen", () => {
     await act(async () => {
       await calendarMock.latest?.eventDrop?.({
         event: {
-          id: event.id,
+          id: event.projectionId,
           startStr: "2026-07-20T12:00:00+08:00",
           endStr: "2026-07-20T13:00:00+08:00",
           allDay: false,
@@ -136,7 +234,7 @@ describe("CalendarScreen", () => {
 
     const onRetry = vi.fn();
     const error = renderCalendar({ condition: { kind: "error" }, onRetry });
-    expect(screen.getByText("Record the two-minute demo")).toBeInTheDocument();
+    expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledOnce();
     error.unmount();
@@ -151,16 +249,19 @@ describe("CalendarScreen", () => {
 
     renderCalendar({ condition: { kind: "permission" } });
     expect(screen.queryByTestId("fullcalendar")).not.toBeInTheDocument();
-    expect(screen.queryByText("Record the two-minute demo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Outline the workshop agenda")).not.toBeInTheDocument();
   });
 
   it("keeps loaded events read-only offline and identifies conflicts", async () => {
     const user = userEvent.setup();
     const offline = renderCalendar({ condition: { kind: "offline" } });
     expect(screen.getByRole("button", { name: "Previous range" })).toBeDisabled();
-    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "event-demo");
+    for (const view of ["Month", "Week", "Day", "Agenda"]) {
+      expect(screen.getByRole("button", { name: view })).toBeDisabled();
+    }
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "task:task-demo");
     expect(screen.getByRole("button", { name: "Edit schedule" })).toBeDisabled();
-    expect(screen.getByText("Record the two-minute demo")).toBeInTheDocument();
+    expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
     offline.unmount();
 
     renderCalendar({
@@ -172,8 +273,67 @@ describe("CalendarScreen", () => {
     });
     expect(screen.getByRole("alert")).toHaveTextContent("A task changed elsewhere");
     expect(calendarMock.latest?.events).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: "event-demo", editable: false })]),
+      expect.arrayContaining([expect.objectContaining({ id: "task:task-demo", editable: false })]),
     );
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "task:task-demo");
+    expect(screen.getByRole("button", { name: "Edit schedule" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Open task" })).toBeEnabled();
+  });
+
+  it("keeps a partial calendar visible but read-only while safe navigation and retry remain", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const partial = renderCalendar({
+      condition: {
+        kind: "partial",
+        message:
+          "A safety limit was reached during result loading. Some tasks or occurrences may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_output_limit"],
+        runtimeCondition: null,
+      },
+      onRetry,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This planning view is incomplete");
+    expect(screen.getByText("Outline the workshop agenda")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous range" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Add task" })).toBeDisabled();
+    expect(calendarMock.latest?.editable).toBe(false);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Task to edit" }), "task:task-demo");
+    expect(screen.getByRole("button", { name: "Open task" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Edit schedule" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    partial.unmount();
+
+    renderCalendar({
+      condition: {
+        kind: "partial",
+        message: "Some events may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_source_limit"],
+        runtimeCondition: null,
+      },
+      model: { ...calendarFixture, events: [] },
+    });
+    expect(screen.getByText("Calendar range is incomplete")).toBeInTheDocument();
+    expect(screen.queryByText("No scheduled tasks in this range")).not.toBeInTheDocument();
+  });
+
+  it("preserves offline restrictions and missing-data disclosure together", () => {
+    renderCalendar({
+      condition: {
+        kind: "partial",
+        message: "Some events may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_source_limit"],
+        runtimeCondition: { kind: "offline" },
+      },
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("You are also offline");
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous range" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add task" })).toBeDisabled();
+    expect(calendarMock.latest?.editable).toBe(false);
   });
 });
 
@@ -184,6 +344,7 @@ function renderCalendar(overrides: Partial<CalendarScreenProps> = {}) {
     onAddTask: vi.fn(),
     onOpenTask: vi.fn(),
     onEditSchedule: vi.fn(),
+    onOccurrenceTransition: vi.fn(),
     onSelectEvent: vi.fn(),
     onViewChange: vi.fn(),
     onVisibleRangeChange: vi.fn(),
@@ -208,4 +369,31 @@ function setMobile(matches: boolean) {
       dispatchEvent: vi.fn(),
     }),
   });
+}
+
+function recurringEvent(
+  occurrenceState: "open" | "completed" | "skipped",
+  transitionEligible = true,
+): PlanningCalendarEventModel {
+  return {
+    ...calendarFixture.events[0]!,
+    projectionId: `occurrence:task-demo:occurrence-${occurrenceState}`,
+    projectionLifecycle: "recurring_occurrence",
+    occurrenceKey: `occurrence-${occurrenceState}`,
+    occurrenceState,
+    transitionEligible,
+    scheduleInteraction: {
+      editScope: "series",
+      dragEnabled: false,
+      dragDisabledReason:
+        "Per-occurrence rescheduling is not available. Edit the future series schedule instead.",
+    },
+    statusLabel:
+      occurrenceState === "open"
+        ? "Open occurrence"
+        : occurrenceState === "completed"
+          ? "Completed occurrence"
+          : "Skipped occurrence",
+    categoryLabel: "Recurring task",
+  };
 }

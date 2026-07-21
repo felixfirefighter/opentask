@@ -16,6 +16,17 @@ const listId = "20000000-0000-4000-8000-000000000002";
 
 const task = {
   id: taskId,
+  projectionId: `task:${taskId}`,
+  projectionLifecycle: "one_off",
+  occurrenceKey: null,
+  occurrenceState: null,
+  transitionEligible: null,
+  recurrenceSummary: null,
+  scheduleInteraction: {
+    editScope: "task",
+    dragEnabled: true,
+    dragDisabledReason: null,
+  },
   listId,
   title: "Prepare the demo",
   status: "open",
@@ -78,6 +89,7 @@ describe("planning projection DTO contracts", () => {
       }),
     ).toThrow();
     expect(() => planningTaskRowSchema.parse({ ...task, dueAt: null })).toThrow();
+    expect(() => planningTaskRowSchema.parse({ ...task, taskId })).toThrow();
   });
 
   it("requires exactly seven Upcoming day buckets", () => {
@@ -90,8 +102,40 @@ describe("planning projection DTO contracts", () => {
         days: [],
         remainingCount: 0,
         truncated: false,
+        truncationReasons: [],
       }),
     ).toThrow();
+  });
+
+  it("requires composite recurrence identity and disabled series dragging metadata", () => {
+    const occurrenceKey = "o2.stable_key";
+    const recurring = {
+      ...task,
+      projectionId: `occurrence:${taskId}:${occurrenceKey}`,
+      projectionLifecycle: "recurring_occurrence",
+      occurrenceKey,
+      occurrenceState: "open",
+      transitionEligible: true,
+      scheduleInteraction: {
+        editScope: "series",
+        dragEnabled: false,
+        dragDisabledReason: "Recurring occurrences must be edited through the series schedule.",
+      },
+      schedule: {
+        kind: "all_day",
+        startDate: "2026-07-20",
+        endDate: "2026-07-21",
+      },
+    } as const;
+
+    expect(planningTaskRowSchema.parse(recurring)).toMatchObject({ occurrenceKey });
+    expect(() =>
+      planningTaskRowSchema.parse({
+        ...recurring,
+        projectionId: `task:${taskId}`,
+        scheduleInteraction: { ...recurring.scheduleInteraction, dragEnabled: true },
+      }),
+    ).toThrow(/metadata is inconsistent/i);
   });
 
   it("caps Calendar and Matrix results and prevents duplicate quadrant membership", () => {
@@ -104,6 +148,7 @@ describe("planning projection DTO contracts", () => {
         timeZone: "Asia/Singapore",
         events: [],
         truncated: false,
+        truncationReasons: [],
       }),
     ).toMatchObject({ events: [] });
 
@@ -117,14 +162,55 @@ describe("planning projection DTO contracts", () => {
         timeSensitive: [],
         later: [],
         truncated: false,
+        truncationReasons: [],
       }),
     ).toThrow();
+  });
+
+  it("requires explicit, unique projection truncation reasons", () => {
+    const base = {
+      rangeStartDate: "2026-07-20",
+      rangeEndDate: "2026-07-21",
+      rangeStartAt: "2026-07-19T16:00:00Z",
+      rangeEndAt: "2026-07-20T16:00:00Z",
+      timeZone: "Asia/Singapore",
+      events: [],
+    } as const;
+
+    expect(
+      calendarProjectionSchema.parse({
+        ...base,
+        truncated: true,
+        truncationReasons: ["recurrence_event_source_limit"],
+      }),
+    ).toMatchObject({ truncated: true });
+    expect(() => calendarProjectionSchema.parse({ ...base, truncated: true, truncationReasons: [] })).toThrow(
+      /truncation metadata is inconsistent/i,
+    );
+    expect(() =>
+      calendarProjectionSchema.parse({
+        ...base,
+        truncated: true,
+        truncationReasons: ["recurrence_output_limit", "recurrence_output_limit"],
+      }),
+    ).toThrow(/must be unique/i);
   });
 
   it("rejects invalid flattened Calendar event bounds", () => {
     expect(() =>
       calendarEventDtoSchema.parse({
         taskId,
+        projectionId: `task:${taskId}`,
+        projectionLifecycle: "one_off",
+        occurrenceKey: null,
+        occurrenceState: null,
+        transitionEligible: null,
+        recurrenceSummary: null,
+        scheduleInteraction: {
+          editScope: "task",
+          dragEnabled: true,
+          dragDisabledReason: null,
+        },
         listId,
         title: "Backwards event",
         status: "open",

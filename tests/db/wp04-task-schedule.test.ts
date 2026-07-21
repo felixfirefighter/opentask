@@ -89,6 +89,154 @@ describe("task schedule PostgreSQL integration", () => {
     });
   });
 
+  it("blocks active-series schedule writes and clears an ended definition atomically", async () => {
+    const list = await createList(ownerA, "Recurring schedule owner");
+    const task = await createTask(ownerA, list.id, "Recurring schedule target");
+    await schedules.setSchedule(ownerA, task.id, {
+      expectedVersion: 1,
+      schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
+    });
+    await pool.query(
+      `insert into task_recurrences
+         (user_id, task_id, rrule, timezone, projection_start_date)
+       values ($1, $2, 'FREQ=DAILY;INTERVAL=1', 'Asia/Singapore', '2026-07-20')`,
+      [ownerA.userId, task.id],
+    );
+
+    await expect(
+      schedules.setSchedule(ownerA, task.id, {
+        expectedVersion: 2,
+        schedule: { kind: "all_day", startDate: "2026-07-21", endDate: "2026-07-22" },
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 2 });
+    await expect(schedules.clearSchedule(ownerA, task.id, { expectedVersion: 2 })).rejects.toMatchObject({
+      code: "CONFLICT",
+      currentVersion: 2,
+    });
+    await expect(storedTaskVersion(ownerA.userId, task.id)).resolves.toBe(2);
+
+    await pool.query(
+      `update task_recurrences
+          set projection_end_date = projection_start_date
+        where user_id = $1 and task_id = $2`,
+      [ownerA.userId, task.id],
+    );
+    await expect(schedules.clearSchedule(ownerA, task.id, { expectedVersion: 2 })).resolves.toEqual({
+      task: { id: task.id, version: 3 },
+      schedule: null,
+    });
+    const remaining = await pool.query(
+      `select
+         (select count(*)::int from task_recurrences where user_id = $1 and task_id = $2) as rules,
+         (select count(*)::int from task_schedules where user_id = $1 and task_id = $2) as schedules`,
+      [ownerA.userId, task.id],
+    );
+    expect(remaining.rows).toEqual([{ rules: 0, schedules: 0 }]);
+  });
+
+  it("creates a task and schedule atomically with exact whole-command replay", async () => {
+    const listA = await createList(ownerA, "Atomic create owner A");
+    const listB = await createList(ownerB, "Atomic create owner B");
+    const taskId = randomUUID();
+    const input = {
+      title: "Plan the local release",
+      descriptionMd: "Keep the task and schedule together.",
+      priority: "high" as const,
+      listId: listA.id,
+      sectionId: null,
+      parentTaskId: null,
+      placement: { kind: "start" as const },
+      schedule: { kind: "all_day" as const, startDate: "2026-07-20", endDate: "2026-07-21" },
+    };
+
+    await expect(tasks.tasks.createTaskWithSchedule(ownerA, taskId, input)).resolves.toMatchObject({
+      created: true,
+      value: {
+        task: { id: taskId, version: 1 },
+        schedule: { taskId, kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
+      },
+    });
+    await expect(tasks.tasks.createTaskWithSchedule(ownerA, taskId, input)).resolves.toMatchObject({
+      created: false,
+      value: { task: { id: taskId, version: 1 }, schedule: { taskId } },
+    });
+    await expect(
+      tasks.tasks.createTaskWithSchedule(ownerA, taskId, {
+        ...input,
+        schedule: { kind: "all_day", startDate: "2026-07-21", endDate: "2026-07-22" },
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(
+      tasks.tasks.createTaskWithSchedule(ownerB, randomUUID(), { ...input, listId: listA.id }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    expect(await storedTaskVersion(ownerA.userId, taskId)).toBe(1);
+    expect(await storedSchedule(ownerA.userId, taskId)).toMatchObject({
+      kind: "all_day",
+      start_date: "2026-07-20",
+      end_date: "2026-07-21",
+    });
+    expect(await storedTaskCount(ownerB.userId, listB.id)).toBe(0);
+  });
+
+  it("rolls back the task when schedule persistence fails and serializes concurrent retries", async () => {
+    const list = await createList(ownerA, "Atomic create rollback");
+    const rollbackId = randomUUID();
+    await pool.query(`
+      create function reject_p1_schedule() returns trigger language plpgsql as $$
+      begin
+        raise exception 'forced schedule failure';
+      end
+      $$
+    `);
+    await pool.query(`
+      create trigger reject_p1_schedule before insert on task_schedules
+      for each row when (new.task_id = '${rollbackId}') execute function reject_p1_schedule()
+    `);
+    await expect(
+      tasks.tasks.createTaskWithSchedule(ownerA, rollbackId, {
+        title: "Must roll back",
+        descriptionMd: "",
+        priority: "none",
+        listId: list.id,
+        sectionId: null,
+        parentTaskId: null,
+        placement: { kind: "start" },
+        schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
+      }),
+    ).rejects.toBeDefined();
+    expect(await storedTaskVersion(ownerA.userId, rollbackId)).toBeNull();
+    expect(await storedSchedule(ownerA.userId, rollbackId)).toBeNull();
+
+    const concurrentId = randomUUID();
+    const concurrentInput = {
+      title: "One effective retry",
+      descriptionMd: "",
+      priority: "none" as const,
+      listId: list.id,
+      sectionId: null,
+      parentTaskId: null,
+      placement: { kind: "start" as const },
+      schedule: {
+        kind: "timed" as const,
+        startAt: "2026-07-20T09:00:00+08:00",
+        endAt: "2026-07-20T10:00:00+08:00",
+        timezone: "Asia/Singapore",
+      },
+    };
+    const results = await Promise.all([
+      tasks.tasks.createTaskWithSchedule(ownerA, concurrentId, concurrentInput),
+      tasks.tasks.createTaskWithSchedule(ownerA, concurrentId, concurrentInput),
+    ]);
+    expect(results.filter(({ created }) => created)).toHaveLength(1);
+    expect(results.filter(({ created }) => !created)).toHaveLength(1);
+    expect(await storedTaskVersion(ownerA.userId, concurrentId)).toBe(1);
+    expect(await storedSchedule(ownerA.userId, concurrentId)).toMatchObject({
+      kind: "timed",
+      timezone: "Asia/Singapore",
+    });
+  });
+
   it("rolls back the schedule write when the task-version increment fails", async () => {
     const list = await createList(ownerA, "Schedule rollback");
     const task = await createTask(ownerA, list.id, "Atomic schedule target");
@@ -276,9 +424,17 @@ async function storedTaskVersion(userId: string, taskId: string): Promise<number
 
 async function storedSchedule(userId: string, taskId: string) {
   const result = await pool.query(
-    `select kind, start_date, end_date, start_at, end_at, timezone
+    `select kind, start_date::text as start_date, end_date::text as end_date, start_at, end_at, timezone
        from task_schedules where user_id = $1 and task_id = $2`,
     [userId, taskId],
   );
   return result.rows[0] ?? null;
+}
+
+async function storedTaskCount(userId: string, listId: string): Promise<number> {
+  const result = await pool.query(
+    `select count(*)::int as count from tasks where user_id = $1 and list_id = $2`,
+    [userId, listId],
+  );
+  return result.rows[0]?.count ?? 0;
 }

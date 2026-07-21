@@ -74,6 +74,7 @@ export function createPreferencesRepository(clock: Clock) {
       executor: DatabaseExecutor,
       userId: string,
       defaults: { schemaVersion: number; preferences: unknown },
+      resetAt: Date,
     ): Promise<StoredPreferences | null> {
       const [row] = await executor
         .update(schema.userPreferences)
@@ -81,7 +82,7 @@ export function createPreferencesRepository(clock: Clock) {
           preferences: defaults.preferences,
           schemaVersion: defaults.schemaVersion,
           version: sql`${schema.userPreferences.version} + 1`,
-          updatedAt: clock.now(),
+          updatedAt: resetAt,
         })
         .where(eq(schema.userPreferences.userId, userId))
         .returning();

@@ -1,7 +1,16 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { CalendarClock, Check, MoreHorizontal, RotateCcw, XCircle } from "lucide-react";
+import {
+  CalendarClock,
+  Check,
+  MoreHorizontal,
+  Repeat2,
+  RotateCcw,
+  SkipForward,
+  Undo2,
+  XCircle,
+} from "lucide-react";
 
 import type {
   PlanningPriority,
@@ -24,7 +33,13 @@ export function ProjectionTaskMenu({
   disabledReason?: string | undefined;
   task: PlanningTaskRowModel;
 }>) {
-  const hasMenuAction = actions.onPriorityChange || actions.onEditSchedule || actions.onStatusChange;
+  const recurring = task.projectionLifecycle !== "one_off";
+  const occurrence = task.projectionLifecycle === "recurring_occurrence" && task.occurrenceKey !== null;
+  const hasMenuAction =
+    actions.onPriorityChange ||
+    (recurring ? actions.onEditSeriesSchedule : actions.onEditSchedule) ||
+    (occurrence && actions.onOccurrenceTransition) ||
+    actions.onStatusChange;
   if (!hasMenuAction) return null;
 
   const nextLifecycle = task.status === "open" ? "cancelled" : "open";
@@ -45,10 +60,25 @@ export function ProjectionTaskMenu({
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content className={styles.menu} sideOffset={4} align="end">
-          {actions.onEditSchedule ? (
-            <DropdownMenu.Item className={styles.menuItem} onSelect={() => actions.onEditSchedule?.(task.id)}>
-              <CalendarClock size={16} aria-hidden="true" /> Edit schedule
-            </DropdownMenu.Item>
+          {recurring
+            ? actions.onEditSeriesSchedule && (
+                <DropdownMenu.Item
+                  className={styles.menuItem}
+                  onSelect={() => actions.onEditSeriesSchedule?.(task.taskId, task.occurrenceKey)}
+                >
+                  <Repeat2 size={16} aria-hidden="true" /> Edit future series schedule
+                </DropdownMenu.Item>
+              )
+            : actions.onEditSchedule && (
+                <DropdownMenu.Item
+                  className={styles.menuItem}
+                  onSelect={() => actions.onEditSchedule?.(task.taskId)}
+                >
+                  <CalendarClock size={16} aria-hidden="true" /> Edit schedule
+                </DropdownMenu.Item>
+              )}
+          {occurrence && actions.onOccurrenceTransition ? (
+            <OccurrenceItems actions={actions} task={task} />
           ) : null}
           {actions.onPriorityChange ? (
             <>
@@ -57,7 +87,7 @@ export function ProjectionTaskMenu({
               <DropdownMenu.RadioGroup
                 value={task.priority}
                 onValueChange={(value) => {
-                  if (isPlanningPriority(value)) actions.onPriorityChange?.(task.id, value);
+                  if (isPlanningPriority(value)) actions.onPriorityChange?.(task.taskId, value);
                 }}
               >
                 {priorities.map((priority) => (
@@ -76,7 +106,8 @@ export function ProjectionTaskMenu({
               <DropdownMenu.Separator className={styles.separator} />
               <LifecycleItem
                 nextStatus={nextLifecycle}
-                onSelect={() => actions.onStatusChange?.(task.id, nextLifecycle)}
+                recurring={recurring}
+                onSelect={() => actions.onStatusChange?.(task.taskId, nextLifecycle)}
               />
             </>
           ) : null}
@@ -86,12 +117,65 @@ export function ProjectionTaskMenu({
   );
 }
 
-function LifecycleItem({ nextStatus, onSelect }: { nextStatus: PlanningTaskStatus; onSelect: () => void }) {
+function OccurrenceItems({
+  actions,
+  task,
+}: Readonly<{ actions: PlanningTaskActions; task: PlanningTaskRowModel }>) {
+  const transition = actions.onOccurrenceTransition;
+  const occurrenceKey = task.occurrenceKey;
+  if (!transition || occurrenceKey === null) return null;
+  if (task.occurrenceState === "open" && !task.transitionEligible) return null;
+  return (
+    <>
+      <DropdownMenu.Separator className={styles.separator} />
+      {task.occurrenceState === "open" ? (
+        <>
+          <DropdownMenu.Item
+            className={styles.menuItem}
+            onSelect={() => transition(task.taskId, occurrenceKey, "complete", task.projectionId)}
+          >
+            <Check size={16} aria-hidden="true" /> Complete occurrence
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            className={styles.menuItem}
+            onSelect={() => transition(task.taskId, occurrenceKey, "skip", task.projectionId)}
+          >
+            <SkipForward size={16} aria-hidden="true" /> Skip occurrence
+          </DropdownMenu.Item>
+        </>
+      ) : (
+        <DropdownMenu.Item
+          className={styles.menuItem}
+          onSelect={() => transition(task.taskId, occurrenceKey, "undo", task.projectionId)}
+        >
+          <Undo2 size={16} aria-hidden="true" /> Undo occurrence
+        </DropdownMenu.Item>
+      )}
+    </>
+  );
+}
+
+function LifecycleItem({
+  nextStatus,
+  onSelect,
+  recurring,
+}: {
+  nextStatus: PlanningTaskStatus;
+  onSelect: () => void;
+  recurring: boolean;
+}) {
   const restore = nextStatus === "open";
+  const label = restore
+    ? recurring
+      ? "Restore series task"
+      : "Restore task"
+    : recurring
+      ? "Cancel series task"
+      : "Mark as won't do";
   return (
     <DropdownMenu.Item className={styles.menuItem} onSelect={onSelect}>
       {restore ? <RotateCcw size={16} aria-hidden="true" /> : <XCircle size={16} aria-hidden="true" />}
-      {restore ? "Restore task" : "Mark as won't do"}
+      {label}
     </DropdownMenu.Item>
   );
 }

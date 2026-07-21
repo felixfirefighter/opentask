@@ -2,25 +2,45 @@ import type { Metadata } from "next";
 import { ZodError } from "zod";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
-import { getInbox, getTasksApplication } from "@/modules/tasks";
+import { getInbox, getTasksApplication, occurrenceKeySchema } from "@/modules/tasks";
 import { TaskCommandPalette, TaskDetailScreen, TaskNavigation } from "@/modules/tasks/presentation";
 import { ApplicationError } from "@/shared/http/application-error";
 
 import { loadWorkspace } from "../../_load-workspace";
+import { TaskReminderComposition } from "../../_components/TaskReminderComposition";
+import { readTaskDetailReturnHref } from "./task-detail-return";
 
 export const metadata: Metadata = { title: "Task details" };
 export const dynamic = "force-dynamic";
 
 type TaskDetailPageProps = Readonly<{
   params: Promise<{ taskId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>;
 
-export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
+export default async function TaskDetailPage({ params, searchParams }: TaskDetailPageProps) {
   const { taskId } = await params;
-  const workspace = await loadWorkspace(`/tasks/${taskId}`);
-  const [task, inbox] = await Promise.all([
+  const request = await searchParams;
+  const requestedReturnTo = readTaskDetailReturnHref(request.returnTo);
+  const requestedOccurrence = readOccurrence(request);
+  const initialEditSchedule = request.edit === "series-schedule";
+  const taskRouteQuery = new URLSearchParams();
+  if (requestedReturnTo) taskRouteQuery.set("returnTo", requestedReturnTo);
+  if (requestedOccurrence) taskRouteQuery.set("occurrence", requestedOccurrence);
+  if (initialEditSchedule) taskRouteQuery.set("edit", "series-schedule");
+  const taskRoute =
+    `/tasks/${taskId}${taskRouteQuery.size > 0 ? `?${taskRouteQuery.toString()}` : ""}` as `/${string}`;
+  const workspace = await loadWorkspace(taskRoute);
+  const [task, inbox, occurrence] = await Promise.all([
     loadTask(workspace.identity.actor, taskId),
     getInbox(workspace.identity.actor),
+    requestedOccurrence
+      ? getTasksApplication().occurrences.readOccurrence(
+          workspace.identity.actor,
+          taskId,
+          requestedOccurrence,
+        )
+      : null,
   ]);
 
   return (
@@ -47,17 +67,29 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
       mobileNavigation={null}
     >
       {task ? (
-        <TaskDetailScreen
-          task={task}
-          mode="page"
-          inbox={inbox}
-          returnHref={task.listId === inbox.id ? "/inbox" : `/lists/${task.listId}`}
-        />
+        <TaskReminderComposition>
+          <TaskDetailScreen
+            task={task}
+            mode="page"
+            inbox={inbox}
+            hourCycle={workspace.preferences.hourCycle}
+            initialEditSchedule={initialEditSchedule}
+            occurrence={occurrence}
+            occurrenceRequested={requestedOccurrence !== null}
+            returnHref={requestedReturnTo ?? (task.listId === inbox.id ? "/inbox" : `/lists/${task.listId}`)}
+            timeZone={workspace.preferences.timezone}
+          />
+        </TaskReminderComposition>
       ) : (
-        <UnavailableTask />
+        <UnavailableTask returnHref={requestedReturnTo ?? "/inbox"} />
       )}
     </AuthenticatedShell>
   );
+}
+
+function readOccurrence(searchParams: Record<string, string | string[] | undefined>): string | null {
+  const parsed = occurrenceKeySchema.safeParse(searchParams.occurrence);
+  return parsed.success ? parsed.data : null;
 }
 
 async function loadTask(
@@ -76,7 +108,7 @@ function isUnavailableResource(error: unknown): boolean {
   return error instanceof ZodError || (error instanceof ApplicationError && error.code === "NOT_FOUND");
 }
 
-function UnavailableTask() {
+function UnavailableTask({ returnHref }: Readonly<{ returnHref: string }>) {
   return (
     <section className="workspace-route-state" aria-labelledby="task-unavailable-title">
       <div>
@@ -85,6 +117,9 @@ function UnavailableTask() {
           Task unavailable
         </h1>
         <p>This task could not be found or you may not have access.</p>
+        <a className="secondary-button" href={returnHref}>
+          Back to tasks
+        </a>
       </div>
     </section>
   );

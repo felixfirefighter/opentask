@@ -1,4 +1,5 @@
-import { getTasksApplication, restoreTaskRequestSchema } from "@/modules/tasks";
+import { restoreTaskRequestSchema } from "@/modules/tasks";
+import { getReleaseApplications } from "@/server/release-applications";
 
 import {
   assertNoTaskApiQuery,
@@ -18,6 +19,6 @@ export function POST(request: Request, context: TaskRouteContext) {
     const { actor, input } = await readTaskApiMutation(request, restoreTaskRequestSchema);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
-    return privateTaskJson(await getTasksApplication().tasks.restoreTask(actor, taskId, input));
+    return privateTaskJson(await getReleaseApplications().tasks.tasks.restoreTask(actor, taskId, input));
   });
 }

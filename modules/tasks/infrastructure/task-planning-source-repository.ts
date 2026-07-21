@@ -8,6 +8,7 @@ import type { TaskScheduleTable } from "./schema";
 export type StoredTaskPlanningRow = Readonly<{
   task: typeof schema.tasks.$inferSelect;
   schedule: TaskScheduleTable["$inferSelect"] | null;
+  recurrenceRoot: boolean;
 }>;
 
 export type StoredTaskPlanningPage = Readonly<{
@@ -49,10 +50,19 @@ export function createTaskPlanningSourceRepository(
           schema.tasks,
           and(eq(schema.tasks.userId, taskSchedules.userId), eq(schema.tasks.id, taskSchedules.taskId)),
         )
+        .leftJoin(
+          schema.taskRecurrences,
+          and(
+            eq(schema.taskRecurrences.userId, userId),
+            eq(schema.taskRecurrences.userId, taskSchedules.userId),
+            eq(schema.taskRecurrences.taskId, taskSchedules.taskId),
+          ),
+        )
         .where(
           and(
             eq(taskSchedules.userId, userId),
             activeOpenTask(userId),
+            isNull(schema.taskRecurrences.taskId),
             or(
               and(eq(taskSchedules.kind, "all_day"), lt(taskSchedules.startDate, input.exclusiveEndDate)),
               and(eq(taskSchedules.kind, "timed"), lt(taskSchedules.startAt, input.exclusiveEndAt)),
@@ -61,7 +71,10 @@ export function createTaskPlanningSourceRepository(
         )
         .orderBy(asc(schema.tasks.id))
         .limit(input.limit + 1);
-      return toPage(rows, input.limit);
+      return toPage(
+        rows.map((row) => ({ ...row, recurrenceRoot: false })),
+        input.limit,
+      );
     },
 
     async listScheduledRange(
@@ -77,10 +90,19 @@ export function createTaskPlanningSourceRepository(
           schema.tasks,
           and(eq(schema.tasks.userId, taskSchedules.userId), eq(schema.tasks.id, taskSchedules.taskId)),
         )
+        .leftJoin(
+          schema.taskRecurrences,
+          and(
+            eq(schema.taskRecurrences.userId, userId),
+            eq(schema.taskRecurrences.userId, taskSchedules.userId),
+            eq(schema.taskRecurrences.taskId, taskSchedules.taskId),
+          ),
+        )
         .where(
           and(
             eq(taskSchedules.userId, userId),
             activeOpenTask(userId),
+            isNull(schema.taskRecurrences.taskId),
             or(
               and(
                 eq(taskSchedules.kind, "all_day"),
@@ -103,7 +125,10 @@ export function createTaskPlanningSourceRepository(
         )
         .orderBy(asc(schema.tasks.id))
         .limit(input.limit + 1);
-      return toPage(rows, input.limit);
+      return toPage(
+        rows.map((row) => ({ ...row, recurrenceRoot: false })),
+        input.limit,
+      );
     },
 
     async listAllOpen(
@@ -113,7 +138,11 @@ export function createTaskPlanningSourceRepository(
     ): Promise<StoredTaskPlanningPage> {
       assertLimit(limit);
       const rows = await executor
-        .select({ task: schema.tasks, schedule: taskSchedules })
+        .select({
+          task: schema.tasks,
+          schedule: taskSchedules,
+          recurrenceTaskId: schema.taskRecurrences.taskId,
+        })
         .from(schema.tasks)
         .leftJoin(
           taskSchedules,
@@ -123,10 +152,24 @@ export function createTaskPlanningSourceRepository(
             eq(taskSchedules.taskId, schema.tasks.id),
           ),
         )
+        .leftJoin(
+          schema.taskRecurrences,
+          and(
+            eq(schema.taskRecurrences.userId, userId),
+            eq(schema.taskRecurrences.userId, schema.tasks.userId),
+            eq(schema.taskRecurrences.taskId, schema.tasks.id),
+          ),
+        )
         .where(activeOpenTask(userId))
         .orderBy(asc(schema.tasks.id))
         .limit(limit + 1);
-      return toPage(rows, limit);
+      return toPage(
+        rows.map(({ recurrenceTaskId, ...row }) => ({
+          ...row,
+          recurrenceRoot: recurrenceTaskId !== null,
+        })),
+        limit,
+      );
     },
   } as const;
 }

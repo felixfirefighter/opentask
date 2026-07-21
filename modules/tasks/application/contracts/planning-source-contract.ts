@@ -55,6 +55,7 @@ export const taskPlanningSourceQuerySchema = z.discriminatedUnion("kind", [
 export const canonicalTaskPlanningRowSchema = z.strictObject({
   task: taskDtoSchema,
   schedule: taskScheduleDtoSchema.nullable(),
+  recurrenceRoot: z.boolean(),
 });
 
 export const taskPlanningSourcePageSchema = z.strictObject({

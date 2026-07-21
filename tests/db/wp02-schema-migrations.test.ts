@@ -227,12 +227,14 @@ describe("WP02 fresh schema inventory", () => {
               pg_get_expr(index_record.indpred, index_record.indrelid) as predicate
          from pg_index index_record
          join pg_class index_class on index_class.oid = index_record.indexrelid
+         join pg_namespace index_namespace on index_namespace.oid = index_class.relnamespace
          cross join lateral unnest(index_record.indkey)
            with ordinality as key(attnum, ordinality)
          join pg_attribute attribute
            on attribute.attrelid = index_record.indrelid
           and attribute.attnum = key.attnum
-        where index_class.relname = 'tasks_user_list_parent_active_rank_idx'
+        where index_namespace.nspname = current_schema()
+          and index_class.relname = 'tasks_user_list_parent_active_rank_idx'
         group by index_record.indpred, index_record.indrelid`,
     );
     expect(subtaskRankIndex.rows).toEqual([

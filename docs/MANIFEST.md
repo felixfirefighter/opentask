@@ -7,25 +7,26 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 | Concern | Source of truth |
 |---|---|
 | Agent behavior and hard gates | `AGENTS.md` |
+| Implemented capabilities and local run path | `README.md` |
 | Product purpose and principles | `docs/PRODUCT.md` |
-| Active/rejected/later feature scope | `docs/SCOPE.md` |
-| Goal-feature contract | `docs/GOAL.md` |
+| Current/excluded/later feature scope | `docs/SCOPE.md` |
+| Release stewardship and authorized objective | `docs/GOAL.md` |
 | Stack and approved dependencies | `docs/STACK.md` |
 | System shape and layer rules | `docs/ARCHITECTURE.md` |
 | Tables, ownership, data semantics | `docs/DATA_MODEL.md` |
-| Ordered work packages | `docs/IMPLEMENTATION_PLAN.md` |
+| Future authorized-change plan contract | `docs/IMPLEMENTATION_PLAN.md` |
 | Tests, audits, completion gates | `docs/QUALITY.md` |
 | Design north star and routing | `DESIGN.md` |
-| Active visual migration target | `docs/design/editorial-focus.md` |
+| Approved visual baseline | `docs/design/editorial-focus.md` |
 | Vendored font asset sources/notices | `app/fonts/README.md` and `docs/STACK.md` |
 | Hackathon constraints/submission | `docs/HACKATHON.md` |
 | Reproducible local/container setup | `docs/SETUP.md` |
 | Hosted Railway deployment | `docs/DEPLOYMENT.md` |
 | Friend candidate handoff | `docs/FRIEND_TEST.md` |
-| TickTick feature research | `docs/research/TICKTICK_FEATURES.md` |
+| Reference-only TickTick feature research | `docs/research/TICKTICK_FEATURES.md` |
 | Research URLs and confidence | `docs/research/SOURCES.md` |
 
-## Planned repository shape
+## Repository shape
 
 ```text
 app/                     Next.js routes and composition only
@@ -40,7 +41,8 @@ modules/                 Product feature modules
   assistant/
   portability/
 shared/                  Approved stable cross-cutting surfaces
-worker/                  pg-boss runtime; zero-job baseline until P6 activates reminder jobs
+server/                  Web-only release application composition through module roots
+worker/                  active two-queue pg-boss notification runtime and check mode
 drizzle/                 Generated, committed SQL migrations
 public/                  Original static assets
 docs/                    Product and engineering contracts
@@ -61,11 +63,13 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 | focus | authoritative timer policy, completed sessions, and derived summaries | `docs/modules/focus.md` |
 | notifications | task reminders, push subscriptions, queue jobs, and Web Push delivery | `docs/modules/notifications.md` |
 | assistant | OpenAI adapter, extraction, planner proposals, review/apply | `docs/modules/assistant.md` |
-| portability | versioned user export and future import adapters | `docs/modules/portability.md` |
+| portability | authenticated versioned user export | `docs/modules/portability.md` |
 
 ## Approved shared surfaces
 
-- `shared/presentation`: shadcn primitives, generic layout primitives, generic hooks.
+- `shared/presentation`: shadcn primitives, generic layout primitives and hooks, plus the narrow
+  cross-cutting browser connectivity and service-worker lifecycle adapters. Product-facing PWA
+  cards and banners remain owned by the composing feature module.
 - `shared/design`: tokens and theme plumbing.
 - `shared/auth`: provider-neutral actor/session contracts and authentication errors; no provider
   implementation or feature authorization policies.
@@ -81,14 +85,14 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 
 Anything else requires updating this manifest with a concrete reason.
 
-## Required commands after bootstrap
+## Stable command surface
 
-The bootstrap work package must create these stable commands; later agents use them rather than inventing alternatives.
+These commands are the stable repository interface; contributors use them rather than inventing alternatives.
 
 | Command | Contract |
 |---|---|
 | `pnpm dev` | web app in development |
-| `pnpm worker` | pg-boss worker; architecture smoke before P6 and active reminder jobs after P6 |
+| `pnpm worker` | active two-queue reminder worker; `--check` validates configuration and queues without consumers or push |
 | `pnpm db:up` / `pnpm db:down` | local PostgreSQL lifecycle |
 | `pnpm db:generate` | generate migration from reviewed schema change |
 | `pnpm db:migrate` | apply committed migrations |
@@ -96,6 +100,8 @@ The bootstrap work package must create these stable commands; later agents use t
 | `pnpm lint` | static lint |
 | `pnpm format:check` | deterministic formatting gate |
 | `pnpm test:boundaries` | executable negative architecture-boundary probe |
+| `pnpm check:docs` | local Markdown and manifest-route reference audit |
+| `pnpm check:schema` | exact migrated application table/column and Drizzle-composition inventory |
 | `pnpm typecheck` | strict TypeScript |
 | `pnpm test` | unit tests |
 | `pnpm test:db` | database integration tests |
@@ -112,9 +118,8 @@ The bootstrap work package must create these stable commands; later agents use t
 
 - Update a source-of-truth document only when its contract changes.
 - Do not copy the same rule into multiple documents; link to the owner.
-- Do not store progress history in docs. A temporary `CURRENT_WORK.md`, if ever needed, is replaced rather than appended and is deleted at release.
+- Do not store progress history in docs. A temporary current-work note, if ever needed, is replaced rather than appended and is deleted at release.
 - New module contracts belong in `docs/modules/`; new screen contracts belong in `docs/design/screens/`.
 - A later-roadmap contract is not permission to create its routes, tables, jobs, dependencies, or UI
-  under the active goal. Active modules still follow the package order and cannot expose dormant
-  later-package code before their gate.
+  without an explicit user-authorized scope change. Do not expose dormant later-scope code.
 - Architecture deviations use one short ADR in `docs/decisions/` and a manifest entry. Do not create ADRs for routine implementation choices.

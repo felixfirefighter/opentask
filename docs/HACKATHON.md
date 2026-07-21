@@ -32,16 +32,20 @@ The rules, not this summary, control if wording differs.
 
 ### One sentence
 
-An open-source personal planning workspace that combines tasks and active calendar planning, then uses GPT-5.6 to turn a messy brain dump into a deterministic, editable schedule that never changes data without approval.
+An open-source personal planning workspace that combines tasks, habits, Focus, calendar planning,
+and optional private browser reminders, then uses GPT-5.6 to turn a messy brain dump into an
+editable schedule that never changes data without approval.
 
 ### Why it is not only a clone
 
 - Useful core features remain available without a subscription or OpenAI key.
-- The project is self-hostable and exposes a documented versioned export.
+- The project is self-hostable, installable, and exposes a documented versioned export.
 - GPT-5.6 extracts ambiguous intent into a strict proposal; application code, not the model, enforces time and ownership constraints.
 - The user sees uncertainties and a before/after diff, edits the plan, and explicitly applies it.
+- Optional browser reminders use a separate worker, encrypted subscriptions, generic payloads, and
+  an honest provider-degraded state rather than putting core planning behind a hosted service.
 
-### Codex story to capture during implementation
+### Codex evidence to retain
 
 Retain concise evidence in Git and the final submission notes for:
 
@@ -53,19 +57,24 @@ Retain concise evidence in Git and the final submission notes for:
 
 Do not create a running Markdown diary. Select a few meaningful commits and the final Codex task/session for the submission story.
 
-## Demonstration script: maximum 2:30
+## Demonstration script: maximum 2:52
 
 | Time | Story beat | Visible proof |
 |---:|---|---|
 | 0:00–0:12 | Problem and promise | Original landing page; open-source/self-host message |
-| 0:12–0:34 | Capture | Enter a natural-language task; recognized date remains editable |
-| 0:34–0:56 | Organize | Add list, priority, tag, checklist item, and Markdown context |
-| 0:56–1:16 | Plan across views | Schedule on Calendar; show the same task in Today and Matrix |
-| 1:16–2:04 | GPT-5.6 showcase | Paste brain dump, generate typed proposal, show conflict/uncertainty, edit and explicitly apply |
-| 2:04–2:18 | Trust | Show before/after, non-AI fallback, and JSON export |
-| 2:18–2:30 | Build proof | Brief architecture/Codex evidence and repository/demo links |
+| 0:12–0:34 | Capture and organize | Use Try demo; add a task with an editable recognized date, list, priority, and checklist |
+| 0:34–0:54 | Plan across real time | Schedule on Calendar; show the same task in Today/Matrix and one recurring occurrence |
+| 0:54–1:10 | Daily practice | Check in a habit and finish a prepared Focus session; point to derived history |
+| 1:10–1:52 | GPT-5.6 showcase | Generate a typed proposal from a brain dump, show uncertainty/diff, edit, and explicitly Apply |
+| 1:52–2:18 | Private reminder | In a configured browser, show explicit enablement and a saved reminder; capture the generic **Task reminder** notification and its same-origin task link |
+| 2:18–2:38 | Local-first trust | Show the no-key/provider-degraded explanations, read-only offline state, and schema-v5 JSON export |
+| 2:38–2:52 | Build proof | Brief module/worker boundary, Codex evidence, AGPL repository, and local-run link |
 
-Record a backup take. Keep cursor movement deliberate, browser zoom readable, and seeded data deterministic.
+Before recording, configure the local reminder provider, keep the worker running, and prepare a
+future reminder whose delivery fits the take; never fake a provider result. If real delivery is not
+reliable enough to record, show the truthful reminder specification and capability state without
+claiming that a notification arrived. Record a backup take. Keep cursor movement deliberate,
+browser zoom readable, and seeded data deterministic.
 
 ## Submission asset checklist
 
@@ -75,6 +84,7 @@ Record a backup take. Keep cursor movement deliberate, browser zoom readable, an
 - [ ] README quickstart tested from a fresh clone
 - [ ] Sample environment file contains placeholders only
 - [ ] Demo entry/seed instructions work without shared private credentials
+- [ ] Web and two-queue worker startup/check commands rehearsed; provider-degraded behavior disclosed
 - [ ] Public video under three minutes, with audible narration and captions if possible
 - [ ] Thumbnail/screenshots at desktop and mobile widths
 - [ ] Codex/GPT-5.6 implementation explanation
@@ -83,14 +93,14 @@ Record a backup take. Keep cursor movement deliberate, browser zoom readable, an
 - [ ] No secrets or personal data in Git history, logs, video, screenshots, or seed
 - [ ] Submission form preview checked before the deadline
 
-## Deadline operating rules
+## Submission operating rules
 
-- Preserve the last fully green core commit as the submission fallback while Local-first Full Release
-  work remains isolated.
-- Freeze the chosen submission candidate by **2026-07-21 08:00 GMT+8**. A new package may replace the
-  fallback only when its complete gate and required visual approval pass before that decision.
-- Reserve the final 24 hours for user/friend testing, full audit, recording, upload, form completion,
-  and contingency. Do not merge a mixed design or partial extension to widen the demo.
+- Choose one exact candidate commit only after its canonical verification gate and friend path pass;
+  record, tag, and submit from that commit.
+- Freeze the candidate before recording and uploading. Do not replace it with a partial feature or
+  unverified last-minute change merely to widen the demo.
+- Leave explicit time for friend testing, recording, upload, form completion, and one contingency
+  take; the official deadline remains the hard stop stated above.
 - Submit a complete draft as soon as the repository, video, description, and any optional hosted URL
   are ready; improve it before the deadline rather than waiting for the last hour.
 - Keep a local video copy, a reproducible local demo, and the exact release commit hash. A hosted

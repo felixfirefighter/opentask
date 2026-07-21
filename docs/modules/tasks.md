@@ -27,19 +27,33 @@ projections through its public application contracts.
 ## Public use cases and contracts
 
 - Container commands: create/update/reorder/soft-delete/restore folders and lists; create/update/reorder/delete empty sections; `createPersonalInbox` for identity bootstrap.
-- Task commands: create/update/move/reorder/soft-delete/restore and transition among `open`, `completed`, and `cancelled`.
+- Task commands: create/update/move/reorder/soft-delete/restore and transition among `open`,
+  `completed`, and `cancelled`; `createTaskWithSchedule` atomically creates one task and its validated
+  initial schedule under the same actor-scoped UUID idempotency contract.
 - Detail commands: manage tags and checklist items; set/clear schedule; set/edit/end a supported
-  recurrence rule.
+  recurrence rule. A create/edit that adds or restarts recurrence accepts the optional task-owned
+  `TaskRecurrenceReminderResolution` union:
+  `{kind:"remove",expectedReminderVersion}` or
+  `{kind:"convert_relative_start",expectedReminderVersion,offsetMinutes}`.
 - Occurrence commands: complete, skip, and undo/reopen one authorized occurrence using its opaque
   deterministic identity and the owning task's expected version.
-- Queries: get task detail, list Inbox/regular/terminal tasks, search tasks, load selected open
-  unscheduled tasks, and range-bounded schedule/occurrence reads.
+- Queries: get task detail, resolve one actor-scoped opaque occurrence identity for canonical task
+  details, list Inbox/regular/terminal tasks, search tasks, load selected open unscheduled tasks, and
+  range-bounded schedule/occurrence reads. `TaskFocusLinkReader` is the narrow actor-scoped contract
+  Focus uses to validate one selectable task, search bounded candidates, and hydrate a saved
+  historical link without exposing task persistence. `TaskReminderSourceReader` is the narrow
+  transaction-aware, actor-scoped contract notifications uses to read authoritative task, schedule,
+  recurrence, and next-occurrence reminder inputs without receiving a task repository.
 - Parsing: `parseQuickAdd(text, timezone)` returns the unchanged source text plus explicit editable suggestions; it performs no write.
 - Public contracts: the existing folder/list/section/tag/task DTO and tag-enriched task-list item/page types,
   `ReplaceTaskTagsOutput`, `TaskQuery`, `TerminalTaskQuery`, `TaskVersionRef`, `TaskScheduleDto`,
-  `TaskSnapshotReader`, `TaskRecurrenceDto`, `TaskOccurrenceDto`, bounded occurrence query/result
-  contracts, and narrow mutation/snapshot services used by assistant/planning/notifications/
-  portability.
+  `TaskSnapshotReader`, `TaskFocusLinkReader`, `TaskReminderSourceReader`,
+  `ReminderRelevantTaskChange`, `TaskReminderReconciler`,
+  `TaskRecurrenceReminderResolution`, `TaskRecurrenceDto`, `TaskOccurrenceDto`,
+  bounded occurrence query/result contracts, and narrow mutation/snapshot services used by
+  assistant/planning/notifications/portability. `TaskOccurrenceDto.transitionEligible` is the server-derived answer to whether a
+  complete/skip transition would pass the current rule and cutover; consumers do not infer it from
+  occurrence state or schedule.
 - The module root explicitly exports only those cross-module DTOs plus the strict request/query schemas
   consumed by `app/api/v1`; base resource, cursor, rank, and field schemas remain module-internal.
 
@@ -57,39 +71,141 @@ No public contract exposes a Drizzle row or an unscoped repository method.
 - The active release exposes at most one subtask level; subtasks remain full tasks in the same user and list.
 - `status` is the sole current task-state field; `status_changed_at` records its transition time.
 - All-day schedules use inclusive `start_date` and exclusive `end_date`; a one-day task ends on the following local date and its derived midnight boundary uses the user's saved IANA timezone. Timed schedules use UTC `start_at`/`end_at` plus the intent timezone. Representations never mix.
-- Schedule and occurrence range queries require both representations, cap the local-date span at 62
-  days and the elapsed instant span at 63 days, and return at most 500 projected rows plus a
-  truncation signal. They never return an occurrence outside the requested bounds, and the domain
-  wrapper applies an explicit computation cap while resolving count/end semantics.
-- A schedule mutation increments the owning task `version` exactly once in the same transaction.
-- A recurring series is an open, non-deleted, scheduled root task with one `generation_mode=schedule`
-  rule. Subtasks cannot own recurrence; checklist/subtask state is not repeated per occurrence.
-- API/UI recurrence input is a typed preset, never raw RRULE text: daily, weekdays, weekly on selected
-  ISO weekdays, monthly on the schedule's day of month, or yearly on its month/day, with a bounded
-  positive interval and never/until/count ending. The domain wrapper alone normalizes and parses the
-  stored RRULE; that serialization contains no second start value because `task_schedules` remains
-  the only series anchor.
-- The recurrence row has exactly one checked projection cutover: local date for all-day or instant for
-  timed. Initial projection begins at the schedule anchor. An edit replaces the single mutable rule
-  and uses a server-chosen future cutover; the current rule never projects before it. Recorded prior
-  events remain, while unrecorded pre-cutover occurrences are intentionally not reconstructed.
-- An occurrence is a projection of the task schedule and rule, identified by an opaque stable
-  `occurrence_key` derived from the series and canonical all-day local date or timed start instant.
-  It is not a task row and owns no copied schedule, status, checklist, or subtask state.
+- Schedule and occurrence range queries require both date and instant bounds, cap the local-date
+  span at 62 days and the elapsed instant span at 63 days, and return at most 500 combined one-off
+  and recurring rows in canonical start/task/key order plus a truncation signal. One request
+  evaluates at most 500 recurrence rows, 1,000 emitted candidates per series, 50,000 candidates
+  overall, and 50,000 latest recorded occurrence-event states. The bounded event read is necessary to
+  recover recorded keys from prior mutable rules without storing a second occurrence schedule.
+  Hitting a source, event, computation, or output cap is explicit; planner busy-time reads reject
+  truncated context rather than planning against an incomplete calendar.
+- Atomic task-plus-schedule creation inserts both rows in one transaction and returns task version
+  `1`; the initial schedule is part of aggregate creation and does not increment that new version.
+  Every later set/replace/clear schedule mutation increments the owning task `version` exactly once
+  in the same transaction.
+- An active recurring series is an open, non-deleted, scheduled root task with one non-exhausted,
+  not-ended `generation_mode=schedule` rule. Subtasks cannot own recurrence; checklist/subtask state
+  is not repeated per occurrence. Cancelled or soft-deleted owners may retain a dormant active rule
+  but never project occurrences. A completed owner may retain only an explicitly ended rule.
+- API/UI recurrence input is a typed preset, never raw RRULE text. `interval` is an integer from 1 to
+  99. `count` is an integer from 1 to 999. `untilDate` is an inclusive local date in the stored rule
+  timezone and applies to occurrence starts. Weekly weekday input is a sorted unique non-empty set
+  of ISO values 1=Monday through 7=Sunday; recurrence weeks always start Monday independently of the
+  user's display preference.
+- Daily means every N local calendar days. Weekdays means Monday-Friday every N ISO weeks. Selected-
+  weekday weekly means those weekdays every N ISO weeks. Monthly uses the schedule anchor's day of
+  month and skips months without it. Yearly uses the anchor's month/day and skips non-leap years for
+  February 29. The schedule anchor must satisfy the chosen weekday preset, so it is occurrence one;
+  invalid calendar candidates are omitted and do not consume `count`.
+- A recurring schedule is whole-minute aligned. All-day duration is 1-31 calendar days; timed
+  duration is 0-31 exact elapsed days. These are recurrence-eligibility bounds, not new limits on
+  one-off schedules. A timed occurrence preserves the anchor's local wall-clock start in its IANA
+  zone, resolves a spring gap to the later valid instant and a fold to the earlier instant, and ends
+  after the canonical schedule's exact elapsed duration. All-day occurrences preserve their
+  calendar-day duration. An ambiguous anchor that selected the later fold instant is not eligible.
+  While a recurrence definition exists, its schedule kind is fixed: all-day remains all-day and
+  timed remains timed. Changing kind requires ending recurrence and clearing its ended definition
+  with the schedule first; non-recurring root tasks retain ordinary schedule-kind editing.
+- The task-owned RRULE adapter accepts only the typed domain preset, never presentation or arbitrary
+  text. It stores a canonical uppercase ASCII property list of 1-512 characters with no prefix,
+  `DTSTART`, line break, `RDATE`, or exclusion rule. `task_schedules` remains the only series anchor;
+  `rrule` is isolated behind the recurrence expansion port and does not own timezone conversion,
+  duration, identity, caps, or public serialization.
+- The recurrence row has one checked lower projection cutover and an optional matching upper cutover:
+  local dates for all-day or instants for timed. Initial projection begins at the matching schedule
+  anchor with no upper cutover. A rule-only edit retains that anchor and chooses the first new-rule
+  occurrence strictly after authoritative server now interpreted in the stored recurrence timezone
+  (strictly after that local day for all-day, or after that instant for timed). Every explicit rule
+  edit is a restart: it clears an old upper cutover and chooses that future lower boundary. A
+  recurring schedule edit does the same while atomically supplying the new schedule and regenerating
+  the normalized rule. If its count/until is exhausted before that cutover, create/edit is rejected
+  rather than silently ending the series.
+- Ending a series is an explicit versioned command that retains the definition but sets an exclusive
+  upper cutover to the first rule candidate strictly after authoritative server now (or, when no
+  candidate remains, the next local date for all-day and now for timed). Occurrences starting before
+  that boundary remain reconstructable; none at or after it project. Recorded occurrence events and
+  keys remain. An ended rule is visible as ended, can be edited to restart future expansion, and does
+  not make its anchor schedule behave as a one-off task.
+- Completing the owning task is rejected while its recurrence is active; users complete individual
+  occurrences. Once explicitly ended, the task may be completed. Cancel and soft delete retain an
+  active rule as dormant state. Resuming a cancelled task or restoring a deleted task advances its
+  active rule's lower cutover to the first strictly future eligible occurrence, so missed dormant
+  occurrences are not reconstructed. Reopening a completed task with an ended rule changes only task
+  status; it does not restart recurrence. An ended rule restarts only through explicit recurrence
+  edit. If an active saved end condition has no future candidate, the owner still resumes/restores but
+  the rule remains visibly exhausted until the user edits or ends it. Clearing a schedule is rejected
+  while recurrence is active; for an ended rule, clear schedule atomically removes that definition
+  and schedule while preserving events.
+  Every accepted rule, recurring-schedule, end, resume, or ended-rule schedule-clear mutation
+  increments the task version exactly once.
+- Reminder-relevant task writes invoke the injected reconciler inside the task transaction after the
+  canonical task write and before commit. A terminal/deleted owner, cleared relative schedule, or
+  exhausted recurrence leaves the reminder definition and `enabled` value dormant while suppressing
+  current delivery. Reopen/restore/reschedule/restart reconciles only a strictly future delivery.
+  Adding or restarting recurrence while an absolute reminder exists rejects unless the recurrence
+  command supplies one explicit version-checked `TaskRecurrenceReminderResolution`; the injected
+  reconciler applies that conversion/removal in the same task transaction or aborts the whole write.
+- Ordinary calendar drag/resize is disabled for recurring events because an individual occurrence
+  override is outside scope; the canonical form edits the future series schedule instead.
+- An occurrence is a projection of the task schedule and rule, identified by a client-opaque stable
+  key of at most 80 characters. `o1` identities encode the lowercase task UUID and an all-day local
+  date or timed projected start instant. A timed candidate whose timezone gap crosses a local-date
+  boundary uses the backward-compatible `o2` form, which carries both the projected instant and
+  nominal local start so two candidates that resolve to the same instant remain distinct. The server
+  decodes and verifies task/kind/start before a first transition; clients never parse it. It is not a
+  task row and owns no copied schedule, status, checklist, or subtask state. The same canonical
+  nominal start and projected instant retain the same key across views and rule edits. A key start
+  must leave the frozen maximum 31-day occurrence duration inside Temporal's supported upper bound,
+  so every accepted identity can be projected safely.
 - Occurrence transitions append immutable `completed`, `skipped`, or `open` events. The effective
   state is the event with the greatest immutable post-command `task_version`; timestamps and UUIDs do
-  not order causality. Commands serialize on the owning task,
-  reject stale versions, append nothing for a no-op/replay, and increment the task version once for
-  an accepted change.
+  not order causality. Complete/skip first validates a candidate under the current rule and cutover;
+  because that key is untrusted, validation uses direct preset membership rather than expanding from
+  the series anchor to the supplied start. Daily and weekly membership are constant-time; monthly
+  and yearly count ordinals inspect at most one 400-year Gregorian cycle (4,800 month positions or
+  400 year positions), independent of key distance. Undo may reopen a recorded key that a later rule
+  no longer emits. Commands serialize on the owning task, reject stale different-state writes, append
+  nothing for a same-state no-op, and increment the task version once for an accepted change. A
+  response-lost retry is recognized only when the latest event for that key/state has a task version
+  equal to `expectedVersion + 1`; otherwise a stale version remains a conflict. Current-rule
+  generated projections set `transitionEligible=true`. Recorded projections remain visible for
+  history and undo, but independently recompute that flag against the current rule and cutover even
+  while terminal. Therefore an undone historical key can remain visible as `open` with
+  `transitionEligible=false` and must be presented read-only for complete/skip.
+- Aggregate commands use one lock order: owning task row, recurrence row when present, schedule row
+  when present, occurrence-event reads/appends, reminder row, active subscriptions sorted by ID,
+  deliveries sorted by ID, then transactional job insertion. Schedule edits, occurrence transitions,
+  cancel/reopen, reminder set/remove, and delete/restore never acquire those resources in another
+  order.
+- The production task application factory receives one real `TaskReminderReconciler`; individual
+  route handlers never add notification hooks. Reconciliation runs after successful canonical
+  writes/version increments and before commit for schedule set/clear, recurrence create/edit/end,
+  recurring-schedule edit, occurrence transition, task status, every directly affected root/child
+  delete/restore, and planner-applied schedule changes. Multi-task paths sort and deduplicate IDs.
+  Create, title/description, priority, move/rank, tags, checklist, and subtask-content changes do not
+  reconcile. The reminder snapshot—not an unrelated task version bump—decides staleness.
+- Public occurrence reads resolve or receive, then validate, one projection timezone before opening
+  actor-scoped, repeatable-read, read-only snapshots; internal snapshot readers receive that
+  explicit value.
+  Exact occurrence detail and recurrence detail resolve their owning aggregates there. Bounded
+  projections use the same snapshot for one-offs, current recurrence sources, latest events, and
+  late historical-source hydration; repository reads remain sequential on the transaction's one
+  PostgreSQL client. One validated projection-timezone value is held constant for all-day
+  interpretation throughout the read. They never combine a pre-command event with a post-command
+  task version.
+- The public planning composite accepts one independently capped canonical-task query and one or two
+  independently capped occurrence queries plus the validated saved timezone already used to derive
+  their date and instant bounds. Tasks executes every subread sequentially in one actor-scoped
+  repeatable-read snapshot, applies that same timezone to both occurrence pages, and returns only
+  typed application DTOs; no executor or repository crosses the module boundary.
 - Completing or skipping an occurrence never changes the series task status. Normal terminal-state
   commands do not stand in for occurrence actions; an explicit rule edit/end controls future
   expansion. Rule and schedule edits select a future cutover, preserve recorded occurrence events and
   their keys, do not reconstruct unrecorded earlier projections, and cannot create a second identity
   for the same canonical occurrence.
-- Timed expansion preserves the series IANA timezone and intended local wall time through DST;
-  the rule timezone must equal the timed schedule timezone. All-day expansion remains local-date
-  based while retaining its validated IANA rule zone. Month/year presets follow the domain wrapper's
-  tested calendar-boundary policy rather than silently converting to elapsed durations.
+- The rule timezone must equal the timed schedule timezone. All-day recurrence resolves the user's
+  validated IANA timezone before its create/edit write transaction and stores it with the rule; a
+  later preference change does not shift its local dates.
 - Soft-deleted tasks are absent from normal projections and search. Purge is not exposed.
 - Create commands use the client-generated UUIDv4 resource ID as their idempotency key. While a
   resource row is retained, an equivalent retry returns it and a mismatched reuse conflicts;
@@ -125,6 +241,10 @@ No public contract exposes a Drizzle row or an unscoped repository method.
 
 - `shared/auth`, `shared/db`, `shared/logging`, `shared/time`, and `shared/validation`.
 - `chrono-node` for visible editable schedule suggestions.
+- A narrow infrastructure adapter over pinned `rrule`; domain policy remains provider-free.
+
+Task does not depend on Focus persistence or own focus-session timing and totals; Focus consumes only
+the public actor-scoped link reader above.
 
 ## Non-responsibilities
 
@@ -144,6 +264,9 @@ No public contract exposes a Drizzle row or an unscoped repository method.
   month-end, leap-day, edit/end, complete/skip/undo, no-op replay, and no-duplicate tests.
 - Database constraint, optimistic-concurrency, and cross-user denial tests for recurrence rules and
   occurrence events.
+- Deterministic isolated-demo fixtures include one canonical recurring task plus completed/skipped
+  occurrence history; repeated reset proves event cleanup uses the owning-task cascade rather than
+  a direct immutable-event delete.
 - Optimistic-version tests proving one increment per accepted aggregate mutation and typed conflicts for stale writes.
 - Search ownership/soft-delete tests and seeded query-plan checks.
 - Quick-add fixtures proving original text remains intact and suggestions are editable.

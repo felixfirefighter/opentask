@@ -6,12 +6,14 @@ const repositories = vi.hoisted(() => ({
   tasks: { findById: vi.fn(), lockById: vi.fn() },
   schedules: {
     findByTaskId: vi.fn(),
+    lockByTaskId: vi.fn(),
     upsert: vi.fn(),
     clear: vi.fn(),
     incrementTaskVersion: vi.fn(),
     listActiveOpenInRange: vi.fn(),
     loadOpenUnscheduled: vi.fn(),
   },
+  recurrences: { lockByTaskId: vi.fn(), remove: vi.fn() },
 }));
 
 vi.mock("../infrastructure/task-repository", () => ({
@@ -19,6 +21,9 @@ vi.mock("../infrastructure/task-repository", () => ({
 }));
 vi.mock("../infrastructure/task-schedule-repository", () => ({
   createTaskScheduleRepository: () => repositories.schedules,
+}));
+vi.mock("../infrastructure/task-recurrence-repository", () => ({
+  createTaskRecurrenceRepository: () => repositories.recurrences,
 }));
 
 import { createTaskScheduleApplication } from "./schedule-application";
@@ -80,6 +85,7 @@ describe("schedule application", () => {
     repositories.tasks.findById.mockResolvedValue(storedTask());
     repositories.tasks.lockById.mockResolvedValue(storedTask());
     repositories.schedules.findByTaskId.mockResolvedValue(timedSchedule());
+    repositories.schedules.lockByTaskId.mockResolvedValue(timedSchedule());
     repositories.schedules.upsert.mockResolvedValue(timedSchedule());
     repositories.schedules.clear.mockResolvedValue(timedSchedule());
     repositories.schedules.incrementTaskVersion.mockResolvedValue({
@@ -87,6 +93,8 @@ describe("schedule application", () => {
       task: storedTask({ version: 5 }),
     });
     repositories.schedules.listActiveOpenInRange.mockResolvedValue({ items: [], truncated: false });
+    repositories.recurrences.lockByTaskId.mockResolvedValue(null);
+    repositories.recurrences.remove.mockResolvedValue(null);
   });
 
   it("sets a schedule under a row lock and increments the owning task exactly once", async () => {
@@ -138,6 +146,49 @@ describe("schedule application", () => {
         expectedVersion: 4,
       }),
     ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 4 });
+  });
+
+  it("routes recurring schedule changes through the atomic series command", async () => {
+    repositories.recurrences.lockByTaskId.mockResolvedValueOnce({
+      projectionEndDate: null,
+      projectionEndAt: null,
+    });
+    await expect(
+      createTaskScheduleApplication({ database, clock, taskSchedules }).setSchedule(actor, taskId, {
+        expectedVersion: 4,
+        schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 4 });
+    expect(repositories.schedules.upsert).not.toHaveBeenCalled();
+
+    repositories.recurrences.lockByTaskId.mockResolvedValueOnce({
+      projectionEndDate: null,
+      projectionEndAt: null,
+    });
+    await expect(
+      createTaskScheduleApplication({ database, clock, taskSchedules }).clearSchedule(actor, taskId, {
+        expectedVersion: 4,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 4 });
+    expect(repositories.schedules.clear).not.toHaveBeenCalled();
+  });
+
+  it("atomically removes an ended definition when its schedule is cleared", async () => {
+    const ended = { projectionEndDate: "2026-07-21", projectionEndAt: null };
+    repositories.recurrences.lockByTaskId.mockResolvedValueOnce(ended);
+    repositories.recurrences.remove.mockResolvedValueOnce(ended);
+
+    await expect(
+      createTaskScheduleApplication({ database, clock, taskSchedules }).clearSchedule(actor, taskId, {
+        expectedVersion: 4,
+      }),
+    ).resolves.toEqual({ task: { id: taskId, version: 5 }, schedule: null });
+
+    expect(repositories.recurrences.remove).toHaveBeenCalledWith(userId, taskId, transaction);
+    expect(repositories.recurrences.remove.mock.invocationCallOrder[0]).toBeLessThan(
+      repositories.schedules.clear.mock.invocationCallOrder[0]!,
+    );
+    expect(repositories.schedules.incrementTaskVersion).toHaveBeenCalledOnce();
   });
 
   it("rejects cross-user guesses and stale versions before a schedule write", async () => {

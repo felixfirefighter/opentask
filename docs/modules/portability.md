@@ -6,7 +6,7 @@
 
 - Compose one consistent export of the caller's portable release data through authorized public module readers.
 - Validate the complete export against a documented versioned Zod schema.
-- Preserve stable IDs and relationships, local dates, instants, timezones, statuses, and user-authored content needed for future portability.
+- Preserve stable IDs and relationships, local dates, instants, timezones, statuses, and user-authored content needed for portable reuse.
 - Exclude credentials, sessions, provider secrets, queue internals, and server configuration.
 - Return the export with no-store/private response headers and a deterministic filename.
 
@@ -19,25 +19,42 @@
 
 - `exportUserData(actor)` opens a consistent read snapshot and composes authorized identity, tasks,
   assistant, habits, Focus, and notifications records through their public export readers.
-- `getExportSchemaVersion()` exposes the current document version.
+- `USER_EXPORT_SCHEMA_VERSION` exposes the current document version through the module root.
 - Public contracts: `UserExportEnvelope`, module-specific export DTOs, and canonical `UserExportSchema`.
 
-The envelope contains `schemaVersion`, export timestamp, portable user profile/preferences, and versioned module sections. Internal database/provider row shapes are never reused directly.
+The envelope contains `schemaVersion`, export timestamp, portable user profile/preferences, and
+independently versioned module sections. An envelope bump records a composition change; a module
+section version changes only when that section changes. The current envelope is version 5 and
+contains `notifications: {schemaVersion: 1, reminders: [...]}`. Tasks uses section version 2;
+Focus, habits, identity, assistant, and notifications use section version 1. Internal
+database/provider row shapes are never reused directly.
 
 ## Invariants
 
 - Export requires a fully authenticated actor and every contributing reader constrains `user_id` in SQL.
 - A consistent database snapshot prevents relationships from changing midway through composition.
 - Export contains no other user's record and no server secret, password hash, account/session token, rate-limit state, OpenAI key, pg-boss row, or internal provider payload.
-- Task data includes normalized recurrence rules and append-only occurrence events without cloned
-  task instances.
+- Task data includes normalized recurrence rules with checked lower/optional-upper cutovers and
+  append-only occurrence events without cloned task instances. Canonical opaque occurrence identities
+  are preserved in either the bounded `o1` or `o2` task-owned format; portability validates but does
+  not decode or rewrite them. An explicitly ended series normally retains its upper-bounded
+  definition; clearing its schedule may leave events without a current recurrence definition.
+  Relationships still require every rule/event to reference an exported task, every rule to have one
+  compatible exported schedule, unique per-task rule/event-version identities, and
+  `event.taskVersion <= task.version`.
 - Habit data includes definitions, schedules, and local-day logs; streaks and heat maps remain
   derivable and are not exported as stored facts.
 - Focus data includes completed `kind=focus` session history only. Break rows and an active/paused
   authoritative timer are operational state and are not represented as portable completed focus.
 - Reminder data includes the stable task relationship and portable absolute/relative specification.
-  Push subscriptions, encrypted endpoint/key material, notification deliveries/idempotency state,
-  and pg-boss queue rows are excluded.
+  Each item contains reminder/task IDs, the strict discriminated `kind`, `remindAt` or
+  `offsetMinutes`, `enabled`, positive version, and created/updated instants. Reminders are ordered by
+  ID, reference exported tasks, and are unique per task. Relationship validation checks task
+  existence, the reminder discriminant/range, and uniqueness; it deliberately permits a currently
+  dormant reminder whose exported task is terminal/deleted, whose relative schedule is absent, or
+  whose recurrence is exhausted. Push subscriptions, endpoint hashes/ciphertext/key versions/device
+  metadata, notification deliveries/idempotency/errors, jobs, VAPID/encryption configuration, and
+  provider results are excluded.
 - Active structured planner proposals are included; raw brain dumps are absent because they are not
   persisted.
 - IDs and foreign-key references remain stable inside the document; dates use `YYYY-MM-DD` and instants use ISO-8601 UTC strings with explicit timezone fields where intent requires them.
@@ -60,7 +77,8 @@ The envelope contains `schemaVersion`, export timestamp, portable user profile/p
 
 - Two-user isolation fixture proving the export contains only the caller's records.
 - Full seeded export validation across task recurrence/occurrences, habits, completed Focus, and
-  reminder specifications against the canonical versioned schema and relationship-integrity checks.
+  reminder specifications against envelope v5/notifications section v1 and relationship-integrity
+  checks.
 - Secret/redaction tests covering Better Auth, OpenAI, push subscriptions, endpoint/key material,
   deliveries/queue state, environment, and logs.
 - Consistent-snapshot test under concurrent mutation.

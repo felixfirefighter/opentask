@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Pool, PoolClient } from "pg";
 
+import { createProjectedOccurrenceKey } from "../../../modules/tasks/domain/recurrence/occurrence-key.ts";
 import type { AuthenticatedActor } from "../../../shared/auth/actor.ts";
 
 export const EXPORT_INSTANT = "2026-07-20T00:05:06.789Z";
@@ -30,7 +31,26 @@ export const portableEntityIds = {
   secondAction: "71000000-0000-4000-8000-000000000002",
   firstApplyToken: "80000000-0000-4000-8000-000000000001",
   secondApplyToken: "80000000-0000-4000-8000-000000000002",
+  allDayCompletedEvent: "90000000-0000-4000-8000-000000000001",
+  allDayReopenedEvent: "90000000-0000-4000-8000-000000000002",
+  timedSkippedEvent: "90000000-0000-4000-8000-000000000003",
+  concurrentOccurrenceEvent: "90000000-0000-4000-8000-000000000004",
+  booleanHabit: "a0000000-0000-4000-8000-000000000001",
+  quantityHabit: "a0000000-0000-4000-8000-000000000002",
+  booleanHabitLog: "b0000000-0000-4000-8000-000000000001",
+  quantityHabitLog: "b0000000-0000-4000-8000-000000000002",
+  taskFocusSession: "c0000000-0000-4000-8000-000000000001",
+  habitFocusSession: "c0000000-0000-4000-8000-000000000002",
+  completedBreakSession: "c0000000-0000-4000-8000-000000000003",
+  activeFocusSession: "c0000000-0000-4000-8000-000000000004",
 } as const;
+
+export const APIA_DATE_CROSSING_OCCURRENCE_KEY = createProjectedOccurrenceKey(
+  portableEntityIds.timedTask,
+  { kind: "timed", startAt: "2011-12-30T19:00:00Z" },
+  { kind: "timed", startLocalDateTime: "2011-12-30T09:00" },
+  "Pacific/Apia",
+);
 
 type TenantSeedInput = Readonly<{
   actor: AuthenticatedActor;
@@ -51,6 +71,8 @@ export async function seedPortableTenant(pool: Pool, input: TenantSeedInput) {
     await seedIdentity(client, input, values.secretCanaries);
     await seedOrganization(client, input);
     await seedTasks(client, input, values);
+    await seedHabits(client, input);
+    await seedFocus(client, input);
     await seedPlannerProposals(client, input, values);
     await client.query("commit");
   } catch (error) {
@@ -60,6 +82,83 @@ export async function seedPortableTenant(pool: Pool, input: TenantSeedInput) {
     client.release();
   }
   return values;
+}
+
+async function seedFocus(client: PoolClient, input: TenantSeedInput) {
+  await client.query(
+    `insert into focus_sessions
+       (id, user_id, task_id, habit_id, kind, mode, state, started_at, paused_at,
+        accumulated_active_seconds, planned_seconds, ended_at, version, created_at, updated_at)
+     values
+       ($1, $5, $6, null, 'focus', 'pomodoro', 'completed', '2026-07-19T15:05:45.678Z',
+        null, 1500, 1500, $8, 1, '2026-07-19T15:05:45.678Z', $8),
+       ($2, $5, null, $7, 'focus', 'stopwatch', 'completed', '2026-07-19T15:15:45.678Z',
+        null, 900, null, $8, 1, '2026-07-19T15:15:45.678Z', $8),
+       ($3, $5, null, null, 'break', 'pomodoro', 'completed', '2026-07-19T15:20:45.678Z',
+        null, 300, 300, $8, 1, '2026-07-19T15:20:45.678Z', $8),
+       ($4, $5, null, null, 'focus', 'stopwatch', 'active', $8,
+        null, 0, null, null, 1, $8, $8)`,
+    [
+      portableEntityIds.taskFocusSession,
+      portableEntityIds.habitFocusSession,
+      portableEntityIds.completedBreakSession,
+      portableEntityIds.activeFocusSession,
+      input.actor.userId,
+      portableEntityIds.rootTask,
+      portableEntityIds.quantityHabit,
+      RECORD_INSTANT,
+    ],
+  );
+}
+
+async function seedHabits(client: PoolClient, input: TenantSeedInput) {
+  await client.query(
+    `insert into habits
+       (id, user_id, title, icon, color_token, goal_kind, target_value, unit, version,
+        created_at, updated_at, archived_at)
+     values
+       ($1, $3, $4, '✓', 'slate', 'boolean', null, null, 2, $5, $5, $5),
+       ($2, $3, $6, '📚', 'mint', 'quantity', 20.000, 'minutes', 1, $5, $5, null)`,
+    [
+      portableEntityIds.booleanHabit,
+      portableEntityIds.quantityHabit,
+      input.actor.userId,
+      `${input.marker} archived habit`,
+      RECORD_INSTANT,
+      `${input.marker} reading habit`,
+    ],
+  );
+  await client.query(
+    `insert into habit_schedules
+       (user_id, habit_id, kind, weekdays, target_per_week, timezone, start_date, end_date,
+        created_at, updated_at)
+     values
+       ($1, $2, 'daily', null, null, $4, '2026-07-01', null, $5, $5),
+       ($1, $3, 'weekly_target', null, 4, $4, '2026-07-01', null, $5, $5)`,
+    [
+      input.actor.userId,
+      portableEntityIds.booleanHabit,
+      portableEntityIds.quantityHabit,
+      input.timezone,
+      RECORD_INSTANT,
+    ],
+  );
+  await client.query(
+    `insert into habit_logs
+       (id, user_id, habit_id, local_date, state, quantity, note, version, created_at, updated_at)
+     values
+       ($1, $3, $4, '2026-07-19', 'completed', null, null, 1, $6, $6),
+       ($2, $3, $5, '2026-07-20', 'completed', 24.500, $7, 1, $6, $6)`,
+    [
+      portableEntityIds.booleanHabitLog,
+      portableEntityIds.quantityHabitLog,
+      input.actor.userId,
+      portableEntityIds.booleanHabit,
+      portableEntityIds.quantityHabit,
+      RECORD_INSTANT,
+      `${input.marker} private habit note`,
+    ],
+  );
 }
 
 function tenantValues(input: TenantSeedInput) {
@@ -189,6 +288,7 @@ async function seedTasks(
       `${input.marker} private root description`,
       "high",
       "d0",
+      1,
     ],
     [
       portableEntityIds.allDayTask,
@@ -199,6 +299,7 @@ async function seedTasks(
       "",
       "medium",
       "c0",
+      3,
     ],
     [
       portableEntityIds.timedTask,
@@ -209,6 +310,7 @@ async function seedTasks(
       "",
       "low",
       "b0",
+      2,
     ],
     [
       portableEntityIds.childTask,
@@ -219,6 +321,7 @@ async function seedTasks(
       "",
       "none",
       "a0",
+      1,
     ],
   ] as const;
   for (const task of taskValues) {
@@ -226,7 +329,7 @@ async function seedTasks(
       `insert into tasks
          (id, user_id, list_id, section_id, parent_task_id, title, description_md, status,
           priority, rank, status_changed_at, version, created_at, updated_at)
-       values ($1, $2, $3, $4, $5, $6, $7, 'open', $8, $9, $10, 1, $10, $10)`,
+       values ($1, $2, $3, $4, $5, $6, $7, 'open', $8, $9, $11, $10, $11, $11)`,
       [task[0], input.actor.userId, ...task.slice(1), RECORD_INSTANT],
     );
   }
@@ -246,6 +349,38 @@ async function seedTasks(
       input.timedStartInput,
       input.timedEndInput,
       input.timezone,
+      RECORD_INSTANT,
+    ],
+  );
+  await client.query(
+    `insert into task_recurrences
+       (user_id, task_id, rrule, timezone, generation_mode,
+        projection_start_date, projection_end_date, created_at, updated_at)
+     values ($1, $2, 'FREQ=DAILY;INTERVAL=1', $3, 'schedule', $4, null, $5, $5)`,
+    [input.actor.userId, portableEntityIds.allDayTask, input.timezone, ALL_DAY_START_DATE, RECORD_INSTANT],
+  );
+  await client.query(
+    `insert into task_recurrences
+       (user_id, task_id, rrule, timezone, generation_mode,
+        projection_start_at, projection_end_at, created_at, updated_at)
+     values ($1, $2, 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE;COUNT=5', $3, 'schedule', $4, $4, $5, $5)`,
+    [input.actor.userId, portableEntityIds.timedTask, input.timezone, input.timedStartInput, RECORD_INSTANT],
+  );
+  await client.query(
+    `insert into task_occurrence_events
+       (id, user_id, task_id, occurrence_key, state, task_version, effective_at, created_at)
+     values
+       ($1, $4, $5, 'o1.YWxsLWRheQ', 'completed', 2, $8, $8),
+       ($2, $4, $5, 'o1.YWxsLWRheQ', 'open', 3, $8, $8),
+       ($3, $4, $6, $7, 'skipped', 2, $8, $8)`,
+    [
+      portableEntityIds.allDayCompletedEvent,
+      portableEntityIds.allDayReopenedEvent,
+      portableEntityIds.timedSkippedEvent,
+      input.actor.userId,
+      portableEntityIds.allDayTask,
+      portableEntityIds.timedTask,
+      APIA_DATE_CROSSING_OCCURRENCE_KEY,
       RECORD_INSTANT,
     ],
   );

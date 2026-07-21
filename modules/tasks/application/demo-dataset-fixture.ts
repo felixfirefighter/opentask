@@ -1,27 +1,33 @@
 import { Temporal } from "temporal-polyfill";
 
 import type { DemoDatasetRecords } from "../infrastructure/demo-dataset-repository";
+import {
+  buildDemoRecurrenceFixture,
+  DEMO_RECURRING_TASK_ID,
+  DEMO_RECURRING_TASK_VERSION,
+} from "./demo-recurrence-fixture";
 
 export const DEMO_TIME_ZONE = "UTC";
+export const DEMO_FOCUS_TASK_ID = "50000000-0000-4000-8000-000000000001";
 
 const ids = {
   folder: "10000000-0000-4000-8000-000000000001",
   list: "20000000-0000-4000-8000-000000000001",
   section: "30000000-0000-4000-8000-000000000001",
-  launchTag: "40000000-0000-4000-8000-000000000001",
+  eventTag: "40000000-0000-4000-8000-000000000001",
   designTag: "40000000-0000-4000-8000-000000000002",
-  productTag: "40000000-0000-4000-8000-000000000003",
-  recordDemo: "50000000-0000-4000-8000-000000000001",
+  planningTag: "40000000-0000-4000-8000-000000000003",
+  workshopAgenda: DEMO_FOCUS_TASK_ID,
   reviewMobile: "50000000-0000-4000-8000-000000000002",
-  prepareData: "50000000-0000-4000-8000-000000000003",
-  launchNarrative: "50000000-0000-4000-8000-000000000004",
-  friendScript: "50000000-0000-4000-8000-000000000005",
-  submissionSummary: "50000000-0000-4000-8000-000000000006",
-  releasePass: "50000000-0000-4000-8000-000000000007",
-  mobileScreenshot: "50000000-0000-4000-8000-000000000008",
-  selfHost: "50000000-0000-4000-8000-000000000009",
-  scopeChange: "50000000-0000-4000-8000-000000000010",
-  checklistTaskLoop: "60000000-0000-4000-8000-000000000001",
+  attendeeNotes: "50000000-0000-4000-8000-000000000003",
+  welcomeMessage: "50000000-0000-4000-8000-000000000004",
+  volunteerAgenda: "50000000-0000-4000-8000-000000000005",
+  followUpSummary: "50000000-0000-4000-8000-000000000006",
+  readinessReview: "50000000-0000-4000-8000-000000000007",
+  mobileLayout: "50000000-0000-4000-8000-000000000008",
+  venueSetup: "50000000-0000-4000-8000-000000000009",
+  optionalSession: "50000000-0000-4000-8000-000000000010",
+  checklistAttendeeFlow: "60000000-0000-4000-8000-000000000001",
   checklistMobile: "60000000-0000-4000-8000-000000000002",
   checklistExport: "60000000-0000-4000-8000-000000000003",
 } as const;
@@ -30,74 +36,82 @@ export function buildDemoDatasetFixture(resetAt: Date, inboxId: string): DemoDat
   const today = Temporal.Instant.from(resetAt.toISOString()).toZonedDateTimeISO(DEMO_TIME_ZONE).toPlainDate();
   const tomorrow = today.add({ days: 1 });
   const dayAfterTomorrow = today.add({ days: 2 });
+  const recurring = buildDemoRecurrenceFixture(resetAt);
 
   return {
     resetAt,
-    folder: { id: ids.folder, name: "Launch", rank: "a0" },
+    folder: { id: ids.folder, name: "Community", rank: "a0" },
     regularList: {
       id: ids.list,
       folderId: ids.folder,
-      name: "Hackathon launch",
+      name: "Community workshop",
       colorToken: "coral",
       rank: "a0",
     },
-    section: { id: ids.section, listId: ids.list, name: "Demo path", rank: "a0" },
+    section: { id: ids.section, listId: ids.list, name: "This week", rank: "a0" },
     tags: [
-      { id: ids.launchTag, name: "Launch", colorToken: "coral" },
+      { id: ids.eventTag, name: "Event", colorToken: "coral" },
       { id: ids.designTag, name: "Design", colorToken: "sky" },
-      { id: ids.productTag, name: "Product", colorToken: "amber" },
+      { id: ids.planningTag, name: "Planning", colorToken: "amber" },
     ],
     tasks: [
-      task(ids.recordDemo, ids.list, ids.section, "Record the two-minute demo", "high", "a0", {
-        descriptionMd: "Keep the story focused: capture, plan, review, apply, and export.",
+      task(ids.workshopAgenda, ids.list, ids.section, "Outline the workshop agenda", "high", "a0", {
+        descriptionMd: "Keep the session focused: welcome, discussion, practice, and next steps.",
       }),
-      task(ids.reviewMobile, ids.list, ids.section, "Review landing page on mobile", "medium", "a1"),
-      task(ids.prepareData, inboxId, null, "Prepare clean demo data", "medium", "a0"),
-      task(ids.launchNarrative, ids.list, null, "Draft the launch narrative", "high", "a0", {
-        descriptionMd: "Turn the product story into three clear beats for the submission.",
+      task(ids.reviewMobile, ids.list, ids.section, "Review event page on mobile", "medium", "a1"),
+      task(ids.attendeeNotes, inboxId, null, "Prepare attendee notes", "medium", "a0"),
+      task(ids.welcomeMessage, ids.list, null, "Draft the welcome message", "high", "a0", {
+        descriptionMd: "Turn the event goals into three clear opening points.",
       }),
-      task(ids.friendScript, inboxId, null, "Polish the friend test script", "medium", "a1"),
-      task(ids.submissionSummary, ids.list, null, "Write the submission summary", "low", "a1"),
-      task(ids.releasePass, ids.list, ids.section, "Run the release readiness pass", "high", "a2", {
-        descriptionMd: "## Release check\n\nVerify the manual core before recording the final walkthrough.",
+      task(ids.volunteerAgenda, inboxId, null, "Send the agenda to volunteers", "medium", "a1"),
+      task(ids.followUpSummary, ids.list, null, "Write the follow-up summary", "low", "a1"),
+      task(ids.readinessReview, ids.list, ids.section, "Run the workshop readiness review", "high", "a2", {
+        descriptionMd: "## Readiness check\n\nVerify the agenda, attendee notes, and venue before the event.",
       }),
-      task(ids.mobileScreenshot, ids.list, ids.section, "Capture the mobile screenshot", "medium", "a0", {
-        parentTaskId: ids.releasePass,
+      task(DEMO_RECURRING_TASK_ID, ids.list, ids.section, "Review workshop progress", "medium", "a3", {
+        version: DEMO_RECURRING_TASK_VERSION,
       }),
-      task(ids.selfHost, ids.list, null, "Verify the self-host setup", "medium", "a2", {
+      task(ids.mobileLayout, ids.list, ids.section, "Check the mobile layout", "medium", "a0", {
+        parentTaskId: ids.readinessReview,
+      }),
+      task(ids.venueSetup, ids.list, null, "Confirm the venue setup", "medium", "a2", {
         status: "completed",
       }),
-      task(ids.scopeChange, ids.list, null, "Change the approved demo scope", "none", "a3", {
+      task(ids.optionalSession, ids.list, null, "Add an optional afternoon session", "none", "a3", {
         status: "cancelled",
       }),
     ],
     schedules: [
-      timedSchedule(ids.recordDemo, today, "10:30", "11:30"),
+      timedSchedule(ids.workshopAgenda, today, "10:30", "11:30"),
       timedSchedule(ids.reviewMobile, today, "14:00", "14:30"),
       {
-        taskId: ids.prepareData,
+        taskId: ids.attendeeNotes,
         kind: "all_day",
         startDate: today.toString(),
         endDate: tomorrow.toString(),
       },
       {
-        taskId: ids.submissionSummary,
+        taskId: ids.followUpSummary,
         kind: "all_day",
         startDate: tomorrow.toString(),
         endDate: dayAfterTomorrow.toString(),
       },
+      recurring.schedule,
     ],
+    recurrences: [recurring.recurrence],
+    occurrenceEvents: recurring.occurrenceEvents,
     checklistItems: [
-      checklist(ids.checklistTaskLoop, ids.releasePass, "Test the core task loop", true, "a0"),
-      checklist(ids.checklistMobile, ids.releasePass, "Verify the mobile layout", false, "a1"),
-      checklist(ids.checklistExport, ids.releasePass, "Export clean JSON", false, "a2"),
+      checklist(ids.checklistAttendeeFlow, ids.readinessReview, "Review the attendee journey", true, "a0"),
+      checklist(ids.checklistMobile, ids.readinessReview, "Verify the mobile layout", false, "a1"),
+      checklist(ids.checklistExport, ids.readinessReview, "Export the event checklist", false, "a2"),
     ],
     taskTags: [
-      { taskId: ids.recordDemo, tagId: ids.launchTag },
+      { taskId: ids.workshopAgenda, tagId: ids.eventTag },
       { taskId: ids.reviewMobile, tagId: ids.designTag },
-      { taskId: ids.prepareData, tagId: ids.productTag },
-      { taskId: ids.launchNarrative, tagId: ids.launchTag },
-      { taskId: ids.releasePass, tagId: ids.productTag },
+      { taskId: ids.attendeeNotes, tagId: ids.planningTag },
+      { taskId: ids.welcomeMessage, tagId: ids.eventTag },
+      { taskId: ids.readinessReview, tagId: ids.planningTag },
+      { taskId: DEMO_RECURRING_TASK_ID, tagId: ids.planningTag },
     ],
   };
 }
@@ -113,6 +127,7 @@ function task(
     descriptionMd?: string;
     parentTaskId?: string;
     status?: "open" | "completed" | "cancelled";
+    version?: number;
   }> = {},
 ) {
   return {
@@ -125,6 +140,7 @@ function task(
     status: options.status ?? "open",
     priority,
     rank,
+    version: options.version ?? 1,
   } as const;
 }
 

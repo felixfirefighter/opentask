@@ -1,5 +1,5 @@
-import { WorkspaceLoadingShell } from "@/modules/identity/presentation";
+import { TaskDetailRouteLoading } from "./TaskDetailRouteLoading";
 
 export default function TaskDetailLoading() {
-  return <WorkspaceLoadingShell detail label="Opening task details…" />;
+  return <TaskDetailRouteLoading />;
 }

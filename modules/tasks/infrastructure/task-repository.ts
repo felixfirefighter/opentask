@@ -180,6 +180,10 @@ export function createTaskRepository(defaultExecutor: DatabaseExecutor = getData
       );
     },
 
+    incrementVersion(input: VersionedTaskWrite, executor: DatabaseExecutor = defaultExecutor) {
+      return mutateTask(input, "active", {}, executor);
+    },
+
     move(
       input: VersionedTaskWrite & {
         listId: string;

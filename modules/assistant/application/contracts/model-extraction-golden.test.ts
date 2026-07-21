@@ -15,24 +15,24 @@ const baseRequest = {
   defaultDurationMinutes: 30,
   bufferMinutes: 10,
   selectedTasks: [
-    { semanticRef: "selected-1", title: "Review launch", priority: "high" },
-    { semanticRef: "selected-2", title: "Prepare demo data", priority: "medium" },
+    { semanticRef: "selected-1", title: "Review workshop checklist", priority: "high" },
+    { semanticRef: "selected-2", title: "Prepare attendee notes", priority: "medium" },
   ],
 } as const;
 
 const goldenFixtures = [
   {
     name: "vague input preserves uncertainty",
-    request: { ...baseRequest, brainDump: "Do something about launch sometime" },
+    request: { ...baseRequest, brainDump: "Do something about the workshop sometime" },
     output: {
       schemaVersion: PLANNER_SCHEMA_VERSION,
       disposition: "partially_actionable",
-      summary: "Clarify the launch follow-up before scheduling it.",
+      summary: "Clarify the workshop follow-up before scheduling it.",
       tasks: [
         {
           source: { kind: "brain_dump", semanticRef: "new-1" },
-          title: "Clarify launch follow-up",
-          detail: "Determine the concrete launch outcome and timing.",
+          title: "Clarify workshop follow-up",
+          detail: "Determine the concrete workshop outcome and timing.",
           estimateMinutes: 30,
           priority: "none",
           timing: { kind: "flexible", earliestStart: null, deadline: null },
@@ -41,45 +41,45 @@ const goldenFixtures = [
           rationale: "The note needs clarification before it can become a precise plan.",
         },
       ],
-      uncertainties: ["Confirm what launch work is required and when it is due."],
+      uncertainties: ["Confirm what workshop task is required and when it is due."],
     },
   },
   {
     name: "multiple items keep distinct selected and new references",
     request: {
       ...baseRequest,
-      brainDump: "Review the selected launch task, prepare demo data, and draft release notes.",
+      brainDump: "Review the selected workshop task, prepare attendee notes, and draft workshop notes.",
     },
     output: {
       schemaVersion: PLANNER_SCHEMA_VERSION,
       disposition: "actionable",
-      summary: "Plan two selected tasks and one new release-notes task.",
+      summary: "Plan two selected tasks and one new workshop-notes task.",
       tasks: [
         {
           source: { kind: "selected_task", semanticRef: "selected-1" },
-          title: "Review launch",
+          title: "Review workshop checklist",
           detail: null,
           estimateMinutes: 30,
           priority: "high",
           timing: { kind: "flexible", earliestStart: null, deadline: null },
           constraints: [],
           uncertainties: [],
-          rationale: "The selected launch review is ready to schedule.",
+          rationale: "The selected workshop review is ready to schedule.",
         },
         {
           source: { kind: "selected_task", semanticRef: "selected-2" },
-          title: "Prepare demo data",
+          title: "Prepare attendee notes",
           detail: null,
           estimateMinutes: 45,
           priority: "medium",
           timing: { kind: "flexible", earliestStart: null, deadline: null },
           constraints: [],
           uncertainties: [],
-          rationale: "The selected demo-data task is ready to schedule.",
+          rationale: "The selected attendee-notes task is ready to schedule.",
         },
         {
           source: { kind: "brain_dump", semanticRef: "new-1" },
-          title: "Draft release notes",
+          title: "Draft workshop notes",
           detail: null,
           estimateMinutes: 30,
           priority: "medium",

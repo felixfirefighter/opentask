@@ -1,4 +1,4 @@
-export function createPolicyControlProbes(probeModule) {
+export function createPolicyControlProbes() {
   return [
     {
       filePath: "shared/db/schema.ts",
@@ -11,13 +11,13 @@ export function createPolicyControlProbes(probeModule) {
       expected: { "boundaries/dependencies": 1 },
     },
     {
-      filePath: `modules/${probeModule}/application/database-use-control.ts`,
+      filePath: "modules/tasks/application/database-use-control.ts",
       source:
         'import { getDatabasePool } from "../../../shared/db/client.ts";\nexport function hasDatabasePort() { return Boolean(getDatabasePool); }\n',
       expected: {},
     },
     {
-      filePath: `modules/${probeModule}/application/database-scalar-result-control.ts`,
+      filePath: "modules/tasks/application/database-scalar-result-control.ts",
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport async function databaseReady(): Promise<boolean> {\n  return (await pool().query("select 1")).rowCount === 1;\n}\n',
       expected: {},
@@ -113,28 +113,28 @@ export function createPolicyControlProbes(probeModule) {
       expected: { "opentask/no-data-packages": 1 },
     },
     {
-      filePath: `modules/${probeModule}/domain/import-type.ts`,
+      filePath: "modules/tasks/domain/import-type.ts",
       source:
         'type Screen = typeof import("../../planning/presentation/TodayScreen.tsx").TodayScreen;\nexport type { Screen };\n',
       expected: { "opentask/explicit-type-imports": 1 },
     },
     {
-      filePath: `modules/${probeModule}/infrastructure/component.tsx`,
+      filePath: "modules/tasks/infrastructure/component.tsx",
       source: 'import "pg";\nexport function Component() { return <div />; }\n',
       expected: { "no-restricted-syntax": 1 },
     },
     {
-      filePath: `modules/${probeModule}/presentation/raw-logger.ts`,
+      filePath: "modules/tasks/presentation/raw-logger.ts",
       source: 'void import("pino/pino.js");\n',
       expected: { "opentask/no-raw-pino": 1 },
     },
     {
-      filePath: `modules/${probeModule}/ui/unknown-layer.ts`,
+      filePath: "modules/tasks/ui/unknown-layer.ts",
       source: 'import "pg";\n',
       expected: { "no-restricted-syntax": 1 },
     },
     {
-      filePath: `modules/${probeModule}/private.ts`,
+      filePath: "modules/tasks/private.ts",
       source: 'import "pg";\n',
       expected: { "no-restricted-syntax": 1 },
     },

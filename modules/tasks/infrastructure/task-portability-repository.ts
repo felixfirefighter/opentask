@@ -33,6 +33,20 @@ export function createTaskPortabilityRepository(defaultExecutor: DatabaseExecuto
         .from(schema.taskSchedules)
         .where(eq(schema.taskSchedules.userId, userId))
         .orderBy(asc(schema.taskSchedules.taskId));
+      const recurrenceDefinitions = await executor
+        .select()
+        .from(schema.taskRecurrences)
+        .where(eq(schema.taskRecurrences.userId, userId))
+        .orderBy(asc(schema.taskRecurrences.taskId));
+      const occurrenceEvents = await executor
+        .select()
+        .from(schema.taskOccurrenceEvents)
+        .where(eq(schema.taskOccurrenceEvents.userId, userId))
+        .orderBy(
+          asc(schema.taskOccurrenceEvents.taskId),
+          asc(schema.taskOccurrenceEvents.taskVersion),
+          asc(schema.taskOccurrenceEvents.id),
+        );
       const checklistItems = await executor
         .select()
         .from(schema.checklistItems)
@@ -55,6 +69,8 @@ export function createTaskPortabilityRepository(defaultExecutor: DatabaseExecuto
         sections,
         tasks,
         schedules,
+        recurrenceDefinitions,
+        occurrenceEvents,
         checklistItems,
         tags,
         taskTags,

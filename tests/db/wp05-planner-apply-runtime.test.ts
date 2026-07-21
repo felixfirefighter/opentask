@@ -1,3 +1,4 @@
+import type { Pool } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { PlannerAction } from "../../modules/assistant/index.ts";
@@ -306,6 +307,171 @@ describe("planner apply composed PostgreSQL runtime", () => {
     });
   });
 
+  it("rejects open recurring conflicts and direct schedule edits to a recurrence root", async () => {
+    const list = await harness.createList(OWNER_A, deterministicId(520), "Recurring schedule safety");
+    const recurring = await harness.createTask(
+      OWNER_A,
+      deterministicId(521),
+      list.id,
+      "Recurring busy block",
+    );
+    const scheduled = await harness.tasks.schedules.setSchedule(OWNER_A, recurring.id, {
+      expectedVersion: recurring.version,
+      schedule: {
+        kind: "timed",
+        startAt: "2026-07-20T02:15:00Z",
+        endAt: "2026-07-20T02:45:00Z",
+        timezone: "Asia/Singapore",
+      },
+    });
+    const recurrence = await harness.tasks.recurrences.setRecurrence(OWNER_A, recurring.id, {
+      expectedVersion: scheduled.task.version,
+      definition: {
+        preset: { kind: "daily", interval: 1 },
+        end: { kind: "never" },
+      },
+    });
+    const overlapping = await harness.createTask(
+      OWNER_A,
+      deterministicId(522),
+      list.id,
+      "Must not overlap recurrence",
+    );
+    const overlapProposal = await persistScheduleProposal(
+      harness,
+      overlapping,
+      deterministicId(523),
+      timed("2026-07-20T02:00:00Z", "2026-07-20T02:30:00Z"),
+    );
+
+    await expect(
+      harness.assistant.applyProposal(OWNER_A, overlapProposal.id, selection(overlapProposal)),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await harness.storedSchedule(OWNER_A, overlapping.id)).toBeUndefined();
+    expect(await harness.storedProposal(OWNER_A, overlapProposal.id)).toMatchObject({ status: "pending" });
+
+    const editAction: PlannerAction = {
+      actionId: deterministicId(524),
+      kind: "schedule",
+      semanticRef: "selected-1",
+      taskId: recurring.id,
+      before: timed("2026-07-20T02:15:00Z", "2026-07-20T02:45:00Z"),
+      after: timed("2026-07-20T04:00:00Z", "2026-07-20T04:30:00Z"),
+      rationale: "This must use recurrence controls instead.",
+      uncertainties: [],
+    };
+    const editProposal = await harness.persistProposal(
+      OWNER_A,
+      proposalDocument({
+        subjects: [selectedSubject(recurring.id, recurring.title, "selected-1")],
+        actions: [editAction],
+      }),
+      { [recurring.id]: recurrence.task.version },
+    );
+
+    await expect(
+      harness.assistant.applyProposal(OWNER_A, editProposal.id, selection(editProposal)),
+    ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: recurrence.task.version });
+    const unchanged = await harness.storedSchedule(OWNER_A, recurring.id);
+    expect((unchanged?.start_at as Date).toISOString()).toBe("2026-07-20T02:15:00.000Z");
+    expect(await harness.storedProposal(OWNER_A, editProposal.id)).toMatchObject({ status: "pending" });
+  });
+
+  it("rechecks recurrence after a concurrent schedule edit wins the owner-task lock", async () => {
+    const list = await harness.createList(OWNER_A, deterministicId(540), "Concurrent recurrence");
+    const recurring = await harness.createTask(
+      OWNER_A,
+      deterministicId(541),
+      list.id,
+      "Moving recurring block",
+    );
+    const scheduled = await harness.tasks.schedules.setSchedule(OWNER_A, recurring.id, {
+      expectedVersion: recurring.version,
+      schedule: {
+        kind: "timed",
+        startAt: "2026-07-20T02:15:00Z",
+        endAt: "2026-07-20T02:45:00Z",
+        timezone: "Asia/Singapore",
+      },
+    });
+    await harness.tasks.recurrences.setRecurrence(OWNER_A, recurring.id, {
+      expectedVersion: scheduled.task.version,
+      definition: { preset: { kind: "daily", interval: 1 }, end: { kind: "never" } },
+    });
+    const target = await harness.createTask(
+      OWNER_A,
+      deterministicId(542),
+      list.id,
+      "Proposed concurrent block",
+    );
+    const proposal = await persistScheduleProposal(
+      harness,
+      target,
+      deterministicId(543),
+      timed("2026-07-20T04:00:00Z", "2026-07-20T04:30:00Z"),
+    );
+    const blocker = await harness.pool.connect();
+    let blockerOpen = false;
+    let applyCompletion: Promise<void> | undefined;
+    try {
+      await blocker.query("begin");
+      blockerOpen = true;
+      await blocker.query(`select id from tasks where user_id = $1 and id = $2 for update`, [
+        OWNER_A.userId,
+        recurring.id,
+      ]);
+      const applyResult = harness.assistant.applyProposal(OWNER_A, proposal.id, selection(proposal)).then(
+        (value) => ({ status: "fulfilled" as const, value }),
+        (reason: unknown) => ({ status: "rejected" as const, reason }),
+      );
+      applyCompletion = applyResult.then(() => undefined);
+      await waitForBlockedLock(harness.pool, "opentask-wp02-planner_apply_runtime-isolated");
+      await blocker.query(
+        `select task_id from task_recurrences where user_id = $1 and task_id = $2 for update`,
+        [OWNER_A.userId, recurring.id],
+      );
+      await blocker.query(
+        `select task_id from task_schedules where user_id = $1 and task_id = $2 for update`,
+        [OWNER_A.userId, recurring.id],
+      );
+      await blocker.query(
+        `update task_schedules
+            set start_at = $3, end_at = $4, updated_at = $5
+          where user_id = $1 and task_id = $2`,
+        [
+          OWNER_A.userId,
+          recurring.id,
+          new Date("2026-07-20T04:15:00Z"),
+          new Date("2026-07-20T04:45:00Z"),
+          new Date("2026-07-19T01:01:00Z"),
+        ],
+      );
+      await blocker.query(
+        `update task_recurrences
+            set projection_start_at = $3, updated_at = $4
+          where user_id = $1 and task_id = $2`,
+        [OWNER_A.userId, recurring.id, new Date("2026-07-20T04:15:00Z"), new Date("2026-07-19T01:01:00Z")],
+      );
+      await blocker.query(
+        `update tasks set version = version + 1, updated_at = $3 where user_id = $1 and id = $2`,
+        [OWNER_A.userId, recurring.id, new Date("2026-07-19T01:01:00Z")],
+      );
+      await blocker.query("commit");
+      blockerOpen = false;
+
+      const result = await applyResult;
+      expect(result.status).toBe("rejected");
+      if (result.status !== "rejected") throw new Error("Concurrent apply unexpectedly succeeded.");
+      expect(result.reason).toMatchObject({ code: "CONFLICT" });
+    } finally {
+      if (blockerOpen) await blocker.query("rollback");
+      blocker.release();
+      await applyCompletion;
+    }
+    expect(await harness.storedSchedule(OWNER_A, target.id)).toBeUndefined();
+    expect(await harness.storedProposal(OWNER_A, proposal.id)).toMatchObject({ status: "pending" });
+  });
+
   it("rolls back earlier task writes and the proposal transition on a forced mid-batch failure", async () => {
     const list = await harness.createList(OWNER_A, deterministicId(600), "Atomic rollback");
     const first = await harness.createTask(OWNER_A, deterministicId(601), list.id, "First unchanged");
@@ -416,4 +582,18 @@ async function taskCount(target: Harness, userId: string, taskId: string): Promi
     [userId, taskId],
   );
   return result.rows[0]?.count as number;
+}
+
+async function waitForBlockedLock(pool: Pool, applicationName: string): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const result = await pool.query(
+      `select count(*)::int as count
+         from pg_stat_activity
+        where application_name = $1 and wait_event_type = 'Lock'`,
+      [applicationName],
+    );
+    if (((result.rows[0]?.count as number | undefined) ?? 0) >= 1) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error("Timed out waiting for the planner Apply transaction to reach the task-owner lock.");
 }

@@ -136,12 +136,18 @@
   line-height: var(--type-compact-line);
 }
 
-.interpretation {
+.interpretation,
+.seriesNote {
   min-height: var(--type-compact-line);
   margin: var(--space-3) 0 0;
   color: var(--text-muted);
   font-size: var(--type-compact-size);
   line-height: var(--type-compact-line);
+}
+
+.seriesNote {
+  padding-left: var(--space-3);
+  border-left: var(--border-default) solid var(--border-strong);
 }
 
 .validationError,

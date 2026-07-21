@@ -1,24 +1,24 @@
 # Quality and audit contract
 
-No package or release is complete because its happy path was demonstrated once. This document owns
+No change or release is complete because its happy path was demonstrated once. This document owns
 the required evidence for the Local-first Full Release.
 
 ## Verification commands
 
 | Loop | Commands | When |
 |---|---|---|
-| Fast | `pnpm lint && pnpm typecheck` plus owning focused tests | after each coherent edit |
+| Fast | `pnpm verify:quick` or its affected checks plus owning focused tests | after each coherent edit |
 | Module | lint, typecheck, owning unit/component/database tests | before lane handoff |
 | Design | `pnpm verify:design` plus affected visual proof | every shared presentation/token/type/spacing/radius/target change |
 | Browser | affected Playwright golden path plus `pnpm test:a11y` | after a committed user flow |
 | Build | `pnpm build` | after route/env/build/service-worker changes and before handoff |
 | Production | migration + web/worker/health/signal/PWA smoke | after schema, worker, Docker, or service-worker changes |
-| Full | `pnpm verify` | at every package candidate and final release |
+| Full | `pnpm verify` | at every release/change candidate and final release |
 
 `pnpm verify` must fail on any required lint, type, unit, database, E2E, accessibility, migration,
-worker, service-worker, or production-build failure added by the active package. Optional live OpenAI
-and Web Push smokes are separately recorded because they require user-supplied configuration and
-browser permission; deterministic/provider-degraded tests remain mandatory without those secrets.
+worker, service-worker, or production-build failure added by the requested change. Optional live
+OpenAI and Web Push smokes are separately recorded because they require user-supplied configuration
+and browser permission; deterministic/provider-degraded tests remain mandatory without those secrets.
 
 Workers run focused checks in isolated worktrees. The integration owner runs shared database,
 browser, Docker, worker, service-worker, and full gates centrally and sequentially.
@@ -33,7 +33,8 @@ Own pure behavior close to its module:
 - recurrence preset validation, bounded expansion, and occurrence identity/effective state;
 - habit schedule, quantity, local-day, streak, and heat-map projections;
 - Focus transition, accumulated-duration, reconstruction, and summary-window policies;
-- reminder eligibility, next-occurrence, idempotency, retry, and stale-job policies;
+- reminder eligibility, next-occurrence, deterministic idempotency, state shapes, exact retry/
+  outcome-unknown, stale boundary, crash-lease, and retention policies;
 - deterministic planner scheduling and strict versioned export/proposal contracts.
 
 Freeze clocks, timezones, ranges, and ordering. No test may depend on the machine timezone, current
@@ -52,8 +53,9 @@ large DOM snapshots.
 Use real PostgreSQL. Cover empty/upgrade migrations, constraints, indexes, transactions, concurrent
 writes, and positive-owner/negative-cross-user cases for every user-owned aggregate. Specifically
 prove occurrence uniqueness, one habit log per local day, one active Focus session, reminder/job
-idempotency, encrypted subscription storage, atomic task/create-schedule/planner apply, and one
-consistent authorized export snapshot.
+idempotency, global active endpoint ownership, encrypted subscription storage/key rotation,
+transactional pg-boss insertion, atomic task/create-schedule/planner apply, and one consistent
+authorized export snapshot.
 
 ### End-to-end and visual tests
 
@@ -66,7 +68,7 @@ Required projects remain:
 - `boundary-768-chromium` and `boundary-320-chromium` for design contracts.
 
 Run each golden path on desktop/mobile when behavior is responsive. Use semantic selectors and
-deterministic fixtures. P0 approval captures wait for loaded fonts and keep accessibility focus
+deterministic fixtures. Visual evidence waits for loaded fonts and keeps accessibility focus
 evidence separate from presentation-clean comparison captures.
 
 ## Golden paths
@@ -126,7 +128,9 @@ demo reset.
 
 Forced: invalid preset/range, cap boundary, DST, month-end, leap-day, cutover boundary,
 duplicate/concurrent occurrence write, monotonic event `task_version`, stale series version, and
-cross-user series/event access.
+cross-user series/event access. Force recurrence-detail, bounded-source, and Today/Matrix composite
+reads across a concurrent recurrence/occurrence cutover and prove each result comes from one
+actor-scoped snapshot rather than a torn aggregate.
 
 ### G6 — Habit lifecycle
 
@@ -159,9 +163,13 @@ offline/reconnect, history-only error, and cross-user session access.
 5. Reschedule/complete/delete/disable and confirm stale deliveries no-op; revoke subscription.
 
 Forced: cache update/removal, no authenticated content in Cache Storage, unsupported/denied
-  permission, no VAPID, known-disabled worker, configured-but-unverified worker liveness, duplicate
-  job, invalid absolute recurring reminder, transient retry, permanent subscription failure,
-  recurring next occurrence/DST, and cross-user reminder/subscription access.
+  permission, local-subscription/account-enrollment distinction, five-second service-worker
+  readiness timeout, no VAPID, known-disabled worker, configured-but-unverified worker liveness,
+  duplicate job, invalid absolute recurring reminder, enable/disable, create/replace/remove response
+  loss and replay, recurrence conversion/removal, explicit transient retry, timeout/statusless
+  unknown without resend, permanent subscription failure, generic same-browser reset without
+  cross-user revocation, recurring next occurrence/DST, crash-lease repair, retention,
+  and cross-user reminder/subscription access.
 
 ### G9 — Full local release
 
@@ -171,46 +179,47 @@ Forced: cache update/removal, no authenticated content in Cache Storage, unsuppo
 4. Exercise production build/Compose health and clean SIGTERM shutdown.
 5. Re-run in a clean signed-out browser and prepare only verified screenshots/video claims.
 
-## Package acceptance evidence
+## Capability acceptance evidence
 
-| Package | Required evidence |
+| Released capability | Required evidence |
 |---|---|
-| LF00 | conflict-free contracts + existing-core baseline |
-| P0 | approved proof/final screenshots + design/a11y/behavior non-regression |
-| P1 | G1–G4 + atomicity/freshness/origin/provider-degraded tests |
-| P2 | G5 + recurrence migration/time/range/ownership suites |
-| P3 | G6 + habit migration/log/streak/time/ownership suites |
-| P4 | G7 + Focus migration/state/race/clock/ownership suites |
-| P5 | install/cache/fallback/privacy/offline-write audit |
-| P6 | G8 push half + reminder migration/encryption/idempotency/provider/worker suites |
-| P7 | G9 + expanded export/demo/fresh-clone/full audits |
+| Identity, tasks, planning, and optional AI | G1–G4 + atomicity/freshness/origin/provider-degraded tests |
+| Recurrence and occurrence state | G5 + recurrence migration/time/range/ownership suites |
+| Habits | G6 + habit migration/log/streak/time/ownership suites |
+| Focus | G7 + Focus migration/state/race/clock/ownership suites |
+| Installable read-only-offline shell | G8 install/offline beats + cache/fallback/privacy/offline-write audit |
+| Browser reminder and worker | G8 reminder beats + migration/encryption/idempotency/provider/worker suites |
+| Export, demo, and local release trust | G4/G9 + full export/demo/fresh-clone/production audits |
 
 ## Candidate gates
 
-### Visual-proof gate
+### Visual-change gate
 
-P0 broad rollout is blocked until the user approves deterministic Landing, Today, Calendar, task
-detail, and populated AI Review evidence. Required light captures are 1440 and 390; include
-representative dark and 768/320 boundary evidence. A requested revision is work, not approval.
+Editorial Focus is the approved baseline. A change to shared visual foundations or the
+direction of a primary screen must provide deterministic 1440 and 390 evidence, representative dark
+and 768/320 boundary evidence, and explicit user approval before integration. A requested revision
+is work, not approval.
 
 ### Stable submission-candidate gate
 
-A new package may replace the existing fallback only when:
+A release candidate may replace the existing fallback only when:
 
 - its migrations/build and all affected golden paths are green;
 - desktop 1440 and mobile 390 primary screenshots are approved where visuals changed;
 - no blocker/critical defect, authorization/privacy regression, mixed design, dead later control, or
-  failed package gate remains;
-- the exact candidate commit, local run path, five-minute test, and known limitations agree.
+  failed required gate remains;
+- the exact candidate commit, local run path, seven-minute test, and known limitations agree.
 
-Hosted deployment is optional for this goal. If used for the hackathon, it receives the same clean-
-browser health/demo/privacy checks and is evidence, not a substitute for local reproducibility.
+Hosted deployment is optional for the current release. If used for the hackathon, it receives the
+same clean-browser health/demo/privacy checks and is evidence, not a substitute for local
+reproducibility.
 
 ## Mandatory release audits
 
 ### 1. Scope and truth
 
-- Diff every route/table/dependency/job/claim against `docs/SCOPE.md` and package order.
+- Diff every route/table/dependency/job/claim against `docs/SCOPE.md` and any current
+  user-authorized implementation plan.
 - Confirm Stage A–D surfaces and dead controls are absent.
 - Confirm local-first is not described as offline-first and every optional provider has manual
   fallback/degraded state.
@@ -227,12 +236,15 @@ Failure: bypassed layer, ambiguous ownership, duplicate rule, shared feature wid
 
 ### 3. Schema and migrations
 
-- Compare every table/column/index/constraint with `docs/DATA_MODEL.md`; run empty and sequential
+- Run `pnpm check:schema`; compare every table/column/index/constraint with `docs/DATA_MODEL.md`; run empty and sequential
   upgrade migrations.
 - Confirm no cloned occurrence tasks, stored streak/Focus totals, duplicate date/status, generic
   metadata/EAV, or unapproved JSONB.
 - Review recurrence range, habit local-day, Focus active-session, reminder/delivery, and export query
   plans/ownership.
+- For notifications, inspect exact state-shape checks, global active endpoint uniqueness,
+  tenant-leading foreign keys, encryption-envelope/hash bounds, actor-targeted maintenance, and the
+  additive `0015` fresh/upgrade path.
 
 Failure: synonymous fact, missing constraint/index/tenant key, unreviewed migration, or projection
 persisted as truth.
@@ -252,7 +264,7 @@ existence disclosure.
 - Strict Zod/DB bounds; Markdown/XSS; CSP/headers; safe redirects; parameterized SQL; client-bundle
   secret scan.
 - Logs/job/export/cache contain no user content, emails, sessions, OpenAI/VAPID keys, push endpoints,
-  subscription auth, or provider payloads.
+  subscription auth/ciphertext/hash, raw Web Push errors/headers/bodies, or provider payloads.
 - Run secret, production dependency, font/asset, and license inventory gates.
 
 Failure: exploitable input/output, content/secret exposure, unsafe private cache, or applicable
@@ -280,14 +292,18 @@ Failure: autonomous/hidden write, illegal schedule/action, stale overwrite, or c
 
 - Inspect manifest/service-worker scope, cache inventory/update/cleanup/offline fallback, push event/
   click handling, permission gesture, encryption, transactional enqueue, idempotency, retry/revoke,
-  stale no-op, recurring next occurrence, cleanup, and worker signal handling.
+  outcome-unknown no-resend, stale no-op, recurring next occurrence, reversible attempt-zero
+  suppressed-row reactivation,
+  two-minute crash lease, 30-day cleanup eligibility, exact two-queue options, greater-than-31-day
+  worker-outage actor recovery without a global scan, check-mode non-consumption, and worker signal
+  handling.
 
 Failure: private cached data, accepted offline write, stale build trap, double delivery, secret/content
 job, reminder corruption, or provider/worker required for core boot.
 
 ### 9. Accessibility and responsive visuals
 
-- Axe has no serious/critical issue on every active screen/state.
+- Axe has no serious/critical issue on every current screen/state.
 - Keyboard-only paths cover navigation, add/edit, dialogs, reorder, calendar alternative, proposal,
   occurrence, habit, Focus, install/update, reminder enrollment/revoke, and permission recovery.
 - Inspect default/empty/loading/error/offline/permission/provider/conflict at 1440, 1024, 768, 390,
@@ -300,7 +316,8 @@ serious/critical axe issue, or design-contract mismatch.
 ### 10. Reliability, reproducibility, and release evidence
 
 - Rehearse DB/OpenAI/VAPID/worker/network unavailable, slow/duplicate/stale mutations, cache upgrade,
-  retries, and clean shutdown.
+  explicit retries, ambiguous provider outcomes, and clean shutdown. Validate export envelope v5 /
+  notifications v1 while proving all subscription/delivery/job/provider configuration is absent.
 - Follow README from a fresh clone through PostgreSQL, migrations, seed readiness, web, active worker,
   demo, golden paths, export, production build/Compose, and provider-degraded use.
 - Verify video/screenshots/README describe the same release commit and expose no secrets/personal data.
@@ -313,17 +330,17 @@ unreproducible local demo, or unverified public claim.
 | Severity | Definition | Release rule |
 |---|---|---|
 | Blocker | data/security/privacy loss, cross-user access, cannot start/build/migrate, or candidate/demo impossible | must fix |
-| Critical | active acceptance failure, autonomous/incorrect AI write, duplicate/corrupt reminder/timer/occurrence, or inaccessible primary action | must fix |
-| Major | important recovery/responsive/provider-degraded path broken with documented workaround | fix before package integration unless contract declares limitation |
+| Critical | committed acceptance failure, autonomous/incorrect AI write, duplicate/corrupt reminder/timer/occurrence, or inaccessible primary action | must fix |
+| Major | important recovery/responsive/provider-degraded path broken with documented workaround | fix before integration unless contract declares limitation |
 | Minor | cosmetic issue that does not impair action, readability, or trust | may document after required gates pass |
 
 Do not downgrade because time is short. A cut requires the five-part user-authorized scope change.
 
 ## Final sign-off
 
-The auditor reports release commit/environment, exact commands/results, LF00 and P0–P7 evidence,
-G1–G9 at required widths, visual approvals, migration/worker/PWA/provider smokes, all ten audit
+The auditor reports release commit/environment, exact commands/results, capability-to-G1–G9
+evidence at required widths, visual approvals, migration/worker/PWA/provider smokes, all ten audit
 results, dependency/font/asset licenses, and contract-permitted limitations.
 
 Sign-off is denied for any blocker/critical defect, failed required command, unmapped acceptance,
-unchecked audit, unapproved P0 evidence, or falsely claimed external live smoke.
+unchecked audit, missing required visual approval, or falsely claimed external live smoke.

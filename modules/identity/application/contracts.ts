@@ -9,7 +9,7 @@ export type InboxBootstrapPort = {
 };
 
 export type DemoDatasetSeeder = {
-  reset(userId: string, existingTransaction?: DatabaseTransaction): Promise<void>;
+  reset(userId: string, resetAt: Date, existingTransaction?: DatabaseTransaction): Promise<void>;
 };
 
 export type DemoEntryResult = Readonly<{

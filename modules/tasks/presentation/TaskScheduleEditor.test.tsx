@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TaskDetailDto, TaskScheduleDto } from "../application/contracts";
+import type { TaskRecurrenceDto } from "../application/contracts/recurrence-contract";
 import { TaskApiError } from "./data/task-api-request";
 import { clearTaskDrafts } from "./task-draft-guard";
 
@@ -14,22 +15,50 @@ const scheduleApi = vi.hoisted(() => ({
   setTaskSchedule: vi.fn(),
 }));
 const taskApi = vi.hoisted(() => ({ getTask: vi.fn() }));
+const recurrenceApi = vi.hoisted(() => ({
+  editRecurringTaskSchedule: vi.fn(),
+  endTaskRecurrence: vi.fn(),
+  getTaskRecurrence: vi.fn(),
+  setTaskRecurrence: vi.fn(),
+}));
 
 vi.mock("./data/task-schedule-api-client", () => scheduleApi);
 vi.mock("./data/task-api-client", () => ({ getTask: taskApi.getTask }));
+vi.mock("./data/task-recurrence-api-client", () => recurrenceApi);
 
 import { TaskScheduleEditor } from "./TaskScheduleEditor";
 
 const TASK_ID = "00000000-0000-4000-8000-000000000010";
 const LIST_ID = "00000000-0000-4000-8000-000000000020";
 let savedSchedule: TaskScheduleDto | null;
+let savedRecurrence: TaskRecurrenceDto | null;
 
 beforeEach(() => {
   vi.clearAllMocks();
   clearTaskDrafts(TASK_ID);
   savedSchedule = null;
+  savedRecurrence = null;
   scheduleApi.getSchedulePreferences.mockResolvedValue({ timeZone: "Asia/Singapore", hourCycle: "h23" });
   scheduleApi.getTaskSchedule.mockImplementation(async () => savedSchedule);
+  recurrenceApi.getTaskRecurrence.mockImplementation(async () => savedRecurrence);
+  recurrenceApi.editRecurringTaskSchedule.mockImplementation(async (taskId, input) => {
+    savedSchedule = {
+      taskId,
+      ...input.schedule,
+      createdAt: "2026-07-19T00:00:00.000Z",
+      updatedAt: "2026-07-19T00:00:00.000Z",
+    } as TaskScheduleDto;
+    savedRecurrence = {
+      ...savedRecurrence!,
+      definition: input.definition,
+      taskVersion: input.expectedVersion + 1,
+      updatedAt: "2026-07-19T00:01:00.000Z",
+    };
+    return {
+      task: { id: taskId, version: input.expectedVersion + 1 },
+      recurrence: savedRecurrence,
+    };
+  });
   scheduleApi.setTaskSchedule.mockImplementation(async (taskId, input) => {
     savedSchedule = {
       taskId,
@@ -47,6 +76,16 @@ beforeEach(() => {
 });
 
 describe("TaskScheduleEditor", () => {
+  it("opens and focuses the canonical recurring schedule form from a deep link", async () => {
+    savedSchedule = allDaySchedule();
+    savedRecurrence = recurrence();
+
+    renderEditor({ initiallyEditing: true });
+
+    expect(await screen.findByRole("button", { name: "Save schedule" })).toBeVisible();
+    await waitFor(() => expect(screen.getByLabelText("Start date")).toHaveFocus());
+  });
+
   it("adds a timezone-aware timed schedule through the canonical schedule command", async () => {
     const user = userEvent.setup();
     renderEditor();
@@ -106,6 +145,71 @@ describe("TaskScheduleEditor", () => {
         schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-23" },
       }),
     );
+  });
+
+  it("routes a recurring schedule edit through the atomic series command", async () => {
+    savedSchedule = allDaySchedule();
+    savedRecurrence = recurrence();
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Edit recurring schedule" }));
+    expect(screen.getByText(/recorded occurrence history remains stable/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("All day")).toBeDisabled();
+    expect(screen.getByLabelText("Specific time")).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("End date (exclusive)"), {
+      target: { value: "2026-07-23" },
+    });
+    await user.click(screen.getByRole("button", { name: "Save schedule" }));
+
+    await waitFor(() =>
+      expect(recurrenceApi.editRecurringTaskSchedule).toHaveBeenCalledWith(TASK_ID, {
+        expectedVersion: 1,
+        definition: recurrence().definition,
+        schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-23" },
+      }),
+    );
+    expect(scheduleApi.setTaskSchedule).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Clear schedule" })).not.toBeInTheDocument();
+  });
+
+  it("keeps schedule-kind switching available for a non-recurring root task", async () => {
+    savedSchedule = allDaySchedule();
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Edit schedule" }));
+
+    expect(screen.getByLabelText("All day")).toBeEnabled();
+    expect(screen.getByLabelText("Specific time")).toBeEnabled();
+    expect(screen.queryByText(/recorded occurrence history remains stable/i)).not.toBeInTheDocument();
+  });
+
+  it("moves keyboard focus into the recurring schedule form when it opens", async () => {
+    savedSchedule = allDaySchedule();
+    savedRecurrence = recurrence();
+    const user = userEvent.setup();
+    renderEditor();
+
+    const edit = await screen.findByRole("button", { name: "Edit recurring schedule" });
+    edit.focus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => expect(screen.getByLabelText("Start date")).toHaveFocus());
+  });
+
+  it("allows the canonical atomic clear only after recurrence has ended", async () => {
+    savedSchedule = allDaySchedule();
+    savedRecurrence = recurrence("ended");
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Clear schedule" }));
+
+    await waitFor(() =>
+      expect(scheduleApi.clearTaskSchedule).toHaveBeenCalledWith(TASK_ID, { expectedVersion: 1 }),
+    );
+    expect(recurrenceApi.editRecurringTaskSchedule).not.toHaveBeenCalled();
   });
 
   it("keeps invalid all-day input local and focuses an actionable error", async () => {
@@ -173,9 +277,95 @@ describe("TaskScheduleEditor", () => {
     expect(scheduleApi.setTaskSchedule.mock.calls[1]?.[1]).toMatchObject({ expectedVersion: 2 });
     expect(await screen.findByText("Schedule saved")).toBeInTheDocument();
   });
+
+  it("reconciles an accepted set after a lost response without writing twice", async () => {
+    const lostResponse = new TypeError("Failed to fetch");
+    scheduleApi.setTaskSchedule.mockImplementationOnce(async (taskId, input) => {
+      savedSchedule = {
+        taskId,
+        ...input.schedule,
+        createdAt: "2026-07-19T00:00:00.000Z",
+        updatedAt: "2026-07-19T00:00:00.000Z",
+      } as TaskScheduleDto;
+      throw lostResponse;
+    });
+    const workspaceChanged = vi.fn();
+    window.addEventListener("opentask:workspace-data-changed", workspaceChanged);
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Add schedule" }));
+    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-07-20" } });
+    fireEvent.change(screen.getByLabelText("End date (exclusive)"), {
+      target: { value: "2026-07-22" },
+    });
+    await user.click(screen.getByRole("button", { name: "Save schedule" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("schedule update is unconfirmed");
+    expect(alert).not.toHaveTextContent("schedule was not saved");
+    expect(screen.getByLabelText("Start date")).toHaveValue("2026-07-20");
+    await waitFor(() => expect(alert).toHaveTextContent("matches your choice"));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("Schedule saved")).toBeInTheDocument();
+    expect(scheduleApi.setTaskSchedule).toHaveBeenCalledOnce();
+    expect(workspaceChanged).toHaveBeenCalledOnce();
+    window.removeEventListener("opentask:workspace-data-changed", workspaceChanged);
+  });
+
+  it("reconciles an accepted clear after a lost response and keeps focus on confirmation", async () => {
+    savedSchedule = allDaySchedule();
+    const lostResponse = new TypeError("Failed to fetch");
+    scheduleApi.clearTaskSchedule.mockImplementationOnce(async () => {
+      savedSchedule = null;
+      throw lostResponse;
+    });
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Clear schedule" }));
+
+    const alert = await screen.findByRole("alert");
+    await waitFor(() => expect(alert).toHaveFocus());
+    expect(alert).toHaveTextContent("schedule update is unconfirmed");
+    await waitFor(() => expect(alert).toHaveTextContent("matches your choice"));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    const confirmation = await screen.findByText("Schedule removed");
+    expect(confirmation.closest('[role="status"]')).toHaveFocus();
+    expect(scheduleApi.clearTaskSchedule).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Add schedule" })).toBeInTheDocument();
+  });
+
+  it("preserves and gates an unconfirmed set when authoritative schedule reload fails", async () => {
+    scheduleApi.getTaskSchedule.mockResolvedValueOnce(null).mockRejectedValue(new Error("offline"));
+    scheduleApi.setTaskSchedule.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Add schedule" }));
+    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-07-20" } });
+    fireEvent.change(screen.getByLabelText("End date (exclusive)"), {
+      target: { value: "2026-07-22" },
+    });
+    await user.click(screen.getByRole("button", { name: "Save schedule" }));
+
+    const alert = await screen.findByRole("alert");
+    await waitFor(() => expect(alert).toHaveTextContent("latest schedule could not be loaded"));
+    expect(screen.getByLabelText("Start date")).toHaveValue("2026-07-20");
+    expect(screen.getByRole("button", { name: "Save schedule" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(within(alert).getByRole("button", { name: "Use latest" })).toBeDisabled();
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeDisabled();
+    expect(within(alert).getByRole("button", { name: "Refresh latest" })).toBeEnabled();
+  });
 });
 
-function renderEditor({ disabled = false }: Readonly<{ disabled?: boolean }> = {}) {
+function renderEditor({
+  disabled = false,
+  initiallyEditing = false,
+}: Readonly<{ disabled?: boolean; initiallyEditing?: boolean }> = {}) {
   const client = new QueryClient({
     defaultOptions: {
       mutations: { retry: false },
@@ -184,7 +374,7 @@ function renderEditor({ disabled = false }: Readonly<{ disabled?: boolean }> = {
   });
   return render(
     <QueryClientProvider client={client}>
-      <TaskScheduleEditor disabled={disabled} task={taskDetail()} />
+      <TaskScheduleEditor disabled={disabled} initiallyEditing={initiallyEditing} task={taskDetail()} />
     </QueryClientProvider>,
   );
 }
@@ -218,6 +408,24 @@ function allDaySchedule(): TaskScheduleDto {
     kind: "all_day",
     startDate: "2026-07-20",
     endDate: "2026-07-21",
+    createdAt: "2026-07-19T00:00:00.000Z",
+    updatedAt: "2026-07-19T00:00:00.000Z",
+  };
+}
+
+function recurrence(lifecycle: TaskRecurrenceDto["lifecycle"] = "active"): TaskRecurrenceDto {
+  return {
+    taskId: TASK_ID,
+    taskVersion: 1,
+    generationMode: "schedule",
+    timezone: "Asia/Singapore",
+    definition: { preset: { kind: "daily", interval: 1 }, end: { kind: "never" } },
+    cutover: {
+      kind: "all_day",
+      projectionStartDate: "2026-07-20",
+      projectionEndDate: lifecycle === "ended" ? "2026-07-25" : null,
+    },
+    lifecycle,
     createdAt: "2026-07-19T00:00:00.000Z",
     updatedAt: "2026-07-19T00:00:00.000Z",
   };

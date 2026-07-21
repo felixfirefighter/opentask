@@ -5,6 +5,7 @@ import { getInbox, getTasksApplication } from "@/modules/tasks";
 import { TaskCommandPalette, TaskNavigation, TaskWorkspaceScreen } from "@/modules/tasks/presentation";
 
 import { loadWorkspace } from "../_load-workspace";
+import { TaskReminderComposition } from "../_components/TaskReminderComposition";
 
 export const metadata: Metadata = { title: "Inbox" };
 export const dynamic = "force-dynamic";
@@ -30,9 +31,19 @@ export default async function InboxPage() {
       contextNavigation={<TaskNavigation current="inbox" inboxId={inbox.id} />}
       compactNavigation={<TaskNavigation current="inbox" inboxId={inbox.id} variant="compact" />}
     >
-      <TaskWorkspaceScreen
-        destination={{ kind: "list", list: inbox, inbox, immutableInbox: true, initialTasks }}
-      />
+      <TaskReminderComposition>
+        <TaskWorkspaceScreen
+          destination={{
+            kind: "list",
+            list: inbox,
+            inbox,
+            immutableInbox: true,
+            initialTasks,
+            timeZone: workspace.preferences.timezone,
+            hourCycle: workspace.preferences.hourCycle,
+          }}
+        />
+      </TaskReminderComposition>
     </AuthenticatedShell>
   );
 }

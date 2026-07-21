@@ -101,6 +101,20 @@
   line-height: var(--type-compact-line);
 }
 
+.warning {
+  margin: 0;
+  color: var(--warning);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.error {
+  margin: var(--space-1) 0 0;
+  color: var(--danger);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
 @media (max-width: 767px), (any-pointer: coarse) {
   .composer {
     position: sticky;

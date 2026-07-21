@@ -1,14 +1,17 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { markWorkspaceRoutesStale } from "@/shared/presentation";
 
 import type {
   CreateTaskRequest,
+  CreateTaskWithScheduleRequest,
   TaskDetailDto,
   TaskListItemDto,
   UpdateTaskRequest,
 } from "../../application/contracts";
-import { createTask, updateTask } from "./task-api-client";
+import { createTask, createTaskWithSchedule, updateTask } from "./task-api-client";
+import { classifyTaskWriteOutcome } from "../task-write-outcome";
 import {
   optimisticTask,
   patchTask,
@@ -30,6 +33,11 @@ type UpdateTaskVariables = Readonly<{
   input: UpdateTaskRequest;
 }>;
 
+type CreateTaskWithScheduleVariables = Readonly<{
+  resourceId: string;
+  input: CreateTaskWithScheduleRequest;
+}>;
+
 export function useCreateTaskMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -43,12 +51,14 @@ export function useCreateTaskMutation() {
       );
       return { key, previous };
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, _variables, context) => {
       if (context) queryClient.setQueryData(context.key, context.previous);
+      if (classifyTaskWriteOutcome(error) === "unconfirmed") markWorkspaceRoutesStale();
     },
     onSuccess: (created, { input }) => {
       const key = taskQueryKeys.list(input.listId);
       queryClient.setQueryData<TaskPageCache>(key, (cache) => replaceTask(cache, taskListItem(created)));
+      markWorkspaceRoutesStale();
     },
     onSettled: (_value, _error, { input }) => {
       return Promise.all([
@@ -56,6 +66,33 @@ export function useCreateTaskMutation() {
         queryClient.invalidateQueries({ queryKey: taskQueryKeys.searchRoot() }),
       ]);
     },
+  });
+}
+
+export function useCreateTaskWithScheduleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ resourceId, input }: CreateTaskWithScheduleVariables) =>
+      createTaskWithSchedule(resourceId, input),
+    onMutate: async ({ resourceId, input }) => {
+      const key = taskQueryKeys.list(input.listId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<TaskPageCache>(key);
+      queryClient.setQueryData<TaskPageCache>(key, (cache) =>
+        prependTask(cache, optimisticTask(resourceId, input)),
+      );
+      return { key, previous };
+    },
+    onError: (error, _variables, context) => {
+      if (context) queryClient.setQueryData(context.key, context.previous);
+      if (classifyTaskWriteOutcome(error) === "unconfirmed") markWorkspaceRoutesStale();
+    },
+    onSuccess: (created, { input }) => {
+      const key = taskQueryKeys.list(input.listId);
+      queryClient.setQueryData<TaskPageCache>(key, (cache) => replaceTask(cache, taskListItem(created.task)));
+      markWorkspaceRoutesStale();
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: taskQueryKeys.all }),
   });
 }
 
@@ -80,10 +117,12 @@ export function useUpdateTaskMutation() {
       );
       return { listKey, detailKey, previousList, previousDetail };
     },
-    onError: (_error, _variables, context) => {
-      if (!context) return;
-      queryClient.setQueryData(context.listKey, context.previousList);
-      queryClient.setQueryData(context.detailKey, context.previousDetail);
+    onError: (error, _variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.listKey, context.previousList);
+        queryClient.setQueryData(context.detailKey, context.previousDetail);
+      }
+      if (classifyTaskWriteOutcome(error) === "unconfirmed") markWorkspaceRoutesStale();
     },
     onSuccess: (updated, { taskId, listId }) => {
       queryClient.setQueryData<TaskPageCache>(taskQueryKeys.list(listId), (cache) =>
@@ -92,6 +131,7 @@ export function useUpdateTaskMutation() {
       queryClient.setQueryData<TaskDetailDto>(taskQueryKeys.detail(taskId), (task) =>
         task ? { ...task, ...updated } : task,
       );
+      markWorkspaceRoutesStale();
     },
     onSettled: (_value, _error, { taskId, listId }) => {
       return Promise.all([

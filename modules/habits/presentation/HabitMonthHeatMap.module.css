@@ -1,0 +1,67 @@
+.wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.table {
+  width: 100%;
+  min-width: 308px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: var(--space-1);
+  padding: var(--space-3);
+}
+
+.table caption {
+  padding: 0 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+  text-align: left;
+}
+
+.table th {
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.table td {
+  height: 36px;
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  text-align: center;
+}
+
+.table td[data-state="successful"] {
+  background: var(--category-mint-bg);
+  color: var(--category-mint-fg);
+  font-weight: var(--type-label-weight);
+}
+
+.table td[data-state="partial"] {
+  background: var(--category-amber-bg);
+  color: var(--category-amber-fg);
+}
+
+.table td[data-state="skipped"],
+.table td[data-state="unachieved"] {
+  box-shadow: inset 0 -3px var(--warning);
+}
+
+.table .outsideMonth {
+  background: transparent;
+}
+
+@media (any-pointer: coarse) {
+  .table td {
+    height: var(--control-target-touch);
+  }
+}

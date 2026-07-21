@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   resolveActor: vi.fn(),
   getApplication: vi.fn(),
+  getReleaseApplications: vi.fn(),
   application: {
     capability: vi.fn(),
     createProposal: vi.fn(),
@@ -20,6 +21,9 @@ vi.mock("@/modules/identity", () => ({
 vi.mock("@/modules/assistant", async (importOriginal) => ({
   ...(await importOriginal<typeof AssistantModule>()),
   getAssistantPlannerApplication: mocks.getApplication,
+}));
+vi.mock("@/server/release-applications", () => ({
+  getReleaseApplications: mocks.getReleaseApplications,
 }));
 
 import { GET as getCapability } from "./capability/route";
@@ -64,6 +68,7 @@ describe("planner API routes", () => {
     vi.clearAllMocks();
     mocks.resolveActor.mockResolvedValue(actor);
     mocks.getApplication.mockReturnValue(mocks.application);
+    mocks.getReleaseApplications.mockReturnValue({ assistant: mocks.application });
     mocks.application.capability.mockReturnValue({ state: "disabled", reason: "missing_api_key" });
     mocks.application.createProposal.mockResolvedValue({ id: proposalId });
     mocks.application.getProposal.mockResolvedValue({ id: proposalId, status: "pending" });

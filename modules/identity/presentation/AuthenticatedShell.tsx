@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { SessionIdentity } from "@/modules/identity";
+import { WorkspaceRouteFreshness } from "@/shared/presentation";
 
 import {
   AuthenticatedMobileNavigation,
@@ -9,6 +10,7 @@ import {
 } from "./AuthenticatedNavigation";
 import styles from "./AuthenticatedShell.module.css";
 import { OfflineBanner } from "./OfflineBanner";
+import { PwaUpdateBanner } from "./PwaUpdateBanner";
 import { RouteFocus } from "./RouteFocus";
 import { type ThemePreference, ThemePreferenceSync } from "./theme-client";
 
@@ -42,6 +44,7 @@ export function AuthenticatedShell({
   return (
     <div className={styles.shell} data-mobile-navigation={showMobileNavigation}>
       <ThemePreferenceSync theme={theme} reducedMotion={reducedMotion} />
+      <WorkspaceRouteFreshness />
       <RouteFocus />
       <a className="skip-link" href="#main-content">
         Skip to main content
@@ -55,7 +58,10 @@ export function AuthenticatedShell({
         identity={identity}
         topBarActions={topBarActions}
       />
-      <OfflineBanner />
+      <div className={styles.conditionStack}>
+        <OfflineBanner />
+        <PwaUpdateBanner />
+      </div>
 
       <main id="main-content" className={styles.main} tabIndex={-1}>
         {children}

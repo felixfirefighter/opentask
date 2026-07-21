@@ -15,7 +15,7 @@ const publicAuthRoutes = [
 
 const authenticatedRoutes = [
   { slug: "inbox", path: "/inbox", heading: "Inbox" },
-  { slug: "list", path: `/lists/${DEMO_LIST_ID}`, heading: "Hackathon launch" },
+  { slug: "list", path: `/lists/${DEMO_LIST_ID}`, heading: "Community workshop" },
   { slug: "completed", path: "/completed", heading: "Completed / cancelled" },
   { slug: "today", path: "/today", heading: "Today" },
   { slug: "upcoming", path: "/upcoming", heading: "Upcoming" },
@@ -80,7 +80,7 @@ test("the friend-candidate journey renders at every approved viewport", async ({
       ? `/lists/${DEMO_LIST_ID}?task=${DEMO_TASK_ID}`
       : `/tasks/${DEMO_TASK_ID}`;
   await page.goto(taskDetailsPath);
-  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue("Record the two-minute demo");
+  await expect(page.getByLabel("Task title", { exact: true })).toHaveValue("Outline the workshop agenda");
   if (page.viewportSize()!.width >= 1280) {
     const details = page.getByRole("complementary", { name: "Task details" });
     await expect(details).toBeVisible();
@@ -104,7 +104,13 @@ test("the friend-candidate journey renders at every approved viewport", async ({
   await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
   await page.context().setOffline(true);
-  await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
+  const offlineStatus = page
+    .getByRole("status")
+    .filter({ hasText: "You’re offline. Writes are disabled until you reconnect." });
+  await expect(async () => {
+    await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+    await expect(offlineStatus).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 15_000 });
   await captureRoute(page, testInfo, captureDirectory, "inbox-offline");
   await page.context().setOffline(false);
   await page.close();
@@ -149,10 +155,11 @@ async function publishEvidence(captureDirectory: string, evidenceDirectory: stri
 }
 
 async function expectCalendarInstructionUntruncated(page: Page) {
-  const instruction = page.getByText(
-    "Choose any visible task, then open the complete date, time, and timezone form.",
-    { exact: true },
-  );
+  const instruction = page
+    .getByRole("main")
+    .getByText("Choose any visible task, then open the complete date, time, and timezone form.", {
+      exact: true,
+    });
   await expect(instruction).toBeVisible();
   const style = await instruction.evaluate((element) => {
     const computed = getComputedStyle(element);

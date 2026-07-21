@@ -10,6 +10,7 @@ const localCode = [
   "app/**/*.{ts,tsx}",
   "modules/**/*.{ts,tsx}",
   "scripts/**/*.{ts,tsx,mjs}",
+  "server/**/*.{ts,tsx}",
   "shared/**/*.{ts,tsx}",
   "worker/**/*.{ts,tsx}",
 ];
@@ -40,6 +41,12 @@ export default defineConfig([
     },
   },
   {
+    files: ["worker/register-path-aliases.ts"],
+    rules: {
+      "opentask/no-alternate-loaders": "off",
+    },
+  },
+  {
     files: ["modules/*/application/**/*.{ts,tsx}"],
     rules: {
       "opentask/no-private-runtime-reexports": "error",
@@ -49,6 +56,7 @@ export default defineConfig([
     files: [
       "app/**/*.{ts,tsx}",
       "modules/**/*.{ts,tsx}",
+      "server/**/*.{ts,tsx}",
       "shared/**/*.{ts,tsx}",
       "worker/**/*.{ts,tsx}",
       "scripts/{migrate,seed}.ts",
@@ -69,6 +77,7 @@ export default defineConfig([
       "app/**/*.{ts,tsx}",
       "modules/*/{application,domain,presentation}/**/*.{ts,tsx}",
       "modules/*/index.ts",
+      "server/**/*.{ts,tsx}",
       "shared/**/*.{ts,tsx}",
     ],
     ignores: ["shared/db/**/*.{ts,tsx}"],
@@ -86,6 +95,7 @@ export default defineConfig([
     files: [
       "modules/*/{application,domain,infrastructure}/**/*.{ts,tsx}",
       "modules/*/index.ts",
+      "server/**/*.{ts,tsx}",
       "shared/{auth,config,db,health,logging,time,validation}/**/*.{ts,tsx}",
       "worker/**/*.{ts,tsx}",
     ],
@@ -97,6 +107,7 @@ export default defineConfig([
     files: [
       "app/**/*.{js,jsx,mjs,cjs,mts,cts}",
       "modules/**/*.{js,jsx,mjs,cjs,mts,cts}",
+      "server/**/*.{js,jsx,mjs,cjs,mts,cts}",
       "scripts/**/*.{js,jsx,cjs,mts,cts}",
       "shared/**/*.{js,jsx,mjs,cjs,mts,cts}",
       "worker/**/*.{js,jsx,mjs,cjs,mts,cts}",
@@ -140,7 +151,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["app/**/*.{ts,tsx}"],
+    files: ["app/**/*.{ts,tsx}", "server/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": ["error", { patterns: [sharedDatabasePattern] }],
     },

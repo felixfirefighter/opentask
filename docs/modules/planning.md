@@ -28,23 +28,65 @@
 - `buildDeterministicPlan(input)` returns placed blocks, overflow, and conflicts without writing.
 - Public contracts: `PlanningTaskRow`, `CalendarEventDto`, `AgendaRow`, `EisenhowerProjection`,
   `BusyInterval`, `SchedulingInput`, and `SchedulingResult`. A projected recurring row/event carries
-  its series task ID and opaque `occurrenceKey`; non-recurring rows omit it.
+  its series task ID, opaque `occurrenceKey`, effective `occurrenceState`, and tasks-derived
+  `transitionEligible`; a recurrence-summary
+  Matrix row with no occurrence in the bounded horizon omits the key, state, and transition
+  eligibility. Non-recurring rows omit all recurrence fields. `PlanningTaskRow.id` is the one
+  canonical series task ID and
+  `projectionId` is the distinct render identity; rows do not duplicate `id` under a `taskId` alias.
+  Calendar events use `taskId` because their `projectionId` is the event identity.
+- Every projection carries an explicit `truncated` flag and unique typed `truncationReasons` mapped
+  from the tasks-owned source, event, candidate, and output caps plus planning's own task/output cap.
+  Presentation treats any truncated result as incomplete and read-only, explains that records may be
+  missing, and offers Retry. It never converts a truncated zero-row result into an authoritative empty
+  state. Matrix suppresses partial classifications because a missing occurrence could change a
+  series' quadrant.
 
 ## Invariants
 
 - Every surface projects canonical task rows and tasks-owned occurrence state; it never stores or
   invents a second status, priority, schedule, recurrence rule, or occurrence state.
+- Today obtains its canonical one-off page and recurring page through one tasks-owned, actor-scoped
+  repeatable-read composite. Matrix obtains its all-open page plus overlap and forward occurrence
+  pages through one equivalent composite. Each projection reads the saved timezone once, uses it for
+  its response metadata and range boundaries, and passes that same validated value through every
+  bounded occurrence expansion. Planning receives typed pages only, while each page keeps its
+  independent cap and truncation evidence; it never coordinates database executors itself.
 - Calendar and agenda queries require explicit finite ranges and preserve the tasks module's range,
   row-cap, and truncation contract.
 - Local-day boundaries and “next seven days” use saved user timezone/week preferences.
+- Today preserves the existing unbounded-through-today one-off overdue read, while its separately
+  capped recurring page expands only occurrences overlapping the current local day and pads backward
+  by the maximum recurring duration. It does not accumulate a historical backlog of missed recurring
+  occurrences; an occurrence whose due boundary passed earlier today is still overdue. Upcoming
+  exposes transition-eligible open occurrences in its next seven local days. Calendar and Agenda
+  expose open, completed, and skipped occurrences in the requested range so state and Undo remain
+  discoverable; a reopened historical key outside the current rule remains visible there as read-only
+  history and never offers a complete/skip command guaranteed to fail.
 - Eisenhower `important` means high priority. `urgent` means the derived schedule/occurrence boundary
   is overdue or falls within the user's next 24 hours; unscheduled tasks are not urgent. Other
   combinations map to the remaining quadrants. The derived boundary is never persisted as a second
-  due field.
-- Calendar drag/resize ultimately calls the same versioned tasks schedule command as keyboard/touch editing.
+  due field. Matrix performs two independently capped half-open reads and propagates truncation from
+  either: an overlap read `[today - 31 local days, today)` and a forward read
+  `[today, today + 62 local days)`, with paired instant bounds derived from saved user timezone. It
+  discards overlap rows whose end boundary is at or before today's start, merges by task plus
+  occurrence key, and classifies the earliest eligible open occurrence. The lookback catches a long
+  occurrence due today/within 24 hours without creating historical backlog, while the forward read is
+  exactly 62 local days rather than 63. When no occurrence exists in the forward horizon or overlaps
+  today, render the series once as nonurgent with “No occurrence in the next 62 days”; priority alone
+  chooses Plan or Later.
+- Calendar drag/resize ultimately calls the same versioned tasks schedule command as keyboard/touch
+  editing for one-off tasks. Recurring events do not expose drag/resize because per-occurrence
+  overrides are excluded; their labeled form action edits the future series schedule atomically.
 - Every drag/resize action has a visible non-drag alternative.
 - Complete, skip, and undo actions on a recurring row call the tasks occurrence commands with both
-  task ID and occurrence identity; they never transition the series task as a substitute.
+  task ID and occurrence identity; they never transition the series task as a substitute. Consumers
+  honor `transitionEligible` for open occurrences rather than inferring actionability from state.
+- Planner busy context contains transition-eligible open timed occurrences only. Completed/skipped,
+  reopened read-only historical occurrences, and all-day boundaries do not occupy time. Proposal
+  preview and apply-time revalidation use the same eligibility rule and the proposal's validated
+  timezone. A truncated tasks occurrence read fails proposal creation with an explicit
+  incomplete-context result; deterministic planning never proceeds on a partial calendar.
 - The deterministic scheduler alone owns overlap, work-window, buffer, and overflow decisions. Given the same normalized input, it returns the same result.
 - Scheduler output contains semantic references supplied by the caller, never trusted database ownership claims, and performs no write.
 

@@ -1,4 +1,9 @@
-import { buildDeterministicPlan, type BusyInterval } from "@/modules/planning";
+import {
+  PLANNING_PROJECTION_MAX_ROWS,
+  buildDeterministicPlan,
+  type BusyInterval,
+  type PlanningBusyIntervalReader,
+} from "@/modules/planning";
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import { createEntityId } from "@/shared/db/ids";
 import { ApplicationError } from "@/shared/http/application-error";
@@ -16,7 +21,6 @@ import {
   type PlannerProposalDto,
 } from "./contracts";
 import type {
-  PlannerBusyScheduleReader,
   PlannerProposalWriter,
   PlannerSelectedTaskReader,
   PlannerSelectedTaskSnapshot,
@@ -33,7 +37,7 @@ export type PlannerProposalCreator = ReturnType<typeof createPlannerProposalCrea
 export function createPlannerProposalCreator(dependencies: {
   provider: PlannerExtractionProvider | null;
   selectedTasks: PlannerSelectedTaskReader;
-  busySchedules: PlannerBusyScheduleReader;
+  busyIntervals: PlanningBusyIntervalReader;
   proposals: PlannerProposalWriter;
   schedule?: DeterministicScheduler;
   createActionId?: () => string;
@@ -68,7 +72,7 @@ export function createPlannerProposalCreator(dependencies: {
 
       const window = resolvePlannerWorkWindow(input);
       const busyIntervals = window
-        ? await loadBusyIntervals(dependencies.busySchedules, actor, input, window)
+        ? await loadBusyIntervals(dependencies.busyIntervals, actor, input, window)
         : [];
       const scheduling = schedule({
         timeZone: input.timeZone,
@@ -164,25 +168,24 @@ async function extractRecoverably(provider: PlannerExtractionProvider, request: 
 }
 
 async function loadBusyIntervals(
-  reader: PlannerBusyScheduleReader,
+  reader: PlanningBusyIntervalReader,
   actor: AuthenticatedActor,
   input: PlannerInput,
   window: Readonly<{ startAt: string; endAt: string; nextLocalDate: string }>,
 ): Promise<readonly BusyInterval[]> {
-  const page = await reader.listRange(actor, {
+  const page = await reader.readBusyIntervals(actor, {
+    timeZone: input.timeZone,
     rangeStartDate: input.planningDate,
     rangeEndDate: window.nextLocalDate,
     rangeStartAt: window.startAt,
     rangeEndAt: window.endAt,
-    limit: 500,
+    limit: PLANNING_PROJECTION_MAX_ROWS,
   });
-  if (page.truncated) {
+  if (page.truncation.truncated) {
     throw new ApplicationError(
       "VALIDATION_FAILED",
-      "This planning window has too many scheduled items. Use a narrower window and try again.",
+      "The recurring occurrence context was truncated by a safety limit. Use a narrower work window and try again.",
     );
   }
-  return page.items.flatMap(({ schedule }) =>
-    schedule.kind === "timed" ? [{ startAt: schedule.startAt, endAt: schedule.endAt }] : [],
-  );
+  return page.items;
 }

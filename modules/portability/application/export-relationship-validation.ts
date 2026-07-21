@@ -7,6 +7,10 @@ export function findExportRelationshipErrors(envelope: UserExportEnvelope): read
   const sections = uniqueIds(envelope.tasks.sections, "section", errors);
   const tasks = uniqueIds(envelope.tasks.tasks, "task", errors);
   const tags = uniqueIds(envelope.tasks.tags, "tag", errors);
+  uniqueIds(envelope.tasks.checklistItems, "checklist item", errors);
+  uniqueIds(envelope.tasks.occurrenceEvents, "occurrence event", errors);
+  const habits = uniqueIds(envelope.habits.habits, "habit", errors);
+  uniqueIds(envelope.habits.logs, "habit log", errors);
 
   for (const list of envelope.tasks.lists) {
     if (list.folderId !== null && !folders.has(list.folderId)) {
@@ -26,13 +30,13 @@ export function findExportRelationshipErrors(envelope: UserExportEnvelope): read
     }
     if (task.parentTaskId !== null) {
       const parent = tasks.get(task.parentTaskId);
-      if (!parent || parent.listId !== task.listId || parent.id === task.id) {
+      if (!parent || parent.listId !== task.listId || parent.id === task.id || parent.parentTaskId !== null) {
         errors.push(`Task ${task.id} references an invalid parent task.`);
       }
     }
   }
 
-  uniqueForeignRows(envelope.tasks.schedules, ({ taskId }) => taskId, "schedule", errors);
+  const schedules = uniqueForeignRows(envelope.tasks.schedules, ({ taskId }) => taskId, "schedule", errors);
   for (const schedule of envelope.tasks.schedules) {
     if (!tasks.has(schedule.taskId)) errors.push(`Schedule references unknown task ${schedule.taskId}.`);
   }
@@ -46,6 +50,112 @@ export function findExportRelationshipErrors(envelope: UserExportEnvelope): read
     taskTagKeys.add(key);
     if (!tasks.has(link.taskId)) errors.push(`Task-tag relationship references unknown task ${link.taskId}.`);
     if (!tags.has(link.tagId)) errors.push(`Task-tag relationship references unknown tag ${link.tagId}.`);
+  }
+
+  uniqueForeignRows(
+    envelope.tasks.recurrenceDefinitions,
+    ({ taskId }) => taskId,
+    "recurrence definition",
+    errors,
+  );
+  for (const definition of envelope.tasks.recurrenceDefinitions) {
+    const task = tasks.get(definition.taskId);
+    if (!task) {
+      errors.push(`Recurrence definition references unknown task ${definition.taskId}.`);
+    } else {
+      if (task.parentTaskId !== null) {
+        errors.push(`Recurrence definition references non-root task ${definition.taskId}.`);
+      }
+      if (task.status === "completed" && recurrenceUpperCutover(definition) === null) {
+        errors.push(
+          `Completed task ${definition.taskId} has a recurrence definition without an upper cutover.`,
+        );
+      }
+    }
+
+    const schedule = schedules.get(definition.taskId);
+    if (!schedule || schedule.kind !== definition.kind) {
+      errors.push(`Recurrence definition for task ${definition.taskId} has no compatible schedule.`);
+      continue;
+    }
+    if (definition.kind === "all_day" && schedule.kind === "all_day") {
+      if (definition.projectionStartDate < schedule.startDate) {
+        errors.push(`Recurrence definition for task ${definition.taskId} starts before its schedule anchor.`);
+      }
+    }
+    if (definition.kind === "timed" && schedule.kind === "timed") {
+      if (definition.timezone !== schedule.timezone) {
+        errors.push(`Recurrence definition for task ${definition.taskId} has an incompatible timezone.`);
+      }
+      if (Date.parse(definition.projectionStartAt) < Date.parse(schedule.startAt)) {
+        errors.push(`Recurrence definition for task ${definition.taskId} starts before its schedule anchor.`);
+      }
+    }
+  }
+
+  const occurrenceEventVersions = new Set<string>();
+  for (const event of envelope.tasks.occurrenceEvents) {
+    const versionKey = `${event.taskId}:${event.taskVersion}`;
+    if (occurrenceEventVersions.has(versionKey)) {
+      errors.push(`Occurrence event version ${versionKey} is duplicated.`);
+    }
+    occurrenceEventVersions.add(versionKey);
+
+    const task = tasks.get(event.taskId);
+    if (!task) {
+      errors.push(`Occurrence event ${event.id} references an unknown task.`);
+    } else {
+      if (task.parentTaskId !== null) {
+        errors.push(`Occurrence event ${event.id} references a non-root task.`);
+      }
+      if (event.taskVersion > task.version) {
+        errors.push(`Occurrence event ${event.id} is newer than its owning task.`);
+      }
+    }
+  }
+
+  const habitSchedules = uniqueForeignRows(
+    envelope.habits.schedules,
+    ({ habitId }) => habitId,
+    "habit schedule",
+    errors,
+  );
+  for (const habit of envelope.habits.habits) {
+    if (!habitSchedules.has(habit.id)) errors.push(`Habit ${habit.id} has no schedule.`);
+  }
+  const habitLogDates = new Set<string>();
+  for (const schedule of envelope.habits.schedules) {
+    if (!habits.has(schedule.habitId)) {
+      errors.push(`Habit schedule references unknown habit ${schedule.habitId}.`);
+    }
+  }
+  for (const log of envelope.habits.logs) {
+    if (!habits.has(log.habitId)) errors.push(`Habit log ${log.id} references an unknown habit.`);
+    const key = `${log.habitId}:${log.localDate}`;
+    if (habitLogDates.has(key)) errors.push(`Habit day ${key} is duplicated.`);
+    habitLogDates.add(key);
+  }
+
+  const focusSessions = uniqueIds(envelope.focus.sessions, "focus session", errors);
+  for (const session of focusSessions.values()) {
+    if (session.taskId !== null && !tasks.has(session.taskId)) {
+      errors.push(`Focus session ${session.id} references an unknown task.`);
+    }
+    if (session.habitId !== null && !habits.has(session.habitId)) {
+      errors.push(`Focus session ${session.id} references an unknown habit.`);
+    }
+  }
+
+  uniqueIds(envelope.notifications.reminders, "reminder", errors);
+  const reminderTaskIds = new Set<string>();
+  for (const reminder of envelope.notifications.reminders) {
+    if (!tasks.has(reminder.taskId)) {
+      errors.push(`Reminder ${reminder.id} references an unknown task.`);
+    }
+    if (reminderTaskIds.has(reminder.taskId)) {
+      errors.push(`Task ${reminder.taskId} has more than one reminder.`);
+    }
+    reminderTaskIds.add(reminder.taskId);
   }
 
   const proposalIds = new Set<string>();
@@ -80,13 +190,20 @@ function uniqueForeignRows<T>(
   keyFor: (row: T) => string,
   label: string,
   errors: string[],
-) {
-  const keys = new Set<string>();
+): Map<string, T> {
+  const rowsByKey = new Map<string, T>();
   for (const row of rows) {
     const key = keyFor(row);
-    if (keys.has(key)) errors.push(`${capitalize(label)} ${key} is duplicated.`);
-    keys.add(key);
+    if (rowsByKey.has(key)) errors.push(`${capitalize(label)} ${key} is duplicated.`);
+    rowsByKey.set(key, row);
   }
+  return rowsByKey;
+}
+
+function recurrenceUpperCutover(
+  definition: UserExportEnvelope["tasks"]["recurrenceDefinitions"][number],
+): string | null {
+  return definition.kind === "all_day" ? definition.projectionEndDate : definition.projectionEndAt;
 }
 
 function capitalize(value: string) {

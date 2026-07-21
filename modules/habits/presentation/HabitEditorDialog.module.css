@@ -1,0 +1,284 @@
+.overlay {
+  position: fixed;
+  z-index: var(--z-dialog);
+  background: color-mix(in srgb, var(--canvas) 58%, transparent);
+  inset: 0;
+}
+
+.dialog {
+  position: fixed;
+  z-index: var(--z-dialog);
+  top: 50%;
+  left: 50%;
+  width: min(680px, calc(100vw - var(--space-8)));
+  max-height: min(860px, calc(100dvh - var(--space-8)));
+  overflow-y: auto;
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-dialog);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+  transform: translate(-50%, -50%);
+}
+
+.header {
+  position: sticky;
+  z-index: var(--z-sticky);
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: var(--border-default) solid var(--border);
+  background: var(--surface-elevated);
+}
+
+.header h2 {
+  margin: 0;
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-section-title-line);
+}
+
+.header p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.close {
+  display: inline-grid;
+  width: var(--control-target-desktop);
+  min-height: var(--control-target-desktop);
+  flex: none;
+  place-items: center;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-5) var(--space-6);
+  border: 0;
+}
+
+.fields label,
+.fields fieldset {
+  min-width: 0;
+}
+
+.fields label {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+}
+
+.fields input:not([type="radio"]):not([type="checkbox"]),
+.fields select {
+  width: 100%;
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.fields input[aria-invalid="true"],
+.fields fieldset[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.fields fieldset {
+  padding: var(--space-3);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.fields legend {
+  padding: 0 var(--space-1);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-label-weight);
+}
+
+.fields small {
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-label-line);
+}
+
+.inlineFields,
+.choiceRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.choiceRow label {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.weekdays label {
+  display: block;
+}
+
+.weekdays input {
+  position: absolute;
+  opacity: 0;
+}
+
+.weekdays [data-short-weekday] {
+  display: grid;
+  min-height: var(--control-target-desktop);
+  place-items: center;
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.weekdays input:checked + span {
+  background: var(--surface-selected);
+  color: var(--text-selected);
+}
+
+.weekdays input:focus-visible + span {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.preview {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.preview strong,
+.preview span {
+  display: block;
+}
+
+.preview span {
+  color: var(--text-muted);
+}
+
+.errorSummary {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-5) var(--space-6) 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+.errorSummary span {
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+}
+
+.errorSummary button {
+  justify-self: start;
+  margin-top: var(--space-2);
+}
+
+.writeDisabled {
+  margin: var(--space-4) var(--space-6) 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--warning) 8%, var(--surface));
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: var(--border-default) solid var(--border);
+  background: var(--surface-elevated);
+}
+
+@media (max-width: 767px) {
+  .dialog {
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    transform: none;
+  }
+
+  .header,
+  .fields,
+  .writeDisabled,
+  .footer {
+    padding-right: var(--space-4);
+    padding-left: var(--space-4);
+  }
+
+  .writeDisabled {
+    margin-right: var(--space-4);
+    margin-left: var(--space-4);
+  }
+
+  .inlineFields,
+  .choiceRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .footer {
+    padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .close,
+  .fields input:not([type="radio"]):not([type="checkbox"]),
+  .fields select,
+  .choiceRow label,
+  .weekdays [data-short-weekday] {
+    min-height: var(--control-target-touch);
+  }
+
+  .weekdays label,
+  .weekdays [data-short-weekday] {
+    min-width: var(--control-target-touch);
+  }
+
+  .close {
+    width: var(--control-target-touch);
+  }
+}
+
+@media (max-width: 420px) {
+  .weekdays {
+    grid-template-columns: repeat(4, minmax(var(--control-target-touch), 1fr));
+  }
+}

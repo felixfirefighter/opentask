@@ -1,4 +1,4 @@
-import { AlertCircle, CalendarClock } from "lucide-react";
+import { AlertCircle, CalendarClock, Repeat2 } from "lucide-react";
 
 import type { PlanningCalendarEventModel } from "./planning-screen-model";
 import styles from "./CalendarEvent.module.css";
@@ -15,6 +15,7 @@ export function CalendarEventContent({
       </span>
       <strong>{event.title}</strong>
       <span className={styles.eventContext}>
+        {event.projectionLifecycle !== "one_off" ? <Repeat2 size={12} aria-hidden="true" /> : null}
         {event.statusLabel} · {event.categoryLabel}
         {event.conflicted ? (
           <span className={styles.eventConflict}>

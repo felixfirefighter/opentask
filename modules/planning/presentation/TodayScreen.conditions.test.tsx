@@ -7,9 +7,13 @@ import { renderToday } from "./planning-screen-test-support";
 
 describe("TodayScreen conditions", () => {
   it("preserves geometry and announces loading", () => {
-    renderToday({ condition: { kind: "loading" } });
+    renderToday({
+      condition: { kind: "loading" },
+      habitSection: <section aria-label="Scheduled habits">Habits loading independently</section>,
+    });
     expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "" })).toHaveTextContent("Loading planning tasks");
+    expect(screen.getByText(/Loading planning tasks/u)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Scheduled habits" })).toBeInTheDocument();
   });
 
   it("keeps safe rows stale and retries an error", async () => {
@@ -26,16 +30,56 @@ describe("TodayScreen conditions", () => {
     renderToday({
       condition: { kind: "error" },
       model: { ...todayFixture, overdue: [], timed: [], anytime: [] },
+      habitSection: <section aria-label="Scheduled habits">Habit error stays scoped</section>,
     });
     expect(screen.getByText("Today's tasks are unavailable")).toBeInTheDocument();
-    expect(screen.queryByText("Nothing planned for today")).not.toBeInTheDocument();
+    expect(screen.queryByText("No tasks planned for today")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Scheduled habits" })).toBeInTheDocument();
+  });
+
+  it("keeps a truncated result visibly partial, read-only, and retryable", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    renderToday({
+      condition: {
+        kind: "partial",
+        message:
+          "A safety limit was reached during recurrence calculation. Some tasks or occurrences may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["recurrence_request_candidate_limit"],
+        runtimeCondition: null,
+      },
+      onRetry,
+      taskActions: { onStatusChange: vi.fn() },
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This planning view is incomplete");
+    expect(screen.getByText(todayFixture.timed[0]!.title)).toBeInTheDocument();
+    expect(screen.getByText(/loaded tasks/i)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /complete confirm/i })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("does not claim a truncated empty result is an empty day", () => {
+    renderToday({
+      condition: {
+        kind: "partial",
+        message: "Some tasks may be missing. Loaded results are read-only; retry to refresh.",
+        reasons: ["projection_output_limit"],
+        runtimeCondition: null,
+      },
+      model: { ...todayFixture, overdue: [], timed: [], anytime: [] },
+    });
+    expect(screen.getByText("Today's task list is incomplete")).toBeInTheDocument();
+    expect(screen.queryByText("No tasks planned for today")).not.toBeInTheDocument();
   });
 
   it("leaves cached rows visible but disables writes offline", () => {
     renderToday({ condition: { kind: "offline" }, taskActions: { onStatusChange: vi.fn() } });
-    expect(screen.getByRole("status")).toHaveTextContent("Planning is read-only");
+    expect(screen.getByText("Planning is read-only")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /complete record/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /complete confirm/i })).toBeDisabled();
   });
 
   it("does not expose task metadata in the permission state", () => {
@@ -64,6 +108,7 @@ describe("TodayScreen conditions", () => {
       onReturnToToday,
     });
     expect(screen.getByRole("textbox", { name: "Add a task" })).toHaveValue("Call Sam tomorrow at 3pm");
+    expect(screen.getByRole("textbox", { name: "Add a task" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Return to Today" }));
     expect(onReturnToToday).toHaveBeenCalledOnce();
   });

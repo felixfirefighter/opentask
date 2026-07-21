@@ -31,7 +31,7 @@ export async function readTaskApiMutation<T>(
     maxBytes?: number;
   } = {},
 ): Promise<{ actor: AuthenticatedActor; input: T }> {
-  assertTrustedJsonMutation(request, getIdentityRequestSecurity().trustedOrigin, options.method ?? "POST");
+  assertTrustedJsonMutation(request, getIdentityRequestSecurity(), options.method ?? "POST");
   const actor = await resolveTaskApiActor(request);
   const input = schema.parse(
     await readBoundedJson(request, options.maxBytes ?? taskMutationBodyLimits.organizer),

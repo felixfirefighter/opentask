@@ -1,0 +1,111 @@
+.group {
+  padding: var(--space-5) 0;
+  border-top: var(--border-default) solid var(--border);
+}
+
+.group h2 {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.04em;
+  line-height: var(--type-label-line);
+  text-transform: uppercase;
+}
+
+.heading,
+.titleLine,
+.actions,
+.saveState {
+  display: flex;
+  align-items: center;
+}
+
+.heading {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.heading > div {
+  min-width: 0;
+}
+
+.heading > svg {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+.titleLine {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.state {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.state[data-state="completed"] {
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+
+.state[data-state="skipped"] {
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+  color: var(--warning);
+}
+
+.heading p,
+.guidance,
+.saveState {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.actions {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.recoveryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.actions button {
+  min-height: var(--control-target-touch);
+}
+
+.error {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--danger) 9%, var(--surface));
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.saveState {
+  min-height: var(--type-compact-line);
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.saveState svg {
+  color: var(--success);
+}

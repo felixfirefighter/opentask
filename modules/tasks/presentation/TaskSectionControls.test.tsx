@@ -188,6 +188,7 @@ describe("TaskSectionControls", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Reconnect to create sections.");
 
     online = true;
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 })));
     act(() => window.dispatchEvent(new Event("online")));
     actions.rename.error = new TaskApiError({
       code: "CONFLICT",
@@ -196,6 +197,11 @@ describe("TaskSectionControls", () => {
     });
     actions.rename.mutateAsync.mockRejectedValue(actions.rename.error);
     rerender(<SectionActions listId={LIST_ID} section={section()} taskCount={0} />);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: `Open actions for section ${section().name}` }),
+      ).toBeEnabled(),
+    );
     await openMenu(user);
     await user.click(screen.getByRole("menuitem", { name: "Rename section" }));
     const dialog = screen.getByRole("dialog", { name: "Rename section" });

@@ -24,6 +24,10 @@ vi.mock("@/modules/tasks", async (importOriginal) => ({
   getTasksApplication: mocks.getTasksApplication,
 }));
 
+vi.mock("@/server/release-applications", () => ({
+  getReleaseApplications: () => ({ tasks: { schedules: mocks.schedules } }),
+}));
+
 import { GET as listSchedules } from "./route";
 import { GET as getSchedule, PATCH as setSchedule } from "../tasks/[taskId]/schedule/route";
 import { POST as clearSchedule } from "../tasks/[taskId]/schedule/clear/route";

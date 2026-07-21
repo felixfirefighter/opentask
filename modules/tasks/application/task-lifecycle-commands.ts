@@ -12,6 +12,8 @@ import {
 } from "./contracts";
 import { createTaskDeletionCommands } from "./task-deletion-commands";
 import { createTaskLifecycleLocks } from "./task-lifecycle-locks";
+import type { TaskRecurrenceLifecycle } from "./task-recurrence-lifecycle";
+import type { TaskReminderReconciler } from "./contracts/task-reminder-contract";
 import {
   applyTaskSiblingRebalance,
   assertAllowedParent,
@@ -30,14 +32,24 @@ import { createSectionRepository } from "../infrastructure/section-repository";
 import { createTaskRepository } from "../infrastructure/task-repository";
 import { createTaskListRepository } from "../infrastructure/task-list-repository";
 
-export function createTaskLifecycleCommands({ database, clock }: { database: Database; clock: Clock }) {
+export function createTaskLifecycleCommands({
+  database,
+  clock,
+  recurrenceLifecycle,
+  reminderReconciler,
+}: {
+  database: Database;
+  clock: Clock;
+  recurrenceLifecycle: TaskRecurrenceLifecycle;
+  reminderReconciler: TaskReminderReconciler;
+}) {
   const tasks = createTaskRepository(database);
   const lists = createTaskListRepository(database);
   const sections = createSectionRepository(database);
   const lifecycleLocks = createTaskLifecycleLocks({ tasks, lists, sections });
 
   return {
-    ...createTaskDeletionCommands({ database, clock }),
+    ...createTaskDeletionCommands({ database, clock, recurrenceLifecycle, reminderReconciler }),
 
     async moveTask(
       actor: AuthenticatedActor,
@@ -88,6 +100,14 @@ export function createTaskLifecycleCommands({ database, clock }: { database: Dat
         if (input.parentTaskId !== null && (!parent || parent.deletedAt !== null))
           throw taskResourceNotFound();
         assertAllowedParent({ id: taskId, userId: actor.userId, listId: input.listId }, parent);
+        if (input.parentTaskId !== null) {
+          const recurrenceResources = await recurrenceLifecycle.lockResources(
+            actor.userId,
+            taskId,
+            transaction,
+          );
+          recurrenceLifecycle.assertSubtaskMoveAllowed(recurrenceResources.recurrence, current.version);
+        }
         if (input.parentTaskId !== null && children.length > 0) {
           throw taskConflict("A task with subtasks cannot become a subtask.", current.version);
         }

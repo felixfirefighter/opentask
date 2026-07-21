@@ -182,6 +182,12 @@
   overscroll-behavior-y: contain;
 }
 
+.conditionStack {
+  min-width: 0;
+  grid-column: 3;
+  grid-row: 1;
+}
+
 @media (min-width: 1024px) and (max-width: 1279px) {
   .shell {
     grid-template-columns: 52px 240px minmax(0, 1fr);
@@ -228,6 +234,7 @@
   .topBarIdentity {
     display: flex;
     min-width: 0;
+    min-height: var(--control-target-desktop);
     align-items: center;
     gap: var(--space-3);
     border-radius: var(--radius-control);
@@ -270,6 +277,11 @@
     grid-column: 1;
     grid-row: 3;
   }
+
+  .conditionStack {
+    grid-column: 1;
+    grid-row: 2;
+  }
 }
 
 @media (max-width: 767px) {
@@ -297,6 +309,10 @@
 
   .topBarActions > button {
     min-width: var(--control-target-touch);
+  }
+
+  .topBarIdentity {
+    min-height: var(--control-target-touch);
   }
 
   .mobileDestination,

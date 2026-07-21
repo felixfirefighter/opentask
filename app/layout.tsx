@@ -1,7 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
+import pwaMetadata from "@/shared/design/pwa-metadata.json";
+import { createPublicThemeBootstrapScript } from "@/shared/design/theme-color";
 import { AppClientProviders } from "@/shared/presentation";
 
 import "./globals.css";
@@ -27,11 +30,32 @@ const editorialFont = localFont({
 });
 
 export const metadata: Metadata = {
+  applicationName: "OpenTask",
   title: {
     default: "OpenTask",
     template: "%s · OpenTask",
   },
   description: "An open-source workspace for task and calendar planning with reviewable AI.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/opentask-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/opentask-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/opentask-192.png", sizes: "192x192", type: "image/png" }],
+  },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "OpenTask" },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: pwaMetadata.lightThemeColor },
+    { media: "(prefers-color-scheme: dark)", color: pwaMetadata.darkThemeColor },
+  ],
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -42,9 +66,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       suppressHydrationWarning
     >
       <head>
-        <script
+        <Script
+          id="opentask-public-theme-bootstrap"
+          strategy="beforeInteractive"
           data-public-theme-bootstrap=""
-          suppressHydrationWarning
           dangerouslySetInnerHTML={{ __html: publicThemeBootstrap }}
         />
       </head>
@@ -55,5 +80,4 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   );
 }
 
-const publicThemeBootstrap =
-  '(()=>{const r=document.documentElement;let p="system";try{const s=localStorage.getItem("opentask-theme-preference");if(s==="light"||s==="dark"||s==="system")p=s}catch{}r.dataset.themePreference=p;r.dataset.theme=p==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p})()';
+const publicThemeBootstrap = createPublicThemeBootstrapScript();

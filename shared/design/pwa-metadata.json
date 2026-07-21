@@ -1,0 +1,29 @@
+{
+  "backgroundColor": "#F4F1E9",
+  "darkThemeColor": "#181914",
+  "lightThemeColor": "#F4F1E9",
+  "staticFallbackColors": {
+    "light": {
+      "action": "#252823",
+      "border": "#D7D0C4",
+      "borderStrong": "#77756E",
+      "brand": "#2D7565",
+      "canvas": "#F4F1E9",
+      "focusRing": "#2A61B8",
+      "surface": "#FCFBF7",
+      "text": "#24251F",
+      "textMuted": "#63635C",
+      "textOnStrong": "#FEFCF7"
+    },
+    "dark": {
+      "action": "#EEE9DC",
+      "border": "#41433B",
+      "canvas": "#181914",
+      "focusRing": "#79A9F2",
+      "surface": "#20211C",
+      "text": "#F3F0E7",
+      "textMuted": "#B9B6AC",
+      "textOnStrong": "#20211C"
+    }
+  }
+}

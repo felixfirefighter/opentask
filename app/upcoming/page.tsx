@@ -31,6 +31,7 @@ export default async function UpcomingPage() {
     >
       <UpcomingRouteScreen
         projection={projection}
+        inboxId={inbox.id}
         hourCycle={workspace.preferences.hourCycle === "h12" ? "12" : "24"}
       />
     </AuthenticatedShell>

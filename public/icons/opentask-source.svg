@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">OpenTask app icon</title>
+  <desc id="description">A pine-green rounded square with an original white check mark on warm paper.</desc>
+  <rect width="512" height="512" rx="112" fill="#F4F1E9"/>
+  <rect x="96" y="96" width="320" height="320" rx="96" fill="#2D7565"/>
+  <path
+    d="M171 261.5 225.5 316 344 197.5"
+    fill="none"
+    stroke="#FEFCF7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="40"
+  />
+</svg>

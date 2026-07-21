@@ -38,10 +38,22 @@ export function AuthForm({
         />
       )}
 
-      {!controller.online && (
-        <p className={styles.offlineMessage} role="status">
-          You’re offline. Connect to the internet to {mode === "sign-in" ? "sign in" : "create an account"}.
-        </p>
+      {controller.connectivity !== "online" && (
+        <div className={styles.connectivityMessage}>
+          <p role="status" aria-live="polite">
+            {connectivityMessage(controller.connectivity, mode)}
+          </p>
+          {controller.connectivity === "network-unreachable" || controller.connectivity === "recovering" ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={controller.connectivity === "recovering"}
+              onClick={() => void controller.retryConnection()}
+            >
+              {controller.connectivity === "recovering" ? "Checking…" : "Try connection"}
+            </Button>
+          ) : null}
+        </div>
       )}
 
       <fieldset className={styles.fieldset} disabled={!controller.ready || controller.submitting}>
@@ -86,4 +98,18 @@ export function AuthForm({
       </span>
     </form>
   );
+}
+
+function connectivityMessage(
+  connectivity: "browser-offline" | "network-unreachable" | "recovering",
+  mode: AuthMode,
+) {
+  const action = mode === "sign-in" ? "sign in" : "create an account";
+  if (connectivity === "browser-offline") {
+    return `You’re offline. Connect to the internet to ${action}.`;
+  }
+  if (connectivity === "recovering") {
+    return `Checking the connection. You can ${action} when OpenTask responds.`;
+  }
+  return "OpenTask can’t reach the server. Check the connection and try again.";
 }

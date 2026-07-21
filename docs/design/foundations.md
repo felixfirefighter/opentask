@@ -85,7 +85,7 @@ Atmospheric fields are low-contrast decoration, not a universal product signatur
 
 Use plain, specific language:
 
-- “Nothing planned for today” instead of “You're all caught up!”
+- “No tasks planned for today” instead of “You're all caught up!”
 - “Planning is unavailable because no AI key is configured” instead of “Something went wrong”.
 - “This task changed elsewhere. Review the latest version.” instead of “409 conflict”.
 - “Review 6 proposed changes” instead of “AI magic complete”.

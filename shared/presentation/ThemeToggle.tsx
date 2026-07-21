@@ -3,6 +3,8 @@
 import { Moon, Sun } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
+import { synchronizeThemeColor } from "@/shared/design/theme-color";
+
 import { withThemeTransitionSuppressed } from "./theme-transition";
 
 const darkThemeQuery = "(prefers-color-scheme: dark)";
@@ -16,6 +18,7 @@ export function ThemeToggle() {
     withThemeTransitionSuppressed(() => {
       document.documentElement.dataset.theme = nextTheme;
       document.documentElement.dataset.themePreference = nextTheme;
+      synchronizeThemeColor(nextTheme);
     });
     try {
       localStorage.setItem("opentask-theme-preference", nextTheme);
@@ -49,6 +52,7 @@ function subscribeToTheme(onChange: () => void) {
 
     withThemeTransitionSuppressed(() => {
       root.dataset.theme = nextTheme;
+      synchronizeThemeColor(nextTheme);
     });
     onChange();
   };

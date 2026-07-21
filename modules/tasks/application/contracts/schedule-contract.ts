@@ -18,7 +18,7 @@ import {
   versionSchema,
   versionedResourceReferenceSchema,
 } from "./contract-primitives";
-import { taskDtoSchema } from "./task-contract";
+import { createTaskRequestSchema, taskDtoSchema } from "./task-contract";
 
 export const localDateSchema = z.iso.date();
 
@@ -62,6 +62,15 @@ export const clearTaskScheduleRequestSchema = expectedVersionRequestSchema;
 export const taskScheduleMutationResultSchema = z.strictObject({
   task: versionedResourceReferenceSchema,
   schedule: taskScheduleDtoSchema.nullable(),
+});
+
+export const createTaskWithScheduleRequestSchema = createTaskRequestSchema.extend({
+  schedule: taskScheduleValueSchema,
+});
+
+export const taskWithScheduleDtoSchema = z.strictObject({
+  task: taskDtoSchema,
+  schedule: taskScheduleDtoSchema,
 });
 
 export const taskScheduleRangeQuerySchema = z
@@ -135,6 +144,7 @@ export const quickAddParseResultSchema = z.strictObject({
 });
 
 export type ClearTaskScheduleRequest = z.infer<typeof clearTaskScheduleRequestSchema>;
+export type CreateTaskWithScheduleRequest = z.infer<typeof createTaskWithScheduleRequestSchema>;
 export type QuickAddParseResult = z.infer<typeof quickAddParseResultSchema>;
 export type QuickAddRequest = z.infer<typeof quickAddRequestSchema>;
 export type ScheduledTaskDto = z.infer<typeof scheduledTaskDtoSchema>;
@@ -145,6 +155,7 @@ export type TaskScheduleRangePage = z.infer<typeof taskScheduleRangePageSchema>;
 export type TaskScheduleRangeQuery = z.infer<typeof taskScheduleRangeQuerySchema>;
 export type TaskScheduleValue = z.infer<typeof taskScheduleValueSchema>;
 export type TaskSnapshotDto = z.infer<typeof taskSnapshotDtoSchema>;
+export type TaskWithScheduleDto = z.infer<typeof taskWithScheduleDtoSchema>;
 
 type ScheduleBounds =
   | Readonly<{ kind: "all_day"; startDate: string; endDate: string }>

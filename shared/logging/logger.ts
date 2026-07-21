@@ -20,6 +20,7 @@ const events = {
   SEED_COMPLETE: { level: "info", message: "bootstrap seed complete" },
   SEED_FAILED: { level: "error", message: "bootstrap seed failed" },
   WORKER_QUEUE_ERROR: { level: "error", message: "worker queue error" },
+  WORKER_CHECK_OK: { level: "info", message: "worker check completed" },
   WORKER_READY: { level: "info", message: "worker started with registered jobs" },
   WORKER_START_FAILED: { level: "fatal", message: "worker failed to start" },
   WORKER_STOPPED: { level: "info", message: "worker stopped" },
@@ -29,6 +30,7 @@ export type SafeLogCode = keyof typeof events;
 
 export type SafeLogFields = {
   correlationId?: string | undefined;
+  declaredJobCount?: number | undefined;
   durationMs?: number | undefined;
   errorName?: string | undefined;
   recordsWritten?: number | undefined;
@@ -114,6 +116,7 @@ function pickSafeFields(fields: SafeLogFields): SafeLogFields {
   const safe: SafeLogFields = {};
 
   if (isSafeCorrelationId(fields.correlationId)) safe.correlationId = fields.correlationId;
+  if (isSafeCount(fields.declaredJobCount)) safe.declaredJobCount = fields.declaredJobCount;
   if (isSafeDuration(fields.durationMs)) safe.durationMs = fields.durationMs;
   if (isSafeErrorName(fields.errorName)) safe.errorName = fields.errorName;
   if (isSafeCount(fields.recordsWritten)) safe.recordsWritten = fields.recordsWritten;

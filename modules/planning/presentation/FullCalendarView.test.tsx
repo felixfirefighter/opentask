@@ -72,9 +72,9 @@ describe("FullCalendarView", () => {
 
     await waitFor(() => expect(onVisibleRangeChange).toHaveBeenCalled());
     expect(
-      screen.getByLabelText(/Record the two-minute demo, Monday, 20 July, 10:30–11:30 AM, Open, Launch/i),
+      screen.getByLabelText(/Outline the workshop agenda, Monday, 20 July, 10:30–11:30 AM, Open, Event/i),
     ).toBeInTheDocument();
-    expect(screen.getByText("Prepare clean demo data")).toBeInTheDocument();
+    expect(screen.getByText("Prepare attendee notes")).toBeInTheDocument();
   });
 
   it("renders the FullCalendar v7 resize handle for an editable timed event", async () => {

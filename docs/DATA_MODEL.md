@@ -12,7 +12,10 @@ Read this document before any schema change. It defines semantic ownership and p
    `id` alone; another user's use of the same UUID cannot conflict with or reveal the first row.
 5. Mutable user-facing aggregates carry `version`, `created_at`, and `updated_at`. A one-to-one
    extension shares its owning aggregate's version; an immutable event has no update/version
-   columns. An accepted mutation increments exactly one owning aggregate version once.
+   columns. Operational provider/attempt state such as `push_subscriptions` and
+   `notification_deliveries` follows its checked state machine and timestamps instead of optimistic
+   user-edit versions. An accepted user-facing mutation increments exactly one owning aggregate
+   version once.
 6. Soft deletion exists only where Trash/undo is part of behavior; it is not added reflexively to joins or immutable events.
 7. All instants are `timestamptz`; all-day calendar values are PostgreSQL `date`; timezones are IANA names.
 8. Foreign keys, unique constraints, checks, and indexes encode invariants that can be expressed in PostgreSQL.
@@ -37,7 +40,7 @@ Classify new data before implementing it.
 Examples:
 
 - A later second reminder would be another `task_reminders` row after an authorized scope change,
-  not `reminder_2_at`; the active release permits zero or one reminder per task.
+  not `reminder_2_at`; the current release permits zero or one reminder per task.
 - A task's start/end belongs to `task_schedules`, not another `deadline` column.
 - A recurring-occurrence transition belongs to `task_occurrence_events`, not a cloned task.
 - Google Calendar event metadata belongs to a future integration mapping table, not `tasks.google_event_id`.
@@ -85,6 +88,11 @@ These limits are shared by PostgreSQL checks and strict application schemas:
 - task Markdown descriptions: at most 20,000 characters;
 - fractional ranks: 1–128 characters, generated only by the tasks application service;
 - optimistic versions: positive PostgreSQL integers up to 2,147,483,647;
+- notification relative offsets: integer minutes from 0 through 10,080;
+- notification occurrence keys: 1–80 characters when present; sanitized error codes: 1–80 lowercase
+  snake-case ASCII characters; delivery attempts: 0–4;
+- subscription endpoint hashes: exactly 32 bytes; delivery idempotency keys: exactly 64 lowercase
+  hexadecimal characters;
 - task/list/tag color tokens: `coral`, `amber`, `mint`, `sky`, `violet`, or `slate`.
 
 Required names, titles, and ranks cannot retain an ECMAScript `String.trim` character at either
@@ -105,10 +113,11 @@ deployment.
 
 ## Table catalog and ownership
 
-Every unqualified heading below belongs to the Local-first Full Release target schema. A table is
-implemented only in its ordered work package and reviewed migration; this catalog authorizes the
-target shape but does not make a not-yet-migrated table current database state. Stage A–D concepts
-remain migration prohibitions until a later user-authorized scope change.
+Every unqualified heading below describes the implemented Local-first Full Release schema and must
+match committed migrations, Drizzle composition, and `pnpm check:schema`. A future table or shape
+change requires explicit scope authorization and a reviewed migration; documenting a proposed shape
+does not make it current database state. Stage A–D concepts remain migration prohibitions until a
+later user-authorized scope change.
 
 The client-ID aggregates `list_folders`, `task_lists`, `list_sections`, `tasks`,
 `checklist_items`, and `tags` use tenant-leading composite primary keys `(user_id, id)`. Their owning
@@ -168,7 +177,7 @@ Constraints/policies:
 - parent task belongs to the same user and list, enforced by a composite foreign key that is
   deferred until transaction commit so an atomic root-tree list move can update the root before its
   direct children;
-- active release permits one exposed subtask level; domain policy rejects deeper creation even though the self-FK can support later depth;
+- current release permits one exposed subtask level; domain policy rejects deeper creation even though the self-FK can support later depth;
 - section belongs to the same list;
 - status is the only current-state representation;
 - soft-deleted tasks are excluded from all normal projections/search.
@@ -186,8 +195,10 @@ One optional row per scheduled task; its owning foreign key is tenant-leading:
 
 Check constraints require exactly the fields for `kind`, no mixed date/instant representation,
 `end_date > start_date` for the inclusive/exclusive all-day interval, and `end_at >= start_at` for a
-timed schedule (including a zero-duration point-in-time task). A schedule mutation increments the
-owning task version in the same transaction.
+timed schedule (including a zero-duration point-in-time task). Atomic task-plus-schedule creation
+inserts both rows in one transaction at task version `1`; the initial schedule is part of aggregate
+creation. Every later set, replace, or clear schedule mutation increments the owning task version
+exactly once in the same transaction.
 
 ### `task_recurrences` — tasks
 
@@ -196,25 +207,38 @@ One optional row per recurring task; its owning foreign key is tenant-leading:
 - `user_id`, `task_id` composite PK/FK
 - `rrule` text, `timezone`, `generation_mode`
 - nullable `projection_start_date`, nullable `projection_start_at`
-- `generation_mode` is `schedule`; completion-relative generation remains outside the active release
+- nullable `projection_end_date`, nullable `projection_end_at`; an optional exclusive upper cutover
+- `generation_mode` is `schedule`; completion-relative generation remains outside the current release
 - `created_at`, `updated_at`
 
 `rrule` is a normalized internal serialization generated and validated by the tasks domain wrapper;
-it does not contain a second `DTSTART`, because `task_schedules` is the only series anchor. The
+it is a 1-512 character uppercase ASCII property list with no prefix, line break, `DTSTART`,
+`RDATE`, or exclusion rule, because `task_schedules` is the only series anchor. The
 UI/API accepts only daily, weekdays, weekly selected-weekday, monthly day-of-month, and yearly
-month/day presets with a bounded interval and never/until/count endings; it never accepts arbitrary
-RRULE text. The owning task must be an open, non-deleted, scheduled root task. Schedule or rule
-changes increment the owning task version once in the same transaction. A timed recurrence timezone
-must equal its schedule timezone; an all-day recurrence retains the validated IANA zone used to
-interpret the rule when it is created/edited.
+month/day presets with interval 1-99 and never/inclusive-until-date/count-1-999 endings; it never
+accepts arbitrary RRULE text. `timezone` is a validated IANA name of 1-128 characters and
+`generation_mode` is exactly `schedule`. Creating/editing an active rule requires an open,
+non-deleted, eligible scheduled root task. Cancelled or deleted owners may retain a dormant active
+row that does not project; a completed owner may retain only an explicitly ended row. Schedule or
+rule changes increment the owning task version once in the same transaction. A timed recurrence
+timezone must equal its schedule timezone; an all-day recurrence retains the validated IANA zone
+used to interpret the rule when it is created/edited.
 
-Exactly one projection cutover is present: `projection_start_date` for an all-day schedule or
-`projection_start_at` for a timed schedule. A row check enforces the exclusive discriminant; the
-application transaction also verifies it matches the owning schedule kind. On initial rule creation,
-the cutover equals the canonical schedule anchor. An edit replaces the one mutable rule and chooses a
-server-controlled future date/instant at or after which the new rule may project. Recorded earlier
-events remain immutable; unrecorded occurrences before the current cutover are deliberately not
-reconstructed. The cutover is an expansion lower bound, not a second task schedule.
+Exactly one lower projection cutover is present: `projection_start_date` for an all-day schedule or
+`projection_start_at` for a timed schedule. The matching upper cutover is nullable and exclusive;
+an all-day row may use only date cutovers and a timed row only instant cutovers. When present, the
+upper value must be greater than or equal to the lower value; equality is the valid empty interval
+when a not-yet-started series is ended before its anchor. Row checks enforce that discriminant and ordering;
+the application transaction also verifies it matches the owning schedule kind. On initial rule
+creation, the lower cutover equals the canonical schedule anchor and the upper cutover is null. An
+edit replaces the one mutable rule and chooses a server-controlled future lower cutover at or after
+which the new rule may project. Ending sets the upper cutover to the first candidate strictly after
+authoritative server now, or to the documented no-candidate fallback, so current/prior occurrences
+remain reconstructable but no future candidate projects. Partial indexes on active all-day and timed
+rows support bounded scans. Recorded earlier events remain immutable; unrecorded occurrences before
+the current lower cutover are deliberately not reconstructed. Neither cutover is a second task
+schedule. Clearing the schedule of an ended series atomically removes the definition while recorded
+events remain attached to the task.
 
 ### `task_occurrence_events` — tasks
 
@@ -229,19 +253,28 @@ Append-only effective state for a recurring occurrence:
   and `open` transitions rather than overwriting history
 
 `occurrence_key` is derived deterministically from the series identity and canonical all-day local
-date or timed start instant, not a display string. A transition serializes through the owning task
-aggregate so a replayed/no-op command does not append a duplicate event, and accepted changes
-increment the task version exactly once. Effective state is the event with the greatest
-`task_version`; timestamps and UUIDs are audit data, not causal ordering. Past events and keys remain
-stable when a series rule changes or ends, even when the old unrecorded projection is no longer
-reconstructable.
+date or timed projected start instant, not a display string, and is 1-80 characters. The versioned
+timed form also carries the nominal local start only when a timezone gap crosses a date boundary;
+this disambiguates two nominal candidates that resolve to one instant without duplicating schedule
+state, and the original timed form remains decodable for immutable history. Checks constrain `state`
+to `completed|skipped|open` and `task_version` to a positive integer. A transition serializes through
+the owning task aggregate so a replayed/no-op command does not append a duplicate event, and accepted
+changes increment the task version exactly once. Effective state is the event with the greatest
+`task_version`; timestamps and UUIDs are audit data, not causal ordering. An index on
+`(user_id, task_id, occurrence_key, task_version DESC)` serves latest-state reads. A table-specific
+trigger rejects ordinary `UPDATE` and direct `DELETE` while permitting a referential cascade from an
+owning task/account deletion; demo reset deletes the owned task graph and never deletes events
+directly. A bounded range projection may decode at most 50,000 latest event states to recover
+recorded keys from prior rules; reaching that cap is explicit and planner context rejects it. Past
+events and keys remain stable when a series rule changes or ends, even when the old unrecorded
+projection is no longer reconstructable.
 
 ### `checklist_items` — tasks
 
 - `id`, `user_id`, `task_id`, `title`, `is_completed`, `rank`
 - `version`, `created_at`, `updated_at`
 
-Checklist items are not tasks and do not receive task schedules/tags in active scope. Completing all items does not silently complete the parent unless the module contract explicitly changes.
+Checklist items are not tasks and do not receive task schedules/tags in current scope. Completing all items does not silently complete the parent unless the module contract explicitly changes.
 
 ### `tags` and `task_tags` — tasks
 
@@ -254,12 +287,22 @@ display spelling in the canonical `name` field.
 
 ### `task_reminders` — notifications
 
-The active release permits zero or one row per task through a unique `(user_id, task_id)` constraint
-and a tenant-leading owning foreign key:
+The current release permits zero or one row per task through a unique `(user_id, task_id)` constraint.
+Exact columns, in canonical order, are:
 
-- `id`, `user_id` composite PK, `task_id`, `kind`: `absolute` or `relative_start`
-- `remind_at` for absolute, or `offset_minutes` for relative
-- `enabled`, `version`, timestamps
+- `id uuid`, `user_id uuid` composite PK, `task_id uuid`;
+- `kind text`: `absolute|relative_start`;
+- nullable `remind_at timestamptz`, nullable `offset_minutes integer`;
+- `enabled boolean default true`, `version integer default 1`;
+- `created_at timestamptz default now()`, `updated_at timestamptz default now()`.
+
+The discriminant check requires only `absolute/remind_at` or only
+`relative_start/offset_minutes`; the latter is 0–10,080. Version is positive and
+`updated_at >= created_at`. `user_id` cascades from the account, and `(user_id, task_id)` references
+the owning task with `ON DELETE CASCADE`. Cross-table eligibility remains an application invariant.
+A reminder may remain persisted and keep its `enabled` value while terminal/deleted task state, a
+missing relative schedule, or exhausted recurrence makes it dormant; dormancy creates no delivery
+and does not duplicate task lifecycle state in this table.
 
 A later move to multiple reminders removes the unique constraint; it does not add task columns.
 
@@ -270,24 +313,77 @@ flow; it cannot silently reinterpret the instant.
 
 ### `push_subscriptions` — notifications
 
-- `id`, `user_id` composite PK, `endpoint_hash`
-- encrypted endpoint, `p256dh`, and auth material plus encryption-key-version metadata
-- device label/user-agent summary, `created_at`, `last_used_at`, `revoked_at`
-- unique active endpoint hash per user
+- `id uuid`, `user_id uuid` composite PK, `endpoint_hash bytea`;
+- `endpoint_ciphertext text`, `p256dh_ciphertext text`, `auth_ciphertext text`, and
+  `encryption_key_version integer`;
+- nullable `device_label text`, nullable `user_agent_summary text`;
+- `created_at timestamptz default now()`, `last_used_at timestamptz default now()`, nullable
+  `revoked_at timestamptz`.
 
-Encryption uses a server-only data-encryption key with key-version metadata. Never return stored secret material except as required to send from the worker.
+The endpoint hash is exactly the raw 32-byte SHA-256 of the opaque endpoint. Ciphertexts are checked
+unpadded base64url AES-256-GCM envelopes in exact
+`v1.<16-character-nonce>.<nonempty-ciphertext>.<22-character-tag>` form; endpoint ciphertext is
+45–8,192 characters and key ciphertexts are 45–1,024. Device label is 1–120 Unicode characters and
+user-agent summary 1–500 when present. Key version is nonnegative; `last_used_at >= created_at` and a
+revocation is not earlier than `last_used_at`. `user_id` cascades from the account. A **global**
+partial unique index on
+`endpoint_hash WHERE revoked_at IS NULL` prevents one browser endpoint remaining active for two
+accounts. Registration reads and updates only actor-owned rows; a conflicting global insert returns
+a generic browser-reset requirement without reading or revoking the other account's row. This table
+is operational provider state and intentionally has no user-facing optimistic `version`.
+
+Encryption uses a server-only versioned keyring and field-bound AAD. Stored secret material is
+decrypted only inside the worker provider adapter and is never returned from a stored server read.
 
 ### `notification_deliveries` — notifications
 
-- `id`, `user_id` composite PK, `reminder_id`, `subscription_id`, nullable `occurrence_key`
-- `scheduled_for`, `state`, `attempt_count`, nullable `last_error_code`, `delivered_at`
-- deterministic `idempotency_key` unique
-- timestamps
+- `id uuid`, `user_id uuid` composite PK, `reminder_id uuid`, `subscription_id uuid`;
+- nullable `occurrence_key text`, `scheduled_for timestamptz`;
+- `state text default scheduled`, `attempt_count integer default 0`, nullable
+  `last_error_code text`, nullable `delivered_at timestamptz`;
+- `idempotency_key text`, `created_at timestamptz default now()`,
+  `updated_at timestamptz default now()`.
 
-The reminder and subscription foreign keys are tenant-leading. One logical delivery is scoped to one
-subscription and one task occurrence/one-shot reminder; its deterministic idempotency key includes
-those opaque identities. Jobs contain the delivery ID/reminder ID, not content. Retention cleanup is
-a worker job.
+The only states are `scheduled`, `delivering`, `retry_scheduled`, `delivered`, `suppressed`, and
+`failed`. Checks enforce the owning module's exact state shapes: scheduled has zero attempts/no
+error/delivery time; delivering has 1–4 attempts/no error/delivery time; retry-scheduled has 1–3
+attempts/an error/no delivery time; delivered has 1–4 attempts/no error/a delivery time; suppressed
+has 0–4 attempts/an error/no delivery time; failed has 1–4 attempts/an error/no delivery time.
+`updated_at >= created_at`; a delivery time is between `scheduled_for` and `updated_at`.
+
+The account and tenant-leading reminder foreign keys cascade. The tenant-leading subscription
+foreign key uses `NO ACTION`: subscription rows are revoked first and are removed only after
+dependent deliveries expire. The globally unique idempotency key is SHA-256 over a NUL-delimited
+version marker, user ID, reminder ID, reminder version, subscription ID, occurrence key-or-none, and
+scheduled ISO instant. One row targets one subscription. Jobs contain only schema version, user ID,
+and delivery ID. `delivered_at` means provider acceptance, not browser display. Terminal delivery
+records become cleanup-eligible at 30 days; worker downtime may delay physical removal until the
+next actor-scoped recovery pass. Account/task/reminder deletion may cascade earlier for privacy.
+
+Migration `0015` uses these stable notification names so schema audits do not rely on implicit SQL:
+
+- reminders: `task_reminders_pkey`, `task_reminders_user_task_unique`,
+  `task_reminders_kind_check`, `task_reminders_shape_check`, `task_reminders_version_check`,
+  `task_reminders_timestamps_check`, `task_reminders_user_id_user_id_fk`,
+  `task_reminders_task_owner_fk`, and
+  `task_reminders_user_enabled_idx`;
+- subscriptions: `push_subscriptions_pkey`, `push_subscriptions_endpoint_hash_check`, three
+  field-specific `push_subscriptions_endpoint_ciphertext_check`,
+  `push_subscriptions_p256dh_ciphertext_check`, and `push_subscriptions_auth_ciphertext_check`,
+  `push_subscriptions_encryption_key_version_check`, `push_subscriptions_device_label_check`,
+  `push_subscriptions_user_agent_summary_check`, `push_subscriptions_timestamps_check`,
+  `push_subscriptions_user_id_user_id_fk`,
+  `push_subscriptions_active_endpoint_hash_idx`, and `push_subscriptions_user_active_idx`;
+- deliveries: `notification_deliveries_pkey`, `notification_deliveries_reminder_owner_fk`,
+  `notification_deliveries_subscription_owner_fk`, `notification_deliveries_user_id_user_id_fk`,
+  `notification_deliveries_state_check`, `notification_deliveries_occurrence_key_check`,
+  `notification_deliveries_attempt_count_check`, `notification_deliveries_error_code_check`,
+  `notification_deliveries_idempotency_key_check`, `notification_deliveries_state_shape_check`,
+  `notification_deliveries_timestamps_check`, the unique
+  `notification_deliveries_idempotency_key_idx`,
+  `notification_deliveries_user_state_scheduled_idx`,
+  `notification_deliveries_reminder_state_scheduled_idx`,
+  `notification_deliveries_subscription_state_scheduled_idx`.
 
 ### `habits` — habits
 
@@ -295,8 +391,11 @@ a worker job.
 - `goal_kind`: `boolean` or `quantity`; `target_value`, nullable `unit`
 - `version`, `created_at`, `updated_at`, `archived_at`
 
-Checks require a positive `target_value` and bounded unit for quantity goals and reject quantity-only
-fields for boolean goals.
+`title` is NFC-normalized, trimmed, nonblank, and limited to 200 Unicode code points; `icon` follows
+the same rules with a 16-code-point limit. `color_token` is one of the six approved semantic
+category tokens. Quantity goals require `target_value numeric(12,3)` from `0.001` through
+`999999999.999` and a nonblank NFC-normalized `unit` of at most 40 Unicode code points. Boolean
+goals require both fields to be null. Checks reject every mixed goal shape.
 
 ### `habit_schedules` — habits
 
@@ -307,8 +406,12 @@ One row per habit:
 - `timezone`, `start_date`, nullable `end_date`
 - timestamps
 
-Checks enforce the fields allowed for each discriminant, unique ISO weekday values, a positive
-weekly target, a valid IANA timezone, and an inclusive `end_date >= start_date` when an end exists.
+Checks enforce the fields allowed for each discriminant, one to seven unique ascending ISO weekday
+values for `weekdays`, an integer `target_per_week` from one through seven for `weekly_target`, a
+canonical IANA timezone of at most 128 characters, and an inclusive `end_date >= start_date` when an
+end exists. Canonical timezones come from the generated allowlist consumed by both TypeScript and
+the migration, rather than PostgreSQL's alias-bearing timezone catalog. Schedule dates are limited
+to `0001-01-01` through `9999-12-31`; infinity values and BC dates are rejected.
 A schedule change increments the habit version once in the same transaction.
 
 ### `habit_logs` — habits
@@ -319,7 +422,15 @@ A schedule change increments the habit version once in the same transaction.
 - `version`, `created_at`, `updated_at`
 - unique `(user_id, habit_id, local_date)` with a tenant-leading owning foreign key
 
-Streaks and heat maps are projections; do not store counters on `habits`.
+`quantity` is `numeric(12,3)`: new or edited completions under a numeric goal require a value from
+zero through `999999999.999`; new or edited boolean completions and all skipped/unachieved logs
+require it to be null. Changing a habit's goal kind preserves previously completed historical facts,
+so an untouched old numeric completion may retain its quantity under a current boolean goal and an
+untouched old boolean completion may retain a null quantity under a current numeric goal. A later
+log edit revalidates and reshapes the fact against the current goal. `local_date` uses the same
+`0001-01-01` through `9999-12-31` range as schedules. `note` is NFC-normalized and limited to 1,000
+Unicode code points. Success is always derived against the current owning-habit target rather than
+duplicated on the log. Streaks and heat maps are projections; do not store counters on `habits`.
 
 ### `focus_sessions` — focus
 
@@ -334,18 +445,25 @@ A check permits at most one of `task_id` and `habit_id`; both links use tenant-l
 `kind=focus` may use either mode and may link one item. `kind=break` requires `mode=pomodoro`, requires
 both links to be null, and is started only by an explicit user command. Both kinds use
 `planned_seconds` for their per-run duration when bounded; there is no persisted duration preference.
-A partial unique index permits one `active`/`paused` session per user. Historical links use `ON
-DELETE SET NULL` only if the referenced aggregate can be hard-purged later; soft deletion keeps
-normal links readable. Checks also require nonnegative accumulated seconds, a positive
-`planned_seconds` for every Pomodoro focus or break row, a null `planned_seconds` for stopwatch
-rows, and `ended_at` only for completed sessions. `created_at` is the
-immutable session origin; `started_at` is the current/last active-segment anchor and is reset on
-resume. Active rows have no pause/end instant, paused rows require `paused_at` and no `ended_at`, and
-completed rows require `ended_at`.
+A Pomodoro focus plan is a whole-minute value from 60 through 14,400 seconds; a break plan is a
+whole-minute value from 60 through 3,600 seconds; stopwatch requires null `planned_seconds`.
+Accumulated active seconds is an integer from zero through 2,147,483,647. A partial unique index
+permits one `active`/`paused` session per user. Task and habit links use tenant-leading `NO ACTION`
+foreign keys in this release because their aggregates are soft-deleted/archived; account deletion
+cascades from the shared user owner to every row. Non-null link columns receive tenant-leading
+support indexes.
 
-Only completed `kind=focus` rows contribute to today/seven-day totals and portable focus history.
-Break rows remain authoritative enough to reconnect the running countdown, but are excluded from
-focus totals and export.
+Checks require the exact state/timestamp shape: active has no pause/end instant, paused has
+`paused_at >= started_at` and no end, and completed has no pause instant plus
+`ended_at >= started_at`. `created_at` is the immutable session origin; `started_at` is the
+current/last active-segment anchor and resets on resume. Every accepted mutation increments the
+positive optimistic version once, except discard/delete, which hard-deletes its allowed row.
+
+Only completed `kind=focus` rows contribute to today/seven-day totals, recent history, and portable
+focus history. The summary assigns a row's whole corrected duration by its `ended_at` within the
+user's saved-timezone local-day half-open boundary; the seven-day window includes today and the
+prior six dates. Break rows remain authoritative enough to reconnect a running countdown, but are
+excluded from all three projections. No total, remaining, overtime, or tick column is stored.
 
 ### `planner_proposals` — assistant
 
@@ -365,12 +483,16 @@ At minimum, migration review checks:
   `(user_id, list_id, parent_task_id, rank, id)`;
 - tasks by `(user_id, status, status_changed_at)`;
 - schedules by `(user_id, start_at/end_at)` and `(user_id, start_date/end_date)`;
-- recurrence by `(user_id, task_id)` and occurrence events by
-  `(user_id, task_id, occurrence_key, task_version)` for latest-state lookup;
-- active habits and habit schedules by user, habit logs by user/habit/local date and user/local date;
+- active recurrence cutovers by `(user_id, projection_start_date, projection_end_date, task_id)` and
+  `(user_id, projection_start_at, projection_end_at, task_id)`, and occurrence events by
+  `(user_id, task_id, occurrence_key, task_version DESC)` for latest-state lookup;
+- active and archived habit keyset pages by `(user_id, updated_at DESC, id)` under lifecycle-partial
+  indexes, habit schedules by user, and habit logs by user/habit/local date and user/local date;
 - the partial one-unfinished-Focus-session index plus completed Focus history by user/end time;
-- reminders by user/task, active subscriptions by user/endpoint hash, and deliveries by unique
-  idempotency key plus user/state/scheduled time;
+- reminders by `(user_id, task_id)` with an enabled partial index; a global active-subscription
+  endpoint-hash unique index and active subscriptions by `(user_id, last_used_at DESC, id)`;
+  deliveries by globally unique idempotency key, `(user_id, state, scheduled_for, id)`,
+  reminder/state/time, and subscription/state/time;
 - GIN/trigram indexes for scoped task search after measuring query form;
 - planner proposals by user/status/expiry;
 - every foreign-key column used in deletion/authorization joins.
@@ -379,7 +501,7 @@ Do not add speculative indexes. Use `EXPLAIN (ANALYZE, BUFFERS)` against seeded 
 
 ## Migration protocol
 
-1. Run the repository schema inventory command and `rg` for the proposed concept.
+1. Run `pnpm check:schema` and `rg` for the proposed concept.
 2. Update this catalog and owning module contract first or in the same patch.
 3. Change only the owning module's schema file; the global schema index re-exports definitions only.
 4. Generate SQL; inspect every statement, constraint, default, index, and destructive warning.
@@ -392,8 +514,8 @@ Do not add speculative indexes. Use `EXPLAIN (ANALYZE, BUFFERS)` against seeded 
 ## Schema audit checklist
 
 - Does the concept already exist under a canonical name?
-- Is the table listed in this active target catalog and assigned to the current work package rather
-  than only later scope?
+- Is the concept already in this current catalog, or covered by an explicit user-authorized scope
+  change and reviewed migration plan rather than only later scope?
 - Is the owning module clear?
 - Is this scalar, repeating, relational, historical, provider-specific, or versioned document data?
 - Can a projection derive it instead of persisting it?

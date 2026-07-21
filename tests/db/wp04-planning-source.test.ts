@@ -52,6 +52,17 @@ describe("planning source PostgreSQL integration", () => {
       endDate: "2026-07-22",
     });
     const unscheduled = await createTask(ownerA, listA.id, "Unscheduled");
+    const recurring = await createScheduled(ownerA, listA.id, "Recurring", {
+      kind: "all_day",
+      startDate: "2026-07-19",
+      endDate: "2026-07-20",
+    });
+    await pool.query(
+      `insert into task_recurrences
+         (user_id, task_id, rrule, timezone, generation_mode, projection_start_date)
+       values ($1, $2, 'FREQ=DAILY;INTERVAL=1', 'UTC', 'schedule', '2026-07-19')`,
+      [ownerA.userId, recurring.id],
+    );
     const completed = await createScheduled(ownerA, listA.id, "Completed", {
       kind: "all_day",
       startDate: "2026-07-19",
@@ -91,9 +102,11 @@ describe("planning source PostgreSQL integration", () => {
       limit: 100,
     });
     expect(new Set(allOpen.items.map(({ task }) => task.id))).toEqual(
-      new Set([overdue.id, today.id, future.id, unscheduled.id]),
+      new Set([overdue.id, today.id, future.id, unscheduled.id, recurring.id]),
     );
     expect(allOpen.items.find(({ task }) => task.id === unscheduled.id)?.schedule).toBeNull();
+    expect(allOpen.items.find(({ task }) => task.id === recurring.id)?.recurrenceRoot).toBe(true);
+    expect(allOpen.items.find(({ task }) => task.id === overdue.id)?.recurrenceRoot).toBe(false);
 
     const truncated = await application.planningSource.readOpenTasks(ownerA, {
       kind: "all_open",

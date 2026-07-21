@@ -31,7 +31,15 @@ priority marker remains visible.
 
 Completed titles use reduced emphasis and a strike only when still readable. Cancelled/won't-do uses a labeled status, not the same styling as completed. Overdue uses icon/text plus semantic color. Row selection and completion are separate actions.
 
-Keyboard: `Enter` opens details; the status control remains separately tabbable; menu actions expose move, schedule, priority, complete/cancel/restore, and soft-delete as allowed. Hover-only controls also appear on `:focus-within`. Mobile swipe actions are not part of active scope.
+An occurrence-bearing planning row labels the series and binds Complete/Skip/Undo to its
+`occurrenceKey`. A canonical Inbox/list/search row with a recurrence definition shows a textual
+Repeat marker and replaces the ordinary Complete target with a named “Open recurring task” action;
+it never implies that one checkbox will complete the series. A preserved open occurrence outside the
+current rule is labeled read-only and suppresses Complete/Skip when its server-derived
+`transitionEligible` value is false. Cancel/restore and Edit/End recurrence remain explicit series
+actions in details.
+
+Keyboard: `Enter` opens details; the status control remains separately tabbable; menu actions expose move, schedule, priority, complete/cancel/restore, and soft-delete as allowed. Hover-only controls also appear on `:focus-within`. Mobile swipe actions are not part of current scope.
 
 ## Quick add
 
@@ -74,13 +82,13 @@ Event blocks contain time when relevant, truncated title, status, and optional l
 
 ## Habit check-in
 
-This primitive becomes active with P3 and must not render before that package gate.
+This primitive is active in the implemented Habits surface.
 
 The row/card includes icon/emoji, title, schedule/goal, current progress, streak summary, and an action whose label reflects goal type. Numeric habits open a quantity form instead of assuming one unit. Check-in success is reversible. Skip and unachieved are menu actions with explicit labels.
 
 ## Focus timer
 
-This primitive becomes active with P4 and must not render before that package gate.
+This primitive serves the released Focus surface.
 
 The timer uses tabular numerals and exposes its mode/state as text. Start is the only filled action at rest; Pause, Resume, Finish, and Discard follow the current state. A linked task/habit is optional and removable. Screen-reader announcements occur at state changes, not every second.
 

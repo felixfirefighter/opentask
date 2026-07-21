@@ -7,10 +7,15 @@ import type { TaskListItemDto } from "../../application/contracts";
 import { TaskApiError } from "./task-api-request";
 import type { TaskPageCache } from "./task-cache";
 import { taskQueryKeys } from "./task-query-keys";
-import { useCreateTaskMutation, useUpdateTaskMutation } from "./use-task-editor-mutations";
+import {
+  useCreateTaskMutation,
+  useCreateTaskWithScheduleMutation,
+  useUpdateTaskMutation,
+} from "./use-task-editor-mutations";
 
 const taskApi = vi.hoisted(() => ({
   createTask: vi.fn(),
+  createTaskWithSchedule: vi.fn(),
   updateTask: vi.fn(),
 }));
 
@@ -78,6 +83,76 @@ describe("task mutation rollback", () => {
     expect(cachedTasks(client)[0]?.title).toBe("Server title");
     expect(result.current.error).toMatchObject({ code: "CONFLICT", currentVersion: 2 });
   });
+
+  it("marks workspace routes stale when either create response is unconfirmed", async () => {
+    const lostResponse = new TypeError("Failed to fetch");
+    taskApi.createTask.mockRejectedValue(lostResponse);
+    taskApi.createTaskWithSchedule.mockRejectedValue(lostResponse);
+    const workspaceChanged = vi.fn();
+    window.addEventListener("opentask:workspace-data-changed", workspaceChanged);
+    const client = queryClient();
+    client.setQueryData<TaskPageCache>(taskQueryKeys.list(LIST_ID), emptyCache());
+    const { result } = renderHook(
+      () => ({
+        plain: useCreateTaskMutation(),
+        scheduled: useCreateTaskWithScheduleMutation(),
+      }),
+      { wrapper: queryWrapper(client) },
+    );
+    const input = {
+      title: "Possibly created",
+      descriptionMd: "",
+      priority: "none" as const,
+      listId: LIST_ID,
+      sectionId: null,
+      parentTaskId: null,
+      placement: { kind: "start" as const },
+    };
+
+    await expect(result.current.plain.mutateAsync({ resourceId: TASK_ID, input })).rejects.toBe(lostResponse);
+    await expect(
+      result.current.scheduled.mutateAsync({
+        resourceId: TASK_ID,
+        input: {
+          ...input,
+          schedule: { kind: "all_day", startDate: "2026-07-20", endDate: "2026-07-21" },
+        },
+      }),
+    ).rejects.toBe(lostResponse);
+
+    expect(workspaceChanged).toHaveBeenCalledTimes(2);
+    expect(cachedTasks(client)).toEqual([]);
+    window.removeEventListener("opentask:workspace-data-changed", workspaceChanged);
+  });
+
+  it("marks workspace routes stale when an update response is unconfirmed", async () => {
+    const lostResponse = new TaskApiError({
+      code: "INTERNAL",
+      status: 500,
+      detail: "Unreadable response",
+    });
+    taskApi.updateTask.mockRejectedValue(lostResponse);
+    const workspaceChanged = vi.fn();
+    window.addEventListener("opentask:workspace-data-changed", workspaceChanged);
+    const client = queryClient();
+    client.setQueryData<TaskPageCache>(taskQueryKeys.list(LIST_ID), {
+      pages: [{ items: [task()], nextCursor: null }],
+      pageParams: [undefined],
+    });
+    const { result } = renderHook(() => useUpdateTaskMutation(), { wrapper: queryWrapper(client) });
+
+    await expect(
+      result.current.mutateAsync({
+        taskId: TASK_ID,
+        listId: LIST_ID,
+        input: { expectedVersion: 1, patch: { title: "Unconfirmed title" } },
+      }),
+    ).rejects.toBe(lostResponse);
+
+    expect(workspaceChanged).toHaveBeenCalledOnce();
+    expect(cachedTasks(client)[0]?.title).toBe("Server title");
+    window.removeEventListener("opentask:workspace-data-changed", workspaceChanged);
+  });
 });
 
 function queryClient() {
@@ -119,5 +194,6 @@ function task(): TaskListItemDto {
     rank: "a0",
     statusChangedAt: "2026-07-19T00:00:00.000Z",
     tags: [],
+    recurrence: null,
   };
 }

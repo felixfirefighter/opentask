@@ -1,4 +1,4 @@
-import { startWorker } from "./runtime.ts";
+import { checkWorker, startWorker } from "./runtime.ts";
 import { createLogger } from "../shared/logging/logger.ts";
 
 try {
@@ -12,11 +12,11 @@ try {
 
 async function runWorker() {
   const checkOnly = process.argv.includes("--check");
-  const worker = await startWorker();
 
   if (checkOnly) {
-    await worker.stop();
+    await checkWorker();
   } else {
+    const worker = await startWorker();
     await new Promise<void>((resolve, reject) => {
       let stopping = false;
 

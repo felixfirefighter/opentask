@@ -1,4 +1,5 @@
-import { getTasksApplication, setTaskScheduleRequestSchema } from "@/modules/tasks";
+import { setTaskScheduleRequestSchema } from "@/modules/tasks";
+import { getReleaseApplications } from "@/server/release-applications";
 
 import {
   assertNoTaskApiQuery,
@@ -19,7 +20,7 @@ export function GET(request: Request, context: TaskScheduleRouteContext) {
     const actor = await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
-    return privateTaskJson(await getTasksApplication().schedules.getSchedule(actor, taskId));
+    return privateTaskJson(await getReleaseApplications().tasks.schedules.getSchedule(actor, taskId));
   });
 }
 
@@ -30,6 +31,6 @@ export function PATCH(request: Request, context: TaskScheduleRouteContext) {
     });
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
-    return privateTaskJson(await getTasksApplication().schedules.setSchedule(actor, taskId, input));
+    return privateTaskJson(await getReleaseApplications().tasks.schedules.setSchedule(actor, taskId, input));
   });
 }

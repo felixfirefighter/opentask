@@ -1,8 +1,11 @@
 "use client";
 
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { markWorkspaceRoutesStale } from "@/shared/presentation";
 
-import type { PlannerInput, PlannerSelection } from "../application/contracts";
+import type { PlannerInput, PlannerProposalDto, PlannerSelection } from "../application/contracts";
 
 import {
   applyPlannerProposal,
@@ -18,21 +21,34 @@ import {
   rejectRouteError,
 } from "./planner-route-errors";
 import type { PlannerScreenState } from "./planner-screen-model";
+import { plannerProposalHref, taskLinksForAppliedSelection } from "./planner-route-navigation";
 
-export function useAssistantPlannerController(
-  initialInput: PlannerInput,
-  online: boolean,
-): Readonly<{
+export function useAssistantPlannerController({
+  initialInput,
+  initialProposal,
+  initialProposalUnavailable,
+  online,
+}: Readonly<{
+  initialInput: PlannerInput;
+  initialProposal?: PlannerProposalDto | null | undefined;
+  initialProposalUnavailable: boolean;
+  online: boolean;
+}>): Readonly<{
   state: PlannerScreenState;
   createProposal: (input: PlannerInput) => void;
   applyProposal: (selection: PlannerSelection) => void;
   rejectProposal: (proposalId: string) => void;
-  retry: () => void;
+  retry: (input?: PlannerInput) => void;
   editInput: () => void;
 }> {
-  const [state, setState] = useState<PlannerScreenState>({ kind: "describe" });
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const [state, setState] = useState<PlannerScreenState>(() =>
+    initialPlannerState(initialProposal, initialProposalUnavailable),
+  );
   const stateRef = useRef<PlannerScreenState>(state);
   const lastInputRef = useRef(initialInput);
+  const hasSubmittedInputRef = useRef(false);
   const activeRequestRef = useRef<AbortController | null>(null);
 
   const transition = useCallback((next: PlannerScreenState) => {
@@ -65,10 +81,14 @@ export function useAssistantPlannerController(
       const request = beginRequest();
       if (!request) return;
       lastInputRef.current = input;
+      hasSubmittedInputRef.current = true;
       transition({ kind: "processing", stage: "interpreting", submittedInput: input });
 
       void createPlannerProposal(input, request.signal)
-        .then((proposal) => transition({ kind: "review", proposal }))
+        .then((proposal) => {
+          transition(stateForProposal(proposal));
+          replaceRoute(router, plannerProposalHref(proposal.id));
+        })
         .catch((error: unknown) => {
           if (!isPlannerRequestAbort(error)) {
             const routeError = generationRouteError(error);
@@ -81,7 +101,7 @@ export function useAssistantPlannerController(
         })
         .finally(() => finishRequest(request));
     },
-    [beginRequest, finishRequest, online, transition],
+    [beginRequest, finishRequest, online, router, transition],
   );
 
   const applyProposal = useCallback(
@@ -105,7 +125,12 @@ export function useAssistantPlannerController(
             result,
             selectedActionCount: selection.actions.length,
             notAppliedActionCount,
+            taskLinks:
+              result.outcome === "applied"
+                ? taskLinksForAppliedSelection(current.proposal, selection.actions)
+                : [],
           });
+          refreshTaskProjections(queryClient, router);
         })
         .catch((error: unknown) => {
           if (!isPlannerRequestAbort(error)) {
@@ -119,7 +144,7 @@ export function useAssistantPlannerController(
         })
         .finally(() => finishRequest(request));
     },
-    [beginRequest, finishRequest, online, transition],
+    [beginRequest, finishRequest, online, queryClient, router, transition],
   );
 
   const rejectProposal = useCallback(
@@ -132,7 +157,7 @@ export function useAssistantPlannerController(
       transition({ ...current, operation: "rejecting", failure: undefined });
 
       void rejectPlannerProposal(proposalId, request.signal)
-        .then((proposal) => transition({ kind: "review", proposal }))
+        .then((proposal) => transition(stateForProposal(proposal)))
         .catch((error: unknown) => {
           if (!isPlannerRequestAbort(error)) {
             const routeError = rejectRouteError(error);
@@ -156,7 +181,10 @@ export function useAssistantPlannerController(
       transition({ ...current, operation: "revalidating" });
 
       void getPlannerProposal(current.proposal.id, request.signal)
-        .then((proposal) => transition({ kind: "review", proposal }))
+        .then((proposal) => {
+          transition(stateForProposal(proposal));
+          if (proposal.status === "applied") refreshTaskProjections(queryClient, router);
+        })
         .catch((error: unknown) => {
           if (!isPlannerRequestAbort(error)) {
             const routeError = refreshRouteError(error);
@@ -169,19 +197,61 @@ export function useAssistantPlannerController(
         })
         .finally(() => finishRequest(request));
     },
-    [beginRequest, finishRequest, online, transition],
+    [beginRequest, finishRequest, online, queryClient, router, transition],
   );
 
-  const retry = useCallback(() => {
-    const current = stateRef.current;
-    if (current.kind === "describe") createProposal(lastInputRef.current);
-    if (current.kind === "review") {
-      if (current.failure?.kind === "stale") createProposal(lastInputRef.current);
-      else revalidateProposal(current);
-    }
-  }, [createProposal, revalidateProposal]);
+  const retry = useCallback(
+    (input?: PlannerInput) => {
+      const current = stateRef.current;
+      if (current.kind === "describe") createProposal(input ?? lastInputRef.current);
+      if (current.kind === "review") {
+        if (current.failure?.kind !== "stale") {
+          revalidateProposal(current);
+        } else if (hasSubmittedInputRef.current) {
+          createProposal(lastInputRef.current);
+        } else {
+          transition({ kind: "describe", failure: { kind: "input_stale" } });
+          replaceRoute(router, "/plan");
+        }
+      }
+    },
+    [createProposal, revalidateProposal, router, transition],
+  );
 
-  const editInput = useCallback(() => transition({ kind: "describe" }), [transition]);
+  const editInput = useCallback(() => {
+    transition({ kind: "describe" });
+    replaceRoute(router, "/plan");
+  }, [router, transition]);
 
   return { state, createProposal, applyProposal, rejectProposal, retry, editInput };
+}
+
+function initialPlannerState(
+  proposal: PlannerProposalDto | null | undefined,
+  unavailable: boolean,
+): PlannerScreenState {
+  if (unavailable) return { kind: "permission" };
+  if (!proposal) return { kind: "describe" };
+  return stateForProposal(proposal);
+}
+
+function stateForProposal(proposal: PlannerProposalDto): PlannerScreenState {
+  return proposal.status === "pending" ? { kind: "review", proposal } : { kind: "terminal", proposal };
+}
+
+function refreshTaskProjections(queryClient: QueryClient, router: ReturnType<typeof useRouter>): void {
+  markWorkspaceRoutesStale();
+  void queryClient
+    .invalidateQueries()
+    .catch(() => undefined)
+    .then(() => router.refresh())
+    .catch(() => undefined);
+}
+
+function replaceRoute(router: ReturnType<typeof useRouter>, href: string): void {
+  try {
+    router.replace(href, { scroll: false });
+  } catch {
+    // The proposal remains usable in memory if client-side navigation itself is unavailable.
+  }
 }

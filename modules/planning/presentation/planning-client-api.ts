@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import type { PlanningPriority, PlanningTaskStatus } from "./planning-screen-model";
+import type { OccurrenceCommandResult } from "@/modules/tasks";
+import { fetchWithConnectivity } from "@/shared/presentation";
+
+import type { PlanningOccurrenceAction, PlanningPriority, PlanningTaskStatus } from "./planning-screen-model";
 
 const entityRefSchema = z.object({ id: z.uuidv4(), version: z.number().int().positive() });
 const allDayScheduleSchema = z.strictObject({
@@ -28,6 +31,19 @@ const scheduleMutationSchema = z.object({
   task: entityRefSchema,
   schedule: scheduleDtoSchema.nullable(),
 });
+const taskWithScheduleSchema = z.object({
+  task: entityRefSchema,
+  schedule: scheduleDtoSchema,
+});
+const planningListPageSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.uuidv4(),
+      name: z.string().min(1),
+    }),
+  ),
+  nextCursor: z.string().min(1).nullable(),
+});
 const quickAddSchema = z.object({
   sourceText: z.string(),
   suggestions: z.array(
@@ -45,9 +61,95 @@ const problemSchema = z.object({
   detail: z.string(),
   currentVersion: z.number().int().positive().optional(),
 });
+const occurrenceCommandResultFields = {
+  action: z.enum(["complete", "skip", "undo"]),
+  occurrenceKey: z
+    .string()
+    .min(1)
+    .max(80)
+    .regex(/^o[12]\.[A-Za-z0-9_-]+$/),
+  expectedVersion: z.number().int().positive(),
+  task: entityRefSchema,
+  occurrenceState: z.enum(["open", "completed", "skipped"]),
+} as const;
+// Keep this browser adapter runtime-local: the tasks root also exposes server
+// composition. The canonical type annotation makes schema drift a type error.
+const occurrenceCommandResultSchema: z.ZodType<OccurrenceCommandResult> = z
+  .discriminatedUnion("outcome", [
+    z.strictObject({
+      outcome: z.literal("applied"),
+      ...occurrenceCommandResultFields,
+      eventTaskVersion: z.number().int().positive(),
+    }),
+    z.strictObject({
+      outcome: z.literal("idempotent_retry"),
+      ...occurrenceCommandResultFields,
+      eventTaskVersion: z.number().int().positive(),
+    }),
+    z.strictObject({
+      outcome: z.literal("no_op"),
+      ...occurrenceCommandResultFields,
+      eventTaskVersion: z.number().int().positive().nullable(),
+    }),
+  ])
+  .superRefine((result, context) => {
+    const expectedState =
+      result.action === "complete" ? "completed" : result.action === "skip" ? "skipped" : "open";
+    if (result.occurrenceState !== expectedState) {
+      context.addIssue({
+        code: "custom",
+        path: ["occurrenceState"],
+        message: "The occurrence state must match the requested action.",
+      });
+    }
 
+    if (result.outcome === "no_op") {
+      if (result.task.version !== result.expectedVersion) {
+        context.addIssue({
+          code: "custom",
+          path: ["task", "version"],
+          message: "A no-op must retain the expected task version.",
+        });
+      }
+      if (result.eventTaskVersion !== null && result.eventTaskVersion > result.task.version) {
+        context.addIssue({
+          code: "custom",
+          path: ["eventTaskVersion"],
+          message: "An effective event cannot be newer than the task.",
+        });
+      }
+      return;
+    }
+
+    const appliedVersion = result.expectedVersion + 1;
+    if (result.eventTaskVersion !== appliedVersion) {
+      context.addIssue({
+        code: "custom",
+        path: ["eventTaskVersion"],
+        message: "An applied event must use expectedVersion + 1.",
+      });
+    }
+    const validTaskVersion =
+      result.outcome === "applied"
+        ? result.task.version === appliedVersion
+        : result.task.version >= appliedVersion;
+    if (!validTaskVersion) {
+      context.addIssue({
+        code: "custom",
+        path: ["task", "version"],
+        message: "The task version is inconsistent with the command outcome.",
+      });
+    }
+  });
 export type PlanningSchedule = z.infer<typeof scheduleSchema>;
+export type PlanningOccurrenceMutationResult = OccurrenceCommandResult;
 export type PlanningQuickAddSuggestion = z.infer<typeof quickAddSchema>["suggestions"][number];
+export type PlanningListOption = z.infer<typeof planningListPageSchema>["items"][number];
+export type PlanningListPage = z.infer<typeof planningListPageSchema>;
+
+export function canApplyPlanningOccurrenceResultOptimistically(result: PlanningOccurrenceMutationResult) {
+  return result.task.version <= result.expectedVersion + 1;
+}
 
 export class PlanningClientError extends Error {
   readonly code: string;
@@ -63,6 +165,20 @@ export class PlanningClientError extends Error {
 
 export function transitionPlanningTask(taskId: string, expectedVersion: number, status: PlanningTaskStatus) {
   return mutate(`/api/v1/tasks/${taskId}/status`, "POST", { expectedVersion, status }, entityRefSchema);
+}
+
+export function transitionPlanningOccurrence(
+  taskId: string,
+  expectedVersion: number,
+  occurrenceKey: string,
+  action: PlanningOccurrenceAction,
+) {
+  return mutate(
+    `/api/v1/tasks/${taskId}/occurrences/transition`,
+    "POST",
+    { action, occurrenceKey, expectedVersion },
+    occurrenceCommandResultSchema,
+  );
 }
 
 export function updatePlanningTaskPriority(
@@ -87,22 +203,47 @@ export function setPlanningTaskSchedule(taskId: string, expectedVersion: number,
   );
 }
 
-export function createPlanningTask(resourceId: string, input: Readonly<{ title: string; listId: string }>) {
+export function createPlanningTaskWithSchedule(
+  resourceId: string,
+  input: Readonly<{
+    title: string;
+    descriptionMd?: string;
+    priority?: PlanningPriority;
+    listId: string;
+    schedule: PlanningSchedule;
+  }>,
+) {
   return mutate(
-    "/api/v1/tasks",
+    "/api/v1/tasks/with-schedule",
     "POST",
     {
       title: input.title,
-      descriptionMd: "",
-      priority: "none",
+      descriptionMd: input.descriptionMd ?? "",
+      priority: input.priority ?? "none",
       listId: input.listId,
       sectionId: null,
       parentTaskId: null,
       placement: { kind: "start" },
+      schedule: input.schedule,
     },
-    entityRefSchema,
+    taskWithScheduleSchema,
     { "idempotency-key": resourceId },
   );
+}
+
+export async function listPlanningTaskLists(cursor?: string): Promise<PlanningListPage> {
+  const query = new URLSearchParams({ limit: "100" });
+  if (cursor) query.set("cursor", cursor);
+  const response = await fetchWithConnectivity(`/api/v1/lists?${query.toString()}`, {
+    credentials: "same-origin",
+    headers: { accept: "application/json" },
+  });
+  if (!response.ok) throw await readProblem(response);
+  try {
+    return planningListPageSchema.parse(await response.json());
+  } catch {
+    throw new PlanningClientError("The server returned an unreadable list response.");
+  }
 }
 
 export function parsePlanningQuickAdd(text: string, timezone: string) {
@@ -119,7 +260,7 @@ async function mutate<T>(
   const headers = new Headers(extraHeaders);
   headers.set("accept", "application/json");
   headers.set("content-type", "application/json");
-  const response = await fetch(path, {
+  const response = await fetchWithConnectivity(path, {
     method,
     body: JSON.stringify(body),
     credentials: "same-origin",

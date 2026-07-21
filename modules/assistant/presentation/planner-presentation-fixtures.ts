@@ -11,7 +11,7 @@ import type { PlannerTaskOption } from "./planner-screen-model";
 
 export const taskIds = {
   review: "11111111-1111-4111-8111-111111111111",
-  demo: "22222222-2222-4222-8222-222222222222",
+  notes: "22222222-2222-4222-8222-222222222222",
 } as const;
 
 export const actionIds = {
@@ -23,13 +23,13 @@ export const actionIds = {
 } as const;
 
 export const plannerTasksFixture: readonly PlannerTaskOption[] = [
-  { id: taskIds.review, title: "Review launch checklist", priority: "high" },
-  { id: taskIds.demo, title: "Prepare demo data", priority: "medium" },
+  { id: taskIds.review, title: "Review workshop checklist", priority: "high" },
+  { id: taskIds.notes, title: "Prepare attendee notes", priority: "medium" },
 ];
 
 export const plannerInputFixture: PlannerInput = plannerInputSchema.parse({
-  brainDump: "Draft release notes and keep the partner handoff visible if it does not fit.",
-  selectedTaskIds: [taskIds.review, taskIds.demo],
+  brainDump: "Draft workshop notes and keep the partner handoff visible if it does not fit.",
+  selectedTaskIds: [taskIds.review, taskIds.notes],
   planningDate: "2026-07-20",
   timeZone: "Asia/Singapore",
   workWindow: { start: "09:00", end: "17:00" },
@@ -54,19 +54,19 @@ export const plannerProposalFixture: PlannerProposalDto = plannerProposalDtoSche
     subjects: [
       {
         semanticRef: "selected-1",
-        title: "Review launch checklist",
+        title: "Review workshop checklist",
         source: "selected_task",
         taskId: taskIds.review,
       },
       {
         semanticRef: "selected-2",
-        title: "Prepare demo data",
+        title: "Prepare attendee notes",
         source: "selected_task",
-        taskId: taskIds.demo,
+        taskId: taskIds.notes,
       },
       {
         semanticRef: "new-1",
-        title: "Draft release notes",
+        title: "Draft workshop notes",
         source: "brain_dump",
         taskId: null,
       },
@@ -100,29 +100,29 @@ export const plannerProposalFixture: PlannerProposalDto = plannerProposalDtoSche
         taskId: taskIds.review,
         before: "high",
         after: "medium",
-        rationale: "The fixed launch work has a clearer deadline.",
+        rationale: "The workshop agenda has a clearer deadline.",
         uncertainties: [],
       },
       {
         actionId: actionIds.update,
         kind: "update",
         semanticRef: "selected-2",
-        taskId: taskIds.demo,
-        before: { title: "Prepare demo data", descriptionMd: "" },
+        taskId: taskIds.notes,
+        before: { title: "Prepare attendee notes", descriptionMd: "" },
         after: {
-          title: "Prepare deterministic demo data",
-          descriptionMd: "Use the isolated demo account fixture.",
+          title: "Prepare organized attendee notes",
+          descriptionMd: "Group the key details by attendee need.",
         },
-        rationale: "The input clarifies what makes the demo data ready.",
-        uncertainties: ["Confirm whether the friend tester needs a second account."],
+        rationale: "The input clarifies how the attendee notes should be organized.",
+        uncertainties: ["Confirm whether the volunteer coordinator needs a second account."],
       },
       {
         actionId: actionIds.create,
         kind: "create",
         semanticRef: "new-1",
         after: {
-          title: "Draft release notes",
-          descriptionMd: "Summarize the deadline-safe core.",
+          title: "Draft workshop notes",
+          descriptionMd: "Summarize the workshop plan.",
           priority: "medium",
           schedule: {
             kind: "timed",
@@ -147,7 +147,7 @@ export const plannerProposalFixture: PlannerProposalDto = plannerProposalDtoSche
     conflicts: [],
     uncertainties: ["Confirm the desired outcome of the partner handoff."],
   },
-  contextVersions: { [taskIds.review]: 3, [taskIds.demo]: 2 },
+  contextVersions: { [taskIds.review]: 3, [taskIds.notes]: 2 },
   status: "pending",
   model: PLANNER_MODEL,
   promptVersion: PLANNER_PROMPT_VERSION,

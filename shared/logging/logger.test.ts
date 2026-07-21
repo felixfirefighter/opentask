@@ -68,6 +68,26 @@ describe("structured logging", () => {
     expect(output).not.toContain("sentinel-");
   });
 
+  it("emits only the reviewed worker check count", () => {
+    let output = "";
+    const destination = new Writable({
+      write(chunk, _encoding, callback) {
+        output += String(chunk);
+        callback();
+      },
+    });
+
+    createLogger(destination).event("WORKER_CHECK_OK", { declaredJobCount: 2 });
+
+    const line = JSON.parse(output) as Record<string, unknown>;
+    expect(line).toMatchObject({
+      code: "WORKER_CHECK_OK",
+      declaredJobCount: 2,
+      msg: "worker check completed",
+    });
+    expect(Object.keys(line).sort()).toEqual(["code", "declaredJobCount", "level", "msg", "time"].sort());
+  });
+
   it("emits bounded request completion metadata without content-like fields", () => {
     let output = "";
     const destination = new Writable({

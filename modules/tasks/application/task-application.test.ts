@@ -2,6 +2,8 @@ import type { Database } from "@/shared/db/client";
 import type { Clock } from "@/shared/time/clock";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { TaskScheduleTable } from "../infrastructure/schema";
+
 const repositories = vi.hoisted(() => ({
   tasks: {
     findById: vi.fn(),
@@ -26,6 +28,8 @@ const repositories = vi.hoisted(() => ({
   sections: { findById: vi.fn(), lockById: vi.fn() },
   checklist: { listByTask: vi.fn() },
   tags: { listActiveForTask: vi.fn(), listActiveForTasks: vi.fn() },
+  recurrences: { listForTaskIds: vi.fn(), lockByTaskId: vi.fn(), replace: vi.fn() },
+  schedules: { lockByTaskId: vi.fn() },
   lockRankScope: vi.fn(),
   lockRankScopes: vi.fn(),
 }));
@@ -44,6 +48,12 @@ vi.mock("../infrastructure/checklist-repository", () => ({
 }));
 vi.mock("../infrastructure/tag-repository", () => ({
   createTagRepository: () => repositories.tags,
+}));
+vi.mock("../infrastructure/task-recurrence-repository", () => ({
+  createTaskRecurrenceRepository: () => repositories.recurrences,
+}));
+vi.mock("../infrastructure/task-schedule-repository", () => ({
+  createTaskScheduleRepository: () => repositories.schedules,
 }));
 vi.mock("../infrastructure/rank-scope-lock", () => ({
   lockRankScope: repositories.lockRankScope,
@@ -70,6 +80,7 @@ const database = {
   transaction: vi.fn(async (work: (executor: typeof transaction) => Promise<unknown>) => work(transaction)),
 } as unknown as Database;
 const clock: Clock = { now: () => now };
+const taskSchedules = {} as TaskScheduleTable;
 
 function storedTask(overrides: Record<string, unknown> = {}) {
   return {
@@ -127,6 +138,10 @@ describe("task application", () => {
     repositories.checklist.listByTask.mockResolvedValue([]);
     repositories.tags.listActiveForTask.mockResolvedValue([]);
     repositories.tags.listActiveForTasks.mockResolvedValue([]);
+    repositories.recurrences.listForTaskIds.mockResolvedValue([]);
+    repositories.recurrences.lockByTaskId.mockResolvedValue(null);
+    repositories.recurrences.replace.mockResolvedValue(null);
+    repositories.schedules.lockByTaskId.mockResolvedValue(null);
     repositories.lockRankScope.mockResolvedValue(undefined);
     repositories.lockRankScopes.mockResolvedValue(undefined);
   });
@@ -141,7 +156,7 @@ describe("task application", () => {
     );
     repositories.tasks.listActivePage.mockResolvedValue(rows);
 
-    const page = await createTaskApplication({ database, clock }).listTasks(actor, {
+    const page = await createTaskApplication({ database, clock, taskSchedules }).listTasks(actor, {
       listId,
       parentTaskId: null,
       status: "open",
@@ -162,6 +177,9 @@ describe("task application", () => {
 
   it("enriches a bounded task page with one bulk tag read", async () => {
     repositories.tasks.listActivePage.mockResolvedValue([storedTask()]);
+    repositories.recurrences.listForTaskIds.mockResolvedValue([
+      { taskId, projectionEndDate: null, projectionEndAt: null },
+    ]);
     repositories.tags.listActiveForTasks.mockResolvedValue([
       {
         taskId,
@@ -178,7 +196,7 @@ describe("task application", () => {
       },
     ]);
 
-    const page = await createTaskApplication({ database, clock }).listTasks(actor, {
+    const page = await createTaskApplication({ database, clock, taskSchedules }).listTasks(actor, {
       listId,
       parentTaskId: null,
       status: "open",
@@ -189,11 +207,13 @@ describe("task application", () => {
       expect.objectContaining({
         id: taskId,
         tags: [expect.objectContaining({ id: tagId, name: "Launch" })],
+        recurrence: { status: "active" },
       }),
     ]);
     expect(page.items[0]).not.toHaveProperty("userId");
     expect(page.items[0]?.tags[0]).not.toHaveProperty("userId");
     expect(repositories.tags.listActiveForTasks).toHaveBeenCalledOnce();
+    expect(repositories.recurrences.listForTaskIds).toHaveBeenCalledWith(userId, [taskId]);
   });
 
   it("assembles active checklist, tag, and subtask detail without exposing owner columns", async () => {
@@ -226,7 +246,7 @@ describe("task application", () => {
       storedTask({ id: childId, parentTaskId: taskId, title: "Check spacing" }),
     ]);
 
-    const detail = await createTaskApplication({ database, clock }).getTask(actor, taskId);
+    const detail = await createTaskApplication({ database, clock, taskSchedules }).getTask(actor, taskId);
 
     expect(detail).toMatchObject({
       id: taskId,
@@ -238,7 +258,7 @@ describe("task application", () => {
   });
 
   it("creates once, replays equivalent UUID creates, and rejects mismatched reuse", async () => {
-    const application = createTaskApplication({ database, clock });
+    const application = createTaskApplication({ database, clock, taskSchedules });
     repositories.tasks.lockById.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
     repositories.tasks.insert.mockResolvedValue(storedTask());
 
@@ -281,7 +301,7 @@ describe("task application", () => {
   });
 
   it("rejects status no-ops and applies an approved transition once", async () => {
-    const application = createTaskApplication({ database, clock });
+    const application = createTaskApplication({ database, clock, taskSchedules });
     await expect(
       application.transitionTaskStatus(actor, taskId, { expectedVersion: 1, status: "open" }),
     ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 1 });
@@ -314,7 +334,7 @@ describe("task application", () => {
       { ...child, listId: destinationListId, sectionId: null, version: 2 },
     ]);
 
-    await createTaskApplication({ database, clock }).moveTask(actor, taskId, {
+    await createTaskApplication({ database, clock, taskSchedules }).moveTask(actor, taskId, {
       expectedVersion: 1,
       listId: destinationListId,
       sectionId: null,
@@ -336,8 +356,49 @@ describe("task application", () => {
     );
   });
 
+  it.each([
+    ["active", null],
+    ["ended", "2026-07-20"],
+  ] as const)(
+    "rejects an %s recurring root becoming a subtask under task-recurrence-schedule lock order",
+    async (_lifecycle, projectionEndDate) => {
+      const root = storedTask();
+      const parent = storedTask({ id: parentId, title: "Parent task" });
+      repositories.tasks.findById.mockResolvedValue(root);
+      repositories.tasks.lockById.mockImplementation(async (_userId: string, id: string) =>
+        id === parentId ? parent : root,
+      );
+      repositories.recurrences.lockByTaskId.mockResolvedValue({
+        taskId,
+        projectionEndDate,
+        projectionEndAt: null,
+      });
+      repositories.schedules.lockByTaskId.mockResolvedValue({ taskId, kind: "all_day" });
+
+      await expect(
+        createTaskApplication({ database, clock, taskSchedules }).moveTask(actor, taskId, {
+          expectedVersion: 1,
+          listId,
+          sectionId: null,
+          parentTaskId: parentId,
+          placement: { kind: "end" },
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT", currentVersion: 1 });
+
+      expect(repositories.tasks.move).not.toHaveBeenCalled();
+      expect(repositories.tasks.listActiveRankScope).not.toHaveBeenCalled();
+      const finalTaskLock = Math.max(...repositories.tasks.lockById.mock.invocationCallOrder);
+      expect(finalTaskLock).toBeLessThan(
+        repositories.recurrences.lockByTaskId.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+      );
+      expect(repositories.recurrences.lockByTaskId.mock.invocationCallOrder[0]).toBeLessThan(
+        repositories.schedules.lockByTaskId.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+      );
+    },
+  );
+
   it("returns a safe stale conflict when move, position, or restore waits on an old container", async () => {
-    const application = createTaskApplication({ database, clock });
+    const application = createTaskApplication({ database, clock, taskSchedules });
     const activeObserved = storedTask();
     const activeMoved = storedTask({ listId: destinationListId, version: 2 });
     const deletedObserved = storedTask({ parentTaskId: parentId, deletedAt: olderDeletion, version: 2 });
@@ -392,7 +453,7 @@ describe("task application", () => {
   });
 
   it("keeps an unchanged or unowned task opaque when its requested container is unavailable", async () => {
-    const application = createTaskApplication({ database, clock });
+    const application = createTaskApplication({ database, clock, taskSchedules });
     repositories.lists.lockById.mockResolvedValue(null);
     repositories.tasks.findById.mockResolvedValueOnce(storedTask()).mockResolvedValueOnce(storedTask());
 
@@ -407,7 +468,7 @@ describe("task application", () => {
   });
 
   it("uses one deletion event and restores only children from that event", async () => {
-    const application = createTaskApplication({ database, clock });
+    const application = createTaskApplication({ database, clock, taskSchedules });
     const child = storedTask({ id: childId, parentTaskId: taskId });
     repositories.tasks.listDirectSubtasks.mockResolvedValue([child]);
     repositories.tasks.lockById.mockImplementation(async (_userId: string, id: string) =>

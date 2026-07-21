@@ -21,12 +21,17 @@ export function TaskTitleEditor({
 
   const visibleDraft = dirty || update.isError ? draft : task.title;
   const recovery = useTaskConflictRecovery(task, update.error);
-  const authoritativeTask = recovery.conflict ? recovery.latestTask : task;
+  const authoritativeTask = recovery.needsLatest ? recovery.latestTask : task;
   const draftGuard = useTaskDraftGuard(task.id, "title", dirty || update.isError, update.isPending);
 
   async function save(force = false) {
     const title = visibleDraft.trim();
-    if (disabled || update.isPending || !title || (recovery.conflict && (!force || !recovery.latestReady))) {
+    if (
+      disabled ||
+      update.isPending ||
+      !title ||
+      (recovery.needsLatest && (!force || !recovery.latestReady))
+    ) {
       return;
     }
     if (title === authoritativeTask.title) {
@@ -90,9 +95,19 @@ export function TaskTitleEditor({
       </div>
       {update.error && (
         <div className={styles.conflict} role="alert">
-          <strong>{recovery.conflict ? "This title changed elsewhere." : "The title was not saved."}</strong>
-          <p>Your text is preserved. Review the latest title before overwriting it.</p>
-          {recovery.conflict ? (
+          <strong>
+            {recovery.conflict
+              ? "This title changed elsewhere."
+              : recovery.unconfirmed
+                ? "The title update is unconfirmed."
+                : "The title was not saved."}
+          </strong>
+          <p>
+            {recovery.unconfirmed
+              ? "Your text is preserved while the latest saved title is checked."
+              : "Your text is preserved. Review the latest title before overwriting it."}
+          </p>
+          {recovery.needsLatest ? (
             <p>
               {recovery.latestReady
                 ? `Latest saved title: “${recovery.latestTask.title}”`
@@ -105,7 +120,7 @@ export function TaskTitleEditor({
             <button
               type="button"
               className="secondary-button"
-              disabled={recovery.conflict && !recovery.latestReady}
+              disabled={recovery.needsLatest && !recovery.latestReady}
               onClick={() => {
                 setDraft(authoritativeTask.title);
                 setDirty(false);
@@ -129,7 +144,7 @@ export function TaskTitleEditor({
             <button
               type="button"
               className="primary-button"
-              disabled={recovery.conflict && !recovery.latestReady}
+              disabled={recovery.needsLatest && !recovery.latestReady}
               onClick={() => void save(true)}
             >
               Try again

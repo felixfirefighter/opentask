@@ -17,7 +17,7 @@ import { groupForAction, issuesForAction, overflowMessage } from "./planner-revi
 import { PlannerReviewGroups, reviewGroupOrder } from "./PlannerReviewGroups";
 import { PlannerReviewSummary } from "./PlannerReviewSummary";
 import type { PlannerActionIssue, PlannerFailure } from "./planner-screen-model";
-import { PlannerTerminalProposalState } from "./PlannerTerminalProposalState";
+import { usePlannerReviewNavigationGuard } from "./use-planner-review-navigation-guard";
 import styles from "./PlannerReviewStep.module.css";
 
 export function PlannerReviewStep(
@@ -27,8 +27,6 @@ export function PlannerReviewStep(
     issues: readonly PlannerActionIssue[];
     failure?: PlannerFailure | undefined;
     online: boolean;
-    todayHref: string;
-    calendarHref: string;
     onApply: (selection: PlannerSelection) => void;
     onReject: (proposalId: string) => void;
     onRetry: () => void;
@@ -58,9 +56,14 @@ export function PlannerReviewStep(
           .map(({ actionId }) => actionId),
       ),
   );
-  const [dirty, setDirty] = useState(false);
+  const [initialActions] = useState(actions);
+  const [initialSelected] = useState(selected);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const busy = props.operation !== "idle";
+  const dirty =
+    JSON.stringify(actions) !== JSON.stringify(initialActions) || !sameSelection(selected, initialSelected);
+
+  usePlannerReviewNavigationGuard(dirty && props.proposal.status === "pending", resetLocalReview);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -83,17 +86,6 @@ export function PlannerReviewStep(
     [actions, externalIssues, props.proposal.proposal],
   );
 
-  if (props.proposal.status !== "pending") {
-    return (
-      <PlannerTerminalProposalState
-        proposal={props.proposal}
-        todayHref={props.todayHref}
-        calendarHref={props.calendarHref}
-        onEditInput={props.onEditInput}
-      />
-    );
-  }
-
   const applicable = actionEntries.filter(
     ({ action, issues }) => selected.has(action.actionId) && issues.length === 0,
   );
@@ -112,6 +104,20 @@ export function PlannerReviewStep(
   function editInput() {
     if (dirty) setConfirmDiscard(true);
     else props.onEditInput();
+  }
+
+  function resetLocalReview() {
+    setActions(initialActions);
+    setSelected(new Set(initialSelected));
+  }
+
+  function discardEdits() {
+    props.onEditInput();
+  }
+
+  function keepReviewing() {
+    setConfirmDiscard(false);
+    headingRef.current?.focus();
   }
 
   function apply() {
@@ -157,7 +163,6 @@ export function PlannerReviewStep(
             selected={selected}
             operationDisabled={busy || !props.online}
             onToggle={(actionId) => {
-              setDirty(true);
               setSelected((current) => {
                 const next = new Set(current);
                 if (next.has(actionId)) next.delete(actionId);
@@ -166,7 +171,6 @@ export function PlannerReviewStep(
               });
             }}
             onChange={(nextAction) => {
-              setDirty(true);
               setActions((current) =>
                 current.map((item) => (item.actionId === nextAction.actionId ? nextAction : item)),
               );
@@ -176,13 +180,7 @@ export function PlannerReviewStep(
       )}
 
       {confirmDiscard ? (
-        <PlannerDiscardPrompt
-          onKeepReviewing={() => {
-            setConfirmDiscard(false);
-            headingRef.current?.focus();
-          }}
-          onDiscard={props.onEditInput}
-        />
+        <PlannerDiscardPrompt onKeepReviewing={keepReviewing} onDiscard={discardEdits} />
       ) : null}
 
       {actions.length > 0 ? (
@@ -197,4 +195,8 @@ export function PlannerReviewStep(
       ) : null}
     </>
   );
+}
+
+function sameSelection(current: ReadonlySet<string>, initial: ReadonlySet<string>): boolean {
+  return current.size === initial.size && [...current].every((actionId) => initial.has(actionId));
 }

@@ -116,9 +116,17 @@ describe("isolated demo entry", () => {
       .select({ title: schema.tasks.title })
       .from(schema.tasks)
       .where(eq(schema.tasks.userId, identity!.actor.userId));
-    expect(taskRows).toHaveLength(10);
-    expect(taskRows).toContainEqual({ title: "Record the two-minute demo" });
-    expect(taskRows).toContainEqual({ title: "Draft the launch narrative" });
+    expect(taskRows).toHaveLength(11);
+    expect(taskRows).toContainEqual({ title: "Outline the workshop agenda" });
+    expect(taskRows).toContainEqual({ title: "Draft the welcome message" });
+    expect(taskRows).toContainEqual({ title: "Review workshop progress" });
+    const habitRows = await database
+      .select({ title: schema.habits.title, archivedAt: schema.habits.archivedAt })
+      .from(schema.habits)
+      .where(eq(schema.habits.userId, identity!.actor.userId));
+    expect(habitRows).toHaveLength(4);
+    expect(habitRows).toContainEqual({ title: "Morning reset", archivedAt: null });
+    expect(habitRows).toContainEqual({ title: "Read before bed", archivedAt: clock.now() });
 
     const otherResponse = await POST(demoMutationRequest({ clientAddress: "203.0.113.92" }));
     const otherCookie = cookiesFromSetCookie(otherResponse.headers.getSetCookie());
@@ -153,8 +161,18 @@ describe("isolated demo entry", () => {
       .where(
         and(
           eq(schema.tasks.userId, identity!.actor.userId),
-          eq(schema.tasks.title, "Record the two-minute demo"),
+          eq(schema.tasks.title, "Outline the workshop agenda"),
         ),
+      );
+    await database
+      .update(schema.habits)
+      .set({ title: "Visitor-owned habit edit" })
+      .where(and(eq(schema.habits.userId, identity!.actor.userId), eq(schema.habits.title, "Morning reset")));
+    await database
+      .update(schema.habits)
+      .set({ title: "Friend-owned habit edit" })
+      .where(
+        and(eq(schema.habits.userId, otherIdentity!.actor.userId), eq(schema.habits.title, "Morning reset")),
       );
     await database
       .update(schema.tasks)
@@ -162,7 +180,7 @@ describe("isolated demo entry", () => {
       .where(
         and(
           eq(schema.tasks.userId, otherIdentity!.actor.userId),
-          eq(schema.tasks.title, "Record the two-minute demo"),
+          eq(schema.tasks.title, "Outline the workshop agenda"),
         ),
       );
     await insertPendingProposal(identity!.actor.userId);
@@ -186,16 +204,28 @@ describe("isolated demo entry", () => {
         .select({ title: schema.tasks.title })
         .from(schema.tasks)
         .where(eq(schema.tasks.userId, identity!.actor.userId)),
-    ).toContainEqual({ title: "Record the two-minute demo" });
+    ).toContainEqual({ title: "Outline the workshop agenda" });
     expect(
       await database
         .select({ title: schema.tasks.title })
         .from(schema.tasks)
         .where(eq(schema.tasks.userId, otherIdentity!.actor.userId)),
     ).toContainEqual({ title: "Friend-owned demo edit" });
+    expect(
+      await database
+        .select({ title: schema.habits.title })
+        .from(schema.habits)
+        .where(eq(schema.habits.userId, identity!.actor.userId)),
+    ).toContainEqual({ title: "Morning reset" });
+    expect(
+      await database
+        .select({ title: schema.habits.title })
+        .from(schema.habits)
+        .where(eq(schema.habits.userId, otherIdentity!.actor.userId)),
+    ).toContainEqual({ title: "Friend-owned habit edit" });
   });
 
-  it("rolls preferences, planner proposals, and task data back together when reset cannot finish", async () => {
+  it("rolls the complete workspace back when the final habit reset cannot finish", async () => {
     const { POST } = await import("../../app/api/v1/demo/route.ts");
     const created = await POST(demoMutationRequest({ clientAddress: "203.0.113.93" }));
     const cookie = cookiesFromSetCookie(created.headers.getSetCookie());
@@ -218,19 +248,25 @@ describe("isolated demo entry", () => {
         reducedMotion: true,
       },
     );
+    const [preferencesBeforeFailure] = await database
+      .select({ updatedAt: schema.userPreferences.updatedAt })
+      .from(schema.userPreferences)
+      .where(eq(schema.userPreferences.userId, userId));
     await insertPendingProposal(userId);
     await database
       .update(schema.tasks)
       .set({ title: "Keep the previous demo after failure" })
-      .where(and(eq(schema.tasks.userId, userId), eq(schema.tasks.title, "Record the two-minute demo")));
+      .where(and(eq(schema.tasks.userId, userId), eq(schema.tasks.title, "Outline the workshop agenda")));
     await database
       .update(schema.tasks)
       .set({ title: "Earlier isolated demo task" })
-      .where(and(ne(schema.tasks.userId, userId), eq(schema.tasks.title, "Record the two-minute demo")));
-    await database.execute(
-      sql`alter table tasks add constraint demo_entry_forced_failure
-          check (title <> 'Record the two-minute demo')`,
-    );
+      .where(and(ne(schema.tasks.userId, userId), eq(schema.tasks.title, "Outline the workshop agenda")));
+    await database
+      .update(schema.habits)
+      .set({ title: "Keep the previous habit after failure" })
+      .where(and(eq(schema.habits.userId, userId), eq(schema.habits.title, "Morning reset")));
+    await database.execute(sql`alter table habits add constraint demo_entry_forced_failure
+          check (title <> 'Morning reset') not valid`);
 
     try {
       const failedReset = await POST(demoMutationRequest({ clientAddress: "203.0.113.93", cookie }));
@@ -247,17 +283,98 @@ describe("isolated demo entry", () => {
           .from(schema.tasks)
           .where(eq(schema.tasks.userId, userId)),
       ).toContainEqual({ title: "Keep the previous demo after failure" });
+      expect(
+        await database
+          .select({ title: schema.habits.title })
+          .from(schema.habits)
+          .where(eq(schema.habits.userId, userId)),
+      ).toContainEqual({ title: "Keep the previous habit after failure" });
       expect(await application.getUserPreferences(identity!.actor)).toEqual(changedPreferences);
+      const [preferencesAfterFailure] = await database
+        .select({ updatedAt: schema.userPreferences.updatedAt })
+        .from(schema.userPreferences)
+        .where(eq(schema.userPreferences.userId, userId));
+      expect(preferencesAfterFailure?.updatedAt).toEqual(preferencesBeforeFailure?.updatedAt);
     } finally {
-      await database.execute(sql`alter table tasks drop constraint demo_entry_forced_failure`);
+      await database.execute(sql`alter table habits drop constraint demo_entry_forced_failure`);
     }
+  });
+
+  it("captures one reset instant for every module fixture", async () => {
+    let clockCalls = 0;
+    const steppingClock: Clock = {
+      now: () => {
+        const value = new Date("2026-07-20T23:59:59.900Z");
+        value.setUTCDate(value.getUTCDate() + clockCalls);
+        clockCalls += 1;
+        return value;
+      },
+    };
+    const application = createIdentityApplication({
+      database,
+      clock: steppingClock,
+      authRuntime,
+    });
+    const entered = await application.enterDemo(demoRequest("192.0.2.42").headers);
+
+    const [taskSchedule] = await database
+      .select({
+        startAt: schema.taskSchedules.startAt,
+        taskCreatedAt: schema.tasks.createdAt,
+        taskUpdatedAt: schema.tasks.updatedAt,
+      })
+      .from(schema.taskSchedules)
+      .innerJoin(
+        schema.tasks,
+        and(
+          eq(schema.tasks.userId, schema.taskSchedules.userId),
+          eq(schema.tasks.id, schema.taskSchedules.taskId),
+        ),
+      )
+      .where(
+        and(
+          eq(schema.tasks.userId, entered.actor.userId),
+          eq(schema.tasks.title, "Outline the workshop agenda"),
+        ),
+      );
+    const [habitSchedule] = await database
+      .select({
+        startDate: schema.habitSchedules.startDate,
+        habitCreatedAt: schema.habits.createdAt,
+        habitUpdatedAt: schema.habits.updatedAt,
+      })
+      .from(schema.habitSchedules)
+      .innerJoin(
+        schema.habits,
+        and(
+          eq(schema.habits.userId, schema.habitSchedules.userId),
+          eq(schema.habits.id, schema.habitSchedules.habitId),
+        ),
+      )
+      .where(and(eq(schema.habits.userId, entered.actor.userId), eq(schema.habits.title, "Morning reset")));
+
+    expect(taskSchedule?.startAt).toBeInstanceOf(Date);
+    const taskLocalDate = taskSchedule!.startAt!.toISOString().slice(0, 10);
+    const expectedHabitStart = new Date(`${taskLocalDate}T00:00:00.000Z`);
+    expectedHabitStart.setUTCDate(expectedHabitStart.getUTCDate() - 30);
+    expect(habitSchedule?.startDate).toBe(expectedHabitStart.toISOString().slice(0, 10));
+    const [preferences] = await database
+      .select({ updatedAt: schema.userPreferences.updatedAt })
+      .from(schema.userPreferences)
+      .where(eq(schema.userPreferences.userId, entered.actor.userId));
+    expect(taskSchedule?.taskCreatedAt).toEqual(taskSchedule?.taskUpdatedAt);
+    expect(habitSchedule?.habitCreatedAt).toEqual(habitSchedule?.habitUpdatedAt);
+    expect(preferences?.updatedAt).toEqual(taskSchedule?.taskCreatedAt);
+    expect(preferences?.updatedAt).toEqual(habitSchedule?.habitCreatedAt);
   });
 
   it("asks the injected seeder to reset only the current demo actor", async () => {
     const seededByUser = new Map<string, number>();
+    const resetInstants: Date[] = [];
     const demoSeeder: DemoDatasetSeeder = {
-      reset: async (userId) => {
+      reset: async (userId, resetAt) => {
         seededByUser.set(userId, (seededByUser.get(userId) ?? 0) + 1);
+        resetInstants.push(resetAt);
       },
     };
     const application = createIdentityApplication({
@@ -283,6 +400,8 @@ describe("isolated demo entry", () => {
     expect(seededByUser.get(demoA.actor.userId)).toBe(2);
     expect(seededByUser.get(demoB.actor.userId)).toBe(1);
     expect(seededByUser.size).toBe(2);
+    expect(resetInstants).toHaveLength(3);
+    expect(resetInstants.every((instant) => instant.toISOString() === clock.now().toISOString())).toBe(true);
   });
 
   async function authSideEffectCounts() {

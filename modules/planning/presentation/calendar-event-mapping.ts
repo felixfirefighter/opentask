@@ -22,14 +22,14 @@ export function fromFullCalendarView(viewName: string): CalendarView {
 
 export function toFullCalendarEvent(event: PlanningCalendarEventModel, editable: boolean): EventInput {
   return {
-    id: event.id,
+    id: event.projectionId,
     title: event.title,
     start: event.start,
     end: event.end,
     allDay: event.allDay,
     url: event.detailsHref,
     interactive: true,
-    editable: editable && !event.conflicted,
+    editable: editable && event.scheduleInteraction.dragEnabled && !event.conflicted,
   };
 }
 
@@ -47,5 +47,9 @@ export function toCalendarEventChange(
 
 export function calendarEventAccessibleLabel(event: PlanningCalendarEventModel) {
   const conflict = event.conflicted ? ", changed elsewhere" : "";
-  return `${event.title}, ${event.scheduleLabel}, ${event.statusLabel}, ${event.categoryLabel}${conflict}`;
+  const recurrence =
+    event.projectionLifecycle === "one_off"
+      ? ""
+      : `, recurring, ${event.scheduleInteraction.dragDisabledReason ?? "edit future series in task details"}`;
+  return `${event.title}, ${event.scheduleLabel}, ${event.statusLabel}, ${event.categoryLabel}${recurrence}${conflict}`;
 }

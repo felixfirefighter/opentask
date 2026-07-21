@@ -27,19 +27,32 @@ export function PlanningConditionBanner({
     <div
       className={styles.banner}
       data-tone={content.tone}
-      role={condition.kind === "error" || condition.kind === "conflict" ? "alert" : "status"}
+      role={
+        condition.kind === "error" || condition.kind === "conflict" || condition.kind === "partial"
+          ? "alert"
+          : "status"
+      }
     >
       <span className={styles.icon}>{content.icon}</span>
       <div className={styles.message}>
         <strong>{content.title}</strong>
         <span>{content.message}</span>
       </div>
-      {condition.kind === "error" && onRetry ? (
+      {(condition.kind === "error" ||
+        (condition.kind === "partial" && condition.runtimeCondition?.kind !== "offline")) &&
+      onRetry ? (
         <Button type="button" variant="secondary" onClick={onRetry}>
           <RefreshCw size={16} aria-hidden="true" /> Retry
         </Button>
       ) : null}
       {condition.kind === "date-changed" && onReturnToToday ? (
+        <Button type="button" variant="secondary" onClick={onReturnToToday}>
+          Return to Today
+        </Button>
+      ) : null}
+      {condition.kind === "partial" &&
+      condition.runtimeCondition?.kind === "date-changed" &&
+      onReturnToToday ? (
         <Button type="button" variant="secondary" onClick={onReturnToToday}>
           Return to Today
         </Button>
@@ -116,9 +129,17 @@ function conditionContent(
   if (condition.kind === "date-changed") {
     return {
       icon: <RefreshCw size={18} aria-hidden="true" />,
-      title: `Today is now ${condition.currentDateLabel}`,
-      message: "Your typed quick-add text is still here. Return when you are ready to refresh the date.",
+      title: `The local date is now ${condition.currentDateLabel}`,
+      message: "Planning data is refreshing for your saved timezone. Unsaved input remains in place.",
       tone: "info",
+    };
+  }
+  if (condition.kind === "partial") {
+    return {
+      icon: <AlertCircle size={18} aria-hidden="true" />,
+      title: "This planning view is incomplete",
+      message: `${condition.message}${partialRuntimeMessage(condition.runtimeCondition)}`,
+      tone: "warning",
     };
   }
   return {
@@ -127,4 +148,22 @@ function conditionContent(
     message: condition.message ?? "Loaded tasks may be out of date. Nothing was changed.",
     tone: "danger",
   };
+}
+
+function partialRuntimeMessage(
+  condition: Extract<PlanningScreenCondition, { kind: "partial" }>["runtimeCondition"],
+) {
+  if (condition?.kind === "offline") {
+    return " You are also offline. Reconnect before changing ranges or retrying.";
+  }
+  if (condition?.kind === "error") {
+    return ` The latest refresh also failed. ${condition.message ?? "Retry to load authoritative data."}`;
+  }
+  if (condition?.kind === "conflict") {
+    return ` A task also changed elsewhere. ${condition.message ?? "Review the latest task after retrying."}`;
+  }
+  if (condition?.kind === "date-changed") {
+    return ` The local date is now ${condition.currentDateLabel}; refresh before treating this view as current.`;
+  }
+  return "";
 }

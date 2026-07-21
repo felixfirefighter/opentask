@@ -13,6 +13,7 @@ export type DemoTaskRecord = Readonly<{
   status: "open" | "completed" | "cancelled";
   priority: "none" | "low" | "medium" | "high";
   rank: string;
+  version: number;
 }>;
 
 export type DemoScheduleRecord =
@@ -24,6 +25,26 @@ export type DemoScheduleRecord =
       endAt: Date;
       timezone: string;
     }>;
+
+export type DemoRecurrenceRecord = Readonly<{
+  taskId: string;
+  rrule: string;
+  timezone: string;
+  generationMode: "schedule";
+  projectionStartDate: string | null;
+  projectionStartAt: Date | null;
+  projectionEndDate: string | null;
+  projectionEndAt: Date | null;
+}>;
+
+export type DemoOccurrenceEventRecord = Readonly<{
+  id: string;
+  taskId: string;
+  occurrenceKey: string;
+  state: "open" | "completed" | "skipped";
+  taskVersion: number;
+  effectiveAt: Date;
+}>;
 
 export type DemoDatasetRecords = Readonly<{
   folder: Readonly<{ id: string; name: string; rank: string }>;
@@ -38,6 +59,8 @@ export type DemoDatasetRecords = Readonly<{
   tags: readonly Readonly<{ id: string; name: string; colorToken: string }>[];
   tasks: readonly DemoTaskRecord[];
   schedules: readonly DemoScheduleRecord[];
+  recurrences: readonly DemoRecurrenceRecord[];
+  occurrenceEvents: readonly DemoOccurrenceEventRecord[];
   checklistItems: readonly Readonly<{
     id: string;
     taskId: string;
@@ -86,6 +109,7 @@ async function clearOwnedTaskData(userId: string, executor: DatabaseExecutor): P
   await executor.delete(schema.taskTags).where(eq(schema.taskTags.userId, userId));
   await executor.delete(schema.checklistItems).where(eq(schema.checklistItems.userId, userId));
   await executor.delete(schema.taskSchedules).where(eq(schema.taskSchedules.userId, userId));
+  // Recurrence rows and immutable occurrence events are removed only by the owning-task cascade.
   await executor.delete(schema.tasks).where(eq(schema.tasks.userId, userId));
   await executor.delete(schema.listSections).where(eq(schema.listSections.userId, userId));
   await executor
@@ -148,7 +172,6 @@ async function insertTasks(
       ...task,
       userId,
       statusChangedAt: resetAt,
-      version: 1,
       createdAt: resetAt,
       updatedAt: resetAt,
       deletedAt: null,
@@ -166,6 +189,21 @@ async function insertTasks(
       timezone: schedule.kind === "timed" ? schedule.timezone : null,
       createdAt: resetAt,
       updatedAt: resetAt,
+    })),
+  );
+  await executor.insert(schema.taskRecurrences).values(
+    records.recurrences.map((recurrence) => ({
+      ...recurrence,
+      userId,
+      createdAt: resetAt,
+      updatedAt: resetAt,
+    })),
+  );
+  await executor.insert(schema.taskOccurrenceEvents).values(
+    records.occurrenceEvents.map((event) => ({
+      ...event,
+      userId,
+      createdAt: event.effectiveAt,
     })),
   );
   await executor.insert(schema.checklistItems).values(

@@ -15,6 +15,7 @@ export default defineConfig({
   retries: 0,
   reporter: "list",
   use: {
+    actionTimeout: 15_000,
     baseURL: "http://127.0.0.1:3107",
     locale: "en-SG",
     timezoneId: "Asia/Singapore",

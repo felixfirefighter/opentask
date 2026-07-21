@@ -1,4 +1,5 @@
-import { getTasksApplication } from "@/modules/tasks";
+import { createPlanningBusyIntervalReader } from "@/modules/planning";
+import { getTasksApplication, type TasksApplication } from "@/modules/tasks";
 import { getDatabase } from "@/shared/db/client";
 import { plannerProposals } from "@/shared/db/schema";
 
@@ -11,35 +12,23 @@ import { getPlannerCapability } from "./planner-capability";
 import { createPlannerExtractionProvider } from "./planner-extraction-provider";
 import { createPlannerProposalLifecycle } from "./proposal-lifecycle";
 
-let application: ReturnType<typeof createAssistantPlannerApplication> | undefined;
+let application: ReturnType<typeof createProductionAssistantPlannerApplication> | undefined;
 
 export function getAssistantPlannerApplication() {
-  application ??= createAssistantPlannerApplication();
+  application ??= createProductionAssistantPlannerApplication({ tasks: getTasksApplication() });
   return application;
 }
 
-function createAssistantPlannerApplication() {
+export function createProductionAssistantPlannerApplication({
+  tasks,
+}: Readonly<{ tasks: PlannerTasksApplication }>) {
   const database = getDatabase();
-  const tasks = getTasksApplication();
   const repository = createPlannerProposalRepository(plannerProposals, database);
   const proposals = createPlannerProposalLifecycle({ persistence: repository });
   const creator = createPlannerProposalCreator({
     provider: createPlannerExtractionProvider(),
     selectedTasks: tasks.taskSnapshots,
-    busySchedules: {
-      async listRange(actor, query) {
-        const page = await tasks.schedules.listRange(actor, query);
-        return {
-          items: page.items.map(({ schedule }) => ({
-            schedule:
-              schedule.kind === "all_day"
-                ? { kind: schedule.kind }
-                : { kind: schedule.kind, startAt: schedule.startAt, endAt: schedule.endAt },
-          })),
-          truncated: page.truncated,
-        };
-      },
-    },
+    busyIntervals: createPlanningBusyIntervalReader(tasks.occurrences),
     proposals,
   });
   const applier = createPlannerProposalApplier({
@@ -56,3 +45,5 @@ function createAssistantPlannerApplication() {
     applyProposal: applier.apply,
   } as const;
 }
+
+type PlannerTasksApplication = Pick<TasksApplication, "occurrences" | "reviewedPlanWrites" | "taskSnapshots">;

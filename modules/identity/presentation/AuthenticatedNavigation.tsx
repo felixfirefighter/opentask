@@ -1,4 +1,4 @@
-import { CalendarDays, ListTodo, Settings, Sparkles, Sun } from "lucide-react";
+import { CalendarDays, ListTodo, Settings, Sparkles, Sprout, Sun, Timer } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -9,17 +9,20 @@ import { AccountMenu } from "./AccountMenu";
 import styles from "./AuthenticatedShell.module.css";
 import { MobileMoreMenu } from "./MobileMoreMenu";
 
-export type AuthenticatedDestination = "today" | "tasks" | "calendar" | "plan" | "settings";
+export type AuthenticatedDestination =
+  "today" | "tasks" | "calendar" | "habits" | "focus" | "plan" | "settings";
 
 const destinationDetails = {
   today: { title: "Today", eyebrow: "Now", icon: Sun, href: "/today" },
   tasks: { title: "Tasks", eyebrow: "Workspace", icon: ListTodo, href: "/inbox" },
   calendar: { title: "Calendar", eyebrow: "Planning", icon: CalendarDays, href: "/calendar" },
+  habits: { title: "Habits", eyebrow: "Practice", icon: Sprout, href: "/habits" },
+  focus: { title: "Focus", eyebrow: "Make time", icon: Timer, href: "/focus" },
   plan: { title: "Plan", eyebrow: "Assistant", icon: Sparkles, href: "/plan" },
   settings: { title: "Settings", eyebrow: "Account", icon: Settings, href: "/settings" },
 } as const;
 
-const railDestinations = ["today", "tasks", "calendar", "plan"] as const;
+const railDestinations = ["today", "tasks", "calendar", "habits", "focus", "plan"] as const;
 
 export function AuthenticatedNavigation({
   currentDestination,
@@ -148,7 +151,15 @@ export function AuthenticatedMobileNavigation({
         current={currentDestination === "plan"}
         icon={<Sparkles size={20} aria-hidden="true" />}
       />
-      <MobileMoreMenu current={currentDestination === "settings"} />
+      <MobileMoreMenu
+        current={
+          currentDestination === "habits" ||
+          currentDestination === "focus" ||
+          currentDestination === "settings"
+            ? currentDestination
+            : null
+        }
+      />
     </nav>
   );
 }

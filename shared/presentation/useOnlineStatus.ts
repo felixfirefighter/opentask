@@ -2,24 +2,17 @@
 
 import { useSyncExternalStore } from "react";
 
+import {
+  readConnectivityStatus,
+  readServerConnectivityStatus,
+  subscribeToConnectivity,
+  type ConnectivityStatus,
+} from "./connectivity-store";
+
 export function useOnlineStatus() {
-  return useSyncExternalStore(subscribeToConnectivity, readConnectivity, readServerConnectivity);
+  return useConnectivityStatus() === "online";
 }
 
-function subscribeToConnectivity(onStoreChange: () => void) {
-  window.addEventListener("online", onStoreChange);
-  window.addEventListener("offline", onStoreChange);
-
-  return () => {
-    window.removeEventListener("online", onStoreChange);
-    window.removeEventListener("offline", onStoreChange);
-  };
-}
-
-function readConnectivity() {
-  return navigator.onLine;
-}
-
-function readServerConnectivity() {
-  return true;
+export function useConnectivityStatus(): ConnectivityStatus {
+  return useSyncExternalStore(subscribeToConnectivity, readConnectivityStatus, readServerConnectivityStatus);
 }

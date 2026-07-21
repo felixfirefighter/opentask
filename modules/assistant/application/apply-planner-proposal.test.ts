@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { PlanningBusyIntervalPage } from "@/modules/planning";
+import { ReminderProducerPreparationRequiredError } from "@/modules/tasks";
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import type { DatabaseTransaction } from "@/shared/db/client";
 import { ApplicationError } from "@/shared/http/application-error";
@@ -184,9 +186,10 @@ function selection(
 type HarnessOptions = Readonly<{
   proposal?: PlannerProposalDto | null;
   snapshots?: readonly PlannerApplyTaskSnapshot[];
-  busyItems?: readonly Readonly<{ schedule: PlannerSchedule }>[];
-  busyTruncated?: boolean;
+  busyItems?: PlanningBusyIntervalPage["items"];
+  busyTruncationReason?: PlanningBusyIntervalPage["truncation"]["reasons"][number];
   writerError?: Error;
+  writerErrors?: readonly Error[];
   markApplied?: boolean;
   markExpired?: boolean;
 }>;
@@ -194,9 +197,12 @@ type HarnessOptions = Readonly<{
 function createHarness(options: HarnessOptions = {}) {
   const stored = options.proposal === undefined ? existingTaskProposal() : options.proposal;
   const events: string[] = [];
+  const writerErrors = [...(options.writerErrors ?? [])];
   const calls = {
+    preparedTaskIds: [] as string[][],
     loadedTaskIds: [] as string[][],
     busy: [] as Array<{
+      timeZone: string;
       query: unknown;
       excludedTaskIds: readonly string[];
       transaction: DatabaseTransaction;
@@ -245,21 +251,39 @@ function createHarness(options: HarnessOptions = {}) {
       },
     },
     tasks: {
-      async loadOwnedOpenForUpdate(_actor, taskIds, passedTransaction) {
+      async prepareReminderReconciliation(_actor, taskIds) {
+        calls.preparedTaskIds.push([...taskIds]);
+      },
+
+      async loadApplyContextForUpdate(_actor, taskIds, busyRequest, passedTransaction) {
         expect(passedTransaction).toBe(transaction);
         calls.loadedTaskIds.push([...taskIds]);
         events.push("tasks:lock");
-        return options.snapshots ?? [currentTask];
-      },
-      async loadBusySchedulesForUpdate(_actor, query, excludedTaskIds, passedTransaction) {
-        calls.busy.push({ query, excludedTaskIds, transaction: passedTransaction });
-        events.push("schedules:lock");
-        return { items: options.busyItems ?? [], truncated: options.busyTruncated ?? false };
+        if (busyRequest) {
+          calls.busy.push({ ...busyRequest, transaction: passedTransaction });
+          events.push("occurrences:lock");
+        }
+        return {
+          tasks: options.snapshots ?? [currentTask],
+          busyIntervals: busyRequest
+            ? {
+                items: options.busyItems ?? [],
+                truncation: {
+                  truncated: options.busyTruncationReason !== undefined,
+                  reasons: options.busyTruncationReason ? [options.busyTruncationReason] : [],
+                  recurrenceRowsEvaluated: 0,
+                  occurrenceEventsEvaluated: 0,
+                  candidateEvaluations: 0,
+                },
+              }
+            : null,
+        };
       },
       async applyAllowedActions(_actor, actions, versions, passedTransaction) {
         calls.writes.push({ actions, versions, transaction: passedTransaction });
         events.push("tasks:write");
-        if (options.writerError) throw options.writerError;
+        const writerError = writerErrors.shift() ?? options.writerError;
+        if (writerError) throw writerError;
       },
     },
   };
@@ -293,6 +317,7 @@ describe("planner proposal apply selection", () => {
     expect(harness.calls.loadedTaskIds).toEqual([[taskId]]);
     expect(harness.calls.busy).toEqual([
       {
+        timeZone: "Asia/Singapore",
         query: {
           rangeStartDate: "2026-07-20",
           rangeEndDate: "2026-07-21",
@@ -311,7 +336,7 @@ describe("planner proposal apply selection", () => {
       "transaction:start",
       "proposal:lock",
       "tasks:lock",
-      "schedules:lock",
+      "occurrences:lock",
       "tasks:write",
       "proposal:applied",
       "transaction:commit",
@@ -491,7 +516,7 @@ describe("planner proposal apply lifecycle and stale safety", () => {
         currentVersion: 8,
       },
     );
-    expect(harness.calls.busy).toEqual([]);
+    expect(harness.calls.busy).toHaveLength(1);
     expect(harness.calls.writes).toEqual([]);
   });
 
@@ -511,7 +536,7 @@ describe("planner proposal apply lifecycle and stale safety", () => {
 describe("planner proposal apply deterministic schedule validation", () => {
   it("rejects overlap with a newly busy interval under the saved buffer", async () => {
     const harness = createHarness({
-      busyItems: [{ schedule: timed("2026-07-20T02:20:00Z", "2026-07-20T03:00:00Z") }],
+      busyItems: [{ startAt: "2026-07-20T02:20:00Z", endAt: "2026-07-20T03:00:00Z" }],
     });
 
     await expect(harness.applier.apply(actor, proposalId, selection(harness.proposal))).rejects.toMatchObject(
@@ -568,8 +593,14 @@ describe("planner proposal apply deterministic schedule validation", () => {
     expect(harness.calls.writes).toEqual([]);
   });
 
-  it("rejects a truncated busy read instead of validating incomplete calendar state", async () => {
-    const harness = createHarness({ busyTruncated: true });
+  it.each([
+    "source_limit",
+    "event_source_limit",
+    "series_candidate_limit",
+    "request_candidate_limit",
+    "output_limit",
+  ] as const)("rejects %s truncation before any task or proposal write", async (reason) => {
+    const harness = createHarness({ busyTruncationReason: reason });
 
     await expect(harness.applier.apply(actor, proposalId, selection(harness.proposal))).rejects.toMatchObject(
       {
@@ -577,18 +608,15 @@ describe("planner proposal apply deterministic schedule validation", () => {
       },
     );
     expect(harness.calls.writes).toEqual([]);
+    expect(harness.calls.markedApplied).toBe(0);
   });
 
   it("rejects malformed busy state returned by an adapter", async () => {
     const harness = createHarness({
       busyItems: [
         {
-          schedule: {
-            kind: "timed",
-            startAt: "not-an-instant",
-            endAt: "2026-07-20T03:00:00Z",
-            timeZone: "Asia/Singapore",
-          } as PlannerSchedule,
+          startAt: "not-an-instant",
+          endAt: "2026-07-20T03:00:00Z",
         },
       ],
     });
@@ -603,6 +631,21 @@ describe("planner proposal apply deterministic schedule validation", () => {
 });
 
 describe("planner proposal apply atomic failure behavior", () => {
+  it("prepares schedule targets and retries one rolled-back transaction after concurrent discovery", async () => {
+    const harness = createHarness({
+      writerErrors: [new ReminderProducerPreparationRequiredError([taskId])],
+    });
+
+    await expect(
+      harness.applier.apply(actor, proposalId, selection(harness.proposal)),
+    ).resolves.toMatchObject({ outcome: "applied" });
+
+    expect(harness.calls.preparedTaskIds).toEqual([[taskId], [taskId]]);
+    expect(harness.calls.writes).toHaveLength(2);
+    expect(harness.events.filter((event) => event === "transaction:rollback")).toHaveLength(1);
+    expect(harness.events.filter((event) => event === "transaction:commit")).toHaveLength(1);
+  });
+
   it("rolls back and leaves the proposal pending when the task writer fails", async () => {
     const harness = createHarness({ writerError: new Error("forced task write failure") });
 

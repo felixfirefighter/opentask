@@ -111,7 +111,9 @@ test("cancel, terminal restore, search, and palette creation work with keyboard 
   });
   await selectCommandOptionWithKeyboard(page, taskOption);
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(new RegExp(`/tasks/${task.id}$`, "u"));
+  await expect(page).toHaveURL(
+    (url) => url.pathname === `/tasks/${task.id}` && url.searchParams.get("returnTo") === "/inbox",
+  );
   await expect(page.getByLabel("Task title", { exact: true })).toHaveValue(task.title);
 
   await page.goto("/inbox");
@@ -174,6 +176,10 @@ test("keyboard and touch-menu reorder remain available while offline writes are 
     const alphaHandle = taskRow(page, alpha.id).getByRole("button", { name: `Reorder ${alpha.title}` });
     await alphaHandle.focus();
     await alphaHandle.press("Space");
+    await expect(
+      page.getByRole("status").filter({ hasText: `${alpha.title} picked up at position 2 of 2.` }),
+    ).toBeVisible();
+    await expect(alphaHandle).toHaveAttribute("aria-pressed", "true");
     await alphaHandle.press("ArrowUp");
     await expect(
       page.getByRole("status").filter({ hasText: `${alpha.title} moved to position 1 of 2.` }),
@@ -227,7 +233,7 @@ test("keyboard and touch-menu reorder remain available while offline writes are 
 
   await context.setOffline(true);
   await expect(page.getByText("You’re offline. Writes are disabled until you reconnect.")).toBeVisible();
-  await expect(page.getByLabel("New task", { exact: true })).toBeDisabled();
+  await expect(page.getByRole("main").getByLabel("New task", { exact: true })).toBeDisabled();
   await expect(movedRow.getByRole("button", { name: `Complete ${alpha.title}` })).toBeDisabled();
   await expect(movedReorder).toBeDisabled();
 

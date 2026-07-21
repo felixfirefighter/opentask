@@ -16,31 +16,69 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose **Try demo** to create/reset a private sample workspace for that browser. The current green candidate does not require a background worker; `pnpm worker` remains a zero-job architecture smoke until the reminder package activates jobs.
+`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and
+intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose
+**Try demo** to create/reset a private sample workspace for that browser. Manual workflows do not
+require the background worker. `pnpm worker -- --check` validates its two notification queues; set
+`REMINDER_WORKER_MODE=enabled` before `pnpm worker` to run the active reminder handlers. Enabled
+configuration does not prove process liveness: operators confirm the `WORKER_READY` log and process
+supervision.
 
-## Current green candidate
+For local use, you may open either `http://127.0.0.1:3000` or `http://localhost:3000`. When
+`BETTER_AUTH_URL` names either loopback host, OpenTask accepts the other spelling only on the same
+scheme and port; you do not need to change the environment file when switching between them.
 
-The Deadline-safe Core includes:
+## Implemented release
+
+The Local-first Full Release includes:
 
 - task, list, section, tag, checklist, subtask, search, status, priority, and Markdown workflows;
-- all-day and timed schedules, Today, Upcoming, Calendar, and a derived priority matrix;
+- contextual quick add with atomic task-plus-schedule creation, all-day and timed schedules, Today,
+  Upcoming, a full Calendar create/edit flow, and a derived priority matrix;
+- canonical task-detail navigation from planning/search surfaces, local-midnight and preference-aware
+  projection refresh, and recoverable optimistic/network-conflict states;
+- bounded schedule-based recurrence with approved presets, deterministic all-day/timed occurrences,
+  per-occurrence complete/skip/undo, future-series edit/end, and Today, Upcoming, Calendar, agenda,
+  Matrix, search, demo, and export integration;
+- boolean and numeric habits with daily, selected-weekday, or target-per-week schedules; Today
+  check-ins, quantity/note edits, undo/skip/unachieved, archive/restore, derived streaks, seven-day
+  strips, monthly heat maps, and deterministic demo/export integration;
+- authoritative Pomodoro, stopwatch, and explicit break sessions with optional task/habit links,
+  pause/reconnect/resume/finish/discard controls, corrected or deleted completed history, derived
+  today/seven-day totals, deterministic demo data, and completed-focus export;
+- an installable web app with original icons, standalone metadata, explicit update activation, a
+  public-static-only cache, and a content-free cold-offline fallback; already loaded work stays
+  visible and read-only while every domain write remains disabled until recovery;
 - an optional GPT-5.6 proposal flow whose output is editable and cannot write until explicit Apply;
-- a private versioned JSON export from **Settings → Your data**;
+- persisted planner Review/Result restoration after refresh or navigation, plus an explicit no-key
+  capability state in Settings;
+- one optional browser-push reminder per task, with an explicit permission/subscription flow,
+  privacy-safe payloads, recurrence-aware delivery, and an independently runnable two-queue worker;
+- a private versioned JSON export from **Settings → Your data**, including portable task, schedule,
+  recurrence, habit, completed Focus, proposal, and reminder specifications;
 - isolated demo entry, health endpoints, and reproducible Docker deployment.
 
 Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
 
-The current implemented candidate does not yet include recurrence, habits, focus timers,
-reminders/push, or installability. The active Local-first Full Release plan adds those capabilities in
-audited packages on the approved Editorial Focus baseline. Offline mutation synchronization,
-collaboration, and premium/billing paths remain excluded. See [docs/SCOPE.md](docs/SCOPE.md) for the
-exact target and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for package order.
+Browser reminders remain optional. Without VAPID keys, subscription-encryption keys, browser
+support, permission, or a running worker, Settings reports the specific degraded state while tasks,
+habits, Focus, export, and local startup continue to work. See [docs/SETUP.md](docs/SETUP.md) for the
+provider configuration and [docs/SECURITY.md](docs/SECURITY.md) for its privacy boundary.
+
+Offline mutation synchronization, import/restore, collaboration, multiple reminder channels, and
+premium/billing paths remain deliberately excluded. See [docs/SCOPE.md](docs/SCOPE.md) for the exact
+release boundary. [docs/GOAL.md](docs/GOAL.md) records release stewardship, and
+[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) defines the contract for a future
+user-authorized change; neither authorizes roadmap work by itself.
 
 ## Built with Codex and GPT-5.6
 
-This project was developed through an iterative collaboration between its owner and Codex. The owner set the open-source product goal, required a scope-locked implementation plan before coding, approved the visual proof before deeper implementation, chose an original warm and precise design direction, and later prioritized the Deadline-safe Core so testing, deployment, and submission time stayed protected.
-
-Codex accelerated competitor research synthesis, specification and architecture drafting, modular implementation, and the scope, authorization, timezone, accessibility, responsive-design, dependency, and release audits. The resulting code keeps product capabilities in explicit feature modules and preserves the owner's key decisions: manual workflows work without AI, task and schedule facts have one canonical representation, and AI output is always reviewed before it can write. The GetDesign-informed Editorial Focus system is the approved baseline across the current product and for later feature UI.
+Codex materially supported competitor research synthesis, specification and architecture drafting,
+modular implementation, and scope, authorization, timezone, accessibility, responsive-design,
+dependency, and release audits. The owner approved the bounded product scope and the original
+GetDesign-informed Editorial Focus baseline. Product capabilities remain in explicit feature
+modules: manual workflows work without AI, task and schedule facts have one canonical
+representation, and AI output is always reviewed before it can write.
 
 GPT-5.6 powers the optional server-side planning proposal step. It converts a brain dump and selected task context into a schema-validated proposal; deterministic application code owns scheduling, ownership, conflicts, and atomic apply. Codex helped implement that boundary and its refusal, stale-data, no-write-before-apply, and idempotency tests. Git commits and the repository contracts preserve the concrete engineering and design decisions without maintaining a separate progress diary.
 
@@ -50,7 +88,8 @@ Install Playwright Chromium once with `pnpm exec playwright install chromium`, t
 
 - [Development setup](docs/SETUP.md) for host, PostgreSQL, Docker, health, and migration commands;
 - [Railway deployment](docs/DEPLOYMENT.md) for the hosted web/PostgreSQL path and cost controls;
-- [Friend test](docs/FRIEND_TEST.md) for the five-minute candidate checklist and feedback format.
+- [Friend test](docs/FRIEND_TEST.md) for the concise candidate checklist and feedback format;
+- [Hackathon contract](docs/HACKATHON.md) for the submission checklist and under-three-minute demo.
 
 For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository-owned design tokens and contracts in [DESIGN.md](DESIGN.md) remain authoritative.
 
@@ -58,8 +97,11 @@ For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository
 
 1. Read [AGENTS.md](AGENTS.md) for engineering and audit gates.
 2. Read [docs/MANIFEST.md](docs/MANIFEST.md) for owners and canonical documents.
-3. Read [docs/SCOPE.md](docs/SCOPE.md) before changing product behavior.
-4. Use [docs/GOAL.md](docs/GOAL.md) and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for execution order.
+3. Use this README's **Implemented release** section to understand shipped behavior, then read
+   [docs/SCOPE.md](docs/SCOPE.md) before changing product behavior.
+4. Use [docs/GOAL.md](docs/GOAL.md) for release stewardship and
+   [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the shape of a future
+   user-authorized plan.
 5. Use [DESIGN.md](DESIGN.md) and its routed screen contracts for UI work.
 
 ## Independence and license

@@ -2,11 +2,14 @@ import {
   checklistItemDtoSchema,
   createChecklistItemRequestSchema,
   createTaskRequestSchema,
+  createTaskWithScheduleRequestSchema,
   deleteChecklistItemRequestSchema,
   deleteTaskRequestSchema,
   moveTaskRequestSchema,
   positionChecklistItemRequestSchema,
   positionTaskRequestSchema,
+  quickAddParseResultSchema,
+  quickAddRequestSchema,
   replaceTaskTagsOutputSchema,
   replaceTaskTagsRequestSchema,
   restoreTaskRequestSchema,
@@ -16,12 +19,14 @@ import {
   taskQuerySchema,
   taskSearchPageSchema,
   taskSearchQuerySchema,
+  taskWithScheduleDtoSchema,
   terminalTaskQuerySchema,
   transitionTaskStatusRequestSchema,
   updateChecklistItemRequestSchema,
   updateTaskRequestSchema,
   type CreateChecklistItemRequest,
   type CreateTaskRequest,
+  type CreateTaskWithScheduleRequest,
   type MoveTaskRequest,
   type PositionChecklistItemRequest,
   type PositionTaskRequest,
@@ -69,6 +74,24 @@ export function createTask(resourceId: string, input: CreateTaskRequest) {
     "/api/v1/tasks",
     taskDtoSchema,
     taskJsonMutation("POST", createTaskRequestSchema.parse(input), { "idempotency-key": resourceId }),
+  );
+}
+
+export function createTaskWithSchedule(resourceId: string, input: CreateTaskWithScheduleRequest) {
+  return requestTaskJson(
+    "/api/v1/tasks/with-schedule",
+    taskWithScheduleDtoSchema,
+    taskJsonMutation("POST", createTaskWithScheduleRequestSchema.parse(input), {
+      "idempotency-key": resourceId,
+    }),
+  );
+}
+
+export function parseQuickAdd(text: string, timezone: string) {
+  return requestTaskJson(
+    "/api/v1/tasks/quick-add",
+    quickAddParseResultSchema,
+    taskJsonMutation("POST", quickAddRequestSchema.parse({ text, timezone })),
   );
 }
 

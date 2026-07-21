@@ -78,6 +78,37 @@ describe("TaskTitleEditor conflict recovery", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Latest server title");
   });
 
+  it("reconciles an accepted title after a lost response without writing it twice", async () => {
+    const client = queryClient();
+    const user = userEvent.setup();
+    const view = renderEditor(client);
+    const title = screen.getByLabelText("Task title");
+    await user.clear(title);
+    await user.type(title, "Accepted after response loss");
+
+    mocks.error = new TypeError("Failed to fetch");
+    mocks.isError = true;
+    client.setQueryData(
+      taskQueryKeys.detail(TASK_ID),
+      taskDetail({ title: "Accepted after response loss", version: 2 }),
+    );
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <TaskTitleEditor disabled={false} headingId="task-heading" task={taskDetail()} />
+      </QueryClientProvider>,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("title update is unconfirmed");
+    expect(alert).not.toHaveTextContent("title was not saved");
+    expect(title).toHaveValue("Accepted after response loss");
+    expect(alert).toHaveTextContent("Latest saved title: “Accepted after response loss”");
+
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
+    expect(mocks.reset).toHaveBeenCalledOnce();
+  });
+
   it("blocks navigation synchronously when blur starts a title write", async () => {
     const request = deferred<void>();
     mocks.mutateAsync.mockReturnValue(request.promise);

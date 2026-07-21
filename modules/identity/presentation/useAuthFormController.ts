@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 
-import { useOnlineStatus } from "@/shared/presentation";
+import { fetchWithConnectivity, retryConnectivity, useConnectivityStatus } from "@/shared/presentation";
 
 import {
   authEndpoint,
@@ -30,7 +30,8 @@ export function useAuthFormController({
   const [serverError, setServerError] = useState<string | null>(null);
   const [submissionStage, setSubmissionStage] = useState<SubmissionStage>("idle");
   const ready = useSyncExternalStore(subscribeToHydration, readHydrated, readServerHydrated);
-  const online = useOnlineStatus();
+  const connectivity = useConnectivityStatus();
+  const online = connectivity === "online";
   const submittingRef = useRef(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const submitting = submissionStage !== "idle";
@@ -77,8 +78,8 @@ export function useAuthFormController({
       }
       navigate(resolveSafeReturnTo(returnTo));
     } catch {
-      const stillOnline = typeof navigator === "undefined" || navigator.onLine;
-      if (stillOnline) setServerError(genericServerError(mode));
+      // fetchWithConnectivity owns transport failure reporting. Credential-safe copy is reserved
+      // for an HTTP response so an unreachable server is never misreported as bad credentials.
     } finally {
       submittingRef.current = false;
       setSubmissionStage("idle");
@@ -86,11 +87,13 @@ export function useAuthFormController({
   }
 
   return {
+    connectivity,
     errorSummaryRef,
     fieldErrors,
     hasErrors,
     online,
     ready,
+    retryConnection: retryConnectivity,
     serverError,
     submissionLabel: submitLabel(mode, submissionStage),
     submit,
@@ -113,7 +116,7 @@ function submitLabel(mode: AuthMode, stage: SubmissionStage) {
 }
 
 function postCredentials(endpoint: string, credentials: { email: string; password: string }) {
-  return fetch(endpoint, {
+  return fetchWithConnectivity(endpoint, {
     method: "POST",
     credentials: "same-origin",
     cache: "no-store",

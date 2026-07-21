@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator } from "@playwright/test";
 
 export async function readBaseTaskRowContract(row: Locator) {
   return row.evaluate((element) => {
@@ -211,8 +211,8 @@ export async function readTaskRowState(row: Locator) {
   });
 }
 
-export async function assertPriorityMarkers(page: Page) {
-  const markers = page.locator('[data-ui-part="priority"]');
+export async function assertPriorityMarkers(row: Locator) {
+  const markers = row.locator('[data-ui-part="priority"]');
   const markerCount = await markers.count();
   expect(markerCount).toBeGreaterThan(0);
 

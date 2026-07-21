@@ -4,7 +4,11 @@ import { CalendarClock, ExternalLink } from "lucide-react";
 
 import { Button } from "@/shared/presentation";
 
-import type { PlanningCalendarEventModel } from "./planning-screen-model";
+import type {
+  PlanningCalendarEventModel,
+  PlanningOccurrenceAction,
+  PlanningTaskOpenOptions,
+} from "./planning-screen-model";
 import styles from "./CalendarScreen.module.css";
 
 export function CalendarScheduleFallback({
@@ -12,6 +16,7 @@ export function CalendarScheduleFallback({
   events,
   selectedEventId,
   onEditSchedule,
+  onOccurrenceTransition,
   onOpenTask,
   onSelectEvent,
 }: Readonly<{
@@ -19,13 +24,19 @@ export function CalendarScheduleFallback({
   events: readonly PlanningCalendarEventModel[];
   selectedEventId: string;
   onEditSchedule: (taskId: string) => void;
-  onOpenTask: (taskId: string) => void;
+  onOccurrenceTransition: (
+    taskId: string,
+    occurrenceKey: string,
+    action: PlanningOccurrenceAction,
+    projectionId?: string,
+  ) => void;
+  onOpenTask: (taskId: string, options?: PlanningTaskOpenOptions) => void;
   onSelectEvent: (eventId: string) => void;
 }>) {
-  const selected = events.find((event) => event.id === selectedEventId);
+  const selected = events.find((event) => event.projectionId === selectedEventId);
   return (
     <section className={styles.scheduleFallback} aria-labelledby="schedule-without-dragging">
-      <div>
+      <div className={styles.scheduleIntro}>
         <CalendarClock size={18} aria-hidden="true" />
         <span>
           <strong id="schedule-without-dragging">Schedule without dragging</strong>
@@ -42,27 +53,103 @@ export function CalendarScheduleFallback({
       >
         <option value="">Choose a task</option>
         {events.map((event) => (
-          <option key={event.id} value={event.id}>
+          <option key={event.projectionId} value={event.projectionId}>
             {event.title} — {event.scheduleLabel}
           </option>
         ))}
       </select>
+      <div className={styles.scheduleActions}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!selected}
+          onClick={() => selected && onOpenTask(selected.taskId, { occurrenceKey: selected.occurrenceKey })}
+        >
+          <ExternalLink size={16} aria-hidden="true" /> Open task
+        </Button>
+        <Button
+          type="button"
+          disabled={disabled || !selected || selected.conflicted}
+          title={
+            selected?.conflicted
+              ? "Open task details to review the latest saved schedule."
+              : disabled
+                ? "Schedule editing is unavailable while this view is read-only."
+                : undefined
+          }
+          onClick={() => {
+            if (!selected) return;
+            if (selected.scheduleInteraction.editScope === "series") {
+              onOpenTask(selected.taskId, {
+                editSeriesSchedule: true,
+                occurrenceKey: selected.occurrenceKey,
+              });
+            } else onEditSchedule(selected.taskId);
+          }}
+        >
+          {selected?.scheduleInteraction.editScope === "series"
+            ? "Edit future series schedule"
+            : "Edit schedule"}
+        </Button>
+        {selected?.projectionLifecycle === "recurring_occurrence" && selected.occurrenceKey ? (
+          <OccurrenceFallbackActions
+            disabled={disabled || Boolean(selected.conflicted)}
+            event={selected}
+            onTransition={onOccurrenceTransition}
+          />
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function OccurrenceFallbackActions({
+  disabled,
+  event,
+  onTransition,
+}: Readonly<{
+  disabled: boolean;
+  event: PlanningCalendarEventModel;
+  onTransition: (
+    taskId: string,
+    occurrenceKey: string,
+    action: PlanningOccurrenceAction,
+    projectionId?: string,
+  ) => void;
+}>) {
+  const occurrenceKey = event.occurrenceKey;
+  if (occurrenceKey === null) return null;
+  if (event.occurrenceState === "open" && !event.transitionEligible) return null;
+  if (event.occurrenceState !== "open") {
+    return (
       <Button
         type="button"
         variant="secondary"
-        disabled={!selected}
-        onClick={() => selected && onOpenTask(selected.taskId)}
+        disabled={disabled}
+        onClick={() => onTransition(event.taskId, occurrenceKey, "undo", event.projectionId)}
       >
-        <ExternalLink size={16} aria-hidden="true" /> Open task
+        Undo occurrence
+      </Button>
+    );
+  }
+  return (
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={disabled}
+        onClick={() => onTransition(event.taskId, occurrenceKey, "complete", event.projectionId)}
+      >
+        Complete occurrence
       </Button>
       <Button
         type="button"
-        disabled={disabled || !selected}
-        title={disabled ? "Schedule editing is unavailable while this view is read-only." : undefined}
-        onClick={() => selected && onEditSchedule(selected.taskId)}
+        variant="secondary"
+        disabled={disabled}
+        onClick={() => onTransition(event.taskId, occurrenceKey, "skip", event.projectionId)}
       >
-        Edit schedule
+        Skip occurrence
       </Button>
-    </section>
+    </>
   );
 }

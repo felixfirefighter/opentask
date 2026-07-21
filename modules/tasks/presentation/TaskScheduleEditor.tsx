@@ -10,31 +10,82 @@ import { TaskScheduleMutationFeedback } from "./TaskScheduleMutationFeedback";
 import { formatTaskSchedule } from "./task-schedule-form-policy";
 import { useTaskScheduleEditorController } from "./use-task-schedule-editor-controller";
 
-export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: boolean; task: TaskDetailDto }>) {
+export function TaskScheduleEditor({
+  disabled,
+  initiallyEditing = false,
+  task,
+}: Readonly<{ disabled: boolean; initiallyEditing?: boolean | undefined; task: TaskDetailDto }>) {
   const editor = useTaskScheduleEditorController(task, disabled);
   const formRef = useRef<HTMLFormElement>(null);
+  const focusFirstFieldRequestedRef = useRef(false);
+  const initialEditPendingRef = useRef(initiallyEditing);
+  const mutationFeedbackRef = useRef<HTMLDivElement>(null);
+  const saveStateRef = useRef<HTMLParagraphElement>(null);
   const validationRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (editor.validationError) validationRef.current?.focus();
   }, [editor.validationError]);
 
+  useEffect(() => {
+    if (editor.mutation.error && editor.lastAttempt === "clear") {
+      mutationFeedbackRef.current?.focus();
+    }
+  }, [editor.lastAttempt, editor.mutation.error]);
+
+  useEffect(() => {
+    if (editor.reconciledAttempt) saveStateRef.current?.focus();
+  }, [editor.reconciledAttempt]);
+
+  useEffect(() => {
+    if (!editor.draft || !focusFirstFieldRequestedRef.current) return;
+    focusFirstScheduleField();
+  }, [editor.draft]);
+
+  useEffect(() => {
+    if (
+      !initialEditPendingRef.current ||
+      editor.draft ||
+      !editor.schedule ||
+      !editor.recurrence ||
+      editor.scheduleEditDisabled
+    ) {
+      return;
+    }
+    initialEditPendingRef.current = false;
+    focusFirstFieldRequestedRef.current = true;
+    editor.beginEditing();
+  }, [editor]);
+
   function focusFirstScheduleField() {
-    setTimeout(() => {
-      formRef.current?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus();
-    }, 0);
+    focusFirstFieldRequestedRef.current = true;
+    const field = formRef.current?.querySelector<HTMLInputElement>(
+      'input[id^="schedule-start-"]:not(:disabled)',
+    );
+    if (!field) return;
+    focusFirstFieldRequestedRef.current = false;
+    field.focus();
   }
 
-  if (editor.scheduleQuery.isPending || editor.preferencesQuery.isPending) {
+  if (
+    editor.scheduleQuery.isPending ||
+    editor.preferencesQuery.isPending ||
+    editor.recurrenceQuery.isPending
+  ) {
     return <ScheduleLoading taskId={task.id} />;
   }
-  if (!editor.preferences || (!editor.scheduleQuery.isSuccess && editor.scheduleQuery.data === undefined)) {
+  if (
+    !editor.preferences ||
+    (!editor.scheduleQuery.isSuccess && editor.scheduleQuery.data === undefined) ||
+    (!editor.recurrenceQuery.isSuccess && editor.recurrenceQuery.data === undefined)
+  ) {
     return (
       <ScheduleUnavailable
         taskId={task.id}
         onRetry={() => {
           void editor.scheduleQuery.refetch();
           void editor.preferencesQuery.refetch();
+          void editor.recurrenceQuery.refetch();
         }}
       />
     );
@@ -52,11 +103,11 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
         </div>
         <CalendarClock size={18} aria-hidden="true" />
       </div>
-      {editor.scheduleQuery.isError ? (
+      {editor.scheduleQuery.isError || editor.recurrenceQuery.isError ? (
         <div className={styles.stale} role="status">
           <span>Showing the last loaded schedule. A fresh copy could not be loaded.</span>
-          <button className="quiet-button" type="button" onClick={() => void editor.scheduleQuery.refetch()}>
-            Try again
+          <button className="quiet-button" type="button" onClick={editor.refreshLatest}>
+            Refresh schedule
           </button>
         </div>
       ) : null}
@@ -73,7 +124,12 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
           <TaskScheduleFields
             taskId={task.id}
             draft={editor.draft}
-            disabled={editor.controlsDisabled}
+            disabled={editor.scheduleEditDisabled}
+            kindLockReason={
+              editor.recurrence
+                ? `This recurring series stays ${editor.draft.kind === "all_day" ? "all day" : "at a specific time"} so recorded occurrence history remains stable. Saving other schedule changes restarts future occurrences.`
+                : undefined
+            }
             onChange={editor.changeDraft}
           />
           <p className={styles.interpretation}>
@@ -90,12 +146,16 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
             <button
               className="quiet-button"
               type="button"
-              disabled={editor.mutation.isPending}
+              disabled={editor.scheduleEditDisabled || editor.recovery.needsLatest}
               onClick={editor.cancelEditing}
             >
               Cancel
             </button>
-            <button className="primary-button" type="submit" disabled={editor.controlsDisabled}>
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={editor.scheduleEditDisabled || editor.recovery.needsLatest}
+            >
               {editor.mutation.isPending ? "Saving schedule…" : "Save schedule"}
             </button>
           </div>
@@ -105,19 +165,23 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
           <button
             className="secondary-button"
             type="button"
-            disabled={editor.controlsDisabled}
+            disabled={editor.scheduleEditDisabled || editor.recovery.needsLatest}
             onClick={() => {
-              editor.beginEditing();
               focusFirstScheduleField();
+              editor.beginEditing();
             }}
           >
-            {editor.schedule ? "Edit schedule" : "Add schedule"}
+            {editor.schedule
+              ? editor.recurrence
+                ? "Edit recurring schedule"
+                : "Edit schedule"
+              : "Add schedule"}
           </button>
-          {editor.schedule ? (
+          {editor.schedule && (!editor.recurrence || editor.recurrence.lifecycle === "ended") ? (
             <button
               className="quiet-button"
               type="button"
-              disabled={editor.controlsDisabled}
+              disabled={editor.controlsDisabled || editor.recovery.needsLatest}
               onClick={() => void editor.clearSchedule()}
             >
               Clear schedule
@@ -128,11 +192,24 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
 
       {editor.mutation.error ? (
         <TaskScheduleMutationFeedback
+          alertRef={mutationFeedbackRef}
           conflict={editor.recovery.conflict}
-          proposedSummary={editor.interpretation?.valid ? editor.interpretation.summary : null}
+          unconfirmed={editor.recovery.unconfirmed}
+          proposedSummary={
+            editor.lastAttempt === "clear"
+              ? "No schedule"
+              : editor.interpretation?.valid
+                ? editor.interpretation.summary
+                : null
+          }
           latestSummary={latestSummary}
+          latestMatchesProposal={editor.latestMatchesAttempt}
           loadingLatest={editor.recovery.loadingLatest || editor.scheduleQuery.isFetching}
-          latestUnavailable={editor.recovery.latestUnavailable || editor.scheduleQuery.isError}
+          latestUnavailable={
+            editor.recovery.latestUnavailable ||
+            editor.scheduleQuery.isError ||
+            editor.recurrenceQuery.isError
+          }
           pending={editor.mutation.isPending}
           onKeepEditing={() => {
             editor.keepEditing();
@@ -143,7 +220,13 @@ export function TaskScheduleEditor({ disabled, task }: Readonly<{ disabled: bool
           onUseLatest={() => void editor.useLatest()}
         />
       ) : null}
-      <p className={styles.saveState} role="status" aria-live="polite">
+      <p
+        ref={saveStateRef}
+        className={styles.saveState}
+        role="status"
+        aria-live="polite"
+        tabIndex={editor.reconciledAttempt ? -1 : undefined}
+      >
         {editor.mutation.isPending ? (
           <>
             <RefreshCw size={13} aria-hidden="true" /> Saving schedule…

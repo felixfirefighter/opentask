@@ -8,7 +8,8 @@ Before changing the repository:
 
 1. Read `README.md`.
 2. Read `docs/MANIFEST.md`.
-3. Read `docs/SCOPE.md` and confirm the requested work is in the active release.
+3. Read `docs/SCOPE.md` and confirm the request preserves current released behavior or is covered by
+   an explicit user-authorized scope change.
 4. Read the task-relevant section of `docs/ARCHITECTURE.md`.
 5. Read the relevant `docs/modules/*.md` contract.
 6. For UI work, read `DESIGN.md` and only the routed design files for that screen.
@@ -23,14 +24,18 @@ coding rather than choosing one silently.
 
 ## Scope control
 
-- The active implementation goal is exactly the Local-first Full Release in `docs/SCOPE.md` and `docs/GOAL.md`.
+- The current released behavior is exactly the Local-first Full Release in `docs/SCOPE.md`; there is
+  no active feature-expansion goal unless the five-part scope-change protocol says otherwise.
 - A researched TickTick feature is not automatically approved for implementation.
-- Only capabilities explicitly promoted into the active release may be implemented. Stage A–D and
-  every item still listed outside active scope must not be started under this goal.
-- The Editorial Focus proof is an approval gate: broad restyling and later feature UI cannot pass it
-  without explicit user screenshot approval. Silence is not approval.
-- Do not add a “small improvement” outside the active work package. Record it in the appropriate later-scope section only if it is materially useful.
-- Do not silently cut a committed feature. A cut requires explicit user approval and an update to `docs/SCOPE.md` and `docs/GOAL.md` in the same change.
+- Only current released capabilities or an explicitly user-authorized change may be implemented.
+  Stage A–D and every item listed outside current scope must not be started implicitly.
+- Editorial Focus is the approved visual baseline. Preserve it for existing and later feature UI;
+  any broad restyling or shared-foundation change requires explicit user approval and fresh visual
+  evidence. Silence is not approval.
+- Do not add a “small improvement” outside the requested scope-authorized change. Record it in the
+  appropriate later-scope section only if it is materially useful.
+- Do not silently cut a committed feature. A cut requires explicit user approval and the full
+  five-part scope-change protocol.
 - Plans are maintained in place. Do not append status diaries, session logs, or implementation history to planning documents. Git is the history.
 
 ## Architecture boundaries
@@ -85,7 +90,7 @@ Do not add generic JSONB, EAV/custom-field tables, duplicated status/date/owner 
 - Task, habit, Focus, export, and local startup paths must function when Web Push/VAPID is absent;
   provider absence produces an honest degraded state.
 - AI output never mutates data directly. It creates a proposal; a user reviews it; the server validates and applies it transactionally.
-- Offline support in the active release is an installable static shell and read-only connectivity
+- Offline support in the current release is an installable static shell and read-only connectivity
   behavior only. Do not queue domain writes or claim offline-first sync.
 - Do not copy TickTick, Airbnb, ElevenLabs, GetDesign, or another product's names, copy, screenshots,
   icons, proprietary fonts, exact layouts, palettes, or trade dress.
@@ -112,7 +117,8 @@ Do not add generic JSONB, EAV/custom-field tables, duplicated status/date/owner 
 
 ## Verification and audit
 
-No work package is complete until its acceptance criteria and the relevant checks in `docs/QUALITY.md` pass.
+No change or release is complete until its acceptance criteria and the relevant checks in
+`docs/QUALITY.md` pass.
 
 At minimum before sign-off:
 

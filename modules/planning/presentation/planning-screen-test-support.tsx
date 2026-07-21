@@ -15,6 +15,7 @@ export function renderToday(overrides: Partial<TodayScreenProps> = {}) {
     },
     taskActions: {},
     calendarHref: "/calendar",
+    habitSection: null,
     upcomingHref: "/upcoming",
     onQuickAddChange: vi.fn(),
     onQuickAddSubmit: vi.fn(),

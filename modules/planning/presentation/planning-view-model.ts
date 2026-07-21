@@ -16,8 +16,18 @@ import type {
   TodayPlanningModel,
   UpcomingPlanningModel,
 } from "./planning-screen-model";
+import {
+  formatCalendarScheduleLabel,
+  formatDetailedOccurrenceScheduleLabel,
+  formatPlanningScheduleLabel,
+} from "./planning-schedule-labels";
+import { planningTaskDetailsHref } from "./planning-task-navigation";
 
-type FormatOptions = Readonly<{ hourCycle: "12" | "24" }>;
+type FormatOptions = Readonly<{
+  conflictedTaskId?: string | null | undefined;
+  hourCycle: "12" | "24";
+  taskReturnTo?: string | null | undefined;
+}>;
 
 const categories = ["coral", "amber", "mint", "sky", "violet", "slate"] as const;
 
@@ -108,14 +118,28 @@ function toTaskRowModel(
   options: FormatOptions,
 ): PlanningTaskRowModel {
   return {
-    id: task.id,
+    projectionId: task.projectionId,
+    taskId: task.id,
     title: task.title,
-    detailsHref: `/tasks/${task.id}`,
+    detailsHref: planningTaskDetailsHref(task.id, {
+      occurrenceKey: task.occurrenceKey,
+      returnTo: options.taskReturnTo,
+    }),
     status: task.status,
     priority: task.priority,
-    scheduleLabel: scheduleLabel(task.schedule, timeZone, options.hourCycle),
-    contextLabel: "Task",
+    projectionLifecycle: task.projectionLifecycle,
+    occurrenceKey: task.occurrenceKey,
+    occurrenceState: task.occurrenceState,
+    transitionEligible: task.transitionEligible,
+    recurrenceSummary: task.recurrenceSummary,
+    scheduleInteraction: task.scheduleInteraction,
+    scheduleLabel:
+      task.projectionLifecycle === "recurring_occurrence"
+        ? formatDetailedOccurrenceScheduleLabel(task.schedule, timeZone, options.hourCycle)
+        : formatPlanningScheduleLabel(task.schedule, timeZone, options.hourCycle),
+    contextLabel: projectionContextLabel(task),
     category: categoryFor(task.listId),
+    conflicted: options.conflictedTaskId === task.id || undefined,
   };
 }
 
@@ -130,16 +154,45 @@ function toCalendarEventModel(
       ? { start: event.startDate, end: event.endDate, allDay: true }
       : { start: event.startAt, end: event.endAt, allDay: false };
   return {
-    id: event.taskId,
+    projectionId: event.projectionId,
     taskId: event.taskId,
     title: event.title,
-    detailsHref: `/tasks/${event.taskId}`,
+    detailsHref: planningTaskDetailsHref(event.taskId, {
+      occurrenceKey: event.occurrenceKey,
+      returnTo: options.taskReturnTo,
+    }),
     ...bounds,
-    scheduleLabel: scheduleLabel(event, timeZone, options.hourCycle),
-    statusLabel: "Open",
-    categoryLabel: "Task",
+    projectionLifecycle: event.projectionLifecycle,
+    occurrenceKey: event.occurrenceKey,
+    occurrenceState: event.occurrenceState,
+    transitionEligible: event.transitionEligible,
+    recurrenceSummary: event.recurrenceSummary,
+    scheduleInteraction: event.scheduleInteraction,
+    scheduleLabel: formatCalendarScheduleLabel(event, timeZone, options.hourCycle),
+    statusLabel: eventStatusLabel(event),
+    categoryLabel: event.projectionLifecycle === "one_off" ? "Task" : "Recurring task",
     category,
+    conflicted: options.conflictedTaskId === event.taskId || undefined,
   };
+}
+
+function projectionContextLabel(task: PlanningTaskRow): string {
+  if (task.projectionLifecycle === "recurrence_summary") {
+    return task.recurrenceSummary ?? "Recurring series";
+  }
+  if (task.projectionLifecycle === "recurring_occurrence") {
+    if (task.occurrenceState === "completed") return "Recurring occurrence · Completed";
+    if (task.occurrenceState === "skipped") return "Recurring occurrence · Skipped";
+    return task.transitionEligible ? "Recurring occurrence" : "Preserved occurrence · Read only";
+  }
+  return "Task";
+}
+
+function eventStatusLabel(event: CalendarEventDto): string {
+  if (event.projectionLifecycle === "one_off") return "Open";
+  if (event.occurrenceState === "completed") return "Completed occurrence";
+  if (event.occurrenceState === "skipped") return "Skipped occurrence";
+  return event.transitionEligible ? "Open occurrence" : "Preserved occurrence, read only";
 }
 
 function quadrant<TId extends "do-now" | "plan" | "time-sensitive" | "later">(
@@ -150,27 +203,6 @@ function quadrant<TId extends "do-now" | "plan" | "time-sensitive" | "later">(
   tasks: readonly PlanningTaskRowModel[],
 ) {
   return { id, title, ruleLabel, category, tasks };
-}
-
-function scheduleLabel(
-  schedule: PlanningTaskRow["schedule"] | CalendarEventDto,
-  timeZone: string,
-  hourCycle: "12" | "24",
-) {
-  if (schedule === null) return "Unscheduled";
-  if (schedule.kind === "all_day") {
-    const start = "startDate" in schedule ? schedule.startDate : "";
-    return `${formatLocalDate(start, { month: "short", day: "numeric" })} · Anytime`;
-  }
-  const start = "startAt" in schedule ? schedule.startAt : "";
-  const end = "endAt" in schedule ? schedule.endAt : "";
-  const formatter = new Intl.DateTimeFormat("en", {
-    hour: "numeric",
-    minute: "2-digit",
-    hourCycle: hourCycle === "12" ? "h12" : "h23",
-    timeZone,
-  });
-  return `${formatter.format(new Date(start))}–${formatter.format(new Date(end))}`;
 }
 
 function formatInstant(instant: string, timeZone: string, hourCycle: "12" | "24") {

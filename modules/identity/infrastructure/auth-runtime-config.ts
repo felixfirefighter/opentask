@@ -7,6 +7,24 @@ export type AuthRuntimeConfig = Readonly<{
 }>;
 
 const developmentSecret = "opentask-local-development-only-auth-secret";
+const loopbackHostAliases = {
+  localhost: "127.0.0.1",
+  "127.0.0.1": "localhost",
+} as const;
+
+export function resolveTrustedBrowserOrigins(baseUrl: string): readonly string[] {
+  const configured = new URL(baseUrl);
+  const origins = [configured.origin];
+  const alias = loopbackHostAliases[configured.hostname as keyof typeof loopbackHostAliases];
+
+  if (alias) {
+    const loopbackAlias = new URL(configured.origin);
+    loopbackAlias.hostname = alias;
+    origins.push(loopbackAlias.origin);
+  }
+
+  return Object.freeze(origins);
+}
 
 export function resolveAuthRuntimeConfig(environment: Environment): AuthRuntimeConfig {
   const missing = [];

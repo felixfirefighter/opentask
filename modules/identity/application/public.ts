@@ -24,9 +24,9 @@ export function getOptionalSessionIdentity(headers: Headers) {
 }
 
 export function getIdentityRequestSecurity() {
-  const trustedOrigin = getApplication().security.trustedOrigins[0];
-  if (!trustedOrigin) throw new Error("Identity request security is not configured.");
-  return { trustedOrigin } as const;
+  const trustedOrigins = getApplication().security.trustedOrigins;
+  if (trustedOrigins.length === 0) throw new Error("Identity request security is not configured.");
+  return { trustedOrigins } as const;
 }
 
 export function getUserPreferences(actor: AuthenticatedActor) {

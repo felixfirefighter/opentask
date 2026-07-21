@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Ref } from "react";
 
 import { useMediaQuery } from "@/shared/presentation";
 
@@ -13,7 +13,9 @@ import type {
   CalendarEventChange,
   CalendarPlanningModel,
   CalendarView,
+  PlanningOccurrenceAction,
   PlanningScreenCondition,
+  PlanningTaskOpenOptions,
   VisibleCalendarRange,
 } from "./planning-screen-model";
 import styles from "./CalendarScreen.module.css";
@@ -21,9 +23,16 @@ import styles from "./CalendarScreen.module.css";
 export type CalendarScreenProps = Readonly<{
   model: CalendarPlanningModel;
   condition: PlanningScreenCondition;
+  addTaskRef?: Ref<HTMLButtonElement> | undefined;
   onAddTask: () => void;
-  onOpenTask: (taskId: string) => void;
+  onOpenTask: (taskId: string, options?: PlanningTaskOpenOptions) => void;
   onEditSchedule: (taskId: string) => void;
+  onOccurrenceTransition: (
+    taskId: string,
+    occurrenceKey: string,
+    action: PlanningOccurrenceAction,
+    projectionId?: string,
+  ) => void;
   onSelectEvent: (eventId: string) => void;
   onViewChange: (view: CalendarView) => void;
   onVisibleRangeChange: (range: VisibleCalendarRange) => void;
@@ -43,13 +52,17 @@ export function CalendarScreen(props: CalendarScreenProps) {
   const effectiveView =
     isMobile && !props.model.hasSavedView && !userSelectedView ? "agenda" : props.model.view;
   const requestedEventId = props.model.selectedEventId ?? localSelectedEventId;
-  const selectedEventId = props.model.events.some((event) => event.id === requestedEventId)
+  const selectedEventId = props.model.events.some((event) => event.projectionId === requestedEventId)
     ? requestedEventId
     : "";
-  const readOnly =
+  const offline =
     props.condition.kind === "offline" ||
+    (props.condition.kind === "partial" && props.condition.runtimeCondition?.kind === "offline");
+  const readOnly =
+    offline ||
     props.condition.kind === "loading" ||
-    props.condition.kind === "error";
+    props.condition.kind === "error" ||
+    props.condition.kind === "partial";
 
   function chooseEvent(eventId: string) {
     setLocalSelectedEventId(eventId);
@@ -81,7 +94,9 @@ export function CalendarScreen(props: CalendarScreenProps) {
       ) : (
         <>
           <CalendarToolbar
-            disabled={props.condition.kind === "offline"}
+            addTaskRef={props.addTaskRef}
+            addTaskDisabled={readOnly}
+            disabled={offline}
             rangeLabel={props.model.rangeLabel}
             view={effectiveView}
             onAddTask={props.onAddTask}
@@ -96,6 +111,7 @@ export function CalendarScreen(props: CalendarScreenProps) {
             events={props.model.events}
             selectedEventId={selectedEventId}
             onEditSchedule={props.onEditSchedule}
+            onOccurrenceTransition={props.onOccurrenceTransition}
             onOpenTask={props.onOpenTask}
             onSelectEvent={chooseEvent}
           />
@@ -106,10 +122,18 @@ export function CalendarScreen(props: CalendarScreenProps) {
           >
             {props.model.events.length === 0 && props.condition.kind !== "loading" ? (
               <div className={styles.emptyNotice} role="status">
-                {props.condition.kind === "error" ? (
+                {props.condition.kind === "error" || props.condition.kind === "partial" ? (
                   <>
-                    <strong>Calendar data is unavailable</strong>
-                    <span>No partial range is shown as current. Retry to refresh this range.</span>
+                    <strong>
+                      {props.condition.kind === "partial"
+                        ? "Calendar range is incomplete"
+                        : "Calendar data is unavailable"}
+                    </strong>
+                    <span>
+                      {props.condition.kind === "partial"
+                        ? "No empty-range conclusion is shown because some events may be missing. Retry to refresh."
+                        : "No partial range is shown as current. Retry to refresh this range."}
+                    </span>
                   </>
                 ) : (
                   <>

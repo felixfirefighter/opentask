@@ -1,7 +1,6 @@
 # Focus screen
 
-**Status:** Active in P4 of the Local-first Full Release. Do not expose the route or navigation
-before the P4 package gate.
+**Status:** Implemented and visually approved in the Local-first Full Release.
 
 ## Purpose and route
 
@@ -30,9 +29,14 @@ Desktop centers the timer in a bounded card while summary/history use the remain
 Timer setup on this route exposes per-run focus and break duration through a compact form; these are
 not persisted Settings preferences. Finishing focus never starts a break automatically. Starting any
 timer when another active focus/break row exists recovers that row instead of creating another.
-Finishing focus confirms the authoritative duration and adds one recent focus-session row.
+Finishing focus confirms the authoritative duration and adds one recent focus-session row. A
+Pomodoro that reaches zero remains authoritative and active until Finish; the display may name its
+overtime, but a read or client tick never completes it silently.
 
-Completed sessions may be corrected or deleted by their owner. Correction uses start/end or duration fields consistent with the domain contract and names the effect on totals. Deletion requires confirmation because active scope does not promise an undo.
+Completed focus sessions may be corrected or deleted by their owner. Correction replaces duration
+and/or its optional link and names the effect on totals; it does not rewrite timer timestamps or
+mode. Completed breaks remain internal and do not appear in recent history. Deletion requires
+confirmation because active scope does not promise an undo.
 
 ## State contract
 

@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 
+import { fetchWithConnectivity } from "@/shared/presentation";
+
 type ExportState = "idle" | "exporting" | "downloaded" | "error";
 
 export function useDataExport(online: boolean) {
@@ -16,7 +18,10 @@ export function useDataExport(online: boolean) {
     setMessage("Preparing your private export…");
 
     try {
-      const response = await fetch("/api/v1/export", { method: "GET", cache: "no-store" });
+      const response = await fetchWithConnectivity("/api/v1/export", {
+        method: "GET",
+        cache: "no-store",
+      });
       if (!response.ok) throw new Error("Export request failed.");
       const filename = readFilename(response.headers) ?? "opentask-export.json";
       const schemaVersion = response.headers.get("x-opentask-export-schema-version");

@@ -3,14 +3,15 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { Command } from "cmdk";
 import { Search, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { useOnlineStatus } from "@/shared/presentation";
+import { confirmUnsavedNavigation, useOnlineStatus, useUnsavedNavigationGuard } from "@/shared/presentation";
 
 import { useCreateTaskMutation } from "./data/use-task-editor-mutations";
 import { useRegularListsQuery } from "./data/use-organizer-queries";
 import { useTaskSearchQuery } from "./data/use-task-queries";
+import { isTaskApiError } from "./data/task-api-request";
 import styles from "./TaskCommandPalette.module.css";
 import { TaskCommandPaletteResults } from "./TaskCommandPaletteResults";
 import { confirmTaskDraftNavigation } from "./task-draft-guard";
@@ -26,6 +27,8 @@ export function TaskCommandPalette({
   inbox: { id: string; name: string };
 }>) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const online = useOnlineStatus();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -38,6 +41,14 @@ export function TaskCommandPalette({
   const listsQuery = useRegularListsQuery();
   const create = useCreateTaskMutation();
   const createPending = requestPending || create.isPending;
+  const createErrorMessage = create.error
+    ? isTaskApiError(create.error) && create.error.code !== "INTERNAL"
+      ? create.error.message
+      : "The create outcome could not be confirmed. Retry this unchanged title to resolve it safely."
+    : null;
+  const createUncertain = Boolean(
+    create.error && (!isTaskApiError(create.error) || create.error.code === "INTERNAL"),
+  );
   const cleanQuery = query.trim();
   const searchTooLong = characterCount(cleanQuery) > SEARCH_LIMIT;
   const titleValid = characterCount(cleanQuery) <= TITLE_LIMIT;
@@ -48,6 +59,22 @@ export function TaskCommandPalette({
       ? inbox.name
       : (listsQuery.lists.find((list) => list.id === destinationId)?.name ?? "Current list");
 
+  useUnsavedNavigationGuard(
+    createUncertain,
+    "Discard this unconfirmed task create? It may already exist, and leaving will discard its safe retry key.",
+    discardUnconfirmedCreate,
+  );
+
+  function discardUnconfirmedCreate() {
+    draftResourceId.current = null;
+    queryRef.current = "";
+    setQuery("");
+    setAnnouncement("");
+    create.reset();
+    setOpen(false);
+    requestAnimationFrame(() => returnFocus.current?.focus());
+  }
+
   useEffect(() => {
     function toggle(event: KeyboardEvent) {
       if (event.repeat || event.defaultPrevented || event.altKey || event.shiftKey) return;
@@ -55,6 +82,7 @@ export function TaskCommandPalette({
       event.preventDefault();
       setOpen((value) => {
         if (value) {
+          if (createUncertain) return value;
           requestAnimationFrame(() => returnFocus.current?.focus());
           return false;
         }
@@ -65,10 +93,10 @@ export function TaskCommandPalette({
 
     document.addEventListener("keydown", toggle);
     return () => document.removeEventListener("keydown", toggle);
-  }, []);
+  }, [createUncertain]);
 
   function updateQuery(nextQuery: string) {
-    if (requestInFlight.current || create.isPending) return;
+    if (requestInFlight.current || create.isPending || createUncertain) return;
     queryRef.current = nextQuery;
     setQuery(nextQuery);
     setAnnouncement("");
@@ -77,6 +105,7 @@ export function TaskCommandPalette({
   }
 
   function changeOpen(nextOpen: boolean) {
+    if (!nextOpen && (requestInFlight.current || create.isPending || createUncertain)) return;
     if (nextOpen) {
       returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     }
@@ -85,7 +114,7 @@ export function TaskCommandPalette({
   }
 
   function closeAndReset() {
-    if (requestInFlight.current || create.isPending) return;
+    if (requestInFlight.current || create.isPending || createUncertain) return;
     changeOpen(false);
     queryRef.current = "";
     setQuery("");
@@ -93,11 +122,23 @@ export function TaskCommandPalette({
     create.reset();
   }
 
+  function abandonUncertainCreate() {
+    if (!createUncertain) return;
+    if (
+      !window.confirm("Discard this safe retry? The task may already exist. Search before creating it again.")
+    ) {
+      return;
+    }
+
+    discardUnconfirmedCreate();
+  }
+
   function navigate(href: string) {
-    if (requestInFlight.current || create.isPending) return;
+    if (requestInFlight.current || create.isPending || createUncertain) return;
     if (!confirmTaskDraftNavigation()) return;
+    if (!confirmUnsavedNavigation()) return;
     closeAndReset();
-    router.push(href);
+    router.push(taskResultHref(href, pathname, searchParams.toString()));
   }
 
   async function addTask() {
@@ -121,7 +162,8 @@ export function TaskCommandPalette({
         },
       });
       if (draftResourceId.current === resourceId && queryRef.current === submittedQuery) {
-        changeOpen(false);
+        setOpen(false);
+        requestAnimationFrame(() => returnFocus.current?.focus());
         queryRef.current = "";
         setQuery("");
         draftResourceId.current = null;
@@ -170,20 +212,25 @@ export function TaskCommandPalette({
         <div className={styles.inputRow}>
           <Search size={19} aria-hidden="true" />
           <Command.Input
-            disabled={!online || createPending}
+            disabled={!online || createPending || createUncertain}
             value={query}
             onValueChange={updateQuery}
             maxLength={TITLE_LIMIT}
             placeholder="Search tasks or type a task title…"
           />
           <kbd aria-hidden="true">Esc</kbd>
-          <Dialog.Close className={styles.close} aria-label="Close search">
+          <Dialog.Close
+            className={styles.close}
+            aria-label="Close search"
+            disabled={createPending || createUncertain}
+          >
             <X size={18} aria-hidden="true" />
           </Dialog.Close>
         </div>
         <TaskCommandPaletteResults
           canCreate={online && cleanQuery.length > 0 && titleValid && !createPending}
-          createError={create.isError}
+          createErrorMessage={createErrorMessage}
+          createUncertain={createUncertain}
           destinationName={destinationName}
           inbox={inbox}
           lists={listsQuery.lists}
@@ -200,6 +247,7 @@ export function TaskCommandPalette({
           searchResults={search.results}
           searchTooLong={searchTooLong}
           onCreate={addTask}
+          onAbandonCreate={abandonUncertainCreate}
           onLoadMoreLists={listsQuery.fetchNextPage}
           onLoadMoreSearch={search.fetchNextPage}
           onNavigate={navigate}
@@ -214,6 +262,12 @@ export function TaskCommandPalette({
       </Command.Dialog>
     </>
   );
+}
+
+function taskResultHref(href: string, pathname: string, query: string): string {
+  if (!href.startsWith("/tasks/") || pathname.startsWith("/tasks/")) return href;
+  const returnTo = `${pathname}${query ? `?${query}` : ""}`;
+  return `${href}?returnTo=${encodeURIComponent(returnTo)}`;
 }
 
 function characterCount(value: string) {

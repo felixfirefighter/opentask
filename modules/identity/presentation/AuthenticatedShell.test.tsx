@@ -5,7 +5,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthenticatedShell } from "./AuthenticatedShell";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/inbox" }));
+const navigation = vi.hoisted(() => ({ refresh: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/inbox",
+  useRouter: () => navigation,
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 const identity = {
   actor: { userId: "user_01" },
@@ -41,9 +47,49 @@ describe("AuthenticatedShell", () => {
     expect(precedes(main, mobile)).toBe(true);
     expect(screen.getAllByRole("link", { name: "Today" })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: "Calendar" })).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "Habits" })).toHaveAttribute("href", "/habits");
+    expect(screen.getByRole("link", { name: "Focus" })).toHaveAttribute("href", "/focus");
     expect(screen.getAllByRole("link", { name: "Plan" })).toHaveLength(2);
-    expect(screen.queryByRole("link", { name: /habit|focus|reminder/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /reminder/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/fixture/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps Habits reachable and current through the mobile More menu", async () => {
+    const user = userEvent.setup();
+    renderShell("habits");
+
+    const more = screen.getByRole("button", { name: "More" });
+    expect(more).toHaveAttribute("aria-current", "page");
+    await user.click(more);
+
+    expect(screen.getByRole("menuitem", { name: "Habits" })).toHaveAttribute("href", "/habits");
+    expect(screen.getByRole("menuitem", { name: "Habits" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("keeps Focus reachable and current through the mobile More menu", async () => {
+    const user = userEvent.setup();
+    renderShell("focus");
+
+    const more = screen.getByRole("button", { name: "More" });
+    expect(more).toHaveAttribute("aria-current", "page");
+    await user.click(more);
+
+    expect(screen.getByRole("menuitem", { name: "Focus" })).toHaveAttribute("href", "/focus");
+    expect(screen.getByRole("menuitem", { name: "Focus" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("never marks nullable More destinations as the current page", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const more = screen.getByRole("button", { name: "More" });
+    expect(more).not.toHaveAttribute("aria-current");
+    await user.click(more);
+
+    for (const name of ["Priority matrix", "Upcoming", "Completed / cancelled"]) {
+      expect(screen.getByRole("menuitem", { name })).not.toHaveAttribute("aria-current");
+    }
+    expect(screen.queryByRole("menuitem", { current: "page" })).not.toBeInTheDocument();
   });
 
   it("supports keyboard navigation and focus return for account actions", async () => {
@@ -85,19 +131,31 @@ describe("AuthenticatedShell", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Sign out failed");
   });
 
-  it("announces offline state and removes the banner after reconnection", async () => {
+  it("announces offline state and a verified recovery before restoring writes", async () => {
     let online = true;
     vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ status: "ok" }));
+    vi.stubGlobal("fetch", fetchMock);
     renderShell();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
 
     online = false;
     act(() => window.dispatchEvent(new Event("offline")));
-    expect(await screen.findByRole("status")).toHaveTextContent("Writes are disabled");
+    expect(await screen.findByRole("status")).toHaveTextContent(/writes are disabled/iu);
 
     online = true;
     act(() => window.dispatchEvent(new Event("online")));
-    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Connection restored. Writes are available again.",
+      ),
+    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/health/live", {
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { accept: "application/json" },
+      signal: expect.any(AbortSignal),
+    });
   });
 
   it("moves focus to the route heading after navigation content mounts", async () => {
@@ -107,7 +165,7 @@ describe("AuthenticatedShell", () => {
   });
 });
 
-function renderShell(currentDestination: "tasks" | "settings" = "tasks") {
+function renderShell(currentDestination: "tasks" | "habits" | "focus" | "settings" = "tasks") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });

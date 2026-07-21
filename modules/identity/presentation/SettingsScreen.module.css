@@ -68,6 +68,51 @@
   line-height: var(--type-body-line);
 }
 
+.capabilityStatus {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-selected);
+  color: var(--success);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+  white-space: nowrap;
+}
+
+.capabilityStatus[data-state="disabled"] {
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+
+.capabilityStatus[data-state="info"] {
+  background: color-mix(in srgb, var(--info) 10%, var(--surface));
+  color: var(--info);
+}
+
+.capabilityStatus[data-state="warning"] {
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  color: var(--warning);
+}
+
+.appFacts {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding-left: var(--space-5);
+  color: var(--text-muted);
+}
+
+.capabilityLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
 .fieldGrid,
 .field {
   display: grid;
@@ -315,6 +360,10 @@
 
   .card {
     padding: var(--space-5);
+  }
+
+  .cardHeading {
+    align-items: flex-start;
   }
 
   .fieldGrid,

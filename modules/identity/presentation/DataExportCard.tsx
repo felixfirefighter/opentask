@@ -3,6 +3,7 @@ import { useDataExport } from "./useDataExport";
 
 export function DataExportCard({ online }: { online: boolean }) {
   const exporter = useDataExport(online);
+  const statusMessage = !online ? "Offline · reconnect before requesting an export." : exporter.message;
 
   return (
     <section className={styles.card} aria-labelledby="data-export-title">
@@ -13,12 +14,13 @@ export function DataExportCard({ online }: { online: boolean }) {
         </div>
       </div>
       <p className={styles.cardDescription}>
-        Download a versioned JSON copy of your profile, preferences, tasks, organization, schedules, and
-        planner proposals. Passwords, sessions, provider keys, and raw brain dumps are never included.
+        Download a versioned JSON copy of your profile, preferences, tasks, organization, schedules, habits,
+        check-ins, completed Focus sessions, and planner proposals. Passwords, sessions, provider keys, and
+        raw brain dumps are never included.
       </p>
       <div className={styles.cardActions}>
         <p className={styles.saveStatus} aria-live="polite">
-          {!online ? "Offline · reconnect before requesting an export." : exporter.message}
+          {statusMessage}
         </p>
         <button
           type="button"

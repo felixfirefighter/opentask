@@ -22,7 +22,9 @@ At compact desktop/tablet the inspector overlays. On mobile, Agenda is the first
 ## Event presentation
 
 - All-day task occurrences occupy the all-day area/date cell; timed occurrences use start/end
-  placement. Recurrence is identified in text/icon metadata, never by a cloned event style.
+  placement. Same-day labels stay concise; a timed occurrence crossing a local-date boundary names
+  both dates, and a multi-day all-day occurrence names its inclusive displayed date range.
+  Recurrence is identified in text/icon metadata, never by a cloned event style.
 - Event block shows time when useful, title, status, and list/category context.
 - Category token uses its paired readable foreground; selection adds outline and does not rely on color.
 - Overdue/open and completed/cancelled states include text/icon/decoration beyond color.
@@ -33,10 +35,18 @@ At compact desktop/tablet the inspector overlays. On mobile, Agenda is the first
 - Navigate date range and switch the four committed views.
 - Open/edit a task through task details. “Add task” opens the full create/schedule form seeded from
   the visible range; Calendar does not use the contextual quick-add defaults.
-- Pointer-drag a scheduled task to a valid date/time and resize a timed task.
+- Pointer-drag a one-off scheduled task to a valid date/time and resize a one-off timed task.
 - Use “Edit schedule” in the event menu/inspector for complete keyboard and touch parity.
 - Complete, skip, or undo one recurring occurrence through labeled event/detail actions; editing the
   recurrence rule remains a series action in task details.
+
+An open recorded occurrence outside the current rule remains visible as preserved read-only history.
+It exposes neither Complete nor Skip when the server marks it transition-ineligible.
+
+Recurring events never expose drag or resize because per-occurrence overrides are outside scope.
+Their menu says “Edit future series schedule” and opens the canonical atomic series form. Calendar
+and Agenda keep completed/skipped occurrences visible in-range with state text and Undo; Today and
+Upcoming remain open-work projections.
 
 Drag/resize uses optimistic feedback only after a clear drop. On server rejection/conflict, restore the event to its authoritative slot, retain focus, and state what was not saved. Invalid all-day/timed mixtures are never presented as droppable results.
 
@@ -48,6 +58,7 @@ Drag/resize uses optimistic feedback only after a clear drop. On server rejectio
 | Empty | Keep the full calendar orientation and say “No scheduled tasks in this range” near the grid/agenda with Add task. Empty is never a blank white canvas. |
 | Loading | Preserve toolbar/range/grid geometry and show a subtle overlay or event skeletons; navigation remains stable and duplicate range requests do not flash empty state. |
 | Error | Keep the range and safe loaded events labeled as stale, show Retry, and avoid rendering a partial range as authoritative. Failed drag/resize snaps back with a named error. |
+| Partial | Keep loaded events visible but label the range incomplete and read-only, explain that events may be missing, disable create/edit/drag/occurrence mutations, and offer Retry. Range/view navigation and task inspection remain available. A zero-event partial range is not an empty range. |
 | Offline | The range already loaded in the open page is read-only under the global banner. Range navigation is unavailable without a connection. Disable create, drag, resize, and schedule edits. |
 | Permission | Unauthenticated access routes to sign-in. Events disappearing due to authorization refresh leave no metadata. Foreign/deleted event routes use generic unavailable detail state. |
 | Conflict | Restore the current server slot, outline the affected event, and offer Open details to review latest values. Do not choose local or server time silently. |

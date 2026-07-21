@@ -12,7 +12,7 @@ import { schema } from "@/shared/db/schema";
 import { problemResponseFromError } from "@/shared/http/problem";
 import { logger } from "@/shared/logging/logger";
 
-import type { AuthRuntimeConfig } from "./auth-runtime-config";
+import { resolveTrustedBrowserOrigins, type AuthRuntimeConfig } from "./auth-runtime-config";
 import { preparePublicAuthRequest } from "./authentication-request-contract";
 import { demoEmailSuffix } from "./demo-account-policy";
 
@@ -45,6 +45,8 @@ export function createAuthenticationGateway({
   runtime: AuthRuntimeConfig;
   onAccountAvailable(userId: string): Promise<void>;
 }) {
+  const trustedOrigins = resolveTrustedBrowserOrigins(runtime.baseUrl);
+
   async function repairAccount(userId: string) {
     try {
       await onAccountAvailable(userId);
@@ -59,7 +61,7 @@ export function createAuthenticationGateway({
     appName: "OpenTask",
     baseURL: runtime.baseUrl,
     secret: runtime.secret,
-    trustedOrigins: [new URL(runtime.baseUrl).origin],
+    trustedOrigins: [...trustedOrigins],
     database: drizzleAdapter(database, {
       provider: "pg",
       schema: {
@@ -185,7 +187,7 @@ export function createAuthenticationGateway({
       ipv6Subnet: clientAddressPolicy.ipv6Subnet,
       rateLimitEnabled: true,
       secureCookies: runtime.secureCookies,
-      trustedOrigins: [new URL(runtime.baseUrl).origin],
+      trustedOrigins,
     },
   };
 }

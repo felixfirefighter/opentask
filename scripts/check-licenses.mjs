@@ -40,8 +40,27 @@ const reviewedFontAssets = [
     sha256: "7667eac47b012e7f92c14e2ec8b41d3b850e1e8d49e0db45f7417517866fb78a",
   },
 ];
+const reviewedRuntimeDependencies = [
+  {
+    name: "rrule",
+    version: "2.8.1",
+    licenseId: "BSD-3-Clause",
+    sourceLicense: "node_modules/rrule/LICENCE",
+    repositoryLicense: "licenses/third-party/rrule-LICENCE.txt",
+    runtimeLicense: "licenses/third-party/rrule-LICENCE.txt",
+  },
+  {
+    name: "web-push",
+    version: "3.6.7",
+    licenseId: "MPL-2.0",
+    sourceLicense: "node_modules/web-push/LICENSE",
+    repositoryLicense: "licenses/third-party/web-push-LICENSE.txt",
+    runtimeLicense: "licenses/third-party/web-push-LICENSE.txt",
+  },
+];
 
 const assetFailures = [];
+const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 const dockerfileLines = readFileSync("Dockerfile", "utf8")
   .split(/\r?\n/u)
   .map((line) => line.trim());
@@ -73,14 +92,44 @@ for (const font of reviewedFontAssets) {
   }
 }
 
+for (const dependency of reviewedRuntimeDependencies) {
+  if (packageJson.dependencies?.[dependency.name] !== dependency.version) {
+    assetFailures.push(
+      `package.json: ${dependency.name} must stay pinned to reviewed version ${dependency.version}`,
+    );
+    continue;
+  }
+
+  const installedPackage = JSON.parse(readFileSync(`node_modules/${dependency.name}/package.json`, "utf8"));
+  if (installedPackage.version !== dependency.version || installedPackage.license !== dependency.licenseId) {
+    assetFailures.push(
+      `${dependency.name}: expected ${dependency.version}/${dependency.licenseId}, received ${installedPackage.version}/${installedPackage.license}`,
+    );
+  }
+
+  const upstreamNotice = readFileSync(dependency.sourceLicense, "utf8").replaceAll("\r\n", "\n");
+  const repositoryNotice = readFileSync(dependency.repositoryLicense, "utf8").replaceAll("\r\n", "\n");
+  if (repositoryNotice !== upstreamNotice) {
+    assetFailures.push(`${dependency.repositoryLicense}: must exactly match ${dependency.sourceLicense}`);
+  }
+
+  const expectedCopy = `COPY --from=builder --chown=opentask:nodejs /app/${dependency.repositoryLicense} ./${dependency.runtimeLicense}`;
+  const copyLine = dockerfileLines.indexOf(expectedCopy, runnerLine + 1);
+  if (copyLine === -1 || copyLine >= runtimeUserLine) {
+    assetFailures.push(
+      `Dockerfile: must copy ${dependency.repositoryLicense} to /app/${dependency.runtimeLicense} in the runner stage before USER opentask`,
+    );
+  }
+}
+
 if (rejected.length || assetFailures.length) {
   if (rejected.length) {
     process.stderr.write(`Unreviewed production dependency licenses: ${rejected.join(", ")}\n`);
   }
-  for (const failure of assetFailures) process.stderr.write(`Vendored font check failed: ${failure}\n`);
+  for (const failure of assetFailures) process.stderr.write(`Reviewed asset check failed: ${failure}\n`);
   process.exitCode = 1;
 } else {
   process.stdout.write(
-    `Production license inventory passed (${packageCount} packages; ${reviewedFontAssets.length} vendored OFL fonts; ${licenses.sort().join(", ")}).\n`,
+    `Production license inventory passed (${packageCount} packages; ${reviewedFontAssets.length} vendored OFL fonts; ${reviewedRuntimeDependencies.length} reviewed runtime notice; ${licenses.sort().join(", ")}).\n`,
   );
 }

@@ -1,5 +1,7 @@
 import { z, type ZodType } from "zod";
 
+import { fetchWithConnectivity } from "@/shared/presentation";
+
 import {
   plannerApplyResultSchema,
   plannerInputSchema,
@@ -120,7 +122,7 @@ async function requestPlannerJson<Output>(
 
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetchWithConnectivity(path, {
       method: options.method ?? "GET",
       headers,
       credentials: "same-origin",

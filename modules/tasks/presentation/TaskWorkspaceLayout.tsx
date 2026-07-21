@@ -19,6 +19,7 @@ export function WorkspaceLayout({
   showAddTask = false,
   staleMessage,
   taskCount,
+  timeZone,
   title,
 }: Readonly<{
   children: ReactNode;
@@ -29,6 +30,7 @@ export function WorkspaceLayout({
   showAddTask?: boolean;
   staleMessage?: string;
   taskCount: number;
+  timeZone: string;
   title: string;
 }>) {
   const pathname = usePathname();
@@ -79,7 +81,13 @@ export function WorkspaceLayout({
         </div>
       </section>
       {selectedTaskId && (
-        <TaskInspector inbox={inbox} taskId={selectedTaskId} onClose={closeInspector} returnHref={pathname} />
+        <TaskInspector
+          inbox={inbox}
+          taskId={selectedTaskId}
+          onClose={closeInspector}
+          returnHref={pathname}
+          timeZone={timeZone}
+        />
       )}
     </div>
   );

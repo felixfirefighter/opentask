@@ -1,6 +1,8 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+
+import { confirmUnsavedNavigation } from "@/shared/presentation";
 
 import { plannerProposalDtoSchema } from "../application/contracts";
 import { actionIds, emptyProposalFixture, plannerProposalFixture } from "./planner-presentation-fixtures";
@@ -21,7 +23,9 @@ describe("Assistant planner Review", () => {
     expect(screen.getByRole("heading", { name: "Scheduled and updated" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "New tasks" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Deferred and overflow" })).toBeInTheDocument();
-    expect(screen.getByText("Confirm whether the friend tester needs a second account.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Confirm whether the volunteer coordinator needs a second account."),
+    ).toBeInTheDocument();
     expect(screen.getByText("No free interval was available inside the work window.")).toBeInTheDocument();
     expect(screen.getAllByText("Why this change:")).toHaveLength(5);
     expect(screen.getByRole("button", { name: "Apply 5 changes" })).toBeEnabled();
@@ -96,7 +100,7 @@ describe("Assistant planner Review", () => {
       },
     });
     const scheduleSelection = screen.getByRole("checkbox", {
-      name: "Select schedule action for Review launch checklist",
+      name: "Select schedule action for Review workshop checklist",
     });
     expect(scheduleSelection).toBeDisabled();
     expect(screen.getByText("Tomorrow at 10:00 AM")).toBeInTheDocument();
@@ -107,7 +111,7 @@ describe("Assistant planner Review", () => {
   it("keeps a loaded proposal readable but disables every review mutation offline", () => {
     renderReview({ online: false });
     expect(screen.getByRole("status")).toHaveTextContent("Planner actions are unavailable offline");
-    expect(screen.getAllByText("Draft release notes").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Draft workshop notes").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Apply 5 changes" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Reject proposal" })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: /Select create action/i })).toBeDisabled();
@@ -154,6 +158,44 @@ describe("Assistant planner Review", () => {
     expect(onEditInput).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Discard review edits" }));
     expect(onEditInput).toHaveBeenCalledOnce();
+  });
+
+  it("protects dirty review edits from reload and task-link navigation", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderReview();
+    await user.click(
+      screen.getByRole("checkbox", { name: "Select defer action for Clarify partner handoff" }),
+    );
+
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+
+    fireEvent.click(screen.getAllByRole("link", { name: "Review workshop checklist" })[0]!);
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Discard review edits?"));
+
+    expect(confirmUnsavedNavigation()).toBe(false);
+    confirm.mockReturnValue(true);
+    act(() => expect(confirmUnsavedNavigation()).toBe(true));
+    expect(
+      screen.getByRole("checkbox", { name: "Select defer action for Clarify partner handoff" }),
+    ).toBeChecked();
+    expect(screen.getByRole("button", { name: "Apply 5 changes" })).toBeEnabled();
+  });
+
+  it("does not guard navigation after local selection changes are fully reverted", async () => {
+    const user = userEvent.setup();
+    renderReview();
+    const selection = screen.getByRole("checkbox", {
+      name: "Select defer action for Clarify partner handoff",
+    });
+    await user.click(selection);
+    await user.click(selection);
+
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(false);
   });
 
   it("keeps explicit reject and apply operations stable against duplicate actions", async () => {

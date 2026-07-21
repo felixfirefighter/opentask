@@ -31,11 +31,14 @@ COPY --from=builder --chown=opentask:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=opentask:nodejs /app/next.config.ts ./next.config.ts
 COPY --from=builder --chown=opentask:nodejs /app/public ./public
 COPY --from=builder --chown=opentask:nodejs /app/drizzle ./drizzle
+COPY --from=builder --chown=opentask:nodejs /app/modules ./modules
 COPY --from=builder --chown=opentask:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=opentask:nodejs /app/shared ./shared
 COPY --from=builder --chown=opentask:nodejs /app/worker ./worker
 COPY --from=builder --chown=opentask:nodejs /app/app/fonts/licenses/Inter-OFL.txt ./licenses/fonts/Inter-OFL.txt
 COPY --from=builder --chown=opentask:nodejs /app/app/fonts/licenses/EBGaramond-OFL.txt ./licenses/fonts/EBGaramond-OFL.txt
+COPY --from=builder --chown=opentask:nodejs /app/licenses/third-party/rrule-LICENCE.txt ./licenses/third-party/rrule-LICENCE.txt
+COPY --from=builder --chown=opentask:nodejs /app/licenses/third-party/web-push-LICENSE.txt ./licenses/third-party/web-push-LICENSE.txt
 USER opentask
 EXPOSE 3000
 CMD ["node", "node_modules/next/dist/bin/next", "start"]

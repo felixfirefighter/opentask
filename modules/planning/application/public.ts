@@ -7,19 +7,29 @@ import { createPlanningProjectionApplication } from "./planning-projection-appli
 let projectionApplication: ReturnType<typeof createPlanningProjectionApplication> | undefined;
 
 export function getPlanningProjectionApplication() {
-  projectionApplication ??= createPlanningProjectionApplication({
-    tasks: getTasksApplication().planningSource,
-    timeZones: {
-      async getSavedTimeZone(actor) {
-        return (await getUserPreferences(actor)).timezone;
+  if (!projectionApplication) {
+    const tasks = getTasksApplication();
+    projectionApplication = createPlanningProjectionApplication({
+      composite: tasks.planningSnapshot,
+      occurrences: tasks.occurrences,
+      timeZones: {
+        async getSavedTimeZone(actor) {
+          return (await getUserPreferences(actor)).timezone;
+        },
       },
-    },
-    clock: systemClock,
-  });
+      clock: systemClock,
+    });
+  }
   return projectionApplication;
 }
 
 export { buildDeterministicPlan } from "./build-deterministic-plan";
+export { createPlanningBusyIntervalReader } from "./busy-interval-reader";
+export type {
+  PlanningBusyIntervalPage,
+  PlanningBusyIntervalQuery,
+  PlanningBusyIntervalReader,
+} from "./busy-interval-reader";
 export { createPlanningProjectionApplication } from "./planning-projection-application";
 export {
   PLANNING_PROJECTION_MAX_ROWS,
@@ -40,8 +50,12 @@ export {
   upcomingDaySchema,
   upcomingProjectionSchema,
 } from "./projection-dto-contract";
+export { planningProjectionTruncationReasonSchema } from "./projection-truncation";
 export type {
   CanonicalPlanningTaskRow,
+  PlanningCompositeSourceReader,
+  PlanningCompositeSourceRequest,
+  PlanningCompositeSourceResult,
   PlanningTaskSourcePage,
   PlanningTaskSourceQuery,
   PlanningTaskSourceReader,
@@ -58,6 +72,7 @@ export type {
   TodayProjection,
   UpcomingProjection,
 } from "./projection-dto-contract";
+export type { PlanningProjectionTruncationReason } from "./projection-truncation";
 export type { PlanningProjectionApplication } from "./planning-projection-application";
 export type {
   BusyInterval,

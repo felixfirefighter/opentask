@@ -1,9 +1,8 @@
 # Design contract
 
-## Active migration target — Editorial Focus
+## Approved baseline — Editorial Focus
 
-The first Local-first Full Release work package migrates OpenTask to **Editorial Focus**, using the
-visual system documented in the pinned
+OpenTask uses **Editorial Focus**, informed by the visual system documented in the pinned
 [GetDesign ElevenLabs source snapshot](https://github.com/VoltAgent/awesome-design-md/blob/e06a96660396d741d0c106c8972172254dafbdc2/design-md/elevenlabs/DESIGN.md).
 The local application contract is `docs/design/editorial-focus.md`. It follows the reference's
 documented display/sans hierarchy and uses its recommended open-source EB Garamond substitute for
@@ -11,7 +10,7 @@ the licensed Waldenburg face; dense product behavior, accessibility states, and 
 remain repository-owned.
 
 The Editorial Focus foundation and every current product route form the approved visual baseline.
-Later feature UI extends this system through the routed contracts below; broad restyling or shared
+Later feature UI extends this system through the routed contracts below. Broad restyling or shared
 foundation changes require explicit scope, executable design checks, and new visual approval.
 
 OpenTask uses **Editorial Focus**: an original paper/ink/pine planning system with an editorial voice
@@ -53,7 +52,7 @@ Read only the files relevant to the surface being changed, after this file.
 
 | Concern | Source of truth |
 |---|---|
-| Active visual target and migration boundary | `docs/design/editorial-focus.md` |
+| Approved visual baseline and change boundary | `docs/design/editorial-focus.md` |
 | Brand character, hierarchy, type, icon and motion direction | `docs/design/foundations.md` |
 | Semantic colors, spacing, type scale, radii, elevation, motion | `docs/design/tokens.md` |
 | Breakpoints, app shell, panes, navigation, responsive behavior | `docs/design/shell-responsive.md` |
@@ -67,15 +66,19 @@ Read only the files relevant to the surface being changed, after this file.
 | Inspector and mobile task-detail route | `docs/design/screens/task-details.md` |
 | Month, week, day, and agenda planning | `docs/design/screens/calendar.md` |
 | Derived Eisenhower projection | `docs/design/screens/matrix.md` |
-| Habit management and history after P3 | `docs/design/screens/habits.md` |
-| Pomodoro, stopwatch, and Focus history after P4 | `docs/design/screens/focus.md` |
+| Habit management and history | `docs/design/screens/habits.md` |
+| Pomodoro, stopwatch, and Focus history | `docs/design/screens/focus.md` |
 | Reality-aware planner input, review, and apply | `docs/design/screens/assistant.md` |
 
 Feature scope remains owned by `docs/SCOPE.md`; a design document cannot add a feature.
 
 ## Implementation rules
 
-- Components consume semantic CSS variables or token-backed Tailwind utilities. Raw color literals belong only in the token definition layer.
+- Components consume semantic CSS variables or token-backed Tailwind utilities. Raw color literals
+  belong only in the token definition layer. Original icon SVG sources, the content-free static
+  offline document, and its emergency service-worker fallback are the only static-asset exceptions:
+  they may mirror tested values from `shared/design/pwa-metadata.json` because they cannot depend on
+  application CSS.
 - Shared presentation primitives consume token-backed typography and radii; `pnpm verify:design` rejects local replacements and checks browser-computed component contracts.
 - Use shadcn/Radix primitives and Lucide icons from `docs/STACK.md`; do not create a second component system.
 - Prefer a 4 px spacing grid and align row metadata to stable columns on wide screens.
