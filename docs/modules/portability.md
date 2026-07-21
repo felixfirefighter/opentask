@@ -24,10 +24,10 @@
 
 The envelope contains `schemaVersion`, export timestamp, portable user profile/preferences, and
 independently versioned module sections. An envelope bump records a composition change; a module
-section version changes only when that section changes. The current envelope and tasks section use
-versions 3 and 2 respectively; habits, identity, and assistant use section version 1. Focus and
-notification sections join through later package-owned envelope bumps. Internal database/provider
-row shapes are never reused directly.
+section version changes only when that section changes. The current envelope uses version 4; tasks
+uses section version 2; Focus, habits, identity, and assistant use section version 1. Notifications
+join through their later package-owned envelope bump. Internal database/provider row shapes are
+never reused directly.
 
 ## Invariants
 

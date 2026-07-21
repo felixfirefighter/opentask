@@ -17,6 +17,7 @@ describe("user export application", () => {
     const readIdentity = vi.fn(async () => identitySource());
     const readTasks = vi.fn(async () => tasksSource());
     const readHabits = vi.fn(async () => habitsSource());
+    const readFocus = vi.fn(async () => focusSource());
     const readProposals = vi.fn(async () => []);
     const application = createPortabilityApplication({
       snapshot: { run: (work) => work(transaction) },
@@ -24,6 +25,7 @@ describe("user export application", () => {
       readIdentity,
       readTasks,
       readHabits,
+      readFocus,
       readProposals,
     });
 
@@ -31,14 +33,15 @@ describe("user export application", () => {
 
     expect(userExportEnvelopeSchema.parse(envelope)).toEqual(envelope);
     expect(envelope).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       exportedAt: instant,
       identity: { schemaVersion: 1, profile: { id: userId } },
       tasks: { schemaVersion: 2, tasks: [{ id: taskId }] },
       habits: { schemaVersion: 1, habits: [] },
+      focus: { schemaVersion: 1, sessions: [{ taskId }] },
       assistant: { schemaVersion: 1, proposals: [] },
     });
-    for (const reader of [readIdentity, readTasks, readHabits, readProposals]) {
+    for (const reader of [readIdentity, readTasks, readHabits, readFocus, readProposals]) {
       expect(reader).toHaveBeenCalledWith({ userId }, transaction);
     }
     expect(buildUserExportFilename(envelope.exportedAt)).toBe("opentask-export-2026-07-19.json");
@@ -54,20 +57,53 @@ describe("user export application", () => {
       createExport({ tasks: { ...tasksSource(), taskTags: [{ taskId, tagId: listId }] } }),
     ).rejects.toMatchObject({ code: "INTERNAL" });
     await expect(
+      createExport({
+        focus: {
+          sessions: [
+            {
+              ...focusSource().sessions[0],
+              taskId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            },
+          ],
+        },
+      }),
+    ).rejects.toMatchObject({ code: "INTERNAL" });
+    await expect(
       createExport({ identity: { ...identitySource(), password: "never-export-this" } }),
     ).rejects.toBeDefined();
   });
 });
 
-function createExport(overrides: { identity?: unknown; tasks?: unknown; habits?: unknown }) {
+function createExport(overrides: { identity?: unknown; tasks?: unknown; habits?: unknown; focus?: unknown }) {
   return createPortabilityApplication({
     snapshot: { run: (work) => work({} as DatabaseTransaction) },
     clock: { now: () => new Date(instant) },
     readIdentity: async () => overrides.identity ?? identitySource(),
     readTasks: async () => overrides.tasks ?? tasksSource(),
     readHabits: async () => overrides.habits ?? habitsSource(),
+    readFocus: async () => overrides.focus ?? focusSource(),
     readProposals: async () => [],
   }).exportUserData({ userId });
+}
+
+function focusSource() {
+  return {
+    sessions: [
+      {
+        id: "44444444-4444-4444-8444-444444444444",
+        taskId,
+        habitId: null,
+        mode: "pomodoro",
+        accumulatedActiveSeconds: 1_500,
+        plannedSeconds: 1_500,
+        startedAt: instant,
+        endedAt: "2026-07-19T10:45:30.000Z",
+        version: 1,
+        createdAt: instant,
+        updatedAt: "2026-07-19T10:45:30.000Z",
+      },
+    ],
+  } as const;
 }
 
 function habitsSource() {

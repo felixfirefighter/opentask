@@ -3,9 +3,10 @@ import { Temporal } from "temporal-polyfill";
 import type { DemoHabitDataset } from "../infrastructure/demo-habit-repository";
 
 export const DEMO_HABIT_TIMEZONE = "UTC";
+export const DEMO_FOCUS_HABIT_ID = "71000000-0000-4000-8000-000000000001";
 
 const ids = {
-  daily: "71000000-0000-4000-8000-000000000001",
+  daily: DEMO_FOCUS_HABIT_ID,
   numeric: "71000000-0000-4000-8000-000000000002",
   weekly: "71000000-0000-4000-8000-000000000003",
   archived: "71000000-0000-4000-8000-000000000004",

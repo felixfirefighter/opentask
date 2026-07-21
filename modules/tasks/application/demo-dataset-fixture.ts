@@ -8,6 +8,7 @@ import {
 } from "./demo-recurrence-fixture";
 
 export const DEMO_TIME_ZONE = "UTC";
+export const DEMO_FOCUS_TASK_ID = "50000000-0000-4000-8000-000000000001";
 
 const ids = {
   folder: "10000000-0000-4000-8000-000000000001",
@@ -16,7 +17,7 @@ const ids = {
   eventTag: "40000000-0000-4000-8000-000000000001",
   designTag: "40000000-0000-4000-8000-000000000002",
   planningTag: "40000000-0000-4000-8000-000000000003",
-  workshopAgenda: "50000000-0000-4000-8000-000000000001",
+  workshopAgenda: DEMO_FOCUS_TASK_ID,
   reviewMobile: "50000000-0000-4000-8000-000000000002",
   attendeeNotes: "50000000-0000-4000-8000-000000000003",
   welcomeMessage: "50000000-0000-4000-8000-000000000004",

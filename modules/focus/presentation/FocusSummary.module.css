@@ -1,0 +1,83 @@
+.card {
+  padding: var(--space-5);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.header h2 {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.totals {
+  display: grid;
+  margin: var(--space-5) 0 0;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.totals > div {
+  min-width: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.totals dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.totals dd {
+  margin: var(--space-2) 0 0;
+  font-size: var(--type-section-title-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.loading {
+  display: grid;
+  margin-top: var(--space-5);
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.loading span {
+  display: block;
+  height: 78px;
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.error {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+.error span {
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+@media (max-width: 420px) {
+  .totals,
+  .loading {
+    grid-template-columns: 1fr;
+  }
+}

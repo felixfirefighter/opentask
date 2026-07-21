@@ -4,7 +4,7 @@ import type { Database, DatabaseTransaction } from "@/shared/db/client";
 import { ApplicationError } from "@/shared/http/application-error";
 import type { Clock } from "@/shared/time/clock";
 
-import { createDemoDatasetSeeder, createInboxBootstrapPort } from "@/modules/tasks";
+import { createDemoDatasetSeeder, createInboxBootstrapPort, DEMO_FOCUS_TASK_ID } from "@/modules/tasks";
 
 import type { DemoDatasetSeeder, DemoEntryResult, InboxBootstrapPort } from "./contracts";
 import {
@@ -166,17 +166,27 @@ function createDefaultDemoSeeder(database: Database): DemoDatasetSeeder {
       // Load cross-module demo adapters only when demo entry runs. A static identity ->
       // assistant import would close the assistant -> planning -> identity runtime cycle
       // and prevent ordinary manual planning routes from starting.
-      const [{ createDemoProposalResetter }, { createDemoHabitSeeder }] = await Promise.all([
+      const [
+        { createDemoProposalResetter },
+        { createDemoHabitSeeder, DEMO_FOCUS_HABIT_ID },
+        { createDemoFocusSeeder },
+      ] = await Promise.all([
         import("@/modules/assistant"),
         import("@/modules/habits"),
+        import("@/modules/focus"),
       ]);
       const proposals = createDemoProposalResetter({ database });
       const tasks = createDemoDatasetSeeder({ database, clock: resetClock });
       const habits = createDemoHabitSeeder({ database, clock: resetClock });
+      const focus = createDemoFocusSeeder({
+        links: { taskId: DEMO_FOCUS_TASK_ID, habitId: DEMO_FOCUS_HABIT_ID },
+      });
       const reset = async (transaction: DatabaseTransaction) => {
         await proposals.reset(userId, transaction);
+        await focus.clear(userId, transaction);
         await tasks.reset(userId, transaction);
         await habits.reset(userId, transaction);
+        await focus.seed(userId, resetAt, transaction);
       };
 
       if (existingTransaction) await reset(existingTransaction);

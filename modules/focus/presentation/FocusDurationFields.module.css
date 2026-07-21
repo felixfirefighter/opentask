@@ -1,0 +1,74 @@
+.fields {
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fields legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.fields label {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--text);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+  text-align: left;
+}
+
+.inputWrap {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.inputWrap:focus-within {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.inputWrap input {
+  width: 100%;
+  min-width: 0;
+  min-height: calc(var(--control-target-desktop) - 2px);
+  padding-left: var(--space-3);
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.inputWrap > span {
+  padding-right: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-compact-weight);
+}
+
+.fields:disabled .inputWrap {
+  border-color: var(--border);
+  background: var(--surface-subtle);
+  color: var(--text-disabled);
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .inputWrap,
+  .inputWrap input {
+    min-height: var(--control-target-touch);
+  }
+}

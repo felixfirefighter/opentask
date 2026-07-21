@@ -12,3 +12,4 @@ export * from "./section-contract";
 export * from "./tag-contract";
 export * from "./task-snapshot-reader";
 export * from "./task-contract";
+export * from "./task-focus-link-reader";

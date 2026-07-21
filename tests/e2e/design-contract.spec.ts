@@ -41,7 +41,7 @@ const calendarCreateProjects = new Set([
   "boundary-320-chromium",
 ]);
 
-const habitVisualProjects = new Set([
+const responsiveVisualProjects = new Set([
   "desktop-chromium",
   "tablet-chromium",
   "touch-tablet-chromium",
@@ -452,7 +452,7 @@ test("Habits preserve Editorial Focus across every required responsive viewport"
   page,
 }, testInfo) => {
   test.skip(
-    !habitVisualProjects.has(testInfo.project.name),
+    !responsiveVisualProjects.has(testInfo.project.name),
     "One project per required width owns the Habits visual contract.",
   );
   test.setTimeout(240_000);
@@ -665,7 +665,7 @@ test("Habits preserve Editorial Focus across every required responsive viewport"
 
 test("Habit route states fit every required responsive viewport", async ({ page }, testInfo) => {
   test.skip(
-    !habitVisualProjects.has(testInfo.project.name),
+    !responsiveVisualProjects.has(testInfo.project.name),
     "One project per required width owns the Habit route-state contract.",
   );
   test.setTimeout(240_000);
@@ -812,6 +812,94 @@ test("Habit route states fit every required responsive viewport", async ({ page 
     }
   } finally {
     await releaseListFailure();
+  }
+});
+
+test("Focus preserves Editorial Focus across every required responsive viewport", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    !responsiveVisualProjects.has(testInfo.project.name),
+    "One project per required width owns the Focus visual contract.",
+  );
+  test.setTimeout(120_000);
+  await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const demoResponse = page.waitForResponse(
+    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Try demo" }).click();
+  expect((await demoResponse).status()).toBe(200);
+  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+
+  const evidenceDirectory = path.resolve("artifacts/visual-proof/p4/focus");
+  await mkdir(evidenceDirectory, { recursive: true });
+  await page.goto("/focus");
+
+  const main = page.getByRole("main");
+  const heading = main.getByRole("heading", { level: 1, name: "Focus", exact: true });
+  const timerCard = main.locator('section[aria-labelledby="focus-timer-heading"]');
+  const summaryCard = main.locator('section[aria-labelledby="focus-summary-heading"]');
+  const historyCard = main.locator('section[aria-labelledby="focus-history-heading"]');
+  const timer = timerCard.getByLabel("Planned focus duration", { exact: true });
+  const startFocus = timerCard.getByRole("button", { name: "Start focus", exact: true });
+  const startBreak = timerCard.getByRole("button", { name: "Start break", exact: true });
+  const pomodoroMode = timerCard.getByRole("radio", { name: "Pomodoro", exact: true });
+  const stopwatchMode = timerCard.getByRole("radio", { name: "Stopwatch", exact: true });
+  const focusLength = timerCard.getByRole("spinbutton", {
+    name: "Focus length in minutes",
+    exact: true,
+  });
+  const breakLength = timerCard.getByRole("spinbutton", {
+    name: "Break length in minutes",
+    exact: true,
+  });
+  const linkPicker = timerCard.getByRole("combobox", { name: /Link to a task or habit/u });
+
+  await expect(heading).toBeVisible();
+  await expectUsesSans(heading, "Focus page heading");
+  await expect(timerCard.getByRole("heading", { level: 2, name: "Focus timer" })).toBeVisible();
+  await expect(summaryCard.getByRole("heading", { level: 2, name: "Summary" })).toBeVisible();
+  await expect(historyCard.getByRole("heading", { level: 2, name: "Recent sessions" })).toBeVisible();
+  await expect(historyCard.getByRole("list", { name: "Completed focus sessions" })).toBeVisible();
+  await expect(timer).toHaveText("25:00");
+  await expect(pomodoroMode).toBeChecked();
+  await expect(startFocus).toBeEnabled();
+  await expect(startBreak).toBeEnabled();
+  await expect(page.locator("html")).toHaveAttribute("data-reduced-motion", /^(?:true|false)$/u);
+  expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(true);
+
+  await expectFocusTimerVisualContract(timerCard, timer, "light Focus timer");
+  for (const [target, label] of [
+    [startFocus, "Focus start action"],
+    [startBreak, "Focus break action"],
+    [pomodoroMode.locator("xpath=.."), "Pomodoro mode choice"],
+    [stopwatchMode.locator("xpath=.."), "Stopwatch mode choice"],
+    [focusLength.locator("xpath=.."), "Focus length control"],
+    [breakLength.locator("xpath=.."), "Break length control"],
+    [linkPicker.locator("xpath=.."), "Focus link picker"],
+  ] as const) {
+    await expectResponsiveTarget(page, target, label);
+  }
+
+  const [timerBox, summaryBox] = await Promise.all([timerCard.boundingBox(), summaryCard.boundingBox()]);
+  expect(timerBox, "Focus timer has a layout box").not.toBeNull();
+  expect(summaryBox, "Focus summary has a layout box").not.toBeNull();
+  const viewportWidth = page.viewportSize()?.width;
+  if (!viewportWidth) throw new Error("The Focus visual contract requires a viewport.");
+  if (viewportWidth >= 1280) {
+    expect(summaryBox!.x).toBeGreaterThan(timerBox!.x + timerBox!.width - 1);
+  } else {
+    expect(summaryBox!.y).toBeGreaterThanOrEqual(timerBox!.y + timerBox!.height - 1);
+  }
+
+  await captureBoundaryRoute(page, testInfo.project.name, evidenceDirectory, "focus");
+  if (["desktop-chromium", "mobile-chromium"].includes(testInfo.project.name)) {
+    await setDocumentTheme(page, "dark");
+    await expectFocusTimerVisualContract(timerCard, timer, "dark Focus timer");
+    await captureBoundaryRoute(page, testInfo.project.name, evidenceDirectory, "focus-dark");
+    await setDocumentTheme(page, "light");
   }
 });
 
@@ -1093,6 +1181,21 @@ test("the released proof surfaces reflow at a 200% zoom equivalent and honor red
   await expect(todayHeading).toBeVisible();
   await expectUsesSans(todayHeading, "Today heading");
   await auditZoomSurface(page, evidenceDirectory, "today");
+
+  await page.goto("/focus");
+  const focusHeading = page.getByRole("heading", { name: "Focus", exact: true }).first();
+  const focusTimer = page.getByLabel("Planned focus duration", { exact: true });
+  const startFocus = page.getByRole("button", { name: "Start focus", exact: true });
+  await expect(focusHeading).toBeVisible();
+  await expect(focusTimer).toBeVisible();
+  await expectUsesSans(focusHeading, "Focus heading");
+  await expectFocusTimerVisualContract(
+    page.locator('section[aria-labelledby="focus-timer-heading"]'),
+    focusTimer,
+    "200% Focus timer",
+  );
+  await expectResponsiveTarget(page, startFocus, "200% Focus start action");
+  await auditZoomSurface(page, evidenceDirectory, "focus");
 
   await page.goto("/habits");
   const habitsHeading = page.getByRole("heading", { name: "Habits", exact: true }).first();
@@ -1482,6 +1585,38 @@ async function expectTouchTarget(locator: Locator, label: string) {
   expect(box, `${label} has a bounding box`).not.toBeNull();
   expect(box!.width, `${label} width`).toBeGreaterThanOrEqual(44);
   expect(box!.height, `${label} height`).toBeGreaterThanOrEqual(44);
+}
+
+async function expectFocusTimerVisualContract(timerCard: Locator, timer: Locator, label: string) {
+  await expectUsesSans(timer, `${label} numerals`);
+  const contract = await timerCard.evaluate((element) => {
+    const timerElement = element.querySelector("time");
+    if (!(timerElement instanceof HTMLElement)) throw new Error("The Focus timer is missing.");
+
+    const probe = document.createElement("span");
+    probe.style.background = "var(--surface)";
+    probe.style.border = "1px solid var(--border)";
+    probe.style.borderRadius = "var(--radius-dialog)";
+    document.body.append(probe);
+    const probeStyle = getComputedStyle(probe);
+    const cardStyle = getComputedStyle(element);
+    const timerStyle = getComputedStyle(timerElement);
+    const result = {
+      cardBackground: cardStyle.backgroundColor,
+      cardBorder: cardStyle.borderTopColor,
+      cardRadius: cardStyle.borderTopLeftRadius,
+      timerFontVariantNumeric: timerStyle.fontVariantNumeric,
+      tokenBorder: probeStyle.borderTopColor,
+      tokenDialogRadius: probeStyle.borderTopLeftRadius,
+      tokenSurface: probeStyle.backgroundColor,
+    };
+    probe.remove();
+    return result;
+  });
+  expect(contract.cardBackground, `${label} uses the surface token`).toBe(contract.tokenSurface);
+  expect(contract.cardBorder, `${label} uses the border token`).toBe(contract.tokenBorder);
+  expect(contract.cardRadius, `${label} uses the dialog radius token`).toBe(contract.tokenDialogRadius);
+  expect(contract.timerFontVariantNumeric, `${label} uses tabular numerals`).toContain("tabular-nums");
 }
 
 async function expectResponsiveTarget(page: Page, locator: Locator, label: string) {

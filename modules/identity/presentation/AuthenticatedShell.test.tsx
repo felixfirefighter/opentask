@@ -48,8 +48,9 @@ describe("AuthenticatedShell", () => {
     expect(screen.getAllByRole("link", { name: "Today" })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: "Calendar" })).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Habits" })).toHaveAttribute("href", "/habits");
+    expect(screen.getByRole("link", { name: "Focus" })).toHaveAttribute("href", "/focus");
     expect(screen.getAllByRole("link", { name: "Plan" })).toHaveLength(2);
-    expect(screen.queryByRole("link", { name: /focus|reminder/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /reminder/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/fixture/i)).not.toBeInTheDocument();
   });
 
@@ -63,6 +64,18 @@ describe("AuthenticatedShell", () => {
 
     expect(screen.getByRole("menuitem", { name: "Habits" })).toHaveAttribute("href", "/habits");
     expect(screen.getByRole("menuitem", { name: "Habits" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("keeps Focus reachable and current through the mobile More menu", async () => {
+    const user = userEvent.setup();
+    renderShell("focus");
+
+    const more = screen.getByRole("button", { name: "More" });
+    expect(more).toHaveAttribute("aria-current", "page");
+    await user.click(more);
+
+    expect(screen.getByRole("menuitem", { name: "Focus" })).toHaveAttribute("href", "/focus");
+    expect(screen.getByRole("menuitem", { name: "Focus" })).toHaveAttribute("aria-current", "page");
   });
 
   it("never marks nullable More destinations as the current page", async () => {
@@ -140,7 +153,7 @@ describe("AuthenticatedShell", () => {
   });
 });
 
-function renderShell(currentDestination: "tasks" | "habits" | "settings" = "tasks") {
+function renderShell(currentDestination: "tasks" | "habits" | "focus" | "settings" = "tasks") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });

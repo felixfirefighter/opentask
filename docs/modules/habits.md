@@ -29,8 +29,9 @@ later-scope habit capabilities.
   `getHabitHistory`, exact streamed `getHabitStreaks`, and bounded `getHabitMonth`.
 - Public contracts: `HabitDto`, `HabitScheduleDto`, `HabitLogDto`, `HabitDefinitionPage`,
   `HabitOverviewPage`, `HabitTodayProjection`, `HabitTodayRow`, `HabitTodayBoundary`,
-  `HabitStreakProjection`, the narrow `HabitSnapshotReader` for planning/focus consumers, and the
-  separate portable-habit reader used by export composition.
+  `HabitStreakProjection`, the narrow `HabitSnapshotReader` for planning consumers,
+  `HabitFocusLinkReader` for actor-scoped Focus validation/search/history hydration, and the separate
+  portable-habit reader used by export composition.
 
 ## Invariants
 

@@ -1,0 +1,134 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--info);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--info) 8%, var(--surface));
+}
+
+.banner[data-tone="warning"] {
+  border-left-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+}
+
+.banner[data-tone="danger"] {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+.banner > svg {
+  flex: none;
+}
+
+.banner > div {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: var(--space-1);
+}
+
+.banner strong,
+.banner span {
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.banner span {
+  color: var(--text-muted);
+}
+
+.state,
+.loading {
+  display: grid;
+  min-height: 440px;
+  place-content: center;
+  justify-items: center;
+  padding: var(--space-8);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface);
+  text-align: center;
+}
+
+.state h2 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.state p {
+  max-width: 46ch;
+  margin: 0 0 var(--space-5);
+  color: var(--text-muted);
+}
+
+.loading {
+  align-content: center;
+  gap: var(--space-5);
+}
+
+.loadingHeader {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.loadingHeader span,
+.loadingMode,
+.loadingTime,
+.loadingControl {
+  display: block;
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.loadingHeader span:first-child {
+  width: 124px;
+  height: 34px;
+}
+
+.loadingHeader span:last-child {
+  width: 68px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+}
+
+.loadingMode {
+  width: 232px;
+  height: var(--control-target-touch);
+  border-radius: var(--radius-pill);
+}
+
+.loadingTime {
+  width: min(100%, 280px);
+  height: 72px;
+}
+
+.loadingControl {
+  width: 220px;
+  height: var(--control-target-desktop);
+}
+
+@media (max-width: 767px) {
+  .banner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .state,
+  .loading {
+    min-height: 360px;
+    padding: var(--space-5);
+  }
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .loadingControl {
+    height: var(--control-target-touch);
+  }
+}

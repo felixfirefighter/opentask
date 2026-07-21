@@ -2,6 +2,7 @@ import type { Database } from "@/shared/db/client";
 import type { Clock } from "@/shared/time/clock";
 
 import { createHabitDefinitionApplication } from "./habit-definition-application";
+import { createHabitFocusLinkReader } from "./habit-focus-link-reader";
 import { createHabitLogApplication } from "./habit-log-application";
 import { createHabitProjectionApplication } from "./habit-projection-application";
 import { createPostgresHabitReadSnapshot } from "./habit-read-snapshot";
@@ -15,6 +16,7 @@ export function createHabitsApplication({ database, clock }: { database: Databas
     schedules: createHabitScheduleApplication({ database, clock }),
     logs: createHabitLogApplication({ database, clock }),
     projections: createHabitProjectionApplication({ database, clock, snapshot }),
+    focusLinks: createHabitFocusLinkReader(database),
     snapshots: createHabitSnapshotReader(database),
   } as const;
 }

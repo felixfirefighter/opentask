@@ -85,7 +85,7 @@ Record a backup take. Keep cursor movement deliberate, browser zoom readable, an
 
 ## Deadline operating rules
 
-- Preserve the current green `main` commit as the submission fallback while P4-P7 work remains
+- Preserve the current green `main` commit as the submission fallback while P5-P7 work remains
   incomplete.
 - Freeze the chosen submission candidate by **2026-07-21 08:00 GMT+8**. A new package may replace the
   fallback only when its complete gate and required visual approval pass before that decision.

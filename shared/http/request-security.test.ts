@@ -20,6 +20,9 @@ describe("trusted JSON mutation boundary", () => {
     expect(() => assertTrustedJsonMutation(patch, policy)).toThrow(
       expect.objectContaining({ code: "VALIDATION_FAILED" }),
     );
+
+    const remove = mutationRequest("{}", { origin }, "DELETE");
+    expect(() => assertTrustedJsonMutation(remove, policy, "DELETE")).not.toThrow();
   });
 
   it("rejects missing, untrusted, and cross-site origins", () => {
@@ -126,7 +129,7 @@ describe("trusted JSON mutation boundary", () => {
 function mutationRequest(
   body: string,
   headers: Record<string, string> = {},
-  method: "PATCH" | "POST" = "POST",
+  method: "DELETE" | "PATCH" | "POST" = "POST",
 ) {
   return new Request(`${origin}/api/v1/demo`, {
     method,

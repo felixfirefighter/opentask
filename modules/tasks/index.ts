@@ -1,5 +1,6 @@
 export { createInboxBootstrapPort, getInbox } from "./application/inbox";
 export { createDemoDatasetSeeder } from "./application/demo-dataset-seeder";
+export { DEMO_FOCUS_TASK_ID } from "./application/demo-dataset-fixture";
 export { parseTaskApiCreateKey, parseTaskApiResourceId } from "./application/api-identifiers";
 export { getTasksApplication } from "./application/public";
 export { readPortableTasks } from "./application/task-portability-reader";
@@ -84,6 +85,9 @@ export type {
   TaskSearchResultDto,
   TerminalTaskQuery,
   TaskVersionRef,
+  TaskFocusLinkDto,
+  TaskFocusLinkReader,
+  TaskFocusLinkSearchInput,
   TaskSnapshotDto,
   TaskSnapshotReader,
   TaskPlanningSourcePage,

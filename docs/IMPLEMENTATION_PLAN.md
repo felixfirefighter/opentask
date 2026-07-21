@@ -1,6 +1,6 @@
 # Local-first Full Release forward plan
 
-This is the canonical dependency and delivery plan for the unfinished P4-P7 work in
+This is the canonical dependency and delivery plan for the unfinished P5-P7 work in
 `docs/SCOPE.md`. The implemented and approved baseline is summarized in `README.md`; completed
 sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
@@ -9,12 +9,11 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 - `main` stays a green, locally runnable baseline while a later package is incomplete.
 - Editorial Focus is frozen across current routes. Later UI extends it through `DESIGN.md`; broad
   restyling or shared-foundation changes require explicit user approval and new visual evidence.
-- P4 is the next active package in numbered execution order. P5 is dependency-unblocked but remains
-  unstarted; no package may expose a table, route, dependency, worker job, service worker, or control
-  before its own gate.
+- P5 is the next active package in numbered execution order. No package may expose a table, route,
+  dependency, worker job, service worker, or control before its own gate.
 - A package integrates only as a coherent unit after its acceptance and audit gates pass. A partial
   implementation, screenshot, elapsed time, or available agent is not a merge criterion.
-- The remaining work is estimated at **68-102 serial engineering hours** before external-provider
+- The remaining work is estimated at **50-76 serial engineering hours** before external-provider
   and user-approval latency. Estimates guide coordination; they never weaken a gate or authorize a
   scope cut.
 - Hackathon timing and submission operations live in `docs/HACKATHON.md`, not in this product plan.
@@ -23,20 +22,17 @@ sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
 
 ```mermaid
 flowchart LR
-    BASELINE["Implemented local core + recurrence + habits"] --> P4["P4: Focus"]
-    BASELINE --> P5["P5: installable PWA shell"]
+    BASELINE["Implemented local core + recurrence + habits + Focus"] --> P5["P5: installable PWA shell"]
     P5 --> P6["P6: browser reminder + worker"]
-    P4 --> P7["P7: release audit"]
     P5 --> P7
     P6 --> P7
 ```
 
-P4 and P5 may run in parallel from the implemented habits baseline. P6 waits for the service-worker
-contract; its recurrence dependency is already satisfied. P4 and P6 each supply and integrate their
-portable representation; the integration owner serializes export-schema version bumps as those
-packages land. P5 adds only an exclusion regression and never changes the export document or its
-versions. P7 owns the final cross-version audit, demo, documentation, and cross-module evidence,
-not the first export integration.
+P6 waits for the P5 service-worker contract; its recurrence dependency is already satisfied. P6
+supplies and integrates its portable representation, and the integration owner serializes that
+export-schema version bump. P5 adds only an exclusion regression and never changes the export
+document or its versions. P7 owns the final cross-version audit, demo, documentation, and
+cross-module evidence, not the first export integration.
 
 ## Parallel execution contract
 
@@ -66,38 +62,6 @@ Only the integration owner edits or serializes:
 - Browser, Docker, database, and full gates run centrally and sequentially to avoid shared-state and
   machine-resource conflicts. Static lanes may run concurrently because repository checks must not
   create lint-visible temporary source files.
-
-## P4 — Focus (18–26 serial hours; 11–15 elapsed)
-
-### Boundary
-
-`modules/focus` owns authoritative timer/session state and derived totals. It consumes narrow task and
-habit ownership/link validators only. Client ticks never own persisted time.
-
-### Deliverables
-
-- Promote `focus_sessions` with checked `kind=focus|break` through one reviewed migration and a
-  partial unique one-active-session invariant across both kinds.
-- Pomodoro/stopwatch focus and explicit break start/pause/resume/finish/discard. Focus rows may link
-  to one owned task or habit; break rows link to neither and never contribute to focus totals.
-- Reconstruct active state from server timestamps/accumulated seconds after refresh/reconnect;
-  Pomodoro breaks never contribute to stored focus time.
-- Correct/delete completed sessions, today/seven-day totals, and recent history.
-- Responsive Focus route with idle/running/paused/break/reconnect/loading/error/offline/permission/
-  conflict states and screen-reader announcements only at meaningful transitions.
-- Integrated, version-bumped portable completed-focus section (excluding break rows) and deterministic
-  demo fixture before the P4 gate; the integration owner serializes the shared export schema.
-- Before migration generation, freeze focus/break/correction/duration limits in the module and data
-  contracts; client timer defaults cannot become database policy by accident.
-
-### Gate
-
-- Pure state-machine/idempotency tests with injected clock; hostile-clock/reconnect fixtures.
-- DB race proving one active/paused session and cross-user task/habit/session denial.
-- Pause accumulation, finish/discard, break exclusion, correction/deletion, summary-window, and
-  historical-link tests.
-- Desktop/mobile Focus golden path, reduced motion, tabular numeral, a11y/design checks.
-- Empty and upgrade migration, `pnpm verify`.
 
 ## P5 — Installable PWA shell with honest offline fallback (10–16 serial hours)
 
@@ -199,8 +163,7 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 | Active capability | Package | Primary evidence |
 |---|---|---|
-| Existing identity/tasks/planning/AI/recurrence/habits | Implemented baseline | G1–G6 + authorization/atomicity/time/ownership/log/streak suites |
-| Focus | P4 | Focus golden path + state/race/clock suites |
+| Existing identity/tasks/planning/AI/recurrence/habits/Focus | Implemented baseline | G1–G7 + authorization/atomicity/time/ownership/log/streak/state/race/clock suites |
 | Installable shell | P5 | manifest/cache/offline fallback audit |
 | Browser reminder/worker | P6 | reminder/push golden path + idempotency/provider suites |
 | Export/demo/local release | P7 | expanded export + fresh-clone/Compose/full audit |

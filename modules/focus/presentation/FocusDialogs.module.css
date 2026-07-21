@@ -1,0 +1,113 @@
+.overlay {
+  position: fixed;
+  z-index: var(--z-dialog);
+  background: color-mix(in srgb, var(--canvas) 72%, transparent);
+  inset: 0;
+}
+
+.dialog {
+  position: fixed;
+  z-index: var(--z-dialog);
+  top: 50%;
+  left: 50%;
+  width: min(calc(100vw - var(--space-8)), 460px);
+  padding: var(--space-6);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-dialog);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+  transform: translate(-50%, -50%);
+}
+
+.dialog h2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.dialog > p {
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.danger {
+  display: inline-flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--danger);
+  color: var(--text-on-strong);
+  cursor: pointer;
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.danger:disabled {
+  background: var(--surface-subtle);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.form label {
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+}
+
+.form input {
+  min-height: var(--control-target-desktop);
+  padding: 0 var(--space-3);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.form p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.form .error {
+  color: var(--danger);
+}
+
+@media (max-width: 767px) {
+  .dialog {
+    padding: var(--space-5);
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .danger,
+  .form input {
+    min-height: var(--control-target-touch);
+  }
+}

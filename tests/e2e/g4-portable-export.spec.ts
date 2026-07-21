@@ -70,7 +70,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   expect(exportResponse.headers()["content-type"]).toContain("application/json");
   expect(exportResponse.headers()["pragma"]).toBe("no-cache");
   expect(exportResponse.headers()["x-content-type-options"]).toBe("nosniff");
-  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("3");
+  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("4");
 
   const downloadedPath = await download.path();
   expect(downloadedPath).not.toBeNull();
@@ -78,9 +78,9 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   const expectedFilename = `opentask-export-${new Date(envelope.exportedAt).toISOString().slice(0, 10)}.json`;
   expect(exportResponse.headers()["content-disposition"]).toBe(`attachment; filename="${expectedFilename}"`);
   expect(download.suggestedFilename()).toBe(expectedFilename);
-  await expect(page.getByText(`Downloaded ${expectedFilename} · schema v3.`)).toBeVisible();
+  await expect(page.getByText(`Downloaded ${expectedFilename} · schema v4.`)).toBeVisible();
   expect(envelope).toMatchObject({
-    schemaVersion: 3,
+    schemaVersion: 4,
     identity: {
       schemaVersion: 1,
       profile: { email: owner.email },
@@ -88,6 +88,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
     },
     tasks: { schemaVersion: 2 },
     habits: { schemaVersion: 1 },
+    focus: { schemaVersion: 1, sessions: [] },
     assistant: { schemaVersion: 1, proposals: expect.any(Array) },
   });
   expect(Number.isNaN(Date.parse(envelope.exportedAt))).toBe(false);
@@ -254,6 +255,10 @@ type PortableExportEnvelope = Readonly<{
     habits: ReadonlyArray<Record<string, unknown>>;
     schedules: ReadonlyArray<Record<string, unknown>>;
     logs: ReadonlyArray<Record<string, unknown>>;
+  };
+  focus: {
+    schemaVersion: number;
+    sessions: ReadonlyArray<Record<string, unknown>>;
   };
   assistant: { schemaVersion: number; proposals: readonly unknown[] };
 }>;

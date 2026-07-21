@@ -1,4 +1,5 @@
 export { createDemoHabitSeeder } from "./application/demo-habit-seeder";
+export { DEMO_FOCUS_HABIT_ID } from "./application/demo-habit-fixture";
 export { createHabitsApplication, type HabitsApplication } from "./application/habits-application";
 export { getHabitsApplication } from "./application/public";
 export { readPortableHabits } from "./application/habit-portability-reader";
@@ -37,6 +38,9 @@ export type {
   HabitDetailDto,
   HabitDefinitionPage,
   HabitDto,
+  HabitFocusLinkDto,
+  HabitFocusLinkReader,
+  HabitFocusLinkSearchInput,
   HabitGoal,
   HabitHistoryProjection,
   HabitHistoryQuery,

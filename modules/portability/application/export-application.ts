@@ -1,4 +1,5 @@
 import { readPortablePlannerProposals } from "@/modules/assistant";
+import { readPortableFocus } from "@/modules/focus";
 import { readPortableIdentity } from "@/modules/identity";
 import { readPortableHabits } from "@/modules/habits";
 import { readPortableTasks } from "@/modules/tasks";
@@ -9,6 +10,7 @@ import { systemClock, type Clock } from "@/shared/time/clock";
 
 import {
   PORTABLE_SECTION_SCHEMA_VERSION,
+  PORTABLE_FOCUS_SECTION_SCHEMA_VERSION,
   PORTABLE_HABITS_SECTION_SCHEMA_VERSION,
   PORTABLE_TASKS_SECTION_SCHEMA_VERSION,
   USER_EXPORT_SCHEMA_VERSION,
@@ -29,6 +31,7 @@ export function createPortabilityApplication(
     readIdentity?: ExportSourceReader;
     readTasks?: ExportSourceReader;
     readHabits?: ExportSourceReader;
+    readFocus?: ExportSourceReader;
     readProposals?: ExportSourceReader;
   }>,
 ) {
@@ -36,6 +39,7 @@ export function createPortabilityApplication(
   const readIdentity = dependencies.readIdentity ?? readPortableIdentity;
   const readTasks = dependencies.readTasks ?? readPortableTasks;
   const readHabits = dependencies.readHabits ?? readPortableHabits;
+  const readFocus = dependencies.readFocus ?? readPortableFocus;
   const readProposals = dependencies.readProposals ?? readPortablePlannerProposals;
 
   return {
@@ -44,6 +48,7 @@ export function createPortabilityApplication(
         const identity = await readIdentity(actor, transaction);
         const tasks = await readTasks(actor, transaction);
         const habits = await readHabits(actor, transaction);
+        const focus = await readFocus(actor, transaction);
         const proposals = await readProposals(actor, transaction);
         const envelope = userExportEnvelopeSchema.parse({
           schemaVersion: USER_EXPORT_SCHEMA_VERSION,
@@ -51,6 +56,7 @@ export function createPortabilityApplication(
           identity: { schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION, ...asObject(identity) },
           tasks: { schemaVersion: PORTABLE_TASKS_SECTION_SCHEMA_VERSION, ...asObject(tasks) },
           habits: { schemaVersion: PORTABLE_HABITS_SECTION_SCHEMA_VERSION, ...asObject(habits) },
+          focus: { schemaVersion: PORTABLE_FOCUS_SECTION_SCHEMA_VERSION, ...asObject(focus) },
           assistant: {
             schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION,
             proposals,

@@ -36,11 +36,13 @@ projections through its public application contracts.
   deterministic identity and the owning task's expected version.
 - Queries: get task detail, resolve one actor-scoped opaque occurrence identity for canonical task
   details, list Inbox/regular/terminal tasks, search tasks, load selected open unscheduled tasks, and
-  range-bounded schedule/occurrence reads.
+  range-bounded schedule/occurrence reads. `TaskFocusLinkReader` is the narrow actor-scoped contract
+  Focus uses to validate one selectable task, search bounded candidates, and hydrate a saved
+  historical link without exposing task persistence.
 - Parsing: `parseQuickAdd(text, timezone)` returns the unchanged source text plus explicit editable suggestions; it performs no write.
 - Public contracts: the existing folder/list/section/tag/task DTO and tag-enriched task-list item/page types,
   `ReplaceTaskTagsOutput`, `TaskQuery`, `TerminalTaskQuery`, `TaskVersionRef`, `TaskScheduleDto`,
-  `TaskSnapshotReader`, `TaskRecurrenceDto`, `TaskOccurrenceDto`, bounded occurrence query/result
+  `TaskSnapshotReader`, `TaskFocusLinkReader`, `TaskRecurrenceDto`, `TaskOccurrenceDto`, bounded occurrence query/result
   contracts, and narrow mutation/snapshot services used by assistant/planning/notifications/
   portability. `TaskOccurrenceDto.transitionEligible` is the server-derived answer to whether a
   complete/skip transition would pass the current rule and cutover; consumers do not infer it from
@@ -217,6 +219,9 @@ No public contract exposes a Drizzle row or an unscoped repository method.
 - `shared/auth`, `shared/db`, `shared/logging`, `shared/time`, and `shared/validation`.
 - `chrono-node` for visible editable schedule suggestions.
 - A narrow infrastructure adapter over pinned `rrule`; domain policy remains provider-free.
+
+Task does not depend on Focus persistence or own focus-session timing and totals; Focus consumes only
+the public actor-scoped link reader above.
 
 ## Non-responsibilities
 

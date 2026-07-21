@@ -373,18 +373,25 @@ A check permits at most one of `task_id` and `habit_id`; both links use tenant-l
 `kind=focus` may use either mode and may link one item. `kind=break` requires `mode=pomodoro`, requires
 both links to be null, and is started only by an explicit user command. Both kinds use
 `planned_seconds` for their per-run duration when bounded; there is no persisted duration preference.
-A partial unique index permits one `active`/`paused` session per user. Historical links use `ON
-DELETE SET NULL` only if the referenced aggregate can be hard-purged later; soft deletion keeps
-normal links readable. Checks also require nonnegative accumulated seconds, a positive
-`planned_seconds` for every Pomodoro focus or break row, a null `planned_seconds` for stopwatch
-rows, and `ended_at` only for completed sessions. `created_at` is the
-immutable session origin; `started_at` is the current/last active-segment anchor and is reset on
-resume. Active rows have no pause/end instant, paused rows require `paused_at` and no `ended_at`, and
-completed rows require `ended_at`.
+A Pomodoro focus plan is a whole-minute value from 60 through 14,400 seconds; a break plan is a
+whole-minute value from 60 through 3,600 seconds; stopwatch requires null `planned_seconds`.
+Accumulated active seconds is an integer from zero through 2,147,483,647. A partial unique index
+permits one `active`/`paused` session per user. Task and habit links use tenant-leading `NO ACTION`
+foreign keys in this release because their aggregates are soft-deleted/archived; account deletion
+cascades from the shared user owner to every row. Non-null link columns receive tenant-leading
+support indexes.
 
-Only completed `kind=focus` rows contribute to today/seven-day totals and portable focus history.
-Break rows remain authoritative enough to reconnect the running countdown, but are excluded from
-focus totals and export.
+Checks require the exact state/timestamp shape: active has no pause/end instant, paused has
+`paused_at >= started_at` and no end, and completed has no pause instant plus
+`ended_at >= started_at`. `created_at` is the immutable session origin; `started_at` is the
+current/last active-segment anchor and resets on resume. Every accepted mutation increments the
+positive optimistic version once, except discard/delete, which hard-deletes its allowed row.
+
+Only completed `kind=focus` rows contribute to today/seven-day totals, recent history, and portable
+focus history. The summary assigns a row's whole corrected duration by its `ended_at` within the
+user's saved-timezone local-day half-open boundary; the seven-day window includes today and the
+prior six dates. Break rows remain authoritative enough to reconnect a running countdown, but are
+excluded from all three projections. No total, remaining, overtime, or tick column is stored.
 
 ### `planner_proposals` — assistant
 

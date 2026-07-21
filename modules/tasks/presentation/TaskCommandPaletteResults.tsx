@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Inbox, ListTodo, Plus, RefreshCw, Sprout } from "lucide-react";
+import { CheckCircle2, Inbox, ListTodo, Plus, RefreshCw, Sprout, Timer } from "lucide-react";
 import { Command } from "cmdk";
 
 import type { RegularListDto, TaskSearchResultDto } from "../application/contracts";
@@ -115,6 +115,15 @@ export function TaskCommandPaletteResults({
               meta="Destination"
               value="navigate habits"
               onSelect={() => onNavigate("/habits")}
+            />
+          ) : null}
+          {destinationMatches("Focus") ? (
+            <ResultItem
+              icon={<Timer size={18} />}
+              label="Focus"
+              meta="Destination"
+              value="navigate focus"
+              onSelect={() => onNavigate("/focus")}
             />
           ) : null}
           {visibleLists.map((list) => (

@@ -1,0 +1,71 @@
+.page {
+  width: min(100%, 1040px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+.pageHeader {
+  display: flex;
+  min-height: 56px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-default) solid var(--border);
+}
+
+.pageHeader h1 {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+}
+
+.pageHeader > div > p:last-child {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-compact-size);
+  line-height: var(--type-compact-line);
+}
+
+.layout {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.timerRegion,
+.insights {
+  min-width: 0;
+}
+
+.insights {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+}
+
+@media (min-width: 1280px) {
+  .layout {
+    align-items: start;
+    grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .page {
+    width: 100%;
+    padding: var(--space-5) var(--space-4) var(--space-16);
+  }
+
+  .pageHeader {
+    margin-bottom: var(--space-4);
+  }
+
+  .layout,
+  .insights {
+    gap: var(--space-4);
+  }
+}

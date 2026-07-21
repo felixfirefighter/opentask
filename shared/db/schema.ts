@@ -1,4 +1,5 @@
 import { createAssistantSchema } from "../../modules/assistant/infrastructure/schema.ts";
+import { createFocusSchema } from "../../modules/focus/infrastructure/schema.ts";
 import { createIdentitySchema } from "../../modules/identity/infrastructure/schema.ts";
 import { createHabitSchema } from "../../modules/habits/infrastructure/schema.ts";
 import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
@@ -8,6 +9,13 @@ import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 const identitySchema = createIdentitySchema();
 const habitSchema = createHabitSchema(() => identitySchema.user.id);
 const taskSchema = createTaskSchema(() => identitySchema.user.id);
+const focusSchema = createFocusSchema({
+  authUserId: () => identitySchema.user.id,
+  taskUserId: () => taskSchema.tasks.userId,
+  taskId: () => taskSchema.tasks.id,
+  habitUserId: () => habitSchema.habits.userId,
+  habitId: () => habitSchema.habits.id,
+});
 const assistantSchema = createAssistantSchema(() => identitySchema.user.id);
 
 export const user = identitySchema.user;
@@ -19,6 +27,7 @@ export const userPreferences = identitySchema.userPreferences;
 export const habits = habitSchema.habits;
 export const habitSchedules = habitSchema.habitSchedules;
 export const habitLogs = habitSchema.habitLogs;
+export const focusSessions = focusSchema.focusSessions;
 export const listFolders = taskSchema.listFolders;
 export const taskLists = taskSchema.taskLists;
 export const listSections = taskSchema.listSections;
@@ -41,6 +50,7 @@ export const schema = {
   habits,
   habitSchedules,
   habitLogs,
+  focusSessions,
   listFolders,
   taskLists,
   listSections,

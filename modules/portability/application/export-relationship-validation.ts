@@ -136,6 +136,16 @@ export function findExportRelationshipErrors(envelope: UserExportEnvelope): read
     habitLogDates.add(key);
   }
 
+  const focusSessions = uniqueIds(envelope.focus.sessions, "focus session", errors);
+  for (const session of focusSessions.values()) {
+    if (session.taskId !== null && !tasks.has(session.taskId)) {
+      errors.push(`Focus session ${session.id} references an unknown task.`);
+    }
+    if (session.habitId !== null && !habits.has(session.habitId)) {
+      errors.push(`Focus session ${session.id} references an unknown habit.`);
+    }
+  }
+
   const proposalIds = new Set<string>();
   for (const record of envelope.assistant.proposals) {
     if (proposalIds.has(record.id)) errors.push(`Planner proposal ${record.id} is duplicated.`);

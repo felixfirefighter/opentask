@@ -5,6 +5,7 @@ import type { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { readPortablePlannerProposals } from "../../modules/assistant/index.ts";
+import { readPortableFocus } from "../../modules/focus/index.ts";
 import { readPortableHabits } from "../../modules/habits/index.ts";
 import { readPortableIdentity } from "../../modules/identity/index.ts";
 import {
@@ -58,6 +59,7 @@ describe("portable export PostgreSQL snapshot", () => {
       },
       readTasks: readPortableTasks,
       readHabits: readPortableHabits,
+      readFocus: readPortableFocus,
       readProposals: readPortablePlannerProposals,
     });
 
@@ -87,6 +89,9 @@ describe("portable export PostgreSQL snapshot", () => {
     const habitLogDuringMutation = duringMutation.habits.logs.find(
       ({ id }) => id === portableEntityIds.quantityHabitLog,
     );
+    const focusDuringMutation = duringMutation.focus.sessions.find(
+      ({ id }) => id === portableEntityIds.taskFocusSession,
+    );
     expect(duringMutation.identity.profile.name).toBe(seed.ownerName);
     expect(rootDuringMutation).toMatchObject({ title: seed.rootTaskTitle, version: 1 });
     expect(allDayDuringMutation?.version).toBe(3);
@@ -99,6 +104,7 @@ describe("portable export PostgreSQL snapshot", () => {
       version: 1,
     });
     expect(habitLogDuringMutation).toMatchObject({ quantity: 24.5, version: 1 });
+    expect(focusDuringMutation).toMatchObject({ accumulatedActiveSeconds: 1_500, version: 1 });
     expect(
       duringMutation.tasks.occurrenceEvents.some(
         ({ id }) => id === portableEntityIds.concurrentOccurrenceEvent,
@@ -120,6 +126,9 @@ describe("portable export PostgreSQL snapshot", () => {
     const habitLogAfterCommit = afterCommit.habits.logs.find(
       ({ id }) => id === portableEntityIds.quantityHabitLog,
     );
+    const focusAfterCommit = afterCommit.focus.sessions.find(
+      ({ id }) => id === portableEntityIds.taskFocusSession,
+    );
     expect(afterCommit.identity.profile.name).toBe("SNAPSHOT_AFTER owner");
     expect(rootAfterCommit).toMatchObject({
       title: seed.updatedRootTaskTitle,
@@ -139,6 +148,11 @@ describe("portable export PostgreSQL snapshot", () => {
     });
     expect(habitLogAfterCommit).toMatchObject({
       quantity: 30,
+      version: 2,
+      updatedAt: "2026-07-19T16:30:45.678Z",
+    });
+    expect(focusAfterCommit).toMatchObject({
+      accumulatedActiveSeconds: 1_800,
       version: 2,
       updatedAt: "2026-07-19T16:30:45.678Z",
     });
@@ -207,6 +221,12 @@ async function commitConcurrentMutation() {
           set quantity = 30.000, version = version + 1, updated_at = $1
         where user_id = $2 and id = $3`,
       ["2026-07-19T16:30:45.678Z", owner.userId, portableEntityIds.quantityHabitLog],
+    );
+    await client.query(
+      `update focus_sessions
+          set accumulated_active_seconds = 1800, version = version + 1, updated_at = $1
+        where user_id = $2 and id = $3`,
+      ["2026-07-19T16:30:45.678Z", owner.userId, portableEntityIds.taskFocusSession],
     );
     await client.query("commit");
   } catch (error) {

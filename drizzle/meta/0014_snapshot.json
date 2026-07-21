@@ -1,0 +1,3226 @@
+{
+  "id": "d6bdb93d-b8bb-4b43-a88d-6851fe173ed7",
+  "prevId": "5f21614d-6fae-47d9-8051-4ba20659a29e",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "account_user_id_idx": {
+          "name": "account_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "account_provider_account_unique_idx": {
+          "name": "account_provider_account_unique_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_user_id_user_id_fk": {
+          "name": "account_user_id_user_id_fk",
+          "tableFrom": "account",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.checklist_items": {
+      "name": "checklist_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_completed": {
+          "name": "is_completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "rank": {
+          "name": "rank",
+          "type": "text collate \"C\"",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "checklist_items_task_owner_rank_idx": {
+          "name": "checklist_items_task_owner_rank_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "rank",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "checklist_items_user_id_user_id_fk": {
+          "name": "checklist_items_user_id_user_id_fk",
+          "tableFrom": "checklist_items",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "checklist_items_task_owner_fk": {
+          "name": "checklist_items_task_owner_fk",
+          "tableFrom": "checklist_items",
+          "tableTo": "tasks",
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "checklist_items_pkey": {
+          "name": "checklist_items_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "checklist_items_title_check": {
+          "name": "checklist_items_title_check",
+          "value": "\"checklist_items\".\"title\" = btrim(\"checklist_items\".\"title\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"checklist_items\".\"title\") between 1 and 500"
+        },
+        "checklist_items_rank_check": {
+          "name": "checklist_items_rank_check",
+          "value": "\"checklist_items\".\"rank\" = btrim(\"checklist_items\".\"rank\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"checklist_items\".\"rank\") between 1 and 128"
+        },
+        "checklist_items_version_check": {
+          "name": "checklist_items_version_check",
+          "value": "\"checklist_items\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.focus_sessions": {
+      "name": "focus_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "habit_id": {
+          "name": "habit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paused_at": {
+          "name": "paused_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accumulated_active_seconds": {
+          "name": "accumulated_active_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "planned_seconds": {
+          "name": "planned_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "focus_sessions_one_unfinished_per_user_idx": {
+          "name": "focus_sessions_one_unfinished_per_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"focus_sessions\".\"state\" in ('active', 'paused')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "focus_sessions_completed_history_idx": {
+          "name": "focus_sessions_completed_history_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ended_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"focus_sessions\".\"state\" = 'completed' and \"focus_sessions\".\"kind\" = 'focus'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "focus_sessions_task_owner_idx": {
+          "name": "focus_sessions_task_owner_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"focus_sessions\".\"task_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "focus_sessions_habit_owner_idx": {
+          "name": "focus_sessions_habit_owner_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "habit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"focus_sessions\".\"habit_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "focus_sessions_user_id_user_id_fk": {
+          "name": "focus_sessions_user_id_user_id_fk",
+          "tableFrom": "focus_sessions",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "focus_sessions_task_owner_fk": {
+          "name": "focus_sessions_task_owner_fk",
+          "tableFrom": "focus_sessions",
+          "tableTo": "tasks",
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "focus_sessions_habit_owner_fk": {
+          "name": "focus_sessions_habit_owner_fk",
+          "tableFrom": "focus_sessions",
+          "tableTo": "habits",
+          "columnsFrom": ["user_id", "habit_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "focus_sessions_pkey": {
+          "name": "focus_sessions_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "focus_sessions_kind_check": {
+          "name": "focus_sessions_kind_check",
+          "value": "\"focus_sessions\".\"kind\" in ('focus', 'break')"
+        },
+        "focus_sessions_mode_check": {
+          "name": "focus_sessions_mode_check",
+          "value": "\"focus_sessions\".\"mode\" in ('pomodoro', 'stopwatch')"
+        },
+        "focus_sessions_state_check": {
+          "name": "focus_sessions_state_check",
+          "value": "\"focus_sessions\".\"state\" in ('active', 'paused', 'completed')"
+        },
+        "focus_sessions_link_shape_check": {
+          "name": "focus_sessions_link_shape_check",
+          "value": "not (\"focus_sessions\".\"task_id\" is not null and \"focus_sessions\".\"habit_id\" is not null)"
+        },
+        "focus_sessions_timer_shape_check": {
+          "name": "focus_sessions_timer_shape_check",
+          "value": "(\n          \"focus_sessions\".\"kind\" = 'focus'\n          and (\n            (\n              \"focus_sessions\".\"mode\" = 'pomodoro'\n              and \"focus_sessions\".\"planned_seconds\" between 60 and 14400\n              and mod(\"focus_sessions\".\"planned_seconds\", 60) = 0\n            )\n            or (\"focus_sessions\".\"mode\" = 'stopwatch' and \"focus_sessions\".\"planned_seconds\" is null)\n          )\n        ) or (\n          \"focus_sessions\".\"kind\" = 'break'\n          and \"focus_sessions\".\"mode\" = 'pomodoro'\n          and \"focus_sessions\".\"task_id\" is null\n          and \"focus_sessions\".\"habit_id\" is null\n          and \"focus_sessions\".\"planned_seconds\" between 60 and 3600\n          and mod(\"focus_sessions\".\"planned_seconds\", 60) = 0\n        )"
+        },
+        "focus_sessions_accumulated_seconds_check": {
+          "name": "focus_sessions_accumulated_seconds_check",
+          "value": "\"focus_sessions\".\"accumulated_active_seconds\" between 0 and 2147483647"
+        },
+        "focus_sessions_state_timestamps_check": {
+          "name": "focus_sessions_state_timestamps_check",
+          "value": "(\n          \"focus_sessions\".\"state\" = 'active'\n          and \"focus_sessions\".\"paused_at\" is null\n          and \"focus_sessions\".\"ended_at\" is null\n        ) or (\n          \"focus_sessions\".\"state\" = 'paused'\n          and \"focus_sessions\".\"paused_at\" is not null\n          and \"focus_sessions\".\"paused_at\" >= \"focus_sessions\".\"started_at\"\n          and \"focus_sessions\".\"ended_at\" is null\n        ) or (\n          \"focus_sessions\".\"state\" = 'completed'\n          and \"focus_sessions\".\"paused_at\" is null\n          and \"focus_sessions\".\"ended_at\" is not null\n          and \"focus_sessions\".\"ended_at\" >= \"focus_sessions\".\"started_at\"\n        )"
+        },
+        "focus_sessions_version_check": {
+          "name": "focus_sessions_version_check",
+          "value": "\"focus_sessions\".\"version\" between 1 and 2147483647"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.habit_logs": {
+      "name": "habit_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "habit_id": {
+          "name": "habit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_date": {
+          "name": "local_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "habit_logs_user_local_date_idx": {
+          "name": "habit_logs_user_local_date_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "local_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "habit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "habit_logs_user_id_user_id_fk": {
+          "name": "habit_logs_user_id_user_id_fk",
+          "tableFrom": "habit_logs",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "habit_logs_habit_owner_fk": {
+          "name": "habit_logs_habit_owner_fk",
+          "tableFrom": "habit_logs",
+          "tableTo": "habits",
+          "columnsFrom": ["user_id", "habit_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "habit_logs_pkey": {
+          "name": "habit_logs_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {
+        "habit_logs_user_habit_date_unique": {
+          "name": "habit_logs_user_habit_date_unique",
+          "nullsNotDistinct": false,
+          "columns": ["user_id", "habit_id", "local_date"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "habit_logs_state_check": {
+          "name": "habit_logs_state_check",
+          "value": "\"habit_logs\".\"state\" in ('completed', 'skipped', 'unachieved')"
+        },
+        "habit_logs_quantity_check": {
+          "name": "habit_logs_quantity_check",
+          "value": "(\"habit_logs\".\"state\" = 'completed' and (\n          \"habit_logs\".\"quantity\" is null or \"habit_logs\".\"quantity\" between 0 and 999999999.999\n        )) or (\"habit_logs\".\"state\" in ('skipped', 'unachieved') and \"habit_logs\".\"quantity\" is null)"
+        },
+        "habit_logs_note_check": {
+          "name": "habit_logs_note_check",
+          "value": "\"habit_logs\".\"note\" is null or (\n          \"habit_logs\".\"note\" = normalize(\"habit_logs\".\"note\", NFC)\n          and char_length(\"habit_logs\".\"note\") <= 1000\n        )"
+        },
+        "habit_logs_version_check": {
+          "name": "habit_logs_version_check",
+          "value": "\"habit_logs\".\"version\" > 0"
+        },
+        "habit_logs_local_date_check": {
+          "name": "habit_logs_local_date_check",
+          "value": "\"habit_logs\".\"local_date\" between date '0001-01-01' and date '9999-12-31'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.habit_schedules": {
+      "name": "habit_schedules",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "habit_id": {
+          "name": "habit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weekdays": {
+          "name": "weekdays",
+          "type": "smallint[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "target_per_week": {
+          "name": "target_per_week",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "habit_schedules_user_dates_idx": {
+          "name": "habit_schedules_user_dates_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "start_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "end_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "habit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "habit_schedules_habit_owner_fk": {
+          "name": "habit_schedules_habit_owner_fk",
+          "tableFrom": "habit_schedules",
+          "tableTo": "habits",
+          "columnsFrom": ["user_id", "habit_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "habit_schedules_pkey": {
+          "name": "habit_schedules_pkey",
+          "columns": ["user_id", "habit_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "habit_schedules_kind_check": {
+          "name": "habit_schedules_kind_check",
+          "value": "\"habit_schedules\".\"kind\" in ('daily', 'weekdays', 'weekly_target')"
+        },
+        "habit_schedules_shape_check": {
+          "name": "habit_schedules_shape_check",
+          "value": "(\n          \"habit_schedules\".\"kind\" = 'daily'\n          and \"habit_schedules\".\"weekdays\" is null\n          and \"habit_schedules\".\"target_per_week\" is null\n        ) or (\n          \"habit_schedules\".\"kind\" = 'weekdays'\n          and \"habit_schedules\".\"weekdays\" is not null\n          and habit_weekdays_are_canonical(\"habit_schedules\".\"weekdays\")\n          and \"habit_schedules\".\"target_per_week\" is null\n        ) or (\n          \"habit_schedules\".\"kind\" = 'weekly_target'\n          and \"habit_schedules\".\"weekdays\" is null\n          and \"habit_schedules\".\"target_per_week\" is not null\n          and \"habit_schedules\".\"target_per_week\" between 1 and 7\n        )"
+        },
+        "habit_schedules_timezone_check": {
+          "name": "habit_schedules_timezone_check",
+          "value": "char_length(\"habit_schedules\".\"timezone\") between 1 and 128 and habit_timezone_is_valid(\"habit_schedules\".\"timezone\")"
+        },
+        "habit_schedules_date_bounds_check": {
+          "name": "habit_schedules_date_bounds_check",
+          "value": "\"habit_schedules\".\"start_date\" between date '0001-01-01' and date '9999-12-31'\n          and (\"habit_schedules\".\"end_date\" is null or (\n            \"habit_schedules\".\"end_date\" between date '0001-01-01' and date '9999-12-31'\n            and \"habit_schedules\".\"end_date\" >= \"habit_schedules\".\"start_date\"\n          ))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.habits": {
+      "name": "habits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "icon": {
+          "name": "icon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color_token": {
+          "name": "color_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "goal_kind": {
+          "name": "goal_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_value": {
+          "name": "target_value",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit": {
+          "name": "unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "habits_user_active_updated_idx": {
+          "name": "habits_user_active_updated_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"habits\".\"archived_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "habits_user_archived_updated_idx": {
+          "name": "habits_user_archived_updated_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"habits\".\"archived_at\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "habits_user_id_user_id_fk": {
+          "name": "habits_user_id_user_id_fk",
+          "tableFrom": "habits",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "habits_pkey": {
+          "name": "habits_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "habits_title_check": {
+          "name": "habits_title_check",
+          "value": "\"habits\".\"title\" = normalize(\"habits\".\"title\", NFC)\n    and \"habits\".\"title\" = btrim(\"habits\".\"title\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF')\n    and char_length(\"habits\".\"title\") between 1 and 200"
+        },
+        "habits_icon_check": {
+          "name": "habits_icon_check",
+          "value": "\"habits\".\"icon\" = normalize(\"habits\".\"icon\", NFC)\n    and \"habits\".\"icon\" = btrim(\"habits\".\"icon\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF')\n    and char_length(\"habits\".\"icon\") between 1 and 16"
+        },
+        "habits_color_token_check": {
+          "name": "habits_color_token_check",
+          "value": "\"habits\".\"color_token\" in ('coral', 'amber', 'mint', 'sky', 'violet', 'slate')"
+        },
+        "habits_goal_kind_check": {
+          "name": "habits_goal_kind_check",
+          "value": "\"habits\".\"goal_kind\" in ('boolean', 'quantity')"
+        },
+        "habits_goal_shape_check": {
+          "name": "habits_goal_shape_check",
+          "value": "(\n          \"habits\".\"goal_kind\" = 'boolean'\n          and \"habits\".\"target_value\" is null\n          and \"habits\".\"unit\" is null\n        ) or (\n          \"habits\".\"goal_kind\" = 'quantity'\n          and \"habits\".\"target_value\" is not null\n          and \"habits\".\"target_value\" between 0.001 and 999999999.999\n          and \"habits\".\"unit\" is not null\n          and \"habits\".\"unit\" = normalize(\"habits\".\"unit\", NFC)\n    and \"habits\".\"unit\" = btrim(\"habits\".\"unit\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF')\n    and char_length(\"habits\".\"unit\") between 1 and 40\n        )"
+        },
+        "habits_version_check": {
+          "name": "habits_version_check",
+          "value": "\"habits\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.list_folders": {
+      "name": "list_folders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rank": {
+          "name": "rank",
+          "type": "text collate \"C\"",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "list_folders_user_active_rank_idx": {
+          "name": "list_folders_user_active_rank_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "rank",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"list_folders\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "list_folders_user_id_user_id_fk": {
+          "name": "list_folders_user_id_user_id_fk",
+          "tableFrom": "list_folders",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "list_folders_pkey": {
+          "name": "list_folders_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "list_folders_name_check": {
+          "name": "list_folders_name_check",
+          "value": "\"list_folders\".\"name\" = btrim(\"list_folders\".\"name\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"list_folders\".\"name\") between 1 and 120"
+        },
+        "list_folders_rank_check": {
+          "name": "list_folders_rank_check",
+          "value": "\"list_folders\".\"rank\" = btrim(\"list_folders\".\"rank\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"list_folders\".\"rank\") between 1 and 128"
+        },
+        "list_folders_version_check": {
+          "name": "list_folders_version_check",
+          "value": "\"list_folders\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.list_sections": {
+      "name": "list_sections",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "list_id": {
+          "name": "list_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rank": {
+          "name": "rank",
+          "type": "text collate \"C\"",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "list_sections_user_list_rank_idx": {
+          "name": "list_sections_user_list_rank_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "list_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "rank",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "list_sections_user_id_user_id_fk": {
+          "name": "list_sections_user_id_user_id_fk",
+          "tableFrom": "list_sections",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "list_sections_list_owner_fk": {
+          "name": "list_sections_list_owner_fk",
+          "tableFrom": "list_sections",
+          "tableTo": "task_lists",
+          "columnsFrom": ["user_id", "list_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "list_sections_pkey": {
+          "name": "list_sections_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {
+        "list_sections_user_id_list_unique": {
+          "name": "list_sections_user_id_list_unique",
+          "nullsNotDistinct": false,
+          "columns": ["user_id", "id", "list_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "list_sections_name_check": {
+          "name": "list_sections_name_check",
+          "value": "\"list_sections\".\"name\" = btrim(\"list_sections\".\"name\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"list_sections\".\"name\") between 1 and 120"
+        },
+        "list_sections_rank_check": {
+          "name": "list_sections_rank_check",
+          "value": "\"list_sections\".\"rank\" = btrim(\"list_sections\".\"rank\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"list_sections\".\"rank\") between 1 and 128"
+        },
+        "list_sections_version_check": {
+          "name": "list_sections_version_check",
+          "value": "\"list_sections\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.planner_proposals": {
+      "name": "planner_proposals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "planning_date": {
+          "name": "planning_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "schema_version": {
+          "name": "schema_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proposal": {
+          "name": "proposal",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "context_versions": {
+          "name": "context_versions",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applied_at": {
+          "name": "applied_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "planner_proposals_user_idempotency_key_idx": {
+          "name": "planner_proposals_user_idempotency_key_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "planner_proposals_user_status_expiry_idx": {
+          "name": "planner_proposals_user_status_expiry_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "planner_proposals_user_id_user_id_fk": {
+          "name": "planner_proposals_user_id_user_id_fk",
+          "tableFrom": "planner_proposals",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "planner_proposals_pkey": {
+          "name": "planner_proposals_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "planner_proposals_schema_version_check": {
+          "name": "planner_proposals_schema_version_check",
+          "value": "\"planner_proposals\".\"schema_version\" > 0"
+        },
+        "planner_proposals_status_check": {
+          "name": "planner_proposals_status_check",
+          "value": "\"planner_proposals\".\"status\" in ('pending', 'applied', 'expired', 'rejected')"
+        },
+        "planner_proposals_model_check": {
+          "name": "planner_proposals_model_check",
+          "value": "char_length(\"planner_proposals\".\"model\") between 1 and 100"
+        },
+        "planner_proposals_prompt_version_check": {
+          "name": "planner_proposals_prompt_version_check",
+          "value": "char_length(\"planner_proposals\".\"prompt_version\") between 1 and 100"
+        },
+        "planner_proposals_expiry_check": {
+          "name": "planner_proposals_expiry_check",
+          "value": "\"planner_proposals\".\"expires_at\" > \"planner_proposals\".\"created_at\""
+        },
+        "planner_proposals_applied_at_check": {
+          "name": "planner_proposals_applied_at_check",
+          "value": "(\"planner_proposals\".\"status\" = 'applied') = (\"planner_proposals\".\"applied_at\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.rate_limit": {
+      "name": "rate_limit",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_request": {
+          "name": "last_request",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rate_limit_key_unique": {
+          "name": "rate_limit_key_unique",
+          "nullsNotDistinct": false,
+          "columns": ["key"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.session": {
+      "name": "session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "session_user_id_idx": {
+          "name": "session_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_user_id_user_id_fk": {
+          "name": "session_user_id_user_id_fk",
+          "tableFrom": "session",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "session_token_unique": {
+          "name": "session_token_unique",
+          "nullsNotDistinct": false,
+          "columns": ["token"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tags": {
+      "name": "tags",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color_token": {
+          "name": "color_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "tags_user_active_idx": {
+          "name": "tags_user_active_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tags\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tags_user_active_normalized_name_idx": {
+          "name": "tags_user_active_normalized_name_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(normalize(\"name\", NFKC))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"tags\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tags_name_search_idx": {
+          "name": "tags_name_search_idx",
+          "columns": [
+            {
+              "expression": "lower(\"name\") public.gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tags\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tags_user_id_user_id_fk": {
+          "name": "tags_user_id_user_id_fk",
+          "tableFrom": "tags",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "tags_pkey": {
+          "name": "tags_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "tags_name_check": {
+          "name": "tags_name_check",
+          "value": "\"tags\".\"name\" = btrim(\"tags\".\"name\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"tags\".\"name\") between 1 and 120"
+        },
+        "tags_color_token_check": {
+          "name": "tags_color_token_check",
+          "value": "\"tags\".\"color_token\" in ('coral', 'amber', 'mint', 'sky', 'violet', 'slate')"
+        },
+        "tags_version_check": {
+          "name": "tags_version_check",
+          "value": "\"tags\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.task_lists": {
+      "name": "task_lists",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "folder_id": {
+          "name": "folder_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color_token": {
+          "name": "color_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rank": {
+          "name": "rank",
+          "type": "text collate \"C\"",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "task_lists_folder_owner_idx": {
+          "name": "task_lists_folder_owner_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "folder_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_lists_user_folder_active_rank_idx": {
+          "name": "task_lists_user_folder_active_rank_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "folder_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "rank",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"task_lists\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_lists_one_active_inbox_per_user_idx": {
+          "name": "task_lists_one_active_inbox_per_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"task_lists\".\"kind\" = 'inbox' and \"task_lists\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "task_lists_user_id_user_id_fk": {
+          "name": "task_lists_user_id_user_id_fk",
+          "tableFrom": "task_lists",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "task_lists_folder_owner_fk": {
+          "name": "task_lists_folder_owner_fk",
+          "tableFrom": "task_lists",
+          "tableTo": "list_folders",
+          "columnsFrom": ["user_id", "folder_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "task_lists_pkey": {
+          "name": "task_lists_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "task_lists_kind_check": {
+          "name": "task_lists_kind_check",
+          "value": "\"task_lists\".\"kind\" in ('inbox', 'regular')"
+        },
+        "task_lists_inbox_folder_check": {
+          "name": "task_lists_inbox_folder_check",
+          "value": "\"task_lists\".\"kind\" <> 'inbox' or \"task_lists\".\"folder_id\" is null"
+        },
+        "task_lists_name_check": {
+          "name": "task_lists_name_check",
+          "value": "\"task_lists\".\"name\" = btrim(\"task_lists\".\"name\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"task_lists\".\"name\") between 1 and 120"
+        },
+        "task_lists_color_token_check": {
+          "name": "task_lists_color_token_check",
+          "value": "\"task_lists\".\"color_token\" in ('coral', 'amber', 'mint', 'sky', 'violet', 'slate')"
+        },
+        "task_lists_rank_check": {
+          "name": "task_lists_rank_check",
+          "value": "\"task_lists\".\"rank\" = btrim(\"task_lists\".\"rank\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"task_lists\".\"rank\") between 1 and 128"
+        },
+        "task_lists_version_check": {
+          "name": "task_lists_version_check",
+          "value": "\"task_lists\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.task_occurrence_events": {
+      "name": "task_occurrence_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurrence_key": {
+          "name": "occurrence_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_version": {
+          "name": "task_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_at": {
+          "name": "effective_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "task_occurrence_events_latest_state_idx": {
+          "name": "task_occurrence_events_latest_state_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurrence_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_version",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "task_occurrence_events_task_owner_fk": {
+          "name": "task_occurrence_events_task_owner_fk",
+          "tableFrom": "task_occurrence_events",
+          "tableTo": "tasks",
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "task_occurrence_events_pkey": {
+          "name": "task_occurrence_events_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {
+        "task_occurrence_events_user_task_version_unique": {
+          "name": "task_occurrence_events_user_task_version_unique",
+          "nullsNotDistinct": false,
+          "columns": ["user_id", "task_id", "task_version"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "task_occurrence_events_key_check": {
+          "name": "task_occurrence_events_key_check",
+          "value": "char_length(\"task_occurrence_events\".\"occurrence_key\") between 1 and 80"
+        },
+        "task_occurrence_events_state_check": {
+          "name": "task_occurrence_events_state_check",
+          "value": "\"task_occurrence_events\".\"state\" in ('completed', 'skipped', 'open')"
+        },
+        "task_occurrence_events_version_check": {
+          "name": "task_occurrence_events_version_check",
+          "value": "\"task_occurrence_events\".\"task_version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.task_recurrences": {
+      "name": "task_recurrences",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rrule": {
+          "name": "rrule",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "generation_mode": {
+          "name": "generation_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'schedule'"
+        },
+        "projection_start_date": {
+          "name": "projection_start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projection_start_at": {
+          "name": "projection_start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projection_end_date": {
+          "name": "projection_end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projection_end_at": {
+          "name": "projection_end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "task_recurrences_date_cutover_idx": {
+          "name": "task_recurrences_date_cutover_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "projection_start_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "projection_end_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"task_recurrences\".\"projection_start_date\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_recurrences_instant_cutover_idx": {
+          "name": "task_recurrences_instant_cutover_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "projection_start_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "projection_end_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"task_recurrences\".\"projection_start_at\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "task_recurrences_task_owner_fk": {
+          "name": "task_recurrences_task_owner_fk",
+          "tableFrom": "task_recurrences",
+          "tableTo": "tasks",
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "task_recurrences_pkey": {
+          "name": "task_recurrences_pkey",
+          "columns": ["user_id", "task_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "task_recurrences_generation_mode_check": {
+          "name": "task_recurrences_generation_mode_check",
+          "value": "\"task_recurrences\".\"generation_mode\" = 'schedule'"
+        },
+        "task_recurrences_rrule_check": {
+          "name": "task_recurrences_rrule_check",
+          "value": "char_length(\"task_recurrences\".\"rrule\") between 1 and 512\n          and \"task_recurrences\".\"rrule\" ~ '^[A-Z0-9=;,]+$'\n          and \"task_recurrences\".\"rrule\" !~ '(^|;)(DTSTART|RDATE|EXDATE|EXRULE)='"
+        },
+        "task_recurrences_timezone_check": {
+          "name": "task_recurrences_timezone_check",
+          "value": "char_length(\"task_recurrences\".\"timezone\") between 1 and 128"
+        },
+        "task_recurrences_cutover_shape_check": {
+          "name": "task_recurrences_cutover_shape_check",
+          "value": "(\n          \"task_recurrences\".\"projection_start_date\" is not null\n          and \"task_recurrences\".\"projection_start_at\" is null\n          and \"task_recurrences\".\"projection_end_at\" is null\n          and (\n            \"task_recurrences\".\"projection_end_date\" is null\n            or \"task_recurrences\".\"projection_end_date\" >= \"task_recurrences\".\"projection_start_date\"\n          )\n        ) or (\n          \"task_recurrences\".\"projection_start_date\" is null\n          and \"task_recurrences\".\"projection_start_at\" is not null\n          and \"task_recurrences\".\"projection_end_date\" is null\n          and (\n            \"task_recurrences\".\"projection_end_at\" is null\n            or \"task_recurrences\".\"projection_end_at\" >= \"task_recurrences\".\"projection_start_at\"\n          )\n        )"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.task_schedules": {
+      "name": "task_schedules",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "start_at": {
+          "name": "start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_at": {
+          "name": "end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "task_schedules_user_start_date_idx": {
+          "name": "task_schedules_user_start_date_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "start_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"task_schedules\".\"kind\" = 'all_day'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_schedules_user_end_date_idx": {
+          "name": "task_schedules_user_end_date_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "end_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"task_schedules\".\"kind\" = 'all_day'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_schedules_user_start_at_idx": {
+          "name": "task_schedules_user_start_at_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "start_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"task_schedules\".\"kind\" = 'timed'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_schedules_user_end_at_idx": {
+          "name": "task_schedules_user_end_at_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "end_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"task_schedules\".\"kind\" = 'timed'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "task_schedules_task_owner_fk": {
+          "name": "task_schedules_task_owner_fk",
+          "tableFrom": "task_schedules",
+          "tableTo": "tasks",
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "task_schedules_pkey": {
+          "name": "task_schedules_pkey",
+          "columns": ["user_id", "task_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "task_schedules_kind_check": {
+          "name": "task_schedules_kind_check",
+          "value": "\"task_schedules\".\"kind\" in ('all_day', 'timed')"
+        },
+        "task_schedules_shape_check": {
+          "name": "task_schedules_shape_check",
+          "value": "(\n          \"task_schedules\".\"kind\" = 'all_day'\n          and \"task_schedules\".\"start_date\" is not null\n          and \"task_schedules\".\"end_date\" is not null\n          and \"task_schedules\".\"start_at\" is null\n          and \"task_schedules\".\"end_at\" is null\n          and \"task_schedules\".\"timezone\" is null\n        ) or (\n          \"task_schedules\".\"kind\" = 'timed'\n          and \"task_schedules\".\"start_date\" is null\n          and \"task_schedules\".\"end_date\" is null\n          and \"task_schedules\".\"start_at\" is not null\n          and \"task_schedules\".\"end_at\" is not null\n          and \"task_schedules\".\"timezone\" is not null\n        )"
+        },
+        "task_schedules_bounds_check": {
+          "name": "task_schedules_bounds_check",
+          "value": "(\"task_schedules\".\"kind\" = 'all_day' and \"task_schedules\".\"end_date\" > \"task_schedules\".\"start_date\")\n          or (\"task_schedules\".\"kind\" = 'timed' and \"task_schedules\".\"end_at\" >= \"task_schedules\".\"start_at\")"
+        },
+        "task_schedules_timezone_check": {
+          "name": "task_schedules_timezone_check",
+          "value": "\"task_schedules\".\"timezone\" is null or char_length(\"task_schedules\".\"timezone\") between 1 and 128"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.task_tags": {
+      "name": "task_tags",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "task_tags_tag_owner_idx": {
+          "name": "task_tags_tag_owner_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tag_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "task_tags_user_id_user_id_fk": {
+          "name": "task_tags_user_id_user_id_fk",
+          "tableFrom": "task_tags",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "task_tags_task_owner_fk": {
+          "name": "task_tags_task_owner_fk",
+          "tableFrom": "task_tags",
+          "tableTo": "tasks",
+          "columnsFrom": ["user_id", "task_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "task_tags_tag_owner_fk": {
+          "name": "task_tags_tag_owner_fk",
+          "tableFrom": "task_tags",
+          "tableTo": "tags",
+          "columnsFrom": ["user_id", "tag_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "task_tags_pk": {
+          "name": "task_tags_pk",
+          "columns": ["user_id", "task_id", "tag_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tasks": {
+      "name": "tasks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "list_id": {
+          "name": "list_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_task_id": {
+          "name": "parent_task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description_md": {
+          "name": "description_md",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
+        },
+        "rank": {
+          "name": "rank",
+          "type": "text collate \"C\"",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_changed_at": {
+          "name": "status_changed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "tasks_list_owner_idx": {
+          "name": "tasks_list_owner_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "list_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_section_owner_list_idx": {
+          "name": "tasks_section_owner_list_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "section_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "list_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_parent_owner_list_idx": {
+          "name": "tasks_parent_owner_list_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "parent_task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "list_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_user_active_rank_idx": {
+          "name": "tasks_user_active_rank_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "list_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "parent_task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "section_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "rank",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tasks\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_user_list_parent_active_rank_idx": {
+          "name": "tasks_user_list_parent_active_rank_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "list_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "parent_task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "rank",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tasks\".\"parent_task_id\" is not null and \"tasks\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_user_status_changed_idx": {
+          "name": "tasks_user_status_changed_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status_changed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tasks\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_title_search_idx": {
+          "name": "tasks_title_search_idx",
+          "columns": [
+            {
+              "expression": "lower(\"title\") public.gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tasks\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "tasks_description_search_idx": {
+          "name": "tasks_description_search_idx",
+          "columns": [
+            {
+              "expression": "lower(\"description_md\") public.gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tasks\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tasks_user_id_user_id_fk": {
+          "name": "tasks_user_id_user_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tasks_list_owner_fk": {
+          "name": "tasks_list_owner_fk",
+          "tableFrom": "tasks",
+          "tableTo": "task_lists",
+          "columnsFrom": ["user_id", "list_id"],
+          "columnsTo": ["user_id", "id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tasks_section_owner_list_fk": {
+          "name": "tasks_section_owner_list_fk",
+          "tableFrom": "tasks",
+          "tableTo": "list_sections",
+          "columnsFrom": ["user_id", "section_id", "list_id"],
+          "columnsTo": ["user_id", "id", "list_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tasks_parent_owner_list_fk": {
+          "name": "tasks_parent_owner_list_fk",
+          "tableFrom": "tasks",
+          "tableTo": "tasks",
+          "columnsFrom": ["user_id", "parent_task_id", "list_id"],
+          "columnsTo": ["user_id", "id", "list_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "tasks_pkey": {
+          "name": "tasks_pkey",
+          "columns": ["user_id", "id"]
+        }
+      },
+      "uniqueConstraints": {
+        "tasks_user_id_list_unique": {
+          "name": "tasks_user_id_list_unique",
+          "nullsNotDistinct": false,
+          "columns": ["user_id", "id", "list_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "tasks_title_check": {
+          "name": "tasks_title_check",
+          "value": "\"tasks\".\"title\" = btrim(\"tasks\".\"title\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"tasks\".\"title\") between 1 and 500"
+        },
+        "tasks_description_md_check": {
+          "name": "tasks_description_md_check",
+          "value": "char_length(\"tasks\".\"description_md\") <= 20000"
+        },
+        "tasks_status_check": {
+          "name": "tasks_status_check",
+          "value": "\"tasks\".\"status\" in ('open', 'completed', 'cancelled')"
+        },
+        "tasks_priority_check": {
+          "name": "tasks_priority_check",
+          "value": "\"tasks\".\"priority\" in ('none', 'low', 'medium', 'high')"
+        },
+        "tasks_rank_check": {
+          "name": "tasks_rank_check",
+          "value": "\"tasks\".\"rank\" = btrim(\"tasks\".\"rank\", E'\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF') and char_length(\"tasks\".\"rank\") between 1 and 128"
+        },
+        "tasks_parent_not_self_check": {
+          "name": "tasks_parent_not_self_check",
+          "value": "\"tasks\".\"parent_task_id\" is null or \"tasks\".\"parent_task_id\" <> \"tasks\".\"id\""
+        },
+        "tasks_version_check": {
+          "name": "tasks_version_check",
+          "value": "\"tasks\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": ["email"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_preferences": {
+      "name": "user_preferences",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "schema_version": {
+          "name": "schema_version",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preferences": {
+          "name": "preferences",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_preferences_user_id_user_id_fk": {
+          "name": "user_preferences_user_id_user_id_fk",
+          "tableFrom": "user_preferences",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "user_preferences_schema_version_check": {
+          "name": "user_preferences_schema_version_check",
+          "value": "\"user_preferences\".\"schema_version\" = 1"
+        },
+        "user_preferences_document_check": {
+          "name": "user_preferences_document_check",
+          "value": "jsonb_typeof(\"user_preferences\".\"preferences\") = 'object'"
+        },
+        "user_preferences_version_check": {
+          "name": "user_preferences_version_check",
+          "value": "\"user_preferences\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.verification": {
+      "name": "verification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "verification_identifier_idx": {
+          "name": "verification_identifier_idx",
+          "columns": [
+            {
+              "expression": "identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -20,18 +20,19 @@ const unknownTaskId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const instant = "2026-07-20T02:00:00.000Z";
 
 describe("portable recurrence export contract", () => {
-  it("preserves tasks version 2 inside the version 3 habits envelope", () => {
+  it("preserves tasks version 2 inside the version 4 Focus envelope", () => {
     const envelope = userExportEnvelopeSchema.parse(buildEnvelope());
 
-    expect(USER_EXPORT_SCHEMA_VERSION).toBe(3);
+    expect(USER_EXPORT_SCHEMA_VERSION).toBe(4);
     expect(PORTABLE_TASKS_SECTION_SCHEMA_VERSION).toBe(2);
     expect(PORTABLE_SECTION_SCHEMA_VERSION).toBe(1);
     expect(PORTABLE_HABITS_SECTION_SCHEMA_VERSION).toBe(1);
     expect(envelope).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       identity: { schemaVersion: 1 },
       tasks: { schemaVersion: 2 },
       habits: { schemaVersion: 1 },
+      focus: { schemaVersion: 1 },
       assistant: { schemaVersion: 1 },
     });
     expect(findExportRelationshipErrors(envelope)).toEqual([]);
@@ -208,7 +209,7 @@ function envelopeEventId(index: number) {
 
 function buildEnvelope(): UserExportEnvelope {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     exportedAt: instant,
     identity: {
       schemaVersion: 1,
@@ -321,6 +322,7 @@ function buildEnvelope(): UserExportEnvelope {
       taskTags: [],
     },
     habits: { schemaVersion: 1, habits: [], schedules: [], logs: [] },
+    focus: { schemaVersion: 1, sessions: [] },
     assistant: { schemaVersion: 1, proposals: [] },
   };
 }

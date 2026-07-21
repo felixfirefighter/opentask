@@ -3,7 +3,8 @@ import { z } from "zod";
 export const PORTABLE_SECTION_SCHEMA_VERSION = 1 as const;
 export const PORTABLE_TASKS_SECTION_SCHEMA_VERSION = 2 as const;
 export const PORTABLE_HABITS_SECTION_SCHEMA_VERSION = 1 as const;
-export const USER_EXPORT_SCHEMA_VERSION = 3 as const;
+export const PORTABLE_FOCUS_SECTION_SCHEMA_VERSION = 1 as const;
+export const USER_EXPORT_SCHEMA_VERSION = 4 as const;
 
 export const portableIdSchema = z.uuidv4();
 export const portableInstantSchema = z.iso.datetime();

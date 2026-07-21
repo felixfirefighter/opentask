@@ -66,6 +66,12 @@ describe("portable PostgreSQL export", () => {
       timedStartUtc: "2026-07-20T13:15:30.123Z",
       timedEndUtc: "2026-07-20T14:45:30.123Z",
     });
+    await pool.query(
+      `update focus_sessions
+          set state = 'paused', paused_at = started_at
+        where user_id = $1 and id = $2`,
+      [ownerB.userId, portableEntityIds.activeFocusSession],
+    );
   });
 
   afterAll(async () => fixture.teardown());
@@ -79,10 +85,11 @@ describe("portable PostgreSQL export", () => {
     expect(userExportEnvelopeSchema.parse(firstA)).toEqual(firstA);
     expect(firstA).toEqual(secondA);
     expect(firstA).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       identity: { schemaVersion: 1 },
       tasks: { schemaVersion: 2 },
       habits: { schemaVersion: 1 },
+      focus: { schemaVersion: 1 },
       assistant: { schemaVersion: 1 },
     });
     expect(firstA.identity.profile).toMatchObject({
@@ -180,6 +187,33 @@ describe("portable PostgreSQL export", () => {
       quantity: 24.5,
       note: "ALPHA_PRIVATE private habit note",
     });
+    expect(firstA.focus.sessions).toEqual([
+      expect.objectContaining({
+        id: portableEntityIds.taskFocusSession,
+        taskId: portableEntityIds.rootTask,
+        habitId: null,
+        mode: "pomodoro",
+        accumulatedActiveSeconds: 1_500,
+        plannedSeconds: 1_500,
+      }),
+      expect.objectContaining({
+        id: portableEntityIds.habitFocusSession,
+        taskId: null,
+        habitId: portableEntityIds.quantityHabit,
+        mode: "stopwatch",
+        accumulatedActiveSeconds: 900,
+        plannedSeconds: null,
+      }),
+    ]);
+    expect(firstA.focus.sessions).not.toContainEqual(
+      expect.objectContaining({ id: portableEntityIds.completedBreakSession }),
+    );
+    expect(firstA.focus.sessions).not.toContainEqual(
+      expect.objectContaining({ id: portableEntityIds.activeFocusSession }),
+    );
+    expect(exportB.focus.sessions).not.toContainEqual(
+      expect.objectContaining({ id: portableEntityIds.activeFocusSession }),
+    );
     expect(firstA.assistant.proposals.map(({ id }) => id)).toEqual([
       portableEntityIds.firstProposal,
       portableEntityIds.secondProposal,
@@ -334,6 +368,7 @@ describe("portable PostgreSQL export", () => {
   it("exposes no import, restore, parser, or mutation surface", async () => {
     const portabilityModule = await import("../../modules/portability/index.ts");
     expect(Object.keys(portabilityModule).sort()).toEqual([
+      "PORTABLE_FOCUS_SECTION_SCHEMA_VERSION",
       "PORTABLE_SECTION_SCHEMA_VERSION",
       "USER_EXPORT_SCHEMA_VERSION",
       "buildUserExportFilename",
@@ -353,40 +388,55 @@ function createExporter() {
 }
 
 async function readMutationSentinels(userId: string) {
-  const [tasks, recurrences, occurrenceEvents, habits, habitSchedules, habitLogs, proposals, preferences] =
-    await Promise.all([
-      pool.query(`select id, title, version from tasks where user_id = $1 order by id`, [userId]),
-      pool.query(
-        `select task_id, rrule, projection_start_date, projection_start_at,
+  const [
+    tasks,
+    recurrences,
+    occurrenceEvents,
+    habits,
+    habitSchedules,
+    habitLogs,
+    focusSessions,
+    proposals,
+    preferences,
+  ] = await Promise.all([
+    pool.query(`select id, title, version from tasks where user_id = $1 order by id`, [userId]),
+    pool.query(
+      `select task_id, rrule, projection_start_date, projection_start_at,
               projection_end_date, projection_end_at
          from task_recurrences where user_id = $1 order by task_id`,
-        [userId],
-      ),
-      pool.query(
-        `select id, task_id, occurrence_key, state, task_version
+      [userId],
+    ),
+    pool.query(
+      `select id, task_id, occurrence_key, state, task_version
          from task_occurrence_events where user_id = $1 order by task_id, task_version`,
-        [userId],
-      ),
-      pool.query(
-        `select id, title, goal_kind, target_value, unit, version, archived_at
+      [userId],
+    ),
+    pool.query(
+      `select id, title, goal_kind, target_value, unit, version, archived_at
          from habits where user_id = $1 order by id`,
-        [userId],
-      ),
-      pool.query(
-        `select habit_id, kind, weekdays, target_per_week, timezone, start_date, end_date
+      [userId],
+    ),
+    pool.query(
+      `select habit_id, kind, weekdays, target_per_week, timezone, start_date, end_date
          from habit_schedules where user_id = $1 order by habit_id`,
-        [userId],
-      ),
-      pool.query(
-        `select id, habit_id, local_date, state, quantity, note, version
+      [userId],
+    ),
+    pool.query(
+      `select id, habit_id, local_date, state, quantity, note, version
          from habit_logs where user_id = $1 order by habit_id, local_date, id`,
-        [userId],
-      ),
-      pool.query(`select id, status, idempotency_key from planner_proposals where user_id = $1 order by id`, [
-        userId,
-      ]),
-      pool.query(`select version, preferences from user_preferences where user_id = $1`, [userId]),
-    ]);
+      [userId],
+    ),
+    pool.query(
+      `select id, task_id, habit_id, kind, mode, state, accumulated_active_seconds,
+                planned_seconds, ended_at, version
+         from focus_sessions where user_id = $1 order by id`,
+      [userId],
+    ),
+    pool.query(`select id, status, idempotency_key from planner_proposals where user_id = $1 order by id`, [
+      userId,
+    ]),
+    pool.query(`select version, preferences from user_preferences where user_id = $1`, [userId]),
+  ]);
   return {
     tasks: tasks.rows,
     recurrences: recurrences.rows,
@@ -394,6 +444,7 @@ async function readMutationSentinels(userId: string) {
     habits: habits.rows,
     habitSchedules: habitSchedules.rows,
     habitLogs: habitLogs.rows,
+    focusSessions: focusSessions.rows,
     proposals: proposals.rows,
     preferences: preferences.rows,
   };
@@ -459,6 +510,10 @@ function expectRelationshipIntegrity(envelope: UserExportEnvelope) {
     expect(habitDays.has(key)).toBe(false);
     habitDays.add(key);
   }
+  for (const session of envelope.focus.sessions) {
+    expect(session.taskId === null || tasks.has(session.taskId)).toBe(true);
+    expect(session.habitId === null || habits.has(session.habitId)).toBe(true);
+  }
 }
 
 function allKeys(value: unknown): string[] {
@@ -510,6 +565,9 @@ function allInstantValues(envelope: UserExportEnvelope): string[] {
   }
   for (const log of envelope.habits.logs) {
     values.push(log.createdAt, log.updatedAt);
+  }
+  for (const session of envelope.focus.sessions) {
+    values.push(session.startedAt, session.endedAt, session.createdAt, session.updatedAt);
   }
   for (const record of envelope.assistant.proposals) {
     values.push(record.createdAt, record.expiresAt);

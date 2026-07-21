@@ -1,4 +1,5 @@
 export {
+  PORTABLE_FOCUS_SECTION_SCHEMA_VERSION,
   PORTABLE_SECTION_SCHEMA_VERSION,
   USER_EXPORT_SCHEMA_VERSION,
 } from "./application/export-contract-primitives";

@@ -1,0 +1,47 @@
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.menu {
+  z-index: var(--z-popover);
+  min-width: 188px;
+  padding: var(--space-1);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+}
+
+.menuItem {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--danger);
+  cursor: pointer;
+  font-size: var(--type-compact-size);
+  outline: 0;
+}
+
+.menuItem[data-highlighted] {
+  background: var(--surface-hover);
+}
+
+.menuItem[data-disabled] {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px), (any-pointer: coarse) {
+  .controls > button:not(:last-child) {
+    min-width: 112px;
+  }
+
+  .menuItem {
+    min-height: var(--control-target-touch);
+  }
+}

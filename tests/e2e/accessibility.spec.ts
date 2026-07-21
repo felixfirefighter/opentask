@@ -62,7 +62,9 @@ const habitRoutes = [
   { path: `/habits/${demoHabits.activeBooleanId}`, heading: demoHabits.activeBooleanTitle },
 ] as const;
 
-const habitStateProjects = new Set(["desktop-chromium", "mobile-chromium"]);
+const focusRoutes = [{ path: "/focus", heading: "Focus" }] as const;
+
+const interactiveStateProjects = new Set(["desktop-chromium", "mobile-chromium"]);
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -216,6 +218,7 @@ test("one isolated demo covers the implemented baseline accessibility surface", 
   for (const route of additionalTaskRoutes) await auditRoute(page, route);
   for (const route of planningRoutes) await auditRoute(page, route);
   for (const route of habitRoutes) await auditRoute(page, route);
+  for (const route of focusRoutes) await auditRoute(page, route);
 
   await auditCalendar(page);
   await auditHabitInteraction(context, page);
@@ -223,6 +226,16 @@ test("one isolated demo covers the implemented baseline accessibility surface", 
   await auditSeededRecurrenceDetails(context, page);
   await auditNoKeyPlanner(page);
   await auditOfflineWorkspace(context, page);
+});
+
+test("Focus interaction states pass the accessibility gate", async ({ context, page }, testInfo) => {
+  test.skip(
+    !interactiveStateProjects.has(testInfo.project.name),
+    "Desktop and mobile own the independent Focus interaction-state audit.",
+  );
+  test.setTimeout(120_000);
+  await enterIsolatedDemo(page, testInfo);
+  await auditFocusInteraction(context, page);
 });
 
 test("exact occurrence details expose every recovery state to the accessibility gate", async ({
@@ -399,6 +412,7 @@ test("every released route keeps its accessibility contract in the dark theme", 
     ...additionalTaskRoutes,
     ...planningRoutes,
     ...habitRoutes,
+    ...focusRoutes,
     { path: "/calendar", heading: "Calendar" },
     { path: "/plan", heading: "AI Review" },
   ] as const) {
@@ -436,7 +450,7 @@ test("every released route keeps its accessibility contract in the dark theme", 
 
 test("habit route states pass the accessibility gate", async ({ page }, testInfo) => {
   test.skip(
-    !habitStateProjects.has(testInfo.project.name),
+    !interactiveStateProjects.has(testInfo.project.name),
     "Desktop and mobile own the independent habit route-state audit.",
   );
   test.setTimeout(180_000);
@@ -637,6 +651,97 @@ async function auditCalendar(page: Page) {
   await expectNoSevereViolations(page, '[role="dialog"]');
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
+}
+
+async function auditFocusInteraction(context: BrowserContext, page: Page) {
+  await openRoute(page, { path: "/focus", heading: "Focus" });
+  const main = page.getByRole("main");
+  const timer = main.locator('section[aria-labelledby="focus-timer-heading"]');
+  const startFocus = timer.getByRole("button", { name: "Start focus", exact: true });
+
+  const startResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/v1/focus/sessions" && response.request().method() === "POST",
+  );
+  await startFocus.focus();
+  await page.keyboard.press("Enter");
+  expect((await startResponse).status()).toBe(201);
+
+  const pause = timer.getByRole("button", { name: "Pause", exact: true });
+  await expect(pause).toBeEnabled();
+  await expect(timer.getByText("Running", { exact: true })).toBeVisible();
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "running Focus timer");
+
+  const pauseResponse = page.waitForResponse(
+    (response) =>
+      /\/api\/v1\/focus\/sessions\/[^/]+\/pause$/u.test(new URL(response.url()).pathname) &&
+      response.request().method() === "POST",
+  );
+  await pause.focus();
+  await page.keyboard.press("Enter");
+  expect((await pauseResponse).status()).toBe(200);
+
+  const resume = timer.getByRole("button", { name: "Resume", exact: true });
+  const finish = timer.getByRole("button", { name: "Finish focus", exact: true });
+  await expect(resume).toBeEnabled();
+  await expect(timer.getByText("Paused", { exact: true })).toBeVisible();
+  await expectNoSevereViolations(page);
+
+  const historyMore = main.getByRole("button", { name: /More actions for focus session completed/u }).first();
+  await expect(historyMore).toBeVisible();
+
+  await context.setOffline(true);
+  const offlineBanner = page.getByText("You’re offline. Writes are disabled until you reconnect.");
+  await expect(offlineBanner).toBeVisible();
+  await expect(resume).toBeDisabled();
+  await expect(finish).toBeDisabled();
+  await expect(
+    main.getByText("Reconnect or refresh before correcting or deleting a session.", { exact: true }),
+  ).toBeVisible();
+
+  await historyMore.focus();
+  await page.keyboard.press("Enter");
+  const correctionItem = page.getByRole("menuitem", { name: "Correct duration…", exact: true });
+  const deleteItem = page.getByRole("menuitem", { name: "Delete session…", exact: true });
+  await expect(correctionItem).toHaveAttribute("data-disabled");
+  await expect(deleteItem).toHaveAttribute("data-disabled");
+  await expectNoSevereViolations(page, '[role="menu"]');
+  await page.keyboard.press("Escape");
+  await expect(historyMore).toBeFocused();
+  await expectNoSevereViolations(page);
+  await expectNoPageOverflow(page, "offline Focus timer");
+
+  await context.setOffline(false);
+  await expect(offlineBanner).toBeHidden();
+  await expect(resume).toBeEnabled();
+
+  await historyMore.focus();
+  await page.keyboard.press("Enter");
+  await expect(correctionItem).toBeFocused();
+  await page.keyboard.press("Enter");
+  const correctionDialog = page.getByRole("dialog", { name: "Correct focus duration" });
+  const duration = correctionDialog.getByLabel("Duration (seconds)", { exact: true });
+  await expect(correctionDialog).toBeVisible();
+  await expect(duration).toBeFocused();
+  await expectNoSevereViolations(page, '[role="dialog"]');
+  await page.keyboard.press("Escape");
+  await expect(correctionDialog).toBeHidden();
+  await expect(historyMore).toBeFocused();
+
+  await page.keyboard.press("Enter");
+  await expect(correctionItem).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(deleteItem).toBeFocused();
+  await page.keyboard.press("Enter");
+  const deleteDialog = page.getByRole("alertdialog", { name: "Delete this focus session?" });
+  const keepSession = deleteDialog.getByRole("button", { name: "Keep session", exact: true });
+  await expect(deleteDialog).toBeVisible();
+  await expect(keepSession).toBeFocused();
+  await expectNoSevereViolations(page, '[role="alertdialog"]');
+  await page.keyboard.press("Enter");
+  await expect(deleteDialog).toBeHidden();
+  await expect(historyMore).toBeFocused();
 }
 
 async function auditHabitInteraction(context: BrowserContext, page: Page) {

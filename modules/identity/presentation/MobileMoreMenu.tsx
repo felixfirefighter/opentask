@@ -1,7 +1,7 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { CalendarRange, CheckCircle2, Grid2x2, MoreHorizontal, Settings, Sprout } from "lucide-react";
+import { CalendarRange, CheckCircle2, Grid2x2, MoreHorizontal, Settings, Sprout, Timer } from "lucide-react";
 import Link from "next/link";
 
 import styles from "./AuthenticatedShell.module.css";
@@ -11,10 +11,11 @@ const items = [
   { href: "/upcoming", label: "Upcoming", icon: CalendarRange, destination: null },
   { href: "/completed", label: "Completed / cancelled", icon: CheckCircle2, destination: null },
   { href: "/habits", label: "Habits", icon: Sprout, destination: "habits" },
+  { href: "/focus", label: "Focus", icon: Timer, destination: "focus" },
   { href: "/settings", label: "Settings", icon: Settings, destination: "settings" },
 ] as const;
 
-export function MobileMoreMenu({ current }: Readonly<{ current: "habits" | "settings" | null }>) {
+export function MobileMoreMenu({ current }: Readonly<{ current: "habits" | "focus" | "settings" | null }>) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger

@@ -39,6 +39,10 @@ export const portableEntityIds = {
   quantityHabit: "a0000000-0000-4000-8000-000000000002",
   booleanHabitLog: "b0000000-0000-4000-8000-000000000001",
   quantityHabitLog: "b0000000-0000-4000-8000-000000000002",
+  taskFocusSession: "c0000000-0000-4000-8000-000000000001",
+  habitFocusSession: "c0000000-0000-4000-8000-000000000002",
+  completedBreakSession: "c0000000-0000-4000-8000-000000000003",
+  activeFocusSession: "c0000000-0000-4000-8000-000000000004",
 } as const;
 
 export const APIA_DATE_CROSSING_OCCURRENCE_KEY = createProjectedOccurrenceKey(
@@ -68,6 +72,7 @@ export async function seedPortableTenant(pool: Pool, input: TenantSeedInput) {
     await seedOrganization(client, input);
     await seedTasks(client, input, values);
     await seedHabits(client, input);
+    await seedFocus(client, input);
     await seedPlannerProposals(client, input, values);
     await client.query("commit");
   } catch (error) {
@@ -77,6 +82,33 @@ export async function seedPortableTenant(pool: Pool, input: TenantSeedInput) {
     client.release();
   }
   return values;
+}
+
+async function seedFocus(client: PoolClient, input: TenantSeedInput) {
+  await client.query(
+    `insert into focus_sessions
+       (id, user_id, task_id, habit_id, kind, mode, state, started_at, paused_at,
+        accumulated_active_seconds, planned_seconds, ended_at, version, created_at, updated_at)
+     values
+       ($1, $5, $6, null, 'focus', 'pomodoro', 'completed', '2026-07-19T15:05:45.678Z',
+        null, 1500, 1500, $8, 1, '2026-07-19T15:05:45.678Z', $8),
+       ($2, $5, null, $7, 'focus', 'stopwatch', 'completed', '2026-07-19T15:15:45.678Z',
+        null, 900, null, $8, 1, '2026-07-19T15:15:45.678Z', $8),
+       ($3, $5, null, null, 'break', 'pomodoro', 'completed', '2026-07-19T15:20:45.678Z',
+        null, 300, 300, $8, 1, '2026-07-19T15:20:45.678Z', $8),
+       ($4, $5, null, null, 'focus', 'stopwatch', 'active', $8,
+        null, 0, null, null, 1, $8, $8)`,
+    [
+      portableEntityIds.taskFocusSession,
+      portableEntityIds.habitFocusSession,
+      portableEntityIds.completedBreakSession,
+      portableEntityIds.activeFocusSession,
+      input.actor.userId,
+      portableEntityIds.rootTask,
+      portableEntityIds.quantityHabit,
+      RECORD_INSTANT,
+    ],
+  );
 }
 
 async function seedHabits(client: PoolClient, input: TenantSeedInput) {

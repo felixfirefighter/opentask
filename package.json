@@ -33,7 +33,7 @@
     "test": "vitest run",
     "test:db": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.db.config.ts",
     "test:e2e": "pnpm test:e2e:core && pnpm test:e2e:planner-fixture",
-    "test:e2e:core": "playwright test tests/e2e/visual-proof.spec.ts tests/e2e/health.spec.ts tests/e2e/wp01-identity-shell.spec.ts tests/e2e/wp03-core-task-loop.spec.ts tests/e2e/wp03-task-recovery.spec.ts tests/e2e/g2-plan-across-time.spec.ts tests/e2e/g3-reality-aware-plan.spec.ts tests/e2e/g4-portable-export.spec.ts tests/e2e/p2-recurrence.spec.ts tests/e2e/g6-habit-lifecycle.spec.ts",
+    "test:e2e:core": "playwright test tests/e2e/visual-proof.spec.ts tests/e2e/health.spec.ts tests/e2e/wp01-identity-shell.spec.ts tests/e2e/wp03-core-task-loop.spec.ts tests/e2e/wp03-task-recovery.spec.ts tests/e2e/g2-plan-across-time.spec.ts tests/e2e/g3-reality-aware-plan.spec.ts tests/e2e/g4-portable-export.spec.ts tests/e2e/p2-recurrence.spec.ts tests/e2e/g6-habit-lifecycle.spec.ts tests/e2e/g7-focus.spec.ts",
     "test:e2e:planner-fixture": "PLAYWRIGHT_PLANNER_FIXTURE=1 playwright test tests/e2e/g3-reality-aware-plan.spec.ts --project=desktop-chromium --project=mobile-chromium",
     "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
     "test:design": "playwright test tests/e2e/design-contract.spec.ts",

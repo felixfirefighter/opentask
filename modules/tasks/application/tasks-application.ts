@@ -15,6 +15,7 @@ import { createTaskScheduleApplication } from "./schedule-application";
 import { createSectionApplication } from "./section-application";
 import { createTagApplication } from "./tag-application";
 import { createTaskApplication } from "./task-application";
+import { createTaskFocusLinkReader } from "./task-focus-link-reader";
 import { createTaskSnapshotReader } from "./task-snapshot-reader";
 import {
   createTaskPlanningSourceReader,
@@ -85,6 +86,7 @@ export function createTasksApplication({
       taskSchedules,
       recurrenceExpansion: expansion,
     }),
+    focusLinks: createTaskFocusLinkReader(database),
     taskSnapshots: createTaskSnapshotReader({ database, taskSchedules }),
   } as const;
 }

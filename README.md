@@ -37,6 +37,9 @@ The implemented baseline includes:
 - boolean and numeric habits with daily, selected-weekday, or target-per-week schedules; Today
   check-ins, quantity/note edits, undo/skip/unachieved, archive/restore, derived streaks, seven-day
   strips, monthly heat maps, and deterministic demo/export integration;
+- authoritative Pomodoro, stopwatch, and explicit break sessions with optional task/habit links,
+  pause/reconnect/resume/finish/discard controls, corrected or deleted completed history, derived
+  today/seven-day totals, deterministic demo data, and completed-focus export;
 - an optional GPT-5.6 proposal flow whose output is editable and cannot write until explicit Apply;
 - persisted planner Review/Result restoration after refresh or navigation, plus an explicit no-key
   capability state in Settings;
@@ -45,11 +48,12 @@ The implemented baseline includes:
 
 Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
 
-The next unfinished package is P4 Focus. Installability, reminders/push, and final release
-portability remain later packages in the active Local-first Full Release.
+The next unfinished package is P5, the installable static PWA shell with an honest read-only offline
+fallback. Reminders/push and final release portability remain later packages in the active
+Local-first Full Release.
 Offline mutation synchronization, collaboration, and premium/billing paths remain excluded. See
 [docs/SCOPE.md](docs/SCOPE.md) for the exact target and
-[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the remaining P4-P7 order.
+[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the remaining P5-P7 order.
 
 ## Built with Codex and GPT-5.6
 

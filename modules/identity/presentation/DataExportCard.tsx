@@ -14,8 +14,8 @@ export function DataExportCard({ online }: { online: boolean }) {
       </div>
       <p className={styles.cardDescription}>
         Download a versioned JSON copy of your profile, preferences, tasks, organization, schedules, habits,
-        check-ins, and planner proposals. Passwords, sessions, provider keys, and raw brain dumps are never
-        included.
+        check-ins, completed Focus sessions, and planner proposals. Passwords, sessions, provider keys, and
+        raw brain dumps are never included.
       </p>
       <div className={styles.cardActions}>
         <p className={styles.saveStatus} aria-live="polite">
