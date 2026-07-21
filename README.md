@@ -1,4 +1,6 @@
-# Omplish (working title)
+# Omplish
+<img width="400" height="267" alt="A4 - 1" src="https://github.com/user-attachments/assets/bf0ca51f-dcf6-4392-8f67-a57a80eb4f00" />
+
 
 Omplish is a self-hostable, open-source personal planning app for tasks, calendar planning, and an optional review-before-apply assistant. Core workflows remain useful without an AI key or paid feature tier.
 
