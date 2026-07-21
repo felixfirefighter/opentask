@@ -1,3 +1,5 @@
+import type { AuthenticatedActor } from "@/shared/auth/actor";
+import { awardCompanionXp } from "@/modules/companion";
 import { getTasksApplication } from "@/modules/tasks";
 import { getDatabase } from "@/shared/db/client";
 import { plannerProposals } from "@/shared/db/schema";
@@ -7,9 +9,11 @@ import { createPlannerProposalApplier } from "./apply-planner-proposal";
 import { createPlannerProposalCreator } from "./create-planner-proposal";
 import { createPlannerApplyProposalAdapter } from "./planner-apply-proposal-adapter";
 import { createPlannerApplyTaskAdapter } from "./planner-apply-task-adapter";
-import { getPlannerCapability } from "./planner-capability";
+import { getPlannerCapability, getPlannerCapabilityForActor } from "./planner-capability";
 import { createPlannerExtractionProvider } from "./planner-extraction-provider";
 import { createPlannerProposalLifecycle } from "./proposal-lifecycle";
+import { getOpenAIKeyForActor } from "../infrastructure/openai-credential-config";
+import type { PlannerBusyScheduleReader, PlannerInput } from "./contracts";
 
 let application: ReturnType<typeof createAssistantPlannerApplication> | undefined;
 
@@ -23,34 +27,49 @@ function createAssistantPlannerApplication() {
   const tasks = getTasksApplication();
   const repository = createPlannerProposalRepository(plannerProposals, database);
   const proposals = createPlannerProposalLifecycle({ persistence: repository });
-  const creator = createPlannerProposalCreator({
-    provider: createPlannerExtractionProvider(),
-    selectedTasks: tasks.taskSnapshots,
-    busySchedules: {
-      async listRange(actor, query) {
-        const page = await tasks.schedules.listRange(actor, query);
-        return {
-          items: page.items.map(({ schedule }) => ({
-            schedule:
-              schedule.kind === "all_day"
-                ? { kind: schedule.kind }
-                : { kind: schedule.kind, startAt: schedule.startAt, endAt: schedule.endAt },
-          })),
-          truncated: page.truncated,
-        };
-      },
+  const busySchedules: PlannerBusyScheduleReader = {
+    async listRange(actor, query) {
+      const page = await tasks.schedules.listRange(actor, query);
+      return {
+        items: page.items.map(({ schedule }) => ({
+          schedule:
+            schedule.kind === "all_day"
+              ? { kind: schedule.kind }
+              : { kind: schedule.kind, startAt: schedule.startAt, endAt: schedule.endAt },
+        })),
+        truncated: page.truncated,
+      };
     },
+  };
+  const creatorDependencies = {
+    selectedTasks: tasks.taskSnapshots,
+    busySchedules,
     proposals,
-  });
+  };
   const applier = createPlannerProposalApplier({
     transaction: { execute: (work) => database.transaction(work) },
     proposals: createPlannerApplyProposalAdapter(repository),
     tasks: createPlannerApplyTaskAdapter(tasks.reviewedPlanWrites),
+    onProposalApplied: async (actor, proposalId, transaction) => {
+      await awardCompanionXp(
+        actor,
+        { actionType: "planner_applied", sourceKey: `planner:${proposalId}`, xp: 20 },
+        transaction,
+      );
+    },
   });
 
   return {
-    capability: getPlannerCapability,
-    createProposal: creator.create,
+    capability(actor?: AuthenticatedActor) {
+      return actor ? getPlannerCapabilityForActor(actor) : getPlannerCapability();
+    },
+    async createProposal(actor: AuthenticatedActor, input: PlannerInput) {
+      const creator = createPlannerProposalCreator({
+        ...creatorDependencies,
+        provider: createPlannerExtractionProvider(await getOpenAIKeyForActor(database, actor.userId)),
+      });
+      return creator.create(actor, input);
+    },
     getProposal: proposals.get,
     rejectProposal: proposals.reject,
     applyProposal: applier.apply,

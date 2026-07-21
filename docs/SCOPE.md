@@ -15,6 +15,23 @@ Manual tasks, planning, habits, Focus, export, and already loaded UI must remain
 or push configuration is absent. Every capability below must meet its acceptance criteria and the
 gates in `docs/QUALITY.md`.
 
+### 0. Ameth Companion post-release priority
+
+The user has explicitly authorized Ameth Companion to be implemented ahead of the remaining P0–P8
+packages. It is an optional, local-first companion: deterministic XP, a three-level avatar/progression
+surface, non-persistent chat, and transparent first-party behavior summaries. It must not gate manual
+task workflows or permit AI to mutate data. Current checkout integration covers task completion and
+provides extension hooks for Habits, Focus, and planner application as those packages land.
+
+Acceptance:
+
+- The avatar, XP preview, responsive chat drawer, and provider-absent scripted state are available on every authenticated workspace route.
+- XP is server-awarded, idempotent by opaque action source, user-scoped, and transactionally rolls back with the originating mutation.
+- Raw chat and task-content histories are never persisted; summaries are user-readable, rebuildable, deletable, and exported only through the private export contract.
+- Three levels are 0, 300, and 1,000 XP. Level 3 unlocks the standalone Prompt Library; it never hides task, planning, or Focus workflows. Habits are excluded from Ameth XP and analytics.
+- Ameth is English-only. It retains only explicit, user-approved memory cards, capped at 30 MiB per user by UTF-8 bytes; saving above the cap removes the oldest cards with visible disclosure.
+- A daily Ameth mode is restored across same-day reopen and resets only when the user next opens the app on a later local date.
+
 ### 1. Editorial Focus design migration
 
 - Migrate the existing product to the GetDesign-informed Editorial Focus application direction in
@@ -25,7 +42,7 @@ gates in `docs/QUALITY.md`.
   status colors, 44 px touch targets, dark/system themes, and keyboard equivalence.
 - Use atmospheric decoration only on public, first-run, empty, and restrained planner-framing
   surfaces; never as task/calendar/status decoration.
-- The first implementation checkpoint is a deterministic Landing, Today, Calendar, task-details,
+- The first implementation checkpoint is a deterministic App launch, Today, Calendar, task-details,
   and populated AI Review proof at desktop/mobile widths. Broad migration stops for explicit user
   screenshot approval.
 
@@ -40,8 +57,9 @@ Acceptance:
 
 ### 2. Stable personal-planning core
 
-- Email/password identity, isolated demo entry, preferences, protected routes, and cross-user
-  authorization from the existing core remain committed.
+- Direct app launch, a locally cached profile username, internal workspace bootstrap, preferences,
+  protected routes, and cross-user authorization from the existing core remain committed. Public
+  email/password account creation, sign-in, sign-out, and the marketing landing page are removed.
 - Folder/list/section/tag/task/checklist/one-level-subtask CRUD; search; Markdown; optimistic
   conflict recovery; soft-delete/restore; completion/cancel/undo; manual reorder; and command palette.
 - All-day/timed schedules, quick-add recognition, Today, Upcoming, Calendar month/week/day/agenda,
@@ -52,6 +70,8 @@ Acceptance:
   unscheduled task is not urgent.
 - Optional GPT-5.6 planner remains a proposal/review/apply pipeline with no write before explicit
   Apply and a complete no-key/manual fallback.
+- Settings may store one profile-owned OpenAI API key encrypted on the server, without returning the
+  secret to the browser; resetting the profile removes the key and all owned workspace data.
 - Close the audited local-core gaps: contextual quick add uses the current Inbox or regular list with
   no schedule, Today with an all-day schedule for today, and Upcoming with an all-day schedule for
   the next local day. A visibly recognized, editable date/time may override that default before the
@@ -62,10 +82,12 @@ Acceptance:
 
 Acceptance:
 
-- G1–G4 pass locally at required desktop/mobile widths with two-user denial coverage.
+- G1–G4 pass locally at required desktop/mobile widths with local-profile bootstrap and ownership
+  denial coverage.
 - A task created with a schedule is either fully committed or not created; partial create/schedule
   failure is impossible.
-- Today/Upcoming/Matrix boundaries refresh after local midnight and a preference timezone change
+- Today/Upcoming/Matrix boundaries refresh after local midnight and a detected system timezone
+  change
   without requiring a full browser restart.
 - Planning surfaces open the same authorized task details and recover from stale/network/offline
   writes without losing user input.
@@ -194,6 +216,30 @@ Acceptance:
 - The full local release passes every mandatory audit in `docs/QUALITY.md`; no hosted deployment is
   required for goal completion.
 
+### 9. Electron desktop local runtime
+
+- Package the same Next.js application in an Electron shell for Windows x64 and macOS x64/arm64.
+- Ship Node.js and PostgreSQL runtime binaries with the installer so a clean machine needs no system
+  Node.js, PostgreSQL, Docker, package manager, or first-run download.
+- Keep the existing application, API, Better Auth, Drizzle migration, and module boundaries. Electron
+  supervises a loopback Next.js process and a per-user PostgreSQL process; it is not a second domain
+  or database implementation.
+- Persist the database and instance secret under OS application data, outside the install directory,
+  and run committed migrations before opening the window.
+- Manual identity, tasks, planning, recurrence, habits, Focus, export, and local startup work without
+  internet. OpenAI remains an optional degraded capability; Web Push is not a desktop-offline path.
+
+Acceptance:
+
+- A clean target machine installs and starts without Docker, system Node/PostgreSQL, or internet;
+  first run initializes the local database and applies migrations exactly once.
+- Windows and macOS artifacts pass cold-start, upgrade-migration, clean-shutdown, and user-data-
+  location checks. The browser/PWA path remains independently supported.
+- Core manual workflows pass with no `OPENAI_API_KEY`; the AI surface reports unavailable
+  configuration/network rather than blocking the app.
+- Each shipped runtime binary has a pinned source/version, checksum, and license notice in the
+  release record. Production distribution includes signing/notarization evidence.
+
 ## Explicitly outside the active release
 
 - Full offline-first mutation log, sync/change feed, tombstones, background sync, or conflict UI.
@@ -204,12 +250,12 @@ Acceptance:
   multi-user updates.
 - Kanban, Gantt/timeline, split task/calendar view, arbitrary saved filters, advanced group/sort,
   batch edit, task merge, custom fields, or advanced analytics.
-- Attachments, recordings/transcription, separate notes, templates, countdowns, achievements,
+- Attachments, recordings/transcription, separate notes, templates, countdowns,
   background/theme galleries, white noise, app blocking, or health integrations.
 - External calendars, CalDAV, Notion, Telegram, email capture, Siri, Zapier/IFTTT, competitor import,
   public API, CLI, or MCP server.
-- Native/mobile/desktop/watch applications, browser extensions, widgets, OS global shortcuts, voice,
-  location, or share-target integrations beyond the installable web app.
+- Native/mobile/watch applications, browser extensions, widgets, OS global shortcuts, voice, location,
+  or share-target integrations beyond the Electron desktop shell and installable web app.
 - Billing, subscriptions, quotas, advertisements, premium gates, autonomous agent behavior, or AI
   deletion/completion.
 
@@ -236,7 +282,7 @@ management, stable public REST API, CLI, and authenticated Streamable HTTP MCP s
 
 ### Stage D: offline and platform reach
 
-IndexedDB mutation log, sync protocol/tombstones/conflict UI, native wrapper evaluation, share
+IndexedDB mutation log, sync protocol/tombstones/conflict UI, mobile/native wrapper expansion, share
 targets, platform shortcuts, widgets, voice, health/location capabilities, and native notification
 enhancements.
 
@@ -252,3 +298,11 @@ Any addition, cut, or substitution requires all five in one reviewable change:
 
 Without all five, active scope is unchanged. Time pressure, an available agent, or a researched
 competitor feature is not authorization.
+
+### Authorized substitution: direct local-profile launch
+
+The user explicitly authorized replacing the public landing and email/password entry flow with a
+direct app launch. The first visit requires a profile username, stores only that username in browser
+local storage, and uses the existing isolated workspace bootstrap internally so current server-side
+ownership boundaries remain intact. No credential form, account CTA, or sign-out control is part of
+the product surface after this substitution.

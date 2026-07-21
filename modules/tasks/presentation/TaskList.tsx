@@ -25,13 +25,13 @@ type TaskListProps = Readonly<{
   reorderable?: boolean;
   terminal?: boolean;
   timeZone?: string | undefined;
-  onOpenTask: (task: TaskListItemDto, event: MouseEvent<HTMLAnchorElement>) => void;
+  onOmplish: (task: TaskListItemDto, event: MouseEvent<HTMLAnchorElement>) => void;
 }>;
 
 export function TaskList({
   dndId = "task-list",
   inbox,
-  onOpenTask,
+  onOmplish,
   reorderable = false,
   selectedTaskId,
   tasks,
@@ -132,7 +132,7 @@ export function TaskList({
               selected={selectedTaskId === task.id}
               sortable={reorderable}
               contextLabel={terminal ? terminalTaskContext(task, timeZone) : undefined}
-              onOpen={(event) => onOpenTask(task, event)}
+              onOpen={(event) => onOmplish(task, event)}
               onStatusChange={(status) => changeStatus(task, status)}
               onMove={() => setMovingTask(task)}
               onPriorityChange={(priority) => changePriority(task, priority)}

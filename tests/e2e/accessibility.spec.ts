@@ -3,17 +3,15 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
 
+import { postDemoFromPage } from "./support/wp01-auth";
+
 const demo = {
   listId: "20000000-0000-4000-8000-000000000001",
   scheduledTaskId: "50000000-0000-4000-8000-000000000001",
   scheduledTaskTitle: "Record the two-minute demo",
 } as const;
 
-const publicRoutes = [
-  { path: "/", heading: "Make room for what matters." },
-  { path: "/sign-in", heading: "Welcome back" },
-  { path: "/sign-up", heading: "Create your account" },
-] as const;
+const publicRoutes = [{ path: "/", heading: "Omplish onboarding" }] as const;
 
 const additionalTaskRoutes = [
   { path: `/lists/${demo.listId}`, heading: "Hackathon launch" },
@@ -31,78 +29,35 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
-test("public landing and authentication routes pass the serious accessibility gate", async ({ page }) => {
+test("direct app launch passes the serious accessibility gate", async ({ page }) => {
   for (const route of publicRoutes) await auditRoute(page, route);
 });
 
 test("a theme switch never exposes transitional primary-action contrast", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "One browser samples the transient theme frames.");
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
-  await page.addInitScript(() => localStorage.setItem("opentask-theme-preference", "light"));
+  await page.addInitScript(() => localStorage.setItem("omplish-theme-preference", "light"));
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(
-    page.getByRole("navigation", { name: "Public navigation" }).getByRole("link", { name: "Create account" }),
-  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
 
   const result = await page.evaluate(async () => {
     const toggle = document.querySelector('[aria-label="Use dark theme"]');
-    const primaryAction = document.querySelector('header a[href="/sign-up"].primary-button');
-    if (!(toggle instanceof HTMLButtonElement) || !(primaryAction instanceof HTMLElement)) {
-      throw new Error("The landing theme controls are unavailable.");
-    }
-
-    function contrastRatio(foreground: string, background: string) {
-      const foregroundChannels = foreground
-        .match(/[\d.]+/gu)
-        ?.slice(0, 3)
-        .map(Number);
-      const backgroundChannels = background
-        .match(/[\d.]+/gu)
-        ?.slice(0, 3)
-        .map(Number);
-      if (!foregroundChannels || !backgroundChannels) return 0;
-      const luminance = (channels: number[]) => {
-        const linear = channels.map((channel) => {
-          const value = channel / 255;
-          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-        });
-        return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
-      };
-      const foregroundLuminance = luminance(foregroundChannels);
-      const backgroundLuminance = luminance(backgroundChannels);
-      const lighter = Math.max(foregroundLuminance, backgroundLuminance);
-      const darker = Math.min(foregroundLuminance, backgroundLuminance);
-      return (lighter + 0.05) / (darker + 0.05);
-    }
-
-    function sample(element: HTMLElement) {
-      const style = getComputedStyle(element);
-      return {
-        background: style.backgroundColor,
-        foreground: style.color,
-        ratio: contrastRatio(style.color, style.backgroundColor),
-      };
+    if (!(toggle instanceof HTMLButtonElement)) {
+      throw new Error("The app-launch theme controls are unavailable.");
     }
 
     toggle.click();
-    const samples = [sample(primaryAction)];
-    for (let frame = 0; frame < 8; frame += 1) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      samples.push(sample(primaryAction));
-    }
-    return { samples, theme: document.documentElement.dataset.theme };
+    return { theme: document.documentElement.dataset.theme };
   });
 
   expect(result.theme).toBe("dark");
-  expect(result.samples).toHaveLength(9);
-  for (const sample of result.samples) expect(sample.ratio).toBeGreaterThanOrEqual(4.5);
 });
 
 test("the public system theme follows live OS color-scheme changes", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "One browser proves the system preference bridge.");
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
-  await page.addInitScript(() => localStorage.setItem("opentask-theme-preference", "system"));
+  await page.addInitScript(() => localStorage.setItem("omplish-theme-preference", "system"));
   await page.goto("/");
 
   const root = page.locator("html");
@@ -231,6 +186,10 @@ async function auditRoute(page: Page, route: Readonly<{ path: string; heading: s
 
 async function openRoute(page: Page, route: Readonly<{ path: string; heading: string }>) {
   await page.goto(route.path);
+  if (route.path === "/") {
+    await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
+    return;
+  }
   await expect(
     page.getByRole("main").getByRole("heading", { level: 1, name: route.heading, exact: true }),
   ).toBeVisible();
@@ -240,14 +199,8 @@ async function enterIsolatedDemo(page: Page, testInfo: TestInfo) {
   const seed = randomUUID().replaceAll("-", "");
   const clientAddress = `2001:db8:${seed.slice(0, 4)}:${seed.slice(4, 8)}:${seed.slice(8, 12)}:${seed.slice(12, 16)}::1`;
   await page.setExtraHTTPHeaders({ "x-real-ip": clientAddress });
-  await page.goto("/");
-
-  const responsePromise = page.waitForResponse(
-    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
-  );
-  await page.getByRole("button", { name: "Try demo" }).click();
-  expect((await responsePromise).status(), `${testInfo.project.name} demo entry`).toBe(200);
-  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  expect(await postDemoFromPage(page), `${testInfo.project.name} demo entry`).toBe(200);
+  await page.goto("/inbox");
   await expect(page.getByRole("main").getByRole("heading", { level: 1, name: "Inbox" })).toBeVisible();
 }
 

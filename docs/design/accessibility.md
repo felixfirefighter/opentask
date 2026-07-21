@@ -1,6 +1,7 @@
 # Accessibility contract
 
-The target is WCAG 2.2 AA across authenticated product, landing/auth, and demo flows. Automated axe checks are required but do not replace keyboard, screen-reader, zoom, contrast, and touch review.
+The target is WCAG 2.2 AA across the direct-launch, local-profile, and workspace flows. Automated axe
+checks are required but do not replace keyboard, screen-reader, zoom, contrast, and touch review.
 
 ## Structure and navigation
 
@@ -46,7 +47,7 @@ The target is WCAG 2.2 AA across authenticated product, landing/auth, and demo f
 
 - Labels, descriptions, required/optional status, format hints, and errors are programmatically associated.
 - Error summaries identify all invalid fields and receive focus after a failed submit.
-- Authentication errors do not reveal whether another person's email exists.
+- Profile setup errors do not expose server/session details or claim that a local username grants access.
 - Destructive confirmation describes the object and consequence; the confirmation action is not the initial focused control when cancellation is safer.
 - Changing a date or timezone shows the interpreted result in plain language before commit when ambiguity is possible.
 

@@ -1,6 +1,11 @@
 node_modules
 .pnpm-store/
 .next/
+dist-electron/
+dist-desktop-runtime/
+release/
+desktop/runtime/node/
+desktop/runtime/postgres/
 next-env.d.ts
 coverage/
 playwright-report/

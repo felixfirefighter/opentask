@@ -69,7 +69,7 @@ describe("tag repository SQL scoping", () => {
     const recorder = createRecorder();
     await createTagRepository(recorder.executor).lockNameMutations(userId, recorder.transaction);
     expect(recorder.queries[0]?.sql).toContain("pg_advisory_xact_lock(hashtextextended(");
-    expect(recorder.queries[0]?.params).toContain(`opentask:tag-name:${userId}`);
+    expect(recorder.queries[0]?.params).toContain(`omplish:tag-name:${userId}`);
   });
 
   it("uses idempotent inserts and user/version-scoped lifecycle updates", async () => {

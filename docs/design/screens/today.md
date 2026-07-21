@@ -6,7 +6,8 @@
 habit check-ins in the user's saved timezone. It does not store a separate daily plan, duplicate task
 state, or habit streak counters.
 
-The title includes the local weekday/date and, when useful, a compact timezone indicator. A date-boundary refresh updates the projection without discarding open input.
+The title includes the local weekday/date. A date-boundary or system-timezone refresh updates the
+projection without discarding open input.
 
 ## Layout
 
@@ -39,7 +40,7 @@ Mobile uses one vertical stream. Timed/all-day metadata stays visible; opening a
 | Loading | Keep the date/header stable and show task-row skeletons with one polite status. |
 | Error | Keep safe loaded tasks labeled stale, provide a scoped retry, and restore failed optimistic actions with a statement of what was not saved. |
 | Offline | Previously loaded tasks remain visible and labeled read-only. Disable mutations under the global offline explanation; do not queue local changes. |
-| Permission | Unauthenticated access routes to sign-in. A task that is no longer authorized disappears through a safe refresh without revealing owner information. |
+| Permission | Missing internal session routes to direct app launch. A task that is no longer authorized disappears through a safe refresh without revealing owner information. |
 | Date changed | Announce that Today moved to the new local date and provide “Return to Today” if the user was editing a stale route state; preserve unsaved quick-add text. |
 
 ## Keyboard, touch, and accessibility

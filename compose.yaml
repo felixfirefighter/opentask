@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: opentask:local
+    image: omplish:local
     build:
       context: .
       target: runner
@@ -55,7 +55,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: opentask:local
+    image: omplish:local
     command: ["node", "--experimental-strip-types", "worker/index.ts"]
     environment:
       DATABASE_URL: postgresql://opentask:opentask-local@postgres:5432/opentask

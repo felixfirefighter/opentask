@@ -19,3 +19,23 @@ export type DemoEntryResult = Readonly<{
 }>;
 
 export type SessionIdentity = AuthSessionIdentity;
+
+export type OnboardingGoal =
+  | "discipline"
+  | "tasks"
+  | "habits"
+  | "reminders"
+  | "daily_planning"
+  | "scheduling"
+  | "other"
+  | `other:${string}`;
+
+export type CheckInMood = "good" | "tired" | "heavy" | "ready";
+
+export type OnboardingState = Readonly<{
+  complete: boolean;
+  completedAt: string | null;
+  goals: readonly OnboardingGoal[];
+  checkins: readonly Readonly<{ date: string; mood: CheckInMood; note?: string | undefined }>[];
+  todayCheckin: OnboardingState["checkins"][number] | null;
+}>;

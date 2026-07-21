@@ -5,7 +5,7 @@ truth, not a progress log. Feature authority remains in `docs/SCOPE.md`.
 
 ## Goal objective
 
-> Implement and audit the OpenTask Local-first Full Release exactly as specified by the repository's current-truth contracts. First migrate the working core to the approved Editorial Focus direction through a user-approved five-screen proof. Then stabilize the existing manual/AI planning core and implement schedule-based task recurrence, habits, authoritative Focus sessions, an installable read-only-offline PWA shell, one optional browser-push task reminder with an active worker, and the expanded portable local release. Follow `docs/IMPLEMENTATION_PLAN.md` dependency gates, keep every provider optional, preserve canonical task/time data and review-before-apply AI, and pass `docs/QUALITY.md`. Do not implement Stage A–D or any excluded feature without another user-authorized scope change.
+> Implement and audit the Omplish Local-first Full Release exactly as specified by the repository's current-truth contracts. The user-authorized Ameth Companion package takes priority before remaining P0–P8 work: it adds optional deterministic progression, private transparent summaries, and non-persistent companion chat without gating manual workflows or weakening review-before-apply AI. Then continue the approved Editorial Focus, local core, recurrence, habits, Focus, PWA, reminders, portability, and Electron work. Follow `docs/IMPLEMENTATION_PLAN.md`, keep every provider optional, preserve canonical task/time data and review-before-apply AI, and pass `docs/QUALITY.md`.
 
 ## Required reading order
 
@@ -27,8 +27,9 @@ Before the first change in each package, read:
 ## Non-negotiable constraints
 
 - Implement only the Local-first Full Release. Later Stage A–D items are context, not permission.
-- “Local-first” means local/self-host completion without a hosted prerequisite. It does not authorize
-  offline mutations, a sync protocol, or a native application.
+- “Local-first” means local/self-host completion without a hosted prerequisite. The authorized
+  Electron target adds local desktop installation, but it does not authorize offline synchronization,
+  mutation queues, or cross-device sync.
 - P0 changes presentation only. Its five-screen proof must receive explicit user screenshot approval
   before broad restyling or feature UI begins.
 - Preserve the stable deadline candidate while new packages are incomplete. No partial package is
@@ -40,11 +41,16 @@ Before the first change in each package, read:
 - Reuse canonical data concepts. Schema changes pass the `docs/DATA_MODEL.md` placement and migration
   gates; projections never store duplicate task status, schedule, streak, Focus total, or due state.
 - OpenAI and Web Push are optional server providers. Manual task, planning, habit, Focus, export, and
-  local startup paths remain usable without either.
+  local startup paths remain usable without either. Settings may manage one encrypted profile-owned
+  OpenAI key without exposing it to the browser, and Reset app must remove the current profile and
+  restart through direct launch.
 - AI produces a typed proposal only; deterministic code validates/schedules it and only explicit
   review/apply can write. Push jobs reload current state before sending and contain opaque IDs only.
 - Offline support is honest: cache public/static shell assets only, keep already rendered data
   read-only, and never queue or claim a domain mutation while disconnected.
+- Electron desktop support is honest: the local app may mutate its local PostgreSQL database while
+  offline, but it does not synchronize with a remote instance. AI is disabled/degraded when its key or
+  network is unavailable.
 - Do not copy TickTick, ElevenLabs, GetDesign, Airbnb, or another product's names, assets, copy,
   proprietary fonts, icons, exact layouts, palette, or trade dress.
 - Plans and contracts hold current truth only. Git holds implementation history.
@@ -80,7 +86,8 @@ The goal is complete only when all are true:
 6. Desktop/mobile visual, keyboard, screen-reader, zoom, dark/system theme, coarse-pointer, reduced
    motion, installability, and honest offline audits pass.
 7. A fresh clone can run PostgreSQL, migrations, web, active worker, isolated demo, provider-absent
-   manual workflows, and versioned export through documented local/Compose commands.
+   manual workflows, and versioned export through documented local/Compose commands; staged desktop
+   runtimes pass clean-machine installer and cold-start checks.
 8. The repository contains intended code/font/dependency licenses and notices, security guidance,
    no committed secrets, content-redacted logs, and no unapproved/copy-risk surface.
 9. The stable hackathon demo/submission material claims only the last verified candidate; hosted

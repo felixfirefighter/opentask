@@ -15,7 +15,7 @@ export type PlanningTaskRowModel = Readonly<{
 }>;
 
 export type PlanningTaskActions = Readonly<{
-  onOpenTask?: ((taskId: string) => void) | undefined;
+  onOmplish?: ((taskId: string) => void) | undefined;
   onStatusChange?: ((taskId: string, status: PlanningTaskStatus) => void) | undefined;
   onPriorityChange?: ((taskId: string, priority: PlanningPriority) => void) | undefined;
   onEditSchedule?: ((taskId: string) => void) | undefined;
@@ -45,7 +45,6 @@ export type QuickAddModel = Readonly<{
 export type TodayPlanningModel = Readonly<{
   localDateLabel: string;
   localWeekdayLabel: string;
-  timeZoneLabel: string;
   remainingLabel: string;
   overdue: readonly PlanningTaskRowModel[];
   timed: readonly PlanningTaskRowModel[];
@@ -60,7 +59,6 @@ export type UpcomingGroupModel = Readonly<{
 
 export type UpcomingPlanningModel = Readonly<{
   rangeLabel: string;
-  timeZoneLabel: string;
   totalLabel: string;
   groups: readonly UpcomingGroupModel[];
 }>;

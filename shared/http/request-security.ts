@@ -9,7 +9,8 @@ export function assertTrustedJsonMutation(
   assertJsonContentType(request.headers);
 
   const expectedOrigin = new URL(trustedOrigin).origin;
-  if (request.headers.get("origin") !== expectedOrigin) {
+  const requestOrigin = request.headers.get("origin");
+  if (requestOrigin !== expectedOrigin && !isLocalOriginAlias(requestOrigin, expectedOrigin)) {
     throw new ApplicationError("FORBIDDEN", "This request origin is not allowed.");
   }
 
@@ -17,6 +18,19 @@ export function assertTrustedJsonMutation(
   if (fetchSite !== null && fetchSite !== "same-origin") {
     throw new ApplicationError("FORBIDDEN", "Cross-site mutations are not allowed.");
   }
+}
+
+function isLocalOriginAlias(requestOrigin: string | null, expectedOrigin: string): boolean {
+  if (!requestOrigin) return false;
+  const expected = new URL(expectedOrigin);
+  const actual = new URL(requestOrigin);
+  const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+  return (
+    expected.protocol === actual.protocol &&
+    expected.port === actual.port &&
+    localHosts.has(expected.hostname) &&
+    localHosts.has(actual.hostname)
+  );
 }
 
 export async function readBoundedJson(request: Request, maxBytes: number): Promise<unknown> {
@@ -58,7 +72,7 @@ async function readBoundedBody(request: Request, maxBytes: number): Promise<Uint
       if (done) break;
       totalBytes += value.byteLength;
       if (totalBytes > maxBytes) {
-        void reader.cancel("OpenTask request body limit exceeded").catch(() => undefined);
+        void reader.cancel("Omplish request body limit exceeded").catch(() => undefined);
         throw validationFailure();
       }
       chunks.push(value);

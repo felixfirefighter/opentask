@@ -4,13 +4,13 @@ import { EnvironmentConfigurationError, parseEnvironment } from "./environment";
 
 describe("server environment", () => {
   it("parses the required database URL without requiring optional providers", () => {
-    expect(
-      parseEnvironment({ DATABASE_URL: "postgresql://user:pass@localhost:5432/opentask" }),
-    ).toMatchObject({
-      DATABASE_URL: "postgresql://user:pass@localhost:5432/opentask",
-      LOG_LEVEL: "info",
-      NODE_ENV: "development",
-    });
+    expect(parseEnvironment({ DATABASE_URL: "postgresql://user:pass@localhost:5432/omplish" })).toMatchObject(
+      {
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/omplish",
+        LOG_LEVEL: "info",
+        NODE_ENV: "development",
+      },
+    );
   });
 
   it("reports field names without echoing secret values", () => {

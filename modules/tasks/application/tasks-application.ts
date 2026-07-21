@@ -19,16 +19,18 @@ export function createTasksApplication({
   database,
   clock,
   taskSchedules,
+  onTaskCompleted,
 }: {
   database: Database;
   clock: Clock;
   taskSchedules: TaskScheduleTable;
+  onTaskCompleted?: Parameters<typeof createTaskApplication>[0]["onTaskCompleted"];
 }) {
   return {
     folders: createFolderApplication({ database, clock }),
     lists: createListApplication({ database, clock }),
     sections: createSectionApplication({ database, clock }),
-    tasks: createTaskApplication({ database, clock }),
+    tasks: createTaskApplication({ database, clock, ...(onTaskCompleted ? { onTaskCompleted } : {}) }),
     checklist: createChecklistApplication({ database, clock }),
     tags: createTagApplication({ database, clock }),
     search: createSearchApplication({ database }),

@@ -63,7 +63,7 @@ export function createTagRepository(defaultExecutor: DatabaseExecutor = getDatab
 
     async lockNameMutations(userId: string, transaction: DatabaseTransaction): Promise<void> {
       await transaction.execute(
-        sql`select pg_advisory_xact_lock(hashtextextended(${`opentask:tag-name:${userId}`}, 0))`,
+        sql`select pg_advisory_xact_lock(hashtextextended(${`omplish:tag-name:${userId}`}, 0))`,
       );
     },
 

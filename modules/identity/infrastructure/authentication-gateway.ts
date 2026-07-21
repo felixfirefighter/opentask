@@ -45,6 +45,8 @@ export function createAuthenticationGateway({
   runtime: AuthRuntimeConfig;
   onAccountAvailable(userId: string): Promise<void>;
 }) {
+  const trustedOrigins = resolveTrustedOrigins(runtime.baseUrl);
+
   async function repairAccount(userId: string) {
     try {
       await onAccountAvailable(userId);
@@ -56,10 +58,10 @@ export function createAuthenticationGateway({
   }
 
   const auth = betterAuth({
-    appName: "OpenTask",
+    appName: "Omplish",
     baseURL: runtime.baseUrl,
     secret: runtime.secret,
-    trustedOrigins: [new URL(runtime.baseUrl).origin],
+    trustedOrigins,
     database: drizzleAdapter(database, {
       provider: "pg",
       schema: {
@@ -96,7 +98,7 @@ export function createAuthenticationGateway({
     },
     advanced: {
       useSecureCookies: runtime.secureCookies,
-      cookiePrefix: "opentask",
+      cookiePrefix: "omplish",
       database: { generateId: "uuid" },
       disableCSRFCheck: false,
       disableOriginCheck: false,
@@ -185,7 +187,20 @@ export function createAuthenticationGateway({
       ipv6Subnet: clientAddressPolicy.ipv6Subnet,
       rateLimitEnabled: true,
       secureCookies: runtime.secureCookies,
-      trustedOrigins: [new URL(runtime.baseUrl).origin],
+      trustedOrigins,
     },
   };
+}
+
+function resolveTrustedOrigins(baseUrl: string): string[] {
+  const parsed = new URL(baseUrl);
+  const origins = new Set([parsed.origin]);
+  const isLocalHost = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
+  if (!isLocalHost) return [...origins];
+
+  const port = parsed.port ? `:${parsed.port}` : "";
+  for (const host of ["localhost", "127.0.0.1", "[::1]"]) {
+    origins.add(`${parsed.protocol}//${host}${port}`);
+  }
+  return [...origins];
 }

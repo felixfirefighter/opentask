@@ -17,7 +17,7 @@ describe("ThemeToggle", () => {
     const root = document.documentElement;
     root.dataset.theme = "light";
     root.dataset.themePreference = "system";
-    localStorage.setItem("opentask-theme-preference", "system");
+    localStorage.setItem("omplish-theme-preference", "system");
     const flush = vi.spyOn(root, "getBoundingClientRect");
 
     const { unmount } = render(<ThemeToggle />);
@@ -40,7 +40,7 @@ describe("ThemeToggle", () => {
     const root = document.documentElement;
     root.dataset.theme = "light";
     root.dataset.themePreference = "light";
-    localStorage.setItem("opentask-theme-preference", "light");
+    localStorage.setItem("omplish-theme-preference", "light");
     const flush = vi.spyOn(root, "getBoundingClientRect");
 
     render(<ThemeToggle />);

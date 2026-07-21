@@ -12,7 +12,7 @@ export function createWp02SchemaFixture(suiteName: string) {
   const adminPool = new Pool({
     connectionString: getTestDatabaseUrl(),
     max: 1,
-    application_name: `opentask-wp02-${suiteName}-admin`,
+    application_name: `omplish-wp02-${suiteName}-admin`,
   });
   let isolatedPool: Pool | undefined;
 
@@ -24,7 +24,7 @@ export function createWp02SchemaFixture(suiteName: string) {
       isolatedPool = new Pool({
         connectionString: getTestDatabaseUrl(),
         max: 4,
-        application_name: `opentask-wp02-${suiteName}-isolated`,
+        application_name: `omplish-wp02-${suiteName}-isolated`,
         options: `-c search_path=${schemaName}`,
       });
       if (migrateLatest) {

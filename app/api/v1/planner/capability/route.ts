@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 export function GET(request: Request) {
   return taskApiResponse(request, "planner.capability", async () => {
-    await resolveTaskApiActor(request);
+    const actor = await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
-    return privateTaskJson(getAssistantPlannerApplication().capability());
+    return privateTaskJson(await getAssistantPlannerApplication().capability(actor));
   });
 }

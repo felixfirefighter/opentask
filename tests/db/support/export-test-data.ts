@@ -91,7 +91,7 @@ async function seedIdentity(client: PoolClient, input: TenantSeedInput, secrets:
   await client.query(
     `insert into user_preferences
        (user_id, schema_version, preferences, version, created_at, updated_at)
-     values ($1, 1, $2::jsonb, 1, $3, $3)`,
+     values ($1, 2, $2::jsonb, 1, $3, $3)`,
     [
       input.actor.userId,
       JSON.stringify({
@@ -100,6 +100,7 @@ async function seedIdentity(client: PoolClient, input: TenantSeedInput, secrets:
         hourCycle: "h23",
         theme: "system",
         reducedMotion: false,
+        onboarding: { complete: false, completedAt: null, goals: [], checkins: [] },
       }),
       RECORD_INSTANT,
     ],

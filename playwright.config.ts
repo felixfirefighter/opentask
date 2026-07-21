@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const plannerFixtureMode = process.env.PLAYWRIGHT_PLANNER_FIXTURE === "1";
 const releaseServerMode = process.env.PLAYWRIGHT_SERVER_MODE === "production";
-const outputDir = process.env.PLAYWRIGHT_OUTPUT_DIR ?? path.join(tmpdir(), "opentask-playwright-results");
+const outputDir = process.env.PLAYWRIGHT_OUTPUT_DIR ?? path.join(tmpdir(), "omplish-playwright-results");
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -25,9 +25,9 @@ export default defineConfig({
       ? "pnpm exec next start --port 3107"
       : "pnpm exec next dev --webpack --port 3107",
     env: {
-      BETTER_AUTH_SECRET: "opentask-playwright-only-auth-secret-000000000000000000",
+      BETTER_AUTH_SECRET: "omplish-playwright-only-auth-secret-000000000000000000",
       BETTER_AUTH_URL: "http://127.0.0.1:3107",
-      OPENAI_API_KEY: plannerFixtureMode ? "opentask-playwright-fixture-key" : "",
+      OPENAI_API_KEY: plannerFixtureMode ? "omplish-playwright-fixture-key" : "",
     },
     url: "http://127.0.0.1:3107",
     reuseExistingServer: false,

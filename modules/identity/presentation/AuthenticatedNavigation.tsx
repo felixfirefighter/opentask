@@ -1,21 +1,22 @@
-import { CalendarDays, ListTodo, Settings, Sparkles, Sun } from "lucide-react";
+import { CalendarDays, ListTodo, Settings, Sparkles, Sun, TextQuote } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import type { SessionIdentity } from "@/modules/identity";
 import { BrandMark } from "@/shared/presentation";
 
-import { AccountMenu } from "./AccountMenu";
 import styles from "./AuthenticatedShell.module.css";
 import { MobileMoreMenu } from "./MobileMoreMenu";
+import { ProfileMenu } from "./ProfileMenu";
 
-export type AuthenticatedDestination = "today" | "tasks" | "calendar" | "plan" | "settings";
+export type AuthenticatedDestination = "today" | "tasks" | "calendar" | "plan" | "prompts" | "settings";
 
 const destinationDetails = {
   today: { title: "Today", eyebrow: "Now", icon: Sun, href: "/today" },
   tasks: { title: "Tasks", eyebrow: "Workspace", icon: ListTodo, href: "/inbox" },
   calendar: { title: "Calendar", eyebrow: "Planning", icon: CalendarDays, href: "/calendar" },
   plan: { title: "Plan", eyebrow: "Assistant", icon: Sparkles, href: "/plan" },
+  prompts: { title: "Prompt Library", eyebrow: "Companion", icon: TextQuote, href: "/prompts" },
   settings: { title: "Settings", eyebrow: "Account", icon: Settings, href: "/settings" },
 } as const;
 
@@ -42,7 +43,7 @@ export function AuthenticatedNavigation({
   return (
     <>
       <nav className={styles.rail} aria-label="Primary navigation">
-        <Link className={styles.railBrand} href="/inbox" aria-label="OpenTask inbox">
+        <Link className={styles.railBrand} href="/inbox" aria-label="Omplish inbox">
           <BrandMark compact />
         </Link>
         <div className={styles.railLinks}>
@@ -63,7 +64,7 @@ export function AuthenticatedNavigation({
           })}
         </div>
         <div className={styles.railAccount}>
-          <AccountMenu
+          <ProfileMenu
             identity={identity}
             placement="rail"
             settingsCurrent={currentDestination === "settings"}
@@ -93,11 +94,7 @@ export function AuthenticatedNavigation({
       <header className={styles.topBar}>
         <div className={styles.topBarStart}>
           {compactNavigation}
-          <Link
-            className={styles.topBarIdentity}
-            href={current.href}
-            aria-label={`OpenTask ${current.title}`}
-          >
+          <Link className={styles.topBarIdentity} href={current.href} aria-label={`Omplish ${current.title}`}>
             <BrandMark compact />
             <strong>{current.title}</strong>
           </Link>
@@ -105,7 +102,7 @@ export function AuthenticatedNavigation({
         <div className={styles.topBarActions}>
           {topBarActions}
           <div className={styles.headerAccount}>
-            <AccountMenu
+            <ProfileMenu
               identity={identity}
               placement="header"
               settingsCurrent={currentDestination === "settings"}

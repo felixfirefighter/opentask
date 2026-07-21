@@ -3,7 +3,7 @@
 ## Editorial Focus
 
 Editorial Focus is calm and spacious at moments of orientation, then efficient and exact where work
-happens. It combines original warm-paper surfaces, near-black ink actions, a restrained pine brand
+happens. It combines original warm-paper surfaces, contrast-forward actions, a restrained brand
 signal, readable operational typography, and a limited editorial display voice. It adapts principles
 from `editorial-focus.md`; it does not reproduce an external product identity.
 
@@ -14,7 +14,7 @@ The result should feel:
 - warm, not beige or nostalgic;
 - comfortable, not loose;
 - precise, not clinical;
-- original to OpenTask, not like a re-skinned competitor.
+- original to Omplish, not like a re-skinned competitor.
 
 ## Hierarchy
 
@@ -24,9 +24,8 @@ Each screen has three visual levels:
 2. **Work:** tasks, calendar events, or planner changes.
 3. **Context:** metadata, filters, counts, explanations, and secondary actions.
 
-Only one element in a local decision surface receives the filled action treatment. Near-black/light
-ink, not pine, owns primary action contrast. Pine identifies OpenTask, current context, and selected
-states. Secondary actions remain neutral, outlined, or quiet.
+Only one element in a local decision surface receives the filled action treatment. Brand identifies
+Omplish, current context, and selected states. Secondary actions remain neutral, outlined, or quiet.
 
 Task titles and proposal actions are stronger than metadata. Overdue, conflict, permission, and
 provider-unavailable states may interrupt the quiet hierarchy because they require attention.
@@ -35,7 +34,7 @@ provider-unavailable states may interrupt the quiet hierarchy because they requi
 
 - Inter Variable is the self-hosted working face for body text, tasks, forms, menus, navigation,
   calendar labels, metadata, and planner diffs.
-- EB Garamond Variable at its genuine 400 endpoint is limited to landing, first-run, selected major
+- EB Garamond Variable at its genuine 400 endpoint is limited to app launch, first-run, selected major
   empty-state headings, and explicitly approved editorial moments. It is never a blanket
   workspace-heading rule.
 - Workspace page titles stay compact and sans-serif so the work remains dominant.
@@ -64,7 +63,7 @@ provider-unavailable states may interrupt the quiet hierarchy because they requi
 
 Atmospheric fields are low-contrast decoration, not a universal product signature.
 
-- Use at most two token-backed fields in one landing, first-run, major empty-state, or restrained
+- Use at most two token-backed fields in one app-launch, first-run, major empty-state, or restrained
   planner-framing composition.
 - Keep them behind solid readable content and hidden from assistive technology.
 - Never place them in task rows, calendar cells, Matrix quadrants, form controls, banners, alerts,
@@ -73,13 +72,13 @@ Atmospheric fields are low-contrast decoration, not a universal product signatur
 
 ## Iconography and imagery
 
-- Use Lucide icons at a consistent optical size. Do not mix icon packs.
+- Use the supplied Omplish mark only for application branding and platform icons. Use Lucide icons at a consistent optical size for product controls; do not mix icon packs.
 - Every unlabeled icon button has an accessible name and a tooltip on pointer-capable screens.
 - Selected navigation combines icon, label where space permits, and a surface treatment.
 - Priority and status never depend on icon or color alone.
 - Workspace screens avoid stock photography and generic AI illustration. Empty states need no image
   unless a small original geometric element materially improves comprehension.
-- The landing page may compose original product UI, never competitor screenshots.
+- The app-launch surface may compose original product UI, never competitor screenshots.
 
 ## Content voice
 
@@ -105,7 +104,7 @@ a proposal expanding. It never delays work.
 ## Product-specific rules
 
 - Tasks use a checkbox/status control, not card color, as their primary completion affordance.
-- Priority uses a labeled menu and a small semantic marker; brand pine is not a priority color.
+- Priority uses a labeled menu and a small semantic marker; brand is not a priority color.
 - Calendar categories retain paired readable foregrounds and a label/marker.
 - AI proposal cards remain neutral until explicitly selected. Brand color does not imply model
   confidence.

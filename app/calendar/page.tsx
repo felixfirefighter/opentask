@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
+import { AmethCompanion } from "@/modules/companion/presentation";
 import { getPlanningProjectionApplication } from "@/modules/planning";
 import { CalendarRouteScreen, readCalendarRouteState } from "@/modules/planning/presentation";
 import { getInbox } from "@/modules/tasks";
@@ -33,6 +34,7 @@ export default async function CalendarPage({
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="calendar"
+      companion={<AmethCompanion />}
       topBarActions={<TaskCommandPalette inbox={inbox} />}
     >
       <CalendarRouteScreen

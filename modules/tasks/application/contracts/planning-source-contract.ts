@@ -67,5 +67,5 @@ export type TaskPlanningSourcePage = z.infer<typeof taskPlanningSourcePageSchema
 export type TaskPlanningSourceQuery = z.infer<typeof taskPlanningSourceQuerySchema>;
 
 export interface TaskPlanningSourceReader {
-  readOpenTasks(actor: AuthenticatedActor, query: TaskPlanningSourceQuery): Promise<TaskPlanningSourcePage>;
+  readOmplishs(actor: AuthenticatedActor, query: TaskPlanningSourceQuery): Promise<TaskPlanningSourcePage>;
 }

@@ -6,13 +6,19 @@ import type { UserPreferences } from "../application/preferences-contract";
 import { SettingsScreen } from "./SettingsScreen";
 
 const initialPreferences: UserPreferences = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   version: 1,
   timezone: "UTC",
   weekStart: 1,
   hourCycle: "h12",
   theme: "light",
   reducedMotion: false,
+  onboarding: {
+    complete: false,
+    completedAt: null,
+    goals: [],
+    checkins: [],
+  },
 };
 
 afterEach(() => {
@@ -48,7 +54,7 @@ describe("SettingsScreen", () => {
     const [, request] = fetchMock.mock.calls[0] ?? [];
     expect(JSON.parse(String(request?.body))).toEqual({
       expectedVersion: 1,
-      patch: { timezone: "UTC", weekStart: 0, hourCycle: "h23" },
+      patch: { weekStart: 0, hourCycle: "h23" },
     });
   });
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
+import { AmethCompanion } from "@/modules/companion/presentation";
 import { getPlanningProjectionApplication } from "@/modules/planning";
 import { UpcomingRouteScreen } from "@/modules/planning/presentation";
 import { getInbox } from "@/modules/tasks";
@@ -24,6 +25,7 @@ export default async function UpcomingPage() {
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="tasks"
+      companion={<AmethCompanion />}
       destinationTitle="Upcoming"
       topBarActions={<TaskCommandPalette inbox={inbox} />}
       contextNavigation={<TaskNavigation current="upcoming" inboxId={inbox.id} />}

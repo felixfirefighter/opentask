@@ -222,7 +222,7 @@ describe("portable PostgreSQL export", () => {
       expect(instant).toMatch(/^\d{4}-\d{2}-\d{2}T.*Z$/u);
       expect(Number.isNaN(Date.parse(instant))).toBe(false);
     }
-    expect(buildUserExportFilename(exported.exportedAt)).toBe("opentask-export-2026-07-20.json");
+    expect(buildUserExportFilename(exported.exportedAt)).toBe("omplish-export-2026-07-20.json");
   });
 
   it("exposes no import, restore, parser, or mutation surface", async () => {

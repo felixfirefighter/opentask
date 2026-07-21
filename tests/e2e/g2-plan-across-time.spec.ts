@@ -11,7 +11,7 @@ import {
   setTaskSchedule,
   type TestSchedule,
 } from "./support/golden-path-planning";
-import { signUpThroughUi } from "./support/wp01-auth";
+import { enterWorkspaceThroughUi } from "./support/wp01-auth";
 import { quickAddTask, taskRow, type TaskWireRecord } from "./support/wp03-tasks";
 
 const responsiveProjects = new Set(["desktop-chromium", "mobile-chromium"]);
@@ -23,7 +23,7 @@ test("G2 projects canonical scheduled tasks across Today, Upcoming, Calendar, an
   test.setTimeout(180_000);
   test.skip(!responsiveProjects.has(testInfo.project.name), "The G2 golden path runs at desktop and mobile.");
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   await configureTestTimeZone(page, timeZone);
   const today = localDateIn(timeZone);
   const tomorrow = addLocalDays(today, 1);
@@ -147,7 +147,7 @@ test("G2 moves an all-day calendar event with the pointer", async ({ page }, tes
   test.setTimeout(90_000);
   test.skip(testInfo.project.name !== "desktop-chromium", "One reliable pointer move runs on desktop.");
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   await configureTestTimeZone(page, timeZone);
   const today = localDateIn(timeZone);
   const tomorrow = addLocalDays(today, 1);
@@ -185,7 +185,7 @@ test("G2 resizes an all-day calendar event with the pointer", async ({ page }, t
   test.setTimeout(90_000);
   test.skip(testInfo.project.name !== "desktop-chromium", "One reliable pointer resize runs on desktop.");
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   await configureTestTimeZone(page, timeZone);
   const today = localDateIn(timeZone);
   const tomorrow = addLocalDays(today, 1);

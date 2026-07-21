@@ -6,8 +6,8 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 
 import styles from "./FirstRunOrientation.module.css";
 
-const dismissalKeyPrefix = "opentask:first-run-orientation:v1";
-const changeEvent = "opentask:first-run-orientation-change";
+const dismissalKeyPrefix = "omplish:first-run-orientation:v1";
+const changeEvent = "omplish:first-run-orientation-change";
 
 export function FirstRunOrientation({ inboxId }: Readonly<{ inboxId: string }>) {
   const readAccountVisible = useCallback(() => readVisible(inboxId), [inboxId]);

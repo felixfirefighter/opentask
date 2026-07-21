@@ -18,8 +18,8 @@ export function useDataExport(online: boolean) {
     try {
       const response = await fetch("/api/v1/export", { method: "GET", cache: "no-store" });
       if (!response.ok) throw new Error("Export request failed.");
-      const filename = readFilename(response.headers) ?? "opentask-export.json";
-      const schemaVersion = response.headers.get("x-opentask-export-schema-version");
+      const filename = readFilename(response.headers) ?? "omplish-export.json";
+      const schemaVersion = response.headers.get("x-omplish-export-schema-version");
       downloadBlob(await response.blob(), filename);
       setState("downloaded");
       setMessage(

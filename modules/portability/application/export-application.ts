@@ -1,6 +1,8 @@
 import { readPortablePlannerProposals } from "@/modules/assistant";
+import { readPortableCompanion } from "@/modules/companion";
 import { readPortableIdentity } from "@/modules/identity";
 import { readPortableTasks } from "@/modules/tasks";
+import { readPortableSavedPrompts } from "@/modules/prompts";
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import { getDatabase, type Database, type DatabaseTransaction } from "@/shared/db/client";
 import { ApplicationError } from "@/shared/http/application-error";
@@ -23,19 +25,27 @@ export function createPortabilityApplication(
     readIdentity?: ExportSourceReader;
     readTasks?: ExportSourceReader;
     readProposals?: ExportSourceReader;
+    readCompanion?: ExportSourceReader;
+    readPrompts?: ExportSourceReader;
   }>,
 ) {
   const clock = dependencies.clock ?? systemClock;
   const readIdentity = dependencies.readIdentity ?? readPortableIdentity;
   const readTasks = dependencies.readTasks ?? readPortableTasks;
   const readProposals = dependencies.readProposals ?? readPortablePlannerProposals;
+  const readCompanion = dependencies.readCompanion ?? readPortableCompanion;
+  const readPrompts = dependencies.readPrompts ?? readPortableSavedPrompts;
 
   return {
     async exportUserData(actor: AuthenticatedActor): Promise<UserExportEnvelope> {
       return dependencies.snapshot.run(async (transaction) => {
         const identity = await readIdentity(actor, transaction);
         const tasks = await readTasks(actor, transaction);
-        const proposals = await readProposals(actor, transaction);
+        const [proposals, companion, prompts] = await Promise.all([
+          readProposals(actor, transaction),
+          readCompanion(actor, transaction),
+          readPrompts(actor, transaction),
+        ]);
         const envelope = userExportEnvelopeSchema.parse({
           schemaVersion: USER_EXPORT_SCHEMA_VERSION,
           exportedAt: clock.now().toISOString(),
@@ -45,6 +55,8 @@ export function createPortabilityApplication(
             schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION,
             proposals,
           },
+          companion: { schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION, ...asObject(companion) },
+          prompts: { schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION, prompts },
         });
         if (envelope.identity.profile.id !== actor.userId) {
           throw new ApplicationError(

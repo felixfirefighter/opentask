@@ -17,28 +17,34 @@ describe("user export application", () => {
     const readIdentity = vi.fn(async () => identitySource());
     const readTasks = vi.fn(async () => tasksSource());
     const readProposals = vi.fn(async () => []);
+    const readCompanion = vi.fn(async () => companionSource());
+    const readPrompts = vi.fn(async () => []);
     const application = createPortabilityApplication({
       snapshot: { run: (work) => work(transaction) },
       clock: { now: () => new Date(instant) },
       readIdentity,
       readTasks,
       readProposals,
+      readCompanion,
+      readPrompts,
     });
 
     const envelope = await application.exportUserData({ userId });
 
     expect(userExportEnvelopeSchema.parse(envelope)).toEqual(envelope);
     expect(envelope).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: instant,
       identity: { schemaVersion: 1, profile: { id: userId } },
       tasks: { schemaVersion: 1, tasks: [{ id: taskId }] },
       assistant: { schemaVersion: 1, proposals: [] },
+      companion: { schemaVersion: 1, profile: null, xpEvents: [], summary: null, memories: [] },
+      prompts: { schemaVersion: 1, prompts: [] },
     });
-    for (const reader of [readIdentity, readTasks, readProposals]) {
+    for (const reader of [readIdentity, readTasks, readProposals, readCompanion, readPrompts]) {
       expect(reader).toHaveBeenCalledWith({ userId }, transaction);
     }
-    expect(buildUserExportFilename(envelope.exportedAt)).toBe("opentask-export-2026-07-19.json");
+    expect(buildUserExportFilename(envelope.exportedAt)).toBe("omplish-export-2026-07-19.json");
   });
 
   it("rejects wrong-owner, broken relationships, and unexpected secret-shaped fields", async () => {
@@ -63,7 +69,13 @@ function createExport(overrides: { identity?: unknown; tasks?: unknown }) {
     readIdentity: async () => overrides.identity ?? identitySource(),
     readTasks: async () => overrides.tasks ?? tasksSource(),
     readProposals: async () => [],
+    readCompanion: async () => companionSource(),
+    readPrompts: async () => [],
   }).exportUserData({ userId });
+}
+
+function companionSource() {
+  return { profile: null, xpEvents: [], summary: null, memories: [] } as const;
 }
 
 function identitySource() {
@@ -76,13 +88,14 @@ function identitySource() {
       updatedAt: instant,
     },
     preferences: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       version: 1,
       timezone: "Asia/Singapore",
       weekStart: 1,
       hourCycle: "h23",
       theme: "system",
       reducedMotion: false,
+      onboarding: { complete: false, completedAt: null, goals: [], checkins: [] },
       createdAt: instant,
       updatedAt: instant,
     },

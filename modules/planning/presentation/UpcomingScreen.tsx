@@ -34,7 +34,7 @@ export function UpcomingScreen({ condition, model, onAddTask, onRetry, taskActio
     <div className={styles.page}>
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>Next 7 days · {model.timeZoneLabel}</p>
+          <p className={styles.eyebrow}>Next 7 days</p>
           <h1 tabIndex={-1} data-route-focus>
             Upcoming
           </h1>

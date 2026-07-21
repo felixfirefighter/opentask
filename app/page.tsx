@@ -1,13 +1,12 @@
-import { headers } from "next/headers";
+import { ProfileSetupLauncher, resolveSafeReturnTo } from "@/modules/identity/presentation";
 
-import { getOptionalSessionIdentity } from "@/modules/identity";
-import { DemoEntryAction } from "@/modules/identity/presentation";
-import { LandingScreen } from "@/modules/landing/presentation";
+export default async function AppLaunchPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const resumeTo = typeof params.resume === "string" ? resolveSafeReturnTo(params.resume) : null;
 
-export const dynamic = "force-dynamic";
-
-export default async function LandingPage() {
-  const identity = await getOptionalSessionIdentity(await headers());
-
-  return <LandingScreen signedIn={identity !== null} demoAction={<DemoEntryAction />} />;
+  return <ProfileSetupLauncher resumeTo={resumeTo} />;
 }

@@ -12,7 +12,7 @@ const logger = createLogger();
 const pool = new Pool({
   connectionString: environment.DATABASE_URL,
   max: 1,
-  application_name: "opentask-migrate",
+  application_name: "omplish-migrate",
 });
 
 try {

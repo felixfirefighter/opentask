@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useEffect } from "react";
+import { useEffect } from "react";
 
 import { withThemeTransitionSuppressed } from "@/shared/presentation";
 
@@ -26,8 +26,16 @@ export function applyThemePreference(theme: ThemePreference, reducedMotion: bool
     root.dataset.themePreference = theme;
     root.dataset.reducedMotion = String(reducedMotion);
   });
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (themeColor) themeColor.content = getComputedStyle(root).getPropertyValue("--canvas").trim();
+  const desktopWindow = (
+    window as typeof window & {
+      omplishDesktop?: { setWindowTheme?: (theme: ResolvedTheme) => void };
+    }
+  ).omplishDesktop;
+  desktopWindow?.setWindowTheme?.(resolvedTheme);
   try {
-    localStorage.setItem("opentask-theme-preference", theme);
+    localStorage.setItem("omplish-theme-preference", theme);
   } catch {
     // Theme application remains functional when storage is unavailable.
   }
@@ -67,11 +75,7 @@ export function ThemePreferenceSync({
     return () => colorScheme.removeEventListener("change", synchronizeSystemTheme);
   }, [reducedMotion, theme]);
 
-  return createElement("script", {
-    "data-theme-bootstrap": "",
-    suppressHydrationWarning: true,
-    dangerouslySetInnerHTML: { __html: createThemeBootstrapScript(theme, reducedMotion) },
-  });
+  return null;
 }
 
 function resolveTheme(theme: ThemePreference): ResolvedTheme {
@@ -82,9 +86,4 @@ function resolveTheme(theme: ThemePreference): ResolvedTheme {
 
 function isThemePreference(value: string | undefined): value is ThemePreference {
   return value === "light" || value === "dark" || value === "system";
-}
-
-function createThemeBootstrapScript(theme: ThemePreference, reducedMotion: boolean) {
-  const preference = JSON.stringify({ theme, reducedMotion });
-  return `(()=>{const p=${preference};const r=document.documentElement;const v=r.dataset.themeTransition;r.dataset.themeTransition="suppressed";const t=p.theme==="system"?(window.matchMedia("${darkThemeQuery}").matches?"dark":"light"):p.theme;r.dataset.theme=t;r.dataset.themePreference=p.theme;r.dataset.reducedMotion=String(p.reducedMotion);try{localStorage.setItem("opentask-theme-preference",p.theme)}catch{}void r.offsetHeight;v===undefined?delete r.dataset.themeTransition:r.dataset.themeTransition=v})()`;
 }

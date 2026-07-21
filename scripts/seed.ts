@@ -8,7 +8,7 @@ const logger = createLogger();
 const pool = new Pool({
   connectionString: environment.DATABASE_URL,
   max: 1,
-  application_name: "opentask-seed",
+  application_name: "omplish-seed",
 });
 
 try {

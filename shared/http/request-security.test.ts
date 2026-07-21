@@ -33,6 +33,15 @@ describe("trusted JSON mutation boundary", () => {
     ).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
   });
 
+  it("accepts localhost aliases for local development only", () => {
+    const localOrigin = "http://localhost:3000";
+    const request = mutationRequest("{}", { origin: "http://127.0.0.1:3000" });
+    expect(() => assertTrustedJsonMutation(request, localOrigin)).not.toThrow();
+    expect(() =>
+      assertTrustedJsonMutation(mutationRequest("{}", { origin: "http://127.0.0.1:3001" }), localOrigin),
+    ).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
+  });
+
   it("rejects non-JSON and oversized request bodies", async () => {
     const form = new Request(`${origin}/api/v1/demo`, {
       method: "POST",

@@ -4,7 +4,6 @@ import styles from "./SettingsScreen.module.css";
 import type { SaveState } from "./usePreferencesEditor";
 
 const weekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const timeZones = ["UTC", ...Intl.supportedValuesOf("timeZone")];
 
 export function DateTimePreferencesCard({
   preferences,
@@ -36,25 +35,6 @@ export function DateTimePreferencesCard({
       </div>
 
       <div className={styles.fieldGrid}>
-        <label className={styles.field} htmlFor="timezone">
-          <span>Timezone</span>
-          <input
-            id="timezone"
-            list="opentask-timezones"
-            value={preferences.timezone}
-            aria-describedby="timezone-help"
-            onChange={(event) => onChange({ timezone: event.target.value })}
-          />
-          <datalist id="opentask-timezones">
-            {timeZones.map((zone) => (
-              <option key={zone} value={zone} />
-            ))}
-          </datalist>
-          <small id="timezone-help">
-            Today and Calendar use this local day. Saved instants are not rewritten.
-          </small>
-        </label>
-
         <label className={styles.field} htmlFor="week-start">
           <span>Week starts on</span>
           <select
@@ -96,6 +76,7 @@ export function DateTimePreferencesCard({
           </label>
         </fieldset>
       </div>
+      <p className={styles.saveStatus}>Timezone follows this device automatically.</p>
 
       <CardActions
         online={online}

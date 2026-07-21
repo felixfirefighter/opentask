@@ -14,7 +14,7 @@ describe("FullCalendarView", () => {
         view="agenda"
         navigation={{ revision: 0, direction: "today" }}
         readOnly={false}
-        onOpenTask={vi.fn()}
+        onOmplish={vi.fn()}
         onSelectEvent={vi.fn()}
         onVisibleRangeChange={vi.fn()}
         onEventMove={vi.fn().mockResolvedValue({ ok: true })}
@@ -33,7 +33,7 @@ describe("FullCalendarView", () => {
       view: "agenda" as const,
       navigation: { revision: 0, direction: "today" as const },
       readOnly: false,
-      onOpenTask: vi.fn(),
+      onOmplish: vi.fn(),
       onSelectEvent: vi.fn(),
       onVisibleRangeChange: vi.fn(),
       onEventMove: vi.fn().mockResolvedValue({ ok: true }),
@@ -62,7 +62,7 @@ describe("FullCalendarView", () => {
         view="agenda"
         navigation={{ revision: 0, direction: "today" }}
         readOnly={false}
-        onOpenTask={vi.fn()}
+        onOmplish={vi.fn()}
         onSelectEvent={vi.fn()}
         onVisibleRangeChange={onVisibleRangeChange}
         onEventMove={vi.fn().mockResolvedValue({ ok: true })}
@@ -84,7 +84,7 @@ describe("FullCalendarView", () => {
         view="week"
         navigation={{ revision: 0, direction: "today" }}
         readOnly={false}
-        onOpenTask={vi.fn()}
+        onOmplish={vi.fn()}
         onSelectEvent={vi.fn()}
         onVisibleRangeChange={vi.fn()}
         onEventMove={vi.fn().mockResolvedValue({ ok: true })}

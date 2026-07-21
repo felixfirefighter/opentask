@@ -7,6 +7,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -17,6 +18,23 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 const timestampColumn = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 
 export function createAssistantSchema(authUserId: () => AnyPgColumn) {
+  const openaiCredentials = pgTable(
+    "openai_credentials",
+    {
+      userId: uuid("user_id").primaryKey().references(authUserId, { onDelete: "cascade" }),
+      encryptedApiKey: text("encrypted_api_key").notNull(),
+      initializationVector: text("initialization_vector").notNull(),
+      authenticationTag: text("authentication_tag").notNull(),
+      encryptionVersion: smallint("encryption_version").notNull(),
+      createdAt: timestampColumn("created_at").defaultNow().notNull(),
+      updatedAt: timestampColumn("updated_at").defaultNow().notNull(),
+    },
+    (table) => [
+      check("openai_credentials_encryption_version_check", sql`${table.encryptionVersion} > 0`),
+      check("openai_credentials_encrypted_api_key_check", sql`char_length(${table.encryptedApiKey}) > 0`),
+    ],
+  );
+
   const plannerProposals = pgTable(
     "planner_proposals",
     {
@@ -56,5 +74,5 @@ export function createAssistantSchema(authUserId: () => AnyPgColumn) {
     ],
   );
 
-  return { plannerProposals };
+  return { openaiCredentials, plannerProposals };
 }

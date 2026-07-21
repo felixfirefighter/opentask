@@ -102,7 +102,7 @@ export function createIdentitySchema() {
       updatedAt: timestampColumn("updated_at").defaultNow().notNull(),
     },
     (table) => [
-      check("user_preferences_schema_version_check", sql`${table.schemaVersion} = 1`),
+      check("user_preferences_schema_version_check", sql`${table.schemaVersion} = 2`),
       check("user_preferences_document_check", sql`jsonb_typeof(${table.preferences}) = 'object'`),
       check("user_preferences_version_check", sql`${table.version} > 0`),
     ],

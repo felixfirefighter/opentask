@@ -27,7 +27,7 @@ export function createTaskPlanningSourceRepository(
   taskSchedules: TaskScheduleTable,
   defaultExecutor: DatabaseExecutor = getDatabase(),
 ) {
-  const activeOpenTask = (userId: string) =>
+  const activeOmplish = (userId: string) =>
     and(eq(schema.tasks.userId, userId), eq(schema.tasks.status, "open"), isNull(schema.tasks.deletedAt));
 
   const toPage = (rows: readonly StoredTaskPlanningRow[], limit: number): StoredTaskPlanningPage => ({
@@ -52,7 +52,7 @@ export function createTaskPlanningSourceRepository(
         .where(
           and(
             eq(taskSchedules.userId, userId),
-            activeOpenTask(userId),
+            activeOmplish(userId),
             or(
               and(eq(taskSchedules.kind, "all_day"), lt(taskSchedules.startDate, input.exclusiveEndDate)),
               and(eq(taskSchedules.kind, "timed"), lt(taskSchedules.startAt, input.exclusiveEndAt)),
@@ -80,7 +80,7 @@ export function createTaskPlanningSourceRepository(
         .where(
           and(
             eq(taskSchedules.userId, userId),
-            activeOpenTask(userId),
+            activeOmplish(userId),
             or(
               and(
                 eq(taskSchedules.kind, "all_day"),
@@ -123,7 +123,7 @@ export function createTaskPlanningSourceRepository(
             eq(taskSchedules.taskId, schema.tasks.id),
           ),
         )
-        .where(activeOpenTask(userId))
+        .where(activeOmplish(userId))
         .orderBy(asc(schema.tasks.id))
         .limit(limit + 1);
       return toPage(rows, limit);

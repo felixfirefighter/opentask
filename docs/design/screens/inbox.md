@@ -51,7 +51,7 @@ Selecting a row is visually distinct from completing it. Optimistic changes reta
 | Loading | Preserve shell/header and render row-shaped skeletons with a single polite status. Do not display the empty state before the query resolves. |
 | Error | Keep any safely loaded rows labeled as not refreshed, show a retry banner, and preserve quick-add text. Mutation failure restores the optimistic row and states what was not saved. |
 | Offline | Show rows already loaded in the open page as read-only with the global offline banner. Disable quick add, status, reorder, move, and list/section mutations with discoverable explanations. Search may filter only already loaded rows if explicitly labeled “On this screen”; otherwise disable it. |
-| Permission | Unauthenticated access routes to sign-in. Missing/foreign list/task identifiers render the same generic unavailable state without leaking title, count, or ownership. |
+| Permission | Missing internal session routes to direct app launch. Missing/foreign list/task identifiers render the same generic unavailable state without leaking title, count, or ownership. |
 | Conflict | Preserve unsaved text, refetch the affected row, mark it “Changed elsewhere”, and offer Review latest/Retry rather than silently overwriting. |
 
 ## Keyboard and touch parity

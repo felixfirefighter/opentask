@@ -28,8 +28,8 @@ const editorialFont = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "OpenTask",
-    template: "%s · OpenTask",
+    default: "Omplish",
+    template: "%s · Omplish",
   },
   description: "An open-source workspace for task and calendar planning with reviewable AI.",
 };
@@ -42,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       suppressHydrationWarning
     >
       <head>
+        <meta name="theme-color" content="" data-theme-color="" />
         <script
           data-public-theme-bootstrap=""
           suppressHydrationWarning
@@ -56,4 +57,4 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
 }
 
 const publicThemeBootstrap =
-  '(()=>{const r=document.documentElement;let p="system";try{const s=localStorage.getItem("opentask-theme-preference");if(s==="light"||s==="dark"||s==="system")p=s}catch{}r.dataset.themePreference=p;r.dataset.theme=p==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p})()';
+  '(()=>{const r=document.documentElement;let p="light";try{const s=localStorage.getItem("omplish-theme-preference");if(s==="light"||s==="dark"||s==="system")p=s}catch{}r.dataset.themePreference=p;r.dataset.theme=p==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p})()';

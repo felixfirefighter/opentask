@@ -107,7 +107,7 @@ describe("identity account bootstrap and preferences isolation", () => {
     expect(savedA).toMatchObject({ timezone: "Asia/Singapore", theme: "dark", version: 2 });
     expect(await application.getUserPreferences(actorB)).toMatchObject({
       timezone: "UTC",
-      theme: "system",
+      theme: "light",
       version: 1,
     });
     await expect(application.updateUserPreferences(actorA, 1, { theme: "light" })).rejects.toMatchObject({

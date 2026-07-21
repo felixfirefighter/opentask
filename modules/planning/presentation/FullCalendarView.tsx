@@ -42,7 +42,7 @@ type FullCalendarViewProps = Readonly<{
     direction: "previous" | "today" | "next";
   }>;
   readOnly: boolean;
-  onOpenTask: (taskId: string) => void;
+  onOmplish: (taskId: string) => void;
   onSelectEvent: (eventId: string) => void;
   onVisibleRangeChange: (range: VisibleCalendarRange) => void;
   onEventMove: (change: ReturnType<typeof toCalendarEventChange>) => Promise<CalendarChangeResult>;
@@ -54,7 +54,7 @@ export function FullCalendarView({
   navigation,
   onEventMove,
   onEventResize,
-  onOpenTask,
+  onOmplish,
   onSelectEvent,
   onVisibleRangeChange,
   readOnly,
@@ -179,7 +179,7 @@ export function FullCalendarView({
             const event = eventsById.get(info.event.id);
             if (!event) return;
             onSelectEvent(event.id);
-            onOpenTask(event.taskId);
+            onOmplish(event.taskId);
           }}
           eventDrop={(info) => void applyChange(info, onEventMove)}
           eventResize={(info) => void applyChange(info, onEventResize)}

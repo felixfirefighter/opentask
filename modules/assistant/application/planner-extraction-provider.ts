@@ -6,12 +6,15 @@ import {
 } from "./contracts";
 import { createConfiguredOpenAIResponsesProvider } from "../infrastructure/openai-responses-provider";
 
-export function createPlannerExtractionProvider(): PlannerExtractionProvider | null {
-  const provider = createConfiguredOpenAIResponsesProvider({
-    requestSchema: plannerExtractionRequestSchema,
-    responseSchema: modelExtractionSchema,
-    validateOutput: validateExtractionReferences,
-  });
+export function createPlannerExtractionProvider(apiKey?: string | null): PlannerExtractionProvider | null {
+  const provider = createConfiguredOpenAIResponsesProvider(
+    {
+      requestSchema: plannerExtractionRequestSchema,
+      responseSchema: modelExtractionSchema,
+      validateOutput: validateExtractionReferences,
+    },
+    apiKey,
+  );
   if (!provider) return null;
 
   return {

@@ -192,7 +192,7 @@ export function waitForTaskSearch(page: Page, query: string) {
 export function taskProblem(code: "CONFLICT" | "INTERNAL", currentVersion?: number) {
   const status = code === "CONFLICT" ? 409 : 500;
   return {
-    type: `urn:opentask:problem:${code.toLocaleLowerCase()}`,
+    type: `urn:omplish:problem:${code.toLocaleLowerCase()}`,
     title: code === "CONFLICT" ? "Conflict" : "Unexpected error",
     status,
     code,

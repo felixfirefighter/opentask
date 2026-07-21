@@ -2,32 +2,37 @@
 
 ## Purpose and route
 
-`/settings` edits release preferences, explains optional AI and browser capability, manages the
-user-controlled PWA/push surface after P5/P6, and exports user-owned data. It does not add account
-management, billing, integration, import, analytics, a notification center, or browser-side secret
-configuration.
+`/settings` edits release preferences, configures the optional OpenAI provider for the current
+profile, manages the user-controlled PWA/push surface after P5/P6, exports user-owned data, and
+offers a destructive full-app reset. It does not add billing, integration, import, analytics, or a
+notification center.
 
-Sign out remains in the global account menu. Email/password management, account deletion, API keys, and provider credentials are not rendered because they are outside active scope.
+The global profile menu shows the locally cached username and Settings. There is no sign-out or
+email/password management surface. The OpenAI key is a server-side encrypted provider credential,
+never browser storage or a returned API value.
 
 Focus and break durations are per-run inputs on `/focus`; this release stores no duration preference
 and adds no Focus Settings card.
 
 ## Layout
 
-Use one bounded column with a page `h1` and five cards after P6:
+Use one bounded column with a page `h1` and these cards:
 
-1. **Date and time:** IANA timezone search/select, week start, and 12/24-hour display.
+1. **Date and time:** week start and 12/24-hour display. The timezone is detected from the device
+   automatically and is not user-selectable here.
 2. **Appearance:** light/dark/system theme and reduced motion.
-3. **Optional AI:** planner available/unavailable status and a link to manual planning.
+3. **Optional AI:** personal OpenAI API key entry/removal, configured source, and a link to manual planning.
 4. **App and reminders:** install/update state where supported, push capability/permission,
    subscription enable/revoke, and provider/worker degraded explanation without secret values.
 5. **Your data:** versioned JSON export.
+6. **Reset app:** destructive full-profile/workspace deletion with confirmation.
 
-Each editable card has its own explicit Save action and local save/error feedback. Theme may preview immediately but rolls back if the server save fails. AI status is read-only. Do not expose server environment values or operational secrets.
+Each editable card has its own explicit Save action and local save/error feedback. Theme may preview immediately but rolls back if the server save fails. Never return or display the stored key or server environment value.
 
 ## Preference behavior
 
-- Timezone search displays canonical IANA names and a current local-time preview. Changing timezone names the effect on Today/calendar interpretation before save; it does not silently rewrite stored instants.
+- The device's canonical IANA timezone is detected automatically and used for Today/calendar
+  interpretation. Saved timed instants are not rewritten when the device timezone changes.
 - Week start choices are explicit day labels.
 - Hour cycle uses “1:30 PM” and “13:30” examples.
 - Theme controls show labels as well as visual previews.
@@ -35,7 +40,7 @@ Each editable card has its own explicit Save action and local save/error feedbac
 
 ## Provider behavior
 
-Distinguish AI planner available from disabled because the server has no configured key/provider. AI is status-only here; manual task/calendar workflows remain linked and available.
+Distinguish AI planner available from disabled because neither a personal nor server key is configured. A personal key overrides the server key for that profile; removing it falls back to the server key. Manual task/calendar workflows remain linked and available.
 
 Distinguish unsupported browser, permission not requested, denied, subscribed, provider unconfigured,
 and known-disabled worker states. Request notification permission only after the user activates an
@@ -51,18 +56,18 @@ their package gates and never expose VAPID or encryption keys.
 
 | State | Required presentation |
 |---|---|
-| Default | Current server preferences, explicit per-card Save, AI/PWA/push capability status as applicable, and Export my data. |
+| Default | Current server preferences, OpenAI credential source without the secret, explicit per-card Save, AI/PWA/push capability status as applicable, Export my data, and Reset app. |
 | Empty | Preferences always have defaults. If provider status cannot be determined, show “Status unavailable” rather than a blank card. No export-history empty state exists. |
 | Loading | Preserve card geometry; preferences and provider status may resolve independently. Save/export actions show stable progress and block duplicates only within their card. |
-| Error | Preserve edited values, identify the failed card/action, and offer Retry. Theme preview rolls back after failed save. Export error confirms that no file was generated when true. |
+| Error | Preserve edited values, identify the failed card/action, and offer Retry. Theme preview rolls back after failed save. Export error confirms that no file was generated when true. Reset failure keeps the profile intact. |
 | Offline | Loaded preferences/status remain readable but labeled stale. Disable Save and export under the global offline explanation; local theme preview may be viewed but not called saved. |
-| Permission | Unauthenticated access routes to sign-in with safe return. Export and provider endpoints recheck authorization; errors reveal no other user's settings/subscriptions/data. |
+| Permission | Missing internal session routes to direct app launch with safe resume. Export, provider, and reset endpoints recheck authorization; errors reveal no other user's settings/subscriptions/data. |
 | Provider unavailable | Show manual alternatives and exact capability impact. Missing AI, VAPID, or worker does not look like a core app failure. |
 
 ## Keyboard, touch, and accessibility
 
 - Cards follow document order; Save actions are named by card where ambiguity exists.
-- Timezone search uses the combobox pattern and exposes canonical name plus local-time preview.
+- The date/time card explains that timezone follows the device automatically.
 - Theme previews and provider indicators include text, not color/icon alone.
 - Save and export results use polite live status; blocking auth loss uses an alert and safe redirect.
 - All controls meet shared target, contrast, zoom, reduced-motion, and error-summary rules.

@@ -5,13 +5,10 @@ import path from "node:path";
 
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
+import { postDemoFromPage } from "./support/wp01-auth";
+
 const DEMO_TASK_ID = "50000000-0000-4000-8000-000000000001";
 const DEMO_LIST_ID = "20000000-0000-4000-8000-000000000001";
-
-const publicAuthRoutes = [
-  { slug: "sign-in", path: "/sign-in", heading: "Welcome back" },
-  { slug: "sign-up", path: "/sign-up", heading: "Create your account" },
-] as const;
 
 const authenticatedRoutes = [
   { slug: "inbox", path: "/inbox", heading: "Inbox" },
@@ -29,34 +26,21 @@ test("the friend-candidate journey renders at every approved viewport", async ({
   const evidenceDirectory = path.resolve(process.env.PLAYWRIGHT_VISUAL_PROOF_DIR ?? "artifacts/visual-proof");
   const captureDirectory = path.join(
     tmpdir(),
-    `opentask-visual-proof-${testInfo.project.name}-${randomUUID()}`,
+    `omplish-visual-proof-${testInfo.project.name}-${randomUUID()}`,
   );
   await mkdir(captureDirectory, { recursive: true });
   await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
-  await captureRoute(page, testInfo, captureDirectory, "landing");
+  await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
+  await captureRoute(page, testInfo, captureDirectory, "app-launch");
   await page.getByRole("button", { name: "Use dark theme" }).click();
-  await captureRoute(page, testInfo, captureDirectory, "landing-dark");
+  await captureRoute(page, testInfo, captureDirectory, "app-launch-dark");
   await page.getByRole("button", { name: "Use light theme" }).click();
 
-  for (const route of publicAuthRoutes) {
-    await page.goto(route.path);
-    await expect(page.getByRole("heading", { name: route.heading, exact: true })).toBeVisible();
-    await captureRoute(page, testInfo, captureDirectory, route.slug);
-    if (route.slug === "sign-in") {
-      await setDocumentTheme(page, "dark");
-      await captureRoute(page, testInfo, captureDirectory, "sign-in-dark");
-      await setDocumentTheme(page, "light");
-    }
-  }
-
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Make room for what matters." })).toBeVisible();
-
-  await page.getByRole("button", { name: "Try demo" }).click();
-  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  expect(await postDemoFromPage(page)).toBe(200);
+  await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
   const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
   await expect(dismissTips).toBeVisible();
@@ -167,7 +151,7 @@ async function expectCalendarInstructionUntruncated(page: Page) {
 
 async function setDocumentTheme(page: Page, theme: "light" | "dark") {
   await page.evaluate((nextTheme) => {
-    localStorage.setItem("opentask-theme-preference", nextTheme);
+    localStorage.setItem("omplish-theme-preference", nextTheme);
     document.documentElement.dataset.themePreference = nextTheme;
     document.documentElement.dataset.theme = nextTheme;
   }, theme);

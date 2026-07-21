@@ -100,7 +100,7 @@ export function failureContent(failure: PlannerFailure): Readonly<{
     },
     permission: {
       title: "This proposal is no longer available",
-      message: "Sign in again or create a new proposal. No task details were exposed.",
+      message: "Open the app again or create a new proposal. No task details were exposed.",
     },
   } as const;
 

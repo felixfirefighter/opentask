@@ -9,6 +9,7 @@ import { runtimeSafety } from "./scripts/eslint/runtime-safety.mjs";
 const localCode = [
   "app/**/*.{ts,tsx}",
   "modules/**/*.{ts,tsx}",
+  "electron/**/*.{ts,cts,tsx}",
   "scripts/**/*.{ts,tsx,mjs}",
   "shared/**/*.{ts,tsx}",
   "worker/**/*.{ts,tsx}",
@@ -22,46 +23,65 @@ const sharedDatabasePattern = {
 export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
-  globalIgnores([".next/**", "node_modules/**", "playwright-report/**", "test-results/**", "artifacts/**"]),
+  globalIgnores([
+    ".next/**",
+    "node_modules/**",
+    "dist-electron/**",
+    "release/**",
+    "playwright-report/**",
+    "test-results/**",
+    "artifacts/**",
+  ]),
   architectureBoundaries,
   {
     files: localCode,
-    plugins: { opentask: { rules: { ...importSafety.rules, ...runtimeSafety.rules } } },
+    plugins: { omplish: { rules: { ...importSafety.rules, ...runtimeSafety.rules } } },
     rules: {
-      "opentask/direct-node-modules": "error",
-      "opentask/explicit-type-imports": "error",
-      "opentask/literal-dynamic-imports": "error",
+      "omplish/direct-node-modules": "error",
+      "omplish/explicit-type-imports": "error",
+      "omplish/literal-dynamic-imports": "error",
       "no-implied-eval": "error",
-      "opentask/no-alternate-loaders": [
+      "omplish/no-alternate-loaders": [
         "error",
         { packages: ["module", "node:module", "node:process", "node:vm", "process", "vm"] },
       ],
-      "opentask/no-runtime-loader-escapes": "error",
+      "omplish/no-runtime-loader-escapes": "error",
     },
   },
   {
     files: ["modules/*/application/**/*.{ts,tsx}"],
     rules: {
-      "opentask/no-private-runtime-reexports": "error",
+      "omplish/no-private-runtime-reexports": "error",
     },
   },
   {
     files: [
       "app/**/*.{ts,tsx}",
       "modules/**/*.{ts,tsx}",
+      "electron/**/*.{ts,cts,tsx}",
       "shared/**/*.{ts,tsx}",
       "worker/**/*.{ts,tsx}",
       "scripts/{migrate,seed}.ts",
     ],
+    ignores: ["electron/check-runtime.ts"],
     rules: {
-      "opentask/no-unreviewed-output": "error",
+      "omplish/no-unreviewed-output": "error",
+    },
+  },
+  {
+    files: ["electron/preload.cts"],
+    rules: {
+      // Sandboxed Electron preloads require CommonJS; the exception is limited to this boundary file.
+      "@typescript-eslint/no-require-imports": "off",
+      "omplish/explicit-type-imports": "off",
+      "omplish/no-runtime-loader-escapes": "off",
     },
   },
   {
     files: localCode,
     ignores: ["shared/logging/logger.ts"],
     rules: {
-      "opentask/no-raw-pino": ["error", { packages: ["pino"] }],
+      "omplish/no-raw-pino": ["error", { packages: ["pino"] }],
     },
   },
   {
@@ -73,13 +93,13 @@ export default defineConfig([
     ],
     ignores: ["shared/db/**/*.{ts,tsx}"],
     rules: {
-      "opentask/no-data-packages": ["error", { packages: ["drizzle-orm", "pg", "pg-boss"] }],
+      "omplish/no-data-packages": ["error", { packages: ["drizzle-orm", "pg", "pg-boss"] }],
     },
   },
   {
     files: ["worker/**/*.{ts,tsx}"],
     rules: {
-      "opentask/no-data-packages": ["error", { packages: ["drizzle-orm", "pg"] }],
+      "omplish/no-data-packages": ["error", { packages: ["drizzle-orm", "pg"] }],
     },
   },
   {
@@ -90,7 +110,7 @@ export default defineConfig([
       "worker/**/*.{ts,tsx}",
     ],
     rules: {
-      "opentask/no-framework-packages": ["error", { packages: ["next", "react", "react-dom"] }],
+      "omplish/no-framework-packages": ["error", { packages: ["next", "react", "react-dom"] }],
     },
   },
   {

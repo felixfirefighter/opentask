@@ -10,6 +10,40 @@ Create one Railway project with:
 1. a web service connected to this repository root; and
 2. a Railway PostgreSQL service named `Postgres`.
 
+## Electron desktop release
+
+The desktop release is a separate local runtime, not a hosted deployment. Electron starts the bundled
+Next.js server and PostgreSQL process on loopback. It uses the same application routes, Better Auth
+session flow, Drizzle migrations, and feature modules as the web deployment.
+
+Use `pnpm electron:dist` after staging the target-specific runtime files described in
+`desktop/runtime/README.md`. Build Windows x64 and macOS x64/arm64 artifacts on their corresponding
+platforms or in a controlled cross-build pipeline. Do not make the installer depend on Docker,
+system PostgreSQL, system Node.js, or a first-run network download.
+
+The desktop package can operate fully without internet for identity, tasks, lists, search, schedules,
+planning views, and export. The OpenAI planner remains an optional provider and must display a disabled
+or unavailable state when no key or network is available. If native reminders are later added, use an
+OS notification provider for offline desktop reminders; Web Push is not an offline mechanism.
+
+## Public desktop prereleases
+
+`.github/workflows/publish-desktop.yml` runs after every push to `main` or `master`. It builds the
+macOS ARM64 DMG and Windows x64 NSIS installer on their native GitHub-hosted runners, downloads the
+pinned Node/PostgreSQL runtime archives recorded in `desktop/runtime/manifest.json`, validates their
+SHA-256 values, and runs the package audit plus the headless runtime smoke before publishing assets.
+
+Each successful commit receives a public prerelease tag in the form
+`v<package-version>-build.<GitHub-run-number>`, including `SHA256SUMS.txt`. This preserves a direct
+public download path without misrepresenting every main-branch commit as a stable semantic release.
+The workflow requires `contents: write` permission for its `GITHUB_TOKEN`; repository Actions settings
+must permit workflows to create releases.
+
+The generated installers are unsigned. Public users will receive Gatekeeper and SmartScreen warnings
+until a signed release workflow is configured with the Developer ID/notarization and Authenticode
+credentials described in [SETUP.md](SETUP.md#desktop-production-build). Do not designate an unsigned
+prerelease as the stable public release.
+
 The checked-in `railway.json` selects the production `Dockerfile`, runs committed Drizzle migrations as a pre-deploy command, probes `/api/health/ready`, and bounds crash retries. Railway supports these settings through [Config as Code](https://docs.railway.com/config-as-code/reference), and its pre-deploy container has private-network variables available before the new deployment starts.
 
 The current green fallback does not deploy its zero-job worker. After P6 is integrated, browser
@@ -27,13 +61,14 @@ BETTER_AUTH_SECRET=<output of: openssl rand -base64 32>
 BETTER_AUTH_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
 LOG_LEVEL=info
 OPENAI_API_KEY=<optional server-only key>
+OPENAI_API_KEY_ENCRYPTION_KEY=<optional separate key for encrypted Settings credentials>
 ```
 
 Use Railway's `DATABASE_URL` reference rather than the public database URL so web-to-database traffic stays on private networking. The reference syntax and Next.js/PostgreSQL workflow are documented by Railway's [variables reference](https://docs.railway.com/variables/reference) and [Next.js guide](https://docs.railway.com/guides/nextjs).
 
 Generate a public domain for the web service before the final deploy. If a custom domain replaces it, update `BETTER_AUTH_URL` to the exact HTTPS origin and redeploy. Do not prefix any secret with `NEXT_PUBLIC_`.
 
-Railway's edge overwrites `X-Real-IP`, which is the only client-address header OpenTask trusts for authentication and demo abuse-control buckets. Do not expose a second untrusted ingress directly to the container. Railway documents the header in its [public-networking specifications](https://docs.railway.com/networking/public-networking/specs-and-limits).
+Railway's edge overwrites `X-Real-IP`, which is the only client-address header Omplish trusts for authentication and demo abuse-control buckets. Do not expose a second untrusted ingress directly to the container. Railway documents the header in its [public-networking specifications](https://docs.railway.com/networking/public-networking/specs-and-limits).
 
 ## Cost controls
 
@@ -48,6 +83,6 @@ curl --fail --silent --show-error https://<candidate-host>/api/health/live
 curl --fail --silent --show-error https://<candidate-host>/api/health/ready
 ```
 
-Then complete [FRIEND_TEST.md](FRIEND_TEST.md) twice: once with `OPENAI_API_KEY` configured and once after confirming the no-key explanatory state in a separate local environment. Verify the landing and health endpoints signed out, demo reset twice, export/sign-out privacy, desktop 1440 px, and mobile 390 px.
+Then complete [FRIEND_TEST.md](FRIEND_TEST.md) twice: once with a provider configured and once after confirming the no-key explanatory state in a separate local environment. Verify direct launch/profile setup, workspace isolation, Settings key save/remove, reset confirmation, export privacy, desktop 1440 px, and mobile 390 px.
 
 Do not designate a friend candidate until migrations, health, demo isolation, G1–G4, and the release commit all refer to the same deployment.

@@ -14,7 +14,7 @@ const taskId = "20000000-0000-4000-8000-000000000001";
 const secondTaskId = "20000000-0000-4000-8000-000000000002";
 const listId = "30000000-0000-4000-8000-000000000001";
 
-const tasks: PlanningTaskSourceReader = { readOpenTasks: vi.fn() };
+const tasks: PlanningTaskSourceReader = { readOmplishs: vi.fn() };
 const timeZones: PlanningTimeZoneReader = { getSavedTimeZone: vi.fn() };
 const clock: Clock = { now: vi.fn() };
 
@@ -23,13 +23,13 @@ describe("planning projection application", () => {
     vi.resetAllMocks();
     vi.mocked(timeZones.getSavedTimeZone).mockResolvedValue("Asia/Singapore");
     vi.mocked(clock.now).mockReturnValue(new Date("2026-07-20T04:00:00Z"));
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue({ items: [], truncated: false });
+    vi.mocked(tasks.readOmplishs).mockResolvedValue({ items: [], truncated: false });
   });
 
   it("derives a DST-safe Today read and propagates source truncation", async () => {
     vi.mocked(timeZones.getSavedTimeZone).mockResolvedValue("America/New_York");
     vi.mocked(clock.now).mockReturnValue(new Date("2026-03-08T12:00:00Z"));
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue({
+    vi.mocked(tasks.readOmplishs).mockResolvedValue({
       items: [
         {
           task: canonicalTask(taskId),
@@ -41,7 +41,7 @@ describe("planning projection application", () => {
 
     const projection = await application().getToday(actor, { limit: 25 });
 
-    expect(tasks.readOpenTasks).toHaveBeenCalledWith(actor, {
+    expect(tasks.readOmplishs).toHaveBeenCalledWith(actor, {
       kind: "scheduled_through",
       exclusiveEndDate: "2026-03-09",
       exclusiveEndAt: "2026-03-09T04:00:00Z",
@@ -54,14 +54,14 @@ describe("planning projection application", () => {
 
   it("builds Upcoming from the canonical seven-local-day range", async () => {
     const schedule = timedSchedule(taskId, "2026-07-21T01:00:00Z", "2026-07-21T02:00:00Z", "Asia/Singapore");
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue({
+    vi.mocked(tasks.readOmplishs).mockResolvedValue({
       items: [{ task: canonicalTask(taskId), schedule }],
       truncated: false,
     });
 
     const projection = await application().getSmartDestination(actor, "upcoming", { limit: 50 });
 
-    expect(tasks.readOpenTasks).toHaveBeenCalledWith(actor, {
+    expect(tasks.readOmplishs).toHaveBeenCalledWith(actor, {
       kind: "scheduled_range",
       rangeStartDate: "2026-07-20",
       rangeEndDate: "2026-07-27",
@@ -73,7 +73,7 @@ describe("planning projection application", () => {
   });
 
   it("uses one bounded range contract for Calendar and Agenda", async () => {
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue({
+    vi.mocked(tasks.readOmplishs).mockResolvedValue({
       items: [
         {
           task: canonicalTask(taskId),
@@ -87,7 +87,7 @@ describe("planning projection application", () => {
     const calendar = await application().getCalendarRange(actor, query);
     const agenda = await application().getAgendaRange(actor, query);
 
-    expect(tasks.readOpenTasks).toHaveBeenNthCalledWith(1, actor, {
+    expect(tasks.readOmplishs).toHaveBeenNthCalledWith(1, actor, {
       kind: "scheduled_range",
       rangeStartDate: "2026-07-20",
       rangeEndDate: "2026-07-21",
@@ -102,20 +102,20 @@ describe("planning projection application", () => {
   });
 
   it("loads all open rows for Matrix and preserves unscheduled tasks", async () => {
-    vi.mocked(tasks.readOpenTasks).mockResolvedValue({
+    vi.mocked(tasks.readOmplishs).mockResolvedValue({
       items: [{ task: canonicalTask(taskId, { priority: "high" }), schedule: null }],
       truncated: true,
     });
 
     const projection = await application().getEisenhower(actor, { limit: 30 });
 
-    expect(tasks.readOpenTasks).toHaveBeenCalledWith(actor, { kind: "all_open", limit: 30 });
+    expect(tasks.readOmplishs).toHaveBeenCalledWith(actor, { kind: "all_open", limit: 30 });
     expect(projection.plan.map((task) => task.id)).toEqual([taskId]);
     expect(projection.truncated).toBe(true);
   });
 
   it("rejects duplicate, mismatched, and over-limit source pages", async () => {
-    vi.mocked(tasks.readOpenTasks).mockResolvedValueOnce({
+    vi.mocked(tasks.readOmplishs).mockResolvedValueOnce({
       items: [
         { task: canonicalTask(taskId), schedule: null },
         { task: canonicalTask(taskId), schedule: null },
@@ -124,7 +124,7 @@ describe("planning projection application", () => {
     });
     await expect(application().getEisenhower(actor)).rejects.toThrow("duplicate task");
 
-    vi.mocked(tasks.readOpenTasks).mockResolvedValueOnce({
+    vi.mocked(tasks.readOmplishs).mockResolvedValueOnce({
       items: [
         {
           task: canonicalTask(taskId),
@@ -135,7 +135,7 @@ describe("planning projection application", () => {
     });
     await expect(application().getToday(actor)).rejects.toThrow("wrong task");
 
-    vi.mocked(tasks.readOpenTasks).mockResolvedValueOnce({
+    vi.mocked(tasks.readOmplishs).mockResolvedValueOnce({
       items: [
         { task: canonicalTask(taskId), schedule: null },
         { task: canonicalTask(secondTaskId), schedule: null },
@@ -150,7 +150,7 @@ describe("planning projection application", () => {
   it("rejects an invalid injected timezone before reading tasks", async () => {
     vi.mocked(timeZones.getSavedTimeZone).mockResolvedValue("Mars/Olympus");
     await expect(application().getToday(actor)).rejects.toThrow();
-    expect(tasks.readOpenTasks).not.toHaveBeenCalled();
+    expect(tasks.readOmplishs).not.toHaveBeenCalled();
   });
 });
 

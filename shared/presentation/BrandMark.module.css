@@ -12,13 +12,23 @@
   height: 30px;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-card);
-  background: var(--brand);
-  color: var(--text-on-strong);
+}
+
+.mark img {
+  display: block;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.mark img.markCompact {
+  width: 26px;
+  height: 26px;
 }
 
 .wordmark {
   font-size: var(--type-section-title-size);
   font-weight: var(--type-section-title-weight);
   line-height: var(--type-section-title-line);
+  color: var(--brand);
 }

@@ -30,7 +30,6 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 ```text
 app/                     Next.js routes and composition only
 modules/                 Product feature modules
-  landing/                public landing presentation only
   identity/
   tasks/
   planning/
@@ -38,6 +37,8 @@ modules/                 Product feature modules
   focus/                  authoritative timer sessions and summaries
   notifications/          task reminders, push subscriptions, and delivery worker
   assistant/
+  companion/               Ameth progression, private summaries, and non-persistent chat
+  prompts/                 Level-3 reusable prompt library
   portability/
 shared/                  Approved stable cross-cutting surfaces
 worker/                  pg-boss runtime; zero-job baseline until P6 activates reminder jobs
@@ -53,22 +54,23 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 
 | Module | Owns | Contract |
 |---|---|---|
-| landing | public landing presentation and original product preview | `docs/modules/landing.md` |
-| identity | session context, user preferences, account bootstrap | `docs/modules/identity.md` |
+| identity | local profile setup, internal session context, user preferences, workspace bootstrap | `docs/modules/identity.md` |
 | tasks | folders, lists, sections, tasks, schedules, tags, checklist, search | `docs/modules/tasks.md` |
 | planning | smart views, calendar projections, Eisenhower rules, deterministic scheduler | `docs/modules/planning.md` |
 | habits | habit definitions, schedules, logs, Today/history/streak projections | `docs/modules/habits.md` |
 | focus | authoritative timer policy, completed sessions, and derived summaries | `docs/modules/focus.md` |
 | notifications | task reminders, push subscriptions, queue jobs, and Web Push delivery | `docs/modules/notifications.md` |
 | assistant | OpenAI adapter, extraction, planner proposals, review/apply | `docs/modules/assistant.md` |
+| companion | Ameth profile, XP ledger, behavior summaries, and companion interaction | `docs/modules/companion.md` |
+| prompts | user-owned standalone reusable prompts and prompt-local tags | `docs/modules/prompts.md` |
 | portability | versioned user export and future import adapters | `docs/modules/portability.md` |
 
 ## Approved shared surfaces
 
 - `shared/presentation`: shadcn primitives, generic layout primitives, generic hooks.
 - `shared/design`: tokens and theme plumbing.
-- `shared/auth`: provider-neutral actor/session contracts and authentication errors; no provider
-  implementation or feature authorization policies.
+- `shared/auth`: provider-neutral actor/session contracts and authorization errors; no provider
+  implementation or feature authorization policies. Credential entry is not a product surface.
 - `shared/db`: connection, transaction type, schema aggregation, and generic entity-ID generation
   only.
 - `shared/logging`: structured logger and redaction.
@@ -107,6 +109,9 @@ The bootstrap work package must create these stable commands; later agents use t
 | `pnpm verify` | full required local gate |
 | `pnpm check:secrets` | tracked and non-ignored repository-file secret-pattern scan |
 | `pnpm check:licenses` | reviewed production dependency-license inventory |
+| `pnpm electron:check-package` | unpacked desktop package content audit before signing |
+| `pnpm electron:runtime-smoke` | packaged runtime startup, migrations, local auth/session persistence, readiness, and shutdown smoke |
+| `pnpm electron:smoke` | native unpacked desktop startup, local-data, and graceful-shutdown smoke |
 
 ## Documentation maintenance
 

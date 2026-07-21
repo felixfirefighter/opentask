@@ -3,10 +3,18 @@ import { AuthenticationRequiredError } from "@/shared/auth/actor";
 import type { Database, DatabaseTransaction } from "@/shared/db/client";
 import { ApplicationError } from "@/shared/http/application-error";
 import type { Clock } from "@/shared/time/clock";
+import { Temporal } from "temporal-polyfill";
 
 import { createDemoDatasetSeeder, createInboxBootstrapPort } from "@/modules/tasks";
 
-import type { DemoDatasetSeeder, DemoEntryResult, InboxBootstrapPort } from "./contracts";
+import type {
+  CheckInMood,
+  DemoDatasetSeeder,
+  DemoEntryResult,
+  InboxBootstrapPort,
+  OnboardingGoal,
+  OnboardingState,
+} from "./contracts";
 import {
   defaultPreferenceDocument,
   preferenceDocumentSchema,
@@ -16,6 +24,7 @@ import {
   type UserPreferencesPatch,
 } from "./preferences-contract";
 import type { AuthRuntimeConfig } from "../infrastructure/auth-runtime-config";
+import { createAccountRepository } from "../infrastructure/account-repository";
 import { createAuthenticationGateway } from "../infrastructure/authentication-gateway";
 import { createDemoEntryLimiter } from "../infrastructure/demo-entry-limiter";
 import { createPreferencesRepository } from "../infrastructure/preferences-repository";
@@ -28,14 +37,21 @@ export function createIdentityApplication({
   authRuntime,
   inboxPort = createInboxBootstrapPort(database, clock),
   demoSeeder = createDefaultDemoSeeder(database, clock),
+  onDailyCheckin,
 }: {
   database: Database;
   clock: Clock;
   authRuntime: AuthRuntimeConfig;
   inboxPort?: InboxBootstrapPort;
   demoSeeder?: DemoDatasetSeeder;
+  onDailyCheckin?: (
+    actor: AuthenticatedActor,
+    localDate: string,
+    transaction: DatabaseTransaction,
+  ) => Promise<void>;
 }) {
   const preferencesRepository = createPreferencesRepository(clock);
+  const accountRepository = createAccountRepository(database);
 
   async function bootstrapAccount(userId: string, existingTransaction?: DatabaseTransaction): Promise<void> {
     const bootstrap = async (transaction: DatabaseTransaction) => {
@@ -75,6 +91,73 @@ export function createIdentityApplication({
     return mapPreferences(stored);
   }
 
+  async function getOnboardingState(actor: AuthenticatedActor): Promise<OnboardingState> {
+    const preferences = await getUserPreferences(actor);
+    const today = localDateForInstant(clock.now(), preferences.timezone);
+    return mapOnboardingState(preferences, today);
+  }
+
+  async function completeOnboarding(
+    actor: AuthenticatedActor,
+    goalsInput: readonly OnboardingGoal[],
+  ): Promise<OnboardingState> {
+    return database.transaction(async (transaction) => {
+      const stored = await preferencesRepository.findByUserId(transaction, actor.userId);
+      if (!stored) throw new Error("The authenticated account does not have preferences.");
+      const current = mapPreferences(stored);
+      const goals = preferenceDocumentSchema.shape.onboarding.shape.goals.parse(goalsInput);
+      const updated = await preferencesRepository.update(
+        transaction,
+        actor.userId,
+        current.version,
+        preferenceDocumentSchema.parse(
+          preferenceDocumentFor(current, {
+            ...current.onboarding,
+            complete: true,
+            completedAt: current.onboarding.completedAt ?? clock.now().toISOString(),
+            goals,
+          }),
+        ),
+        preferenceSchemaVersion,
+      );
+      if (!updated) throw preferenceConflict();
+      const preferences = mapPreferences(updated);
+      return mapOnboardingState(preferences, localDateForInstant(clock.now(), preferences.timezone));
+    });
+  }
+
+  async function recordCheckin(
+    actor: AuthenticatedActor,
+    mood: CheckInMood,
+    noteInput?: string,
+  ): Promise<OnboardingState> {
+    return database.transaction(async (transaction) => {
+      const stored = await preferencesRepository.findByUserId(transaction, actor.userId);
+      if (!stored) throw new Error("The authenticated account does not have preferences.");
+      const current = mapPreferences(stored);
+      if (!current.onboarding.complete)
+        throw new ApplicationError("CONFLICT", "Finish setup before checking in.");
+
+      const today = localDateForInstant(clock.now(), current.timezone);
+      const note = noteInput?.trim() || undefined;
+      const checkins = [
+        ...current.onboarding.checkins.filter((checkin) => checkin.date !== today),
+        ...(note ? [{ date: today, mood, note }] : [{ date: today, mood }]),
+      ].slice(-30);
+      const updated = await preferencesRepository.update(
+        transaction,
+        actor.userId,
+        current.version,
+        preferenceDocumentSchema.parse(preferenceDocumentFor(current, { ...current.onboarding, checkins })),
+        preferenceSchemaVersion,
+      );
+      if (!updated) throw preferenceConflict();
+      await onDailyCheckin?.(actor, today, transaction);
+      const preferences = mapPreferences(updated);
+      return mapOnboardingState(preferences, today);
+    });
+  }
+
   async function updateUserPreferences(
     actor: AuthenticatedActor,
     expectedVersion: number,
@@ -94,6 +177,7 @@ export function createIdentityApplication({
         hourCycle: patch.hourCycle ?? current.hourCycle,
         theme: patch.theme ?? current.theme,
         reducedMotion: patch.reducedMotion ?? current.reducedMotion,
+        onboarding: current.onboarding,
       });
       const updated = await preferencesRepository.update(
         transaction,
@@ -107,10 +191,19 @@ export function createIdentityApplication({
     });
   }
 
+  async function resetApp(actor: AuthenticatedActor): Promise<void> {
+    await accountRepository.deleteAccount(actor.userId);
+  }
+
   async function enterDemo(headers: Headers): Promise<DemoEntryResult> {
-    const clientAddress = authentication.findClientAddress(headers) ?? "unknown-client";
-    if (!(await demoEntryLimiter.consume(clientAddress))) {
-      throw new ApplicationError("RATE_LIMITED", "Try the demo again in about an hour.");
+    const clientAddress = authentication.findClientAddress(headers);
+    // A local browser normally has no proxy-provided client address. Do not make all local
+    // visitors share one five-attempt bucket; production still fails closed when the proxy
+    // address is missing.
+    if (clientAddress || process.env.NODE_ENV === "production") {
+      if (!(await demoEntryLimiter.consume(clientAddress ?? "unknown-client"))) {
+        throw new ApplicationError("RATE_LIMITED", "Try the demo again in about an hour.");
+      }
     }
 
     const current = await authentication.findSession(headers);
@@ -145,9 +238,13 @@ export function createIdentityApplication({
     bootstrapAccount,
     enterDemo,
     getOptionalSessionIdentity,
+    getOnboardingState,
     getUserPreferences,
+    completeOnboarding,
+    recordCheckin,
     handleAuthRequest: authentication.handle,
     resolveActor,
+    resetApp,
     security: authentication.security,
     updateUserPreferences,
   };
@@ -184,9 +281,34 @@ function mapPreferences(stored: StoredPreferences): UserPreferences {
   };
 }
 
+function preferenceDocumentFor(current: UserPreferences, onboarding: UserPreferences["onboarding"]) {
+  return {
+    timezone: current.timezone,
+    weekStart: current.weekStart,
+    hourCycle: current.hourCycle,
+    theme: current.theme,
+    reducedMotion: current.reducedMotion,
+    onboarding,
+  };
+}
+
 function preferenceConflict() {
   return new ApplicationError(
     "CONFLICT",
     "Settings changed elsewhere. Review the latest saved values before trying again.",
   );
+}
+
+function localDateForInstant(instant: Date, timeZone: string): string {
+  return Temporal.Instant.from(instant.toISOString()).toZonedDateTimeISO(timeZone).toPlainDate().toString();
+}
+
+function mapOnboardingState(preferences: UserPreferences, today: string): OnboardingState {
+  return {
+    complete: preferences.onboarding.complete,
+    completedAt: preferences.onboarding.completedAt,
+    goals: preferences.onboarding.goals as readonly OnboardingGoal[],
+    checkins: preferences.onboarding.checkins,
+    todayCheckin: preferences.onboarding.checkins.find((checkin) => checkin.date === today) ?? null,
+  };
 }

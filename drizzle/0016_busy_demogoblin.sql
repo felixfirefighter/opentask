@@ -1,0 +1,2 @@
+ALTER TABLE "companion_xp_events" DROP CONSTRAINT "companion_xp_events_action_type_check";--> statement-breakpoint
+ALTER TABLE "companion_xp_events" ADD CONSTRAINT "companion_xp_events_action_type_check" CHECK ("companion_xp_events"."action_type" in ('task_completed', 'planner_applied', 'daily_checkin', 'focus_completed'));

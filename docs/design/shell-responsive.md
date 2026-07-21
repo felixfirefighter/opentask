@@ -19,7 +19,8 @@ At 200% zoom, layouts must naturally collapse to the next appropriate shell rath
 
 The rail switches product modules, not individual lists. The current-core baseline contains the
 mark/home affordance, Today, Tasks, Calendar, and Plan. P3 adds Habits and P4 adds Focus only when
-their package routes are complete. A labeled account menu at the bottom owns Settings and Sign out.
+their package routes are complete. A labeled profile menu at the bottom owns Settings and local
+profile actions.
 Matrix remains available through context navigation and the command palette. Every icon has a
 tooltip and accessible name; the selected item uses icon plus selected surface and current-page
 semantics.
@@ -56,7 +57,7 @@ At 1280 px and wider, selecting a task opens a 360 px inspector without replacin
 
 - Bottom navigation contains Today, Tasks, Calendar, Plan, and More.
 - More opens a labeled sheet with Matrix, Upcoming, Completed/Cancelled, Habits after P3, Focus after
-  P4, settings, and sign out. Do not render dormant entries before their package gates.
+  P4, and settings. Do not render dormant entries before their package gates.
 - The selected tab uses icon, short label, and current-page semantics. Do not use icon-only mobile navigation.
 - The top bar contains the current destination, an optional back action, and no more than two context actions. Less common actions go in the overflow menu.
 - Opening a task navigates to a full-page detail route. Browser/system Back returns to the same list, range, scroll position, and focused row when possible.

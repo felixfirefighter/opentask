@@ -35,6 +35,9 @@ Own pure behavior close to its module:
 - Focus transition, accumulated-duration, reconstruction, and summary-window policies;
 - reminder eligibility, next-occurrence, idempotency, retry, and stale-job policies;
 - deterministic planner scheduling and strict versioned export/proposal contracts.
+- deterministic Ameth XP thresholds, source idempotency, user isolation, and companion-data deletion.
+- Level-3 Prompt Library unlock denial, same-user tag ownership, analysis no-save behavior, memory-cap eviction,
+  local-day daily-mode reset, and provider-disabled companion fallback.
 
 Freeze clocks, timezones, ranges, and ordering. No test may depend on the machine timezone, current
 date, random order, live model output, wall-clock timer ticks, or real push delivery.
@@ -73,11 +76,11 @@ evidence separate from presentation-clean comparison captures.
 
 ### G1 — First run and core task loop
 
-1. Create an account or enter a fresh isolated demo; Inbox/preferences exist.
+1. Enter a fresh isolated workspace through the profile setup dialog; Inbox/preferences exist.
 2. Contextually quick-add and inspect a task.
 3. Add priority, Markdown, tag, checklist item, subtask, organization, and schedule.
 4. Reorder through keyboard-accessible controls; search; complete/undo; cancel/restore.
-5. Sign out; protected data and export are unreachable.
+5. Clear the internal browser session; protected data and export require the direct-launch bootstrap.
 
 Forced: invalid input, stale update, atomic create/schedule failure, network/offline write, and User B
 guessing User A identifiers.
@@ -110,7 +113,7 @@ proposal, duplicate apply, and concurrent task change. Every pre-apply failure w
 1. Reset isolated demo twice without shared state.
 2. Export and validate the current versioned document.
 3. Lose connectivity in an open page; rendered data stays visible/read-only and writes are disabled.
-4. Sign out; private routes/export are inaccessible.
+4. Clear the internal browser session; private routes/export require the direct-launch bootstrap.
 5. Repeat local health, migration, demo, and critical paths in a clean browser.
 
 Forced: export failure, second-user fixture, database unavailable, missing providers, and duplicate
@@ -171,6 +174,26 @@ Forced: cache update/removal, no authenticated content in Cache Storage, unsuppo
 4. Exercise production build/Compose health and clean SIGTERM shutdown.
 5. Re-run in a clean signed-out browser and prepare only verified screenshots/video claims.
 
+### G10 — Electron desktop release
+
+1. On each supported target, install from a clean machine with no Docker, system Node/PostgreSQL,
+   package manager, or internet connection.
+2. Start the app twice, verify single-instance behavior, local database initialization, migrations,
+   stable auth secret, loopback binding, and data under OS application data.
+3. Complete representative manual G1–G4 workflows while offline; verify AI is visibly degraded but
+   does not block manual work.
+4. Upgrade from a previous fixture database, confirm migrations are applied safely, then close the
+   app and verify PostgreSQL/Next child processes terminate cleanly.
+5. Inspect the unpacked package for runtime binaries, source/version checksums, license notices,
+   signing/notarization metadata, and absence of secrets or development services.
+6. Run `pnpm electron:runtime-smoke -- --app-dir <unpacked-app>` in the release environment, then run
+   `pnpm electron:smoke -- --app-dir <unpacked-app>` from the interactive native desktop session and
+   retain both JSON results plus the platform signing verification output.
+
+Forced: missing runtime artifact, occupied loopback port, malformed local database, migration failure,
+crash during startup/shutdown, second-instance launch, read-only install directory, no OpenAI key,
+offline AI request, and attempted remote navigation from the renderer.
+
 ## Package acceptance evidence
 
 | Package | Required evidence |
@@ -184,12 +207,13 @@ Forced: cache update/removal, no authenticated content in Cache Storage, unsuppo
 | P5 | install/cache/fallback/privacy/offline-write audit |
 | P6 | G8 push half + reminder migration/encryption/idempotency/provider/worker suites |
 | P7 | G9 + expanded export/demo/fresh-clone/full audits |
+| P8 | G10 + Windows/macOS installer/runtime/signing/offline/upgrade evidence |
 
 ## Candidate gates
 
 ### Visual-proof gate
 
-P0 broad rollout is blocked until the user approves deterministic Landing, Today, Calendar, task
+P0 broad rollout is blocked until the user approves deterministic App launch, Today, Calendar, task
 detail, and populated AI Review evidence. Required light captures are 1440 and 390; include
 representative dark and 768/320 boundary evidence. A requested revision is work, not approval.
 
@@ -237,12 +261,12 @@ Failure: bypassed layer, ambiguous ownership, duplicate rule, shared feature wid
 Failure: synonymous fact, missing constraint/index/tenant key, unreviewed migration, or projection
 persisted as truth.
 
-### 4. Authentication and authorization
+### 4. Entry and authorization
 
-- Test unauthenticated and cross-user access to identity, all task/occurrence, habit/log, Focus,
-  reminder/subscription, proposal, demo, and export surfaces.
-- Review cookies, exact origin/CSRF, rate limits, sign-out/demo-reset cache clearing, push enrollment,
-  and existence-safe errors.
+- Test local profile bootstrap and cross-user access to identity, all task/occurrence, habit/log,
+  Focus, reminder/subscription, proposal, demo, and export surfaces.
+- Review internal session cookies, exact origin/CSRF, rate limits, workspace bootstrap cache behavior,
+  push enrollment, and existence-safe errors.
 
 Failure: horizontal/vertical access, shared demo/cache leak, cookie-only authorization, or endpoint
 existence disclosure.
@@ -321,8 +345,8 @@ Do not downgrade because time is short. A cut requires the five-part user-author
 
 ## Final sign-off
 
-The auditor reports release commit/environment, exact commands/results, LF00 and P0–P7 evidence,
-G1–G9 at required widths, visual approvals, migration/worker/PWA/provider smokes, all ten audit
+The auditor reports release commit/environment, exact commands/results, LF00 and P0–P8 evidence,
+G1–G10 at required widths, visual approvals, migration/worker/PWA/provider smokes, all ten audit
 results, dependency/font/asset licenses, and contract-permitted limitations.
 
 Sign-off is denied for any blocker/critical defect, failed required command, unmapped acceptance,

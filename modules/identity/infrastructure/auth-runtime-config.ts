@@ -6,7 +6,7 @@ export type AuthRuntimeConfig = Readonly<{
   secureCookies: boolean;
 }>;
 
-const developmentSecret = "opentask-local-development-only-auth-secret";
+const developmentSecret = "omplish-local-development-only-auth-secret";
 
 export function resolveAuthRuntimeConfig(environment: Environment): AuthRuntimeConfig {
   const missing = [];

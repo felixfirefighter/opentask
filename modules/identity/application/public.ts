@@ -1,13 +1,25 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
+import { awardCompanionXp } from "@/modules/companion";
 
 import { createIdentityApplication } from "./identity-application";
+import type { OnboardingGoal } from "./contracts";
+import { preferenceDocumentSchema } from "./preferences-contract";
 import type { UserPreferencesPatch } from "./preferences-contract";
 import { getProductionIdentityDependencies } from "../infrastructure/production-dependencies";
 
 let application: ReturnType<typeof createIdentityApplication> | undefined;
 
 function getApplication() {
-  application ??= createIdentityApplication(getProductionIdentityDependencies());
+  application ??= createIdentityApplication({
+    ...getProductionIdentityDependencies(),
+    onDailyCheckin: async (actor, localDate, transaction) => {
+      await awardCompanionXp(
+        actor,
+        { actionType: "daily_checkin", sourceKey: `checkin:${localDate}`, xp: 10 },
+        transaction,
+      );
+    },
+  });
   return application;
 }
 
@@ -33,12 +45,35 @@ export function getUserPreferences(actor: AuthenticatedActor) {
   return getApplication().getUserPreferences(actor);
 }
 
+export function getOnboardingState(actor: AuthenticatedActor) {
+  return getApplication().getOnboardingState(actor);
+}
+
+export function completeOnboarding(actor: AuthenticatedActor, goalsInput: readonly string[]) {
+  const goals = preferenceDocumentSchema.shape.onboarding.shape.goals.parse(
+    goalsInput,
+  ) as readonly OnboardingGoal[];
+  return getApplication().completeOnboarding(actor, goals);
+}
+
+export function recordCheckin(
+  actor: AuthenticatedActor,
+  mood: "good" | "tired" | "heavy" | "ready",
+  note?: string,
+) {
+  return getApplication().recordCheckin(actor, mood, note);
+}
+
 export function handleAuthRequest(request: Request) {
   return getApplication().handleAuthRequest(request);
 }
 
 export function resolveActor(headers: Headers) {
   return getApplication().resolveActor(headers);
+}
+
+export function resetApp(actor: AuthenticatedActor) {
+  return getApplication().resetApp(actor);
 }
 
 export function updateUserPreferences(

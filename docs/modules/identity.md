@@ -1,71 +1,83 @@
 # Identity module contract
 
-`modules/identity` owns account bootstrap and user-level preferences. Better Auth owns credential and session mechanics; feature modules remain responsible for authorization of their records.
+`modules/identity` owns local profile setup, internal workspace bootstrap, server session context, and
+user-level preferences. Credential entry is not a product surface. The internal session exists only
+to preserve server-side ownership and authorization for the current PostgreSQL-backed workflows.
 
 ## Responsibilities
 
-- Mount and configure Better Auth for email/password sign-up, sign-in, sign-out, database sessions, and protected request context.
-- Atomically bootstrap one personal Inbox and one preferences row for a newly created user.
-- Read and update timezone, week start, hour cycle, theme, and reduced-motion preferences.
-- Create or reset an isolated demo user dataset through injected module seed/reset ports; never expose shared credentials.
+- Render the direct-launch profile setup dialog and cache one validated username in browser local
+  storage. The cached value is a display preference, not an authentication credential.
+- Run the scripted first-run onboarding and the returning-user check-in gate before opening Today.
+- Persist onboarding completion, selected goals, and at most one daily check-in through the versioned
+  preferences document; the local username remains browser-only.
+- Bootstrap an isolated workspace through the existing server-side session boundary without asking
+  the user to create an account, sign in, or sign out.
+- Resolve the internal provider-neutral actor for protected application routes and APIs.
+- Atomically bootstrap one personal Inbox and one preferences row for a workspace actor.
+- Apply the browser-detected system timezone and read/update week start, hour cycle, theme, and
+  reduced-motion preferences.
+- Reset the current profile/workspace account transactionally so the next direct launch starts at
+  profile setup again.
 
 ## Owned persistence
 
-- Better Auth-managed `user`, `session`, `account`, `verification`, and rate-limit tables.
+- Internal session/account tables remain an implementation detail of the current workspace bootstrap.
 - `user_preferences`.
 
-Product fields and domain permissions do not belong in Better Auth tables.
+The locally cached profile username is browser state and must not be persisted as a replacement user
+identity or copied into the server auth tables.
 
 ## Public use cases and contracts
 
-- `bootstrapAccount(userId)` opens one transaction, creates preferences, and calls the tasks
-  Inbox-bootstrap port inside it. The private application factory may reuse an existing transaction
-  when Better Auth creates an account.
-- `getUserPreferences(actor)` returns the canonical, schema-versioned preferences DTO.
-- `updateUserPreferences(actor, expectedVersion, patch)` validates and updates preferences once.
-- `enterDemo(headers)` creates or resets an isolated demo identity after the route has validated the
-  request, then restores canonical preferences and delegates domain seeding through
-  `DemoDatasetSeeder` in one transaction. The seeder accepts that transaction; the default adapter
-  resets planner proposals and the task dataset without opening a nested transaction.
-- `getIdentityRequestSecurity()` exposes the configured trusted browser origin without leaking
-  provider configuration or secrets.
-- Public contracts: `AuthenticatedActor`, `UserPreferences`, `UserPreferencesPatch`, `InboxBootstrapPort`, and `DemoDatasetSeeder`.
-
-Request/session extraction is exposed through the identity module's root application surface and
-returns the provider-neutral contract from `shared/auth`; it must not expose Better Auth row or token
-types.
+- `getOptionalSessionIdentity(headers)` resolves the internal session, if present.
+- `resolveActor(headers)` returns the provider-neutral actor for protected application work.
+- `bootstrapAccount(userId)` opens one transaction, creates preferences, and calls the tasks Inbox
+  bootstrap port inside it.
+- `enterDemo(headers)` is the internal isolated-workspace bootstrap used by the direct-launch flow.
+- `getUserPreferences(actor)` and `updateUserPreferences(actor, expectedVersion, patch)` own the
+  canonical preferences contract.
+- `getOnboardingState(actor)`, `completeOnboarding(actor, goals)`, and `recordCheckin(actor, mood, note)`
+  own onboarding state transitions.
+- `getIdentityRequestSecurity()` exposes only trusted-origin configuration needed by the bootstrap
+  route.
 
 ## Invariants
 
-- A user has exactly one `user_preferences` row and exactly one active Inbox after bootstrap.
+- A locally cached username is trimmed, non-empty, limited to 64 characters, and never treated as an
+  authorization claim.
+- The direct-launch flow stores the username locally only after the server workspace bootstrap
+  succeeds.
+- An internal workspace actor has exactly one preferences row and exactly one active Inbox after
+  bootstrap.
+- The authenticated browser synchronizes its canonical IANA system timezone to the preferences row;
+  a missing or unsupported browser timezone never blocks workspace startup.
 - Inbox and preferences creation either both commit or both roll back.
-- Timezone is a valid IANA name; week start, hour cycle, theme, and reduced-motion values are closed enums/booleans from the canonical Zod schema.
-- An accepted preference mutation checks ownership and `version`, then increments `version` exactly once.
-- A demo reset restores `defaultPreferenceDocument` and increments the current preference version
-  exactly once; it never rewinds or bypasses optimistic version history.
-- An unauthenticated actor cannot read or mutate domain data.
-- Demo data is owned by its isolated demo user and reset cannot touch any other user.
-- Demo preference, planner-proposal, and task-dataset resets commit or roll back together.
-- Auth and demo abuse controls derive the client address from the same `X-Real-IP` policy. Production
-  ingress must overwrite that header and prevent direct origin access; an unresolved address uses a
-  shared fallback bucket.
+- An unauthenticated internal actor cannot read or mutate domain data; a browser-local username never
+  bypasses this rule.
+- Demo/workspace data remains isolated by its server actor and reset cannot touch another actor.
+- Reset deletes only the authenticated actor's account; foreign actors and server-level configuration
+  remain untouched.
 
 ## Dependencies
 
-- Better Auth and its Drizzle adapter.
+- Better Auth and its Drizzle adapter as an internal server-session implementation only.
 - `shared/auth`, `shared/db`, `shared/logging`, `shared/time`, and `shared/validation`.
-- Narrow injected Inbox-bootstrap and demo-dataset ports; identity does not deep-import feature repositories.
+- Narrow injected Inbox-bootstrap and demo-dataset ports; identity does not deep-import feature
+  repositories.
 
 ## Non-responsibilities
 
+- Public account creation, sign-in, sign-out, password forms, email verification, password reset,
+  social login, passkeys, MFA, billing, collaboration, memberships, or workspaces.
 - Task/list authorization or persistence beyond coordinating Inbox bootstrap.
-- Social login, email verification, password-reset email, passkeys, multi-factor authentication, collaboration, memberships, or workspaces.
 - Domain seed implementation for tasks or planner proposals.
 
 ## Required tests
 
-- Sign-up/sign-in/sign-out and protected-route integration tests.
-- Fresh-account transaction test proving Inbox and preferences are both present or both absent.
-- Preference schema, IANA timezone, optimistic-conflict, and cross-user denial tests.
-- Better Auth rate-limit and secure-cookie production-configuration tests.
-- Demo creation/reset isolation and idempotent seed tests.
+- Direct-launch username validation, local-storage persistence, bootstrap success/error, and offline
+  behavior tests.
+- Protected-route fallback to direct launch and safe resume intent.
+- Internal session and cross-user authorization tests for every protected API remain required even
+  though credential entry is not exposed.
+- Fresh-workspace transaction, preference schema/conflict, and demo isolation tests.

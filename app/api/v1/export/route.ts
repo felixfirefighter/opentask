@@ -20,7 +20,7 @@ export function GET(request: Request): Promise<Response> {
         "content-type": "application/json; charset=utf-8",
         pragma: "no-cache",
         "x-content-type-options": "nosniff",
-        "x-opentask-export-schema-version": String(envelope.schemaVersion),
+        "x-omplish-export-schema-version": String(envelope.schemaVersion),
       },
     });
   });

@@ -17,11 +17,16 @@ flowchart LR
     APP --> OAI["Optional OpenAI adapter"]
     APP --> PUSH["Optional Web Push adapter"]
     PUSH --> BROWSER
+    ELECTRON["Electron shell"] --> LOCALNEXT["Loopback Next.js process"]
+    ELECTRON --> LOCALPG["Per-user PostgreSQL process"]
+    LOCALNEXT --> APP
+    LOCALPG --> PG
 ```
 
 This is the target Local-first Full Release topology. The product remains one modular TypeScript
-application with a Next.js web process and PostgreSQL as the self-host baseline. P5 adds only the
-installable static shell boundary. Through P5, the existing worker entry point remains a zero-job
+application with a Next.js web process and PostgreSQL as the self-host baseline. The Electron shell
+is a packaging and process-supervision boundary around that same process and database; it adds no
+domain or API implementation. P5 adds only the browser installable static shell boundary. Through P5, the existing worker entry point remains a zero-job
 architecture smoke; P6 alone activates it for notification jobs and Web Push delivery. OpenAI,
 browser push support, VAPID configuration, and a running reminder worker are optional capabilities:
 their absence must not prevent manual tasks, planning, recurrence, habits, Focus, export, or web
@@ -89,6 +94,9 @@ Time is a product invariant, not a formatting detail.
 - A task schedule is either all-day or timed; database constraints prevent mixed representations.
 - A task's derived due boundary is timed `end_at`, or the exclusive all-day `end_date` interpreted at midnight in the user's saved IANA timezone. Matrix/overdue queries compute it; no `due_at` or deadline duplicate is stored.
 - Smart-list boundaries use the user's saved timezone.
+- The authenticated browser detects its system IANA timezone and synchronizes that value to the
+  saved preference before refreshing server-rendered projections; synchronization failure leaves
+  the workspace usable with its last saved value.
 - Presentation formatting uses the user's week start and hour-cycle preferences.
 - Recurrence is anchored to the canonical all-day or timed task schedule and expands to deterministic
   occurrence identities inside a caller-supplied bounded range.
@@ -115,9 +123,36 @@ Domain tests must cover spring-forward/fall-back behavior for at least one repre
   notifications never write task schedule, recurrence, or status tables.
 - PWA manifest, registration, update state, and content-free offline fallback are presentation/static
   infrastructure, not a domain module or a synchronization layer.
+- `electron/` owns desktop process supervision, window security, runtime discovery, and packaging
+  composition. It may start the existing Next.js server and PostgreSQL runtime only through explicit
+  process boundaries; it may not import Drizzle repositories, feature application services, or React
+  components.
+- The Electron main process is ESM, while the sandboxed preload is deliberately compiled as CommonJS
+  `.cjs`; sandboxed preloads do not execute in an ESM context. The preload exposes only the minimal
+  context-isolated desktop marker.
+- Desktop local writes are ordinary authenticated application writes to the per-user local database.
+  They are not queued, replicated, or merged with another device.
 
 These boundaries authorize only the capabilities listed in `docs/SCOPE.md`. Stage A-D remain later
 roadmap context and contribute no dormant route, table, provider, or framework to this release.
+
+## Ameth Companion architecture
+
+`modules/companion` owns the user-scoped profile, append-only XP ledger, versioned derived behavior
+summary, explicit memory cards, and the presentation/API contracts for Ameth. It has no raw conversation store. Source
+modules award XP through its narrow application contract inside their transaction; a unique
+`(user_id, action_type, source_key)` ledger constraint makes retries harmless. The module may only
+read feature facts through public application readers. Chat is advisory: it can hand users to Plan,
+but it cannot issue task mutations or bypass proposal review/apply.
+
+No third-party behavioral analytics are permitted. Derived summaries are readable, rebuildable,
+deletable, and included only in the authenticated private export. Provider absence gives a scripted,
+honest companion response while XP and local summaries remain available.
+
+`modules/prompts` owns only the Level-3 reusable prompt library. It depends on the companion public
+unlock contract, while companion never depends on prompts. Prompt analysis is an explicit assistant
+request, uses `store: false`, returns reviewable metadata only, and cannot save or modify a prompt.
+Prompt tags carry the owning user ID and a composite foreign key to the same-user prompt.
 
 ## AI planner architecture
 

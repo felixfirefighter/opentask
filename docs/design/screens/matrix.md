@@ -50,7 +50,7 @@ Changing priority or schedule may move a row to a different quadrant after serve
 | Loading | Preserve the 2 by 2/stacked geometry with row skeletons and one page status. Do not show temporary zero counts. |
 | Error | Keep safe cached classifications labeled stale, show Retry, and avoid placing partially loaded tasks into a guessed quadrant. Failed mutation restores the row to its authoritative region. |
 | Offline | Loaded quadrants remain visible and read-only under the global banner. Disable status, priority, and schedule mutations; navigation/details may remain available. |
-| Permission | Unauthenticated access routes to sign-in. Removed/foreign task records disappear without metadata; direct task access uses the generic unavailable state. |
+| Permission | Missing internal session routes to direct app launch. Removed/foreign task records disappear without metadata; direct task access uses the generic unavailable state. |
 | Conflict | Restore the current server-derived quadrant, identify the task as changed elsewhere, and offer Open details. Do not preserve a stale visual classification. |
 
 ## Keyboard, touch, and accessibility

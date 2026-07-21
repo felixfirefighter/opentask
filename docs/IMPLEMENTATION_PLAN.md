@@ -18,7 +18,7 @@ sequence; Git retains that history.
   stable core rather than a mixed design or partial feature.
 
 The full plan is much larger than the remaining hackathon window. Estimated implementation is
-**156–240 serial engineering hours**, or roughly **78–110 elapsed hours** with four carefully
+**176–272 serial engineering hours**, or roughly **88–125 elapsed hours** with four carefully
 partitioned agents, excluding user-approval and external-provider latency. Overnight work can make
 meaningful progress but cannot make this entire contract deadline-safe. No estimate weakens a gate.
 
@@ -42,7 +42,19 @@ flowchart LR
     P4 --> P7
     P5 --> P7
     P6 --> P7
+    P7 --> P8["P8: Electron desktop local runtime"]
 ```
+
+## A0 — Ameth Companion (user-authorized priority package)
+
+Before resuming P0–P8, add `modules/companion` with its reviewed profile/XP/summary migration,
+authenticated API contracts, private export integration, and global responsive presentation surface.
+The package awards deterministic XP from source-module transactions; it never gates a manual workflow,
+persists raw chat, or bypasses the planner review/apply boundary. Avatar assets are supplied at
+`public/ameth/level-{1,2,3}.webp`; a token-backed fallback is required until those assets exist.
+
+Gate: migration/ownership/idempotency tests; provider-absent/no-mutation chat tests; shell keyboard,
+touch, reduced-motion, and responsive evidence; export/privacy checks; `pnpm verify`.
 
 P2, P3, and P5 may run in parallel only after P1 freezes their public contracts. P4 may begin pure
 domain work after the Habits ownership-validator contract freezes. P6 waits for recurrence and the
@@ -88,7 +100,7 @@ Planning and current-truth repair only. Do not add product code, dependency, rou
 
 - Apply the five-part user-authorized scope change across `AGENTS.md`, scope, goal, plan,
   architecture, stack, data, module, design, quality, setup, and manifest contracts.
-- Promote only P0–P7. Keep Stage A–D explicit and non-active.
+- Promote only P0–P8. Keep Stage A–D explicit and non-active.
 - Define local/self-host completion and remove hosted deployment as a goal prerequisite without
   deleting optional deployment guidance.
 - Preserve the current green candidate as the rollback/submission fallback and confirm repository,
@@ -101,7 +113,7 @@ Planning and current-truth repair only. Do not add product code, dependency, rou
 - Documentation links and manifest routing resolve; no status diary was added.
 - `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm check:design`, and existing focused core
   tests pass; run `pnpm verify` when PostgreSQL/browser prerequisites are available.
-- No P0–P7 production implementation appears in the LF00 diff.
+- No P0–P8 production implementation appears in the LF00 diff.
 
 ## P0 — Editorial Focus visual-system migration (24–40 serial hours; 14–22 elapsed)
 
@@ -115,7 +127,7 @@ pinned research source through the application contract in `docs/design/editoria
 
 Deliverables:
 
-- Capture the current Landing, Today, Calendar, task-detail, and populated AI Review baselines before
+- Capture the current App launch, Today, Calendar, task-detail, and populated AI Review baselines before
   changing executable tokens.
 - Finalize original light/dark semantic tokens, contrast pairs, type scale, density, radii,
   elevation, focus, and motion in docs, CSS, and computed design tests together.
@@ -144,7 +156,7 @@ Gate:
 
 After the shared foundation freezes, run three non-overlapping presentation lanes:
 
-1. Landing, authentication, Settings, loading/offline surfaces, and responsive shell.
+1. Direct app launch, local profile setup, Settings, loading/offline surfaces, and responsive shell.
 2. Task navigation, rows, quick add, details, editors, overlays, dialogs, and every task state.
 3. Today/Upcoming, Calendar, Matrix, and planner Describe/Processing/Review/Result states.
 
@@ -190,7 +202,7 @@ schema/control may appear.
 ### Gate
 
 - Focused domain/application/component/API/database tests for atomicity, ownership, idempotency,
-  stale versions, midnight/timezone changes, query freshness, and origin policy.
+  stale versions, midnight/system-timezone changes, query freshness, and origin policy.
 - G1–G4 and forced variants at desktop/mobile, no-key workflow, affected a11y/design checks.
 - `pnpm verify`; no extension table/dependency/route/control exists.
 
@@ -403,18 +415,53 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
   and dead-code audits in `docs/QUALITY.md`.
 - `pnpm verify:design`, `pnpm verify`, production Compose smoke, and exact final diff review.
 
+## P8 — Electron desktop local runtime and installer audit (20–32 serial hours)
+
+### Deliverables
+
+- Electron main/preload process with context isolation, sandboxed renderer, single-instance locking,
+  trusted-origin navigation, and graceful child-process shutdown.
+- Development command using the existing Docker PostgreSQL path and production command using the
+  verified Next standalone Webpack output, staged target-specific Node 24 and complete relocatable
+  PostgreSQL 17 runtime trees, and `electron-builder`.
+- Per-user runtime directory, stable instance secret, loopback random port, first-run database
+  initialization, committed migration execution, readiness wait, and upgrade behavior.
+- Windows NSIS and macOS DMG configuration for x64/arm64 targets, plus runtime source/version,
+  checksum/license inventory and signing/notarization release instructions.
+- Clean-machine/offline/manual-core/AI-degraded/second-instance/child-shutdown smoke evidence for
+  every shipped target. No remote sync or second application/database implementation.
+
+### Dependencies and risk
+
+- Depends on the existing Next standalone build, migration script, identity configuration, and P7
+  release/export contracts. It does not add tables or change domain/application ownership.
+- Native PostgreSQL distribution source, platform signing credentials, and cross-platform build
+  agents are external release inputs. They must be selected and recorded before a production installer
+  is designated valid.
+- AI key setup for packaged users remains a product decision: environment injection is sufficient for
+  development, but a production settings/keychain flow is required if end users must configure a key
+  without editing files.
+
+### Gate
+
+- `tsc -p tsconfig.electron.json`, lint, standalone Next build, runtime-artifact check, unpacked
+  Electron launch, clean-machine target smoke, migration upgrade, process shutdown, and installer
+  signing/notarization evidence all pass. Missing binaries or an unverified build is a blocker, not a
+  documented success.
+
 ## Traceability
 
 | Active capability | Package | Primary evidence |
 |---|---|---|
 | Editorial Focus | P0 | approved proof/final screenshots + design/a11y gates |
-| Existing identity/tasks/planning/AI | P1 | G1–G4 + authorization/atomicity/freshness tests |
+| Existing local-profile/tasks/planning/AI | P1 | G1–G4 + authorization/atomicity/freshness tests |
 | Recurrence/occurrences | P2 | recurrence golden path + range/DST/ownership suites |
 | Habits | P3 | Habits golden path + log/streak/time suites |
 | Focus | P4 | Focus golden path + state/race/clock suites |
 | Installable shell | P5 | manifest/cache/offline fallback audit |
 | Browser reminder/worker | P6 | reminder/push golden path + idempotency/provider suites |
 | Export/demo/local release | P7 | expanded export + fresh-clone/Compose/full audit |
+| Electron desktop local runtime | P8 | G10 + clean-machine/offline/upgrade/runtime/signing audit |
 
 ## Risk and cut rules
 
@@ -426,6 +473,8 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 | Browser/Docker resource pressure | keep coding lanes active but run heavy environment gates centrally and one at a time |
 | New package is not fully green before submission work | retain the stable core candidate; do not merge a partial redesign/feature |
 | External OpenAI/VAPID/browser permission is absent | keep fixture/provider-degraded paths green and report the exact manual smoke blocker |
+| Native runtime source/checksum/license or signing input is unresolved | do not designate an installer production-ready; keep the unpacked development/runtime work isolated |
+| Desktop AI key configuration is not implemented | document environment-only development access; do not claim packaged-user key management is complete |
 | Time pressure suggests a feature cut | request user approval for whole packages in reverse dependency order; update all five scope-change surfaces |
 | Later-scope code/control/table/dependency appears | remove it before integration regardless of time already spent |
 
@@ -435,6 +484,6 @@ replace the existing coherent design.
 
 ## Plan completion
 
-This plan is complete only when `docs/GOAL.md`, every active acceptance criterion, and the final P7
+This plan is complete only when `docs/GOAL.md`, every active acceptance criterion, and the final P8
 gate are satisfied. A timebox, overnight run, deadline, screenshot, agent count, or unavailable
 external provider cannot convert skipped or failing evidence into completion.

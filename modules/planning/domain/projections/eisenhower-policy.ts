@@ -1,5 +1,5 @@
 import { dueBoundary, instantEpochNanoseconds } from "./local-time-policy";
-import { activeOpenTasks, type OpenProjectionTask, type ProjectionSourceTask } from "./projection-model";
+import { activeOmplishs, type OpenProjectionTask, type ProjectionSourceTask } from "./projection-model";
 import { compareByDueBoundary } from "./task-ordering";
 
 const NEXT_24_HOURS_NANOSECONDS = 24n * 60n * 60n * 1_000_000_000n;
@@ -23,7 +23,7 @@ export function projectEisenhower(
   const timeSensitive: OpenProjectionTask[] = [];
   const later: OpenProjectionTask[] = [];
 
-  for (const task of activeOpenTasks(rows)) {
+  for (const task of activeOmplishs(rows)) {
     const important = task.priority === "high";
     const due = task.schedule === null ? null : dueBoundary(task.schedule, input.timeZone);
     const urgent = due !== null && due <= urgentThrough;

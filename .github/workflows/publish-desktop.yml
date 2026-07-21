@@ -1,0 +1,161 @@
+name: Publish desktop builds
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS ARM64 DMG
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.1
+      - name: Enable pinned pnpm
+        run: corepack enable && corepack prepare pnpm@11.14.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Stage pinned desktop runtime
+        shell: bash
+        env:
+          RUNTIME_ENV: ${{ runner.temp }}/desktop-runtime.env
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from "node:fs";
+
+          const runtime = JSON.parse(readFileSync("desktop/runtime/manifest.json", "utf8")).targets["macos-arm64"];
+          const values = {
+            NODE_URL: runtime.node.sourceUrl,
+            NODE_SHA256: runtime.node.archiveSha256,
+            NODE_VERSION: runtime.node.version,
+            POSTGRES_URL: runtime.postgres.sourceUrl,
+            POSTGRES_SHA256: runtime.postgres.archiveSha256,
+            POSTGRES_VERSION: runtime.postgres.version,
+          };
+          appendFileSync(process.env.RUNTIME_ENV, `${Object.entries(values).map(([key, value]) => `${key}=${value}`).join("\n")}\n`);
+          NODE
+
+          set -a
+          source "$RUNTIME_ENV"
+          set +a
+          workspace="$RUNNER_TEMP/desktop-runtime"
+          mkdir -p "$workspace/node" "$workspace/postgres"
+          node_archive="$workspace/node.tar.gz"
+          postgres_archive="$workspace/postgres.zip"
+          curl --fail --location --retry 3 --retry-delay 2 --output "$node_archive" "$NODE_URL"
+          curl --fail --location --retry 3 --retry-delay 2 --output "$postgres_archive" "$POSTGRES_URL"
+          echo "$NODE_SHA256  $node_archive" | shasum -a 256 --check --strict
+          echo "$POSTGRES_SHA256  $postgres_archive" | shasum -a 256 --check --strict
+          tar -xzf "$node_archive" -C "$workspace/node"
+          unzip -q "$postgres_archive" -d "$workspace/postgres"
+          node_directory="$(dirname "$(find "$workspace/node" -type f -path '*/bin/node' -print -quit)")"
+          postgres_binary="$(find "$workspace/postgres" -type f -path '*/bin/postgres' -print -quit)"
+          postgres_directory="$(dirname "$(dirname "$postgres_binary")")"
+          pnpm electron:stage-runtime -- \
+            --target macos-arm64 \
+            --node "$node_directory" \
+            --node-archive "$node_archive" \
+            --node-version "$NODE_VERSION" \
+            --node-source-url "$NODE_URL" \
+            --postgres "$postgres_directory" \
+            --postgres-archive "$postgres_archive" \
+            --postgres-version "$POSTGRES_VERSION" \
+            --postgres-source-url "$POSTGRES_URL"
+      - name: Build installer
+        run: ELECTRON_DESKTOP_TARGET=macos-arm64 pnpm electron:dist -- --mac --arm64
+      - name: Audit packaged runtime
+        run: |
+          pnpm electron:check-package -- --app-dir release/mac-arm64/Omplish.app --target macos-arm64
+          pnpm electron:runtime-smoke -- --app-dir release/mac-arm64/Omplish.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-arm64
+          path: release/Omplish-*-macOS-arm64.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+  build-windows:
+    name: Build Windows x64 EXE
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.1
+      - name: Enable pinned pnpm
+        shell: pwsh
+        run: corepack enable; corepack prepare pnpm@11.14.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Stage pinned desktop runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $runtime = (Get-Content desktop/runtime/manifest.json -Raw | ConvertFrom-Json).targets.'windows-x64'
+          $workspace = Join-Path $env:RUNNER_TEMP "desktop-runtime"
+          $nodeArchive = Join-Path $workspace "node.zip"
+          $postgresArchive = Join-Path $workspace "postgres.zip"
+          New-Item -ItemType Directory -Force -Path (Join-Path $workspace "node"), (Join-Path $workspace "postgres") | Out-Null
+          Invoke-WebRequest -Uri $runtime.node.sourceUrl -OutFile $nodeArchive
+          Invoke-WebRequest -Uri $runtime.postgres.sourceUrl -OutFile $postgresArchive
+          if ((Get-FileHash $nodeArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtime.node.archiveSha256) { throw "Node runtime checksum mismatch." }
+          if ((Get-FileHash $postgresArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtime.postgres.archiveSha256) { throw "PostgreSQL runtime checksum mismatch." }
+          Expand-Archive -Path $nodeArchive -DestinationPath (Join-Path $workspace "node")
+          Expand-Archive -Path $postgresArchive -DestinationPath (Join-Path $workspace "postgres")
+          $nodeDirectory = (Get-ChildItem (Join-Path $workspace "node") -Recurse -Filter node.exe | Select-Object -First 1).Directory.FullName
+          $postgresBinary = Get-ChildItem (Join-Path $workspace "postgres") -Recurse -Filter postgres.exe | Where-Object { $_.Directory.Name -eq "bin" } | Select-Object -First 1
+          $postgresDirectory = $postgresBinary.Directory.Parent.FullName
+          pnpm electron:stage-runtime -- --target windows-x64 --node $nodeDirectory --node-archive $nodeArchive --node-version $runtime.node.version --node-source-url $runtime.node.sourceUrl --postgres $postgresDirectory --postgres-archive $postgresArchive --postgres-version $runtime.postgres.version --postgres-source-url $runtime.postgres.sourceUrl
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $env:ELECTRON_DESKTOP_TARGET = "windows-x64"
+          pnpm electron:dist -- --win nsis --x64
+      - name: Audit packaged runtime
+        run: |
+          pnpm electron:check-package -- --app-dir release\win-unpacked --target windows-x64
+          pnpm electron:runtime-smoke -- --app-dir release\win-unpacked
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-x64
+          path: release/Omplish-*-Windows-x64.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish public prerelease
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: release-assets
+      - name: Create checksums and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          short_sha="${GITHUB_SHA::7}"
+          tag="v${version}-build.${GITHUB_RUN_NUMBER}"
+          sha256sum release-assets/* > release-assets/SHA256SUMS.txt
+          release_notes="$(mktemp)"
+          printf 'Automated public prerelease for commit %s.\n\nThese installers are unsigned unless the release workflow is extended with the repository signing secrets.\n' "$GITHUB_SHA" > "$release_notes"
+          gh release create "$tag" release-assets/* \
+            --target "$GITHUB_SHA" \
+            --title "Omplish ${version} build ${short_sha}" \
+            --notes-file "$release_notes" \
+            --prerelease \
+            --latest=false

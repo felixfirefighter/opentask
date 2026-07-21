@@ -49,7 +49,7 @@ Drag/resize uses optimistic feedback only after a clear drop. On server rejectio
 | Loading | Preserve toolbar/range/grid geometry and show a subtle overlay or event skeletons; navigation remains stable and duplicate range requests do not flash empty state. |
 | Error | Keep the range and safe loaded events labeled as stale, show Retry, and avoid rendering a partial range as authoritative. Failed drag/resize snaps back with a named error. |
 | Offline | The range already loaded in the open page is read-only under the global banner. Range navigation is unavailable without a connection. Disable create, drag, resize, and schedule edits. |
-| Permission | Unauthenticated access routes to sign-in. Events disappearing due to authorization refresh leave no metadata. Foreign/deleted event routes use generic unavailable detail state. |
+| Permission | Missing internal session routes to direct app launch. Events disappearing due to authorization refresh leave no metadata. Foreign/deleted event routes use generic unavailable detail state. |
 | Conflict | Restore the current server slot, outline the affected event, and offer Open details to review latest values. Do not choose local or server time silently. |
 
 ## Keyboard and touch parity

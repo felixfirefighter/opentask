@@ -1,0 +1,1 @@
+ALTER TABLE "saved_prompt_tags" ADD CONSTRAINT "saved_prompt_tags_prompt_owner_fk" FOREIGN KEY ("user_id","prompt_id") REFERENCES "public"."saved_prompts"("user_id","id") ON DELETE cascade ON UPDATE no action;

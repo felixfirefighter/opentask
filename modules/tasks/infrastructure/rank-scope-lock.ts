@@ -6,7 +6,7 @@ export async function lockRankScope(
   executor: DatabaseExecutor,
   scope: readonly [string, ...string[]],
 ): Promise<void> {
-  const key = `opentask:tasks:rank:${scope.join(":")}`;
+  const key = `omplish:tasks:rank:${scope.join(":")}`;
   await executor.execute(sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`);
 }
 

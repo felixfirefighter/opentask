@@ -14,6 +14,7 @@ The stack favors one language, one database, few operational services, strong sc
 | Database | PostgreSQL 17 for local/self-host baseline | Durable relational invariants, search, queue, and migrations in one service. Hosted deployments may use a compatible newer supported major after verification. |
 | ORM/migrations | Drizzle ORM + Drizzle Kit | SQL-visible, modular TypeScript schemas, committed generated migrations. |
 | Local services | Docker Compose | Reproducible PostgreSQL without proprietary local tooling. |
+| Desktop shell | Electron 43.1.1 + electron-builder 26.15.3 | Packages the existing Next.js server and supervises a per-user loopback PostgreSQL runtime for Windows/macOS. Development uses Docker; production uses staged, pinned native runtime trees. |
 
 Next.js documents App Router as the current route model. Drizzle supports code-first PostgreSQL schemas and generated/applied migrations. Sources: [Next.js App Router](https://nextjs.org/docs/app), [Drizzle migrations](https://orm.drizzle.team/docs/migrations).
 
@@ -37,7 +38,7 @@ Next.js documents App Router as the current route model. Drizzle supports code-f
 | `cmdk` and Sonner (through shadcn) | command palette and undo/error toast | No parallel custom implementations. |
 
 FullCalendar's React standard package is MIT and supports React 17–19; its interaction API supports
-event drag/resize. OpenTask's P2 recurrence policy and safety cap remain in a task-owned domain
+event drag/resize. Omplish's P2 recurrence policy and safety cap remain in a task-owned domain
 wrapper rather than a FullCalendar plugin or presentation component. dnd-kit provides sortable
 primitives and keyboard/accessibility hooks. Sources:
 [FullCalendar React](https://fullcalendar.io/docs/react),
@@ -69,7 +70,7 @@ rebuild, and rerun visual/font-load evidence.
 
 | Package/system | Approved use | Guardrail |
 |---|---|---|
-| Better Auth with Drizzle adapter | email/password sessions and auth tables | Domain authorization still belongs to application use cases. |
+| Better Auth with Drizzle adapter | internal server sessions and workspace ownership tables; no public credential UI | Domain authorization still belongs to application use cases. |
 | `pg` | pooled PostgreSQL driver | One shared pool per process. |
 | pg-boss | Existing worker scaffold; P6 reminder queue | Keep the queue boot/shutdown smoke through P5. P6 alone may activate notification jobs; do not move task, habit, Focus, or AI workflows into jobs. |
 | `web-push` (not installed) | P6-gated browser notification delivery | Installation is authorized only after the P6 dependency gate below passes; VAPID/provider absence must remain a supported degraded state. |
@@ -89,7 +90,7 @@ package.
 
 | Package gate | Purpose | Declared upstream license | Activation requirements |
 |---|---|---|---|
-| P2 — `rrule` | Standards-based expansion behind the tasks module's bounded recurrence wrapper; OpenTask still owns presets, IANA-time semantics, occurrence identity, and safety caps. | BSD-3-Clause | Verify the selected version/license and maintenance signal; pin it; add only a task-owned adapter; prove finite range/cap and DST fixtures. Do not expose arbitrary RRULE input. |
+| P2 — `rrule` | Standards-based expansion behind the tasks module's bounded recurrence wrapper; Omplish still owns presets, IANA-time semantics, occurrence identity, and safety caps. | BSD-3-Clause | Verify the selected version/license and maintenance signal; pin it; add only a task-owned adapter; prove finite range/cap and DST fixtures. Do not expose arbitrary RRULE input. |
 | P6 — `web-push` | Serialize and send standards-based Web Push messages behind the notifications provider port. | MPL-2.0 | Verify the selected version, license compatibility/notice obligations, type support, and maintenance signal; pin it; keep endpoint/key material server-only and encrypted; prove provider-absent, retry, revocation, and redaction paths. |
 
 License sources:
@@ -107,8 +108,10 @@ License sources:
 | Automated accessibility | `@axe-core/playwright` plus keyboard tests |
 | CI | GitHub Actions with PostgreSQL service container |
 | Supply-chain check | `pnpm audit --prod` plus manual license inventory before release |
+| Desktop release | `electron-builder` NSIS/DMG, staged Node 24 and relocatable PostgreSQL 17 runtime trees | Every runtime artifact needs an exact source, checksum, license notice, cold-start test, dynamic-library/share-data check, and platform signing/notarization review. |
 
-Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date library, or a second component system.
+Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date library, a second
+component system, or a second application/database implementation for desktop.
 
 ### Bootstrap dependency decisions
 
@@ -116,13 +119,13 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 |---|---|---|---|---|---|
 | `eslint-plugin-boundaries` 7.0.2 | Resolve relative, alias, export, and dynamic imports before enforcing module/layer direction; core ESLint path patterns cannot do this reliably. | Development-only lint work; no application bundle or service. | MIT | Current v7 line, ESLint 9 compatible, with an active upstream release history. | `eslint.config.mjs` and `scripts/eslint/architecture-boundaries.mjs` |
 | `next-devtools-mcp` 0.4.0 | Let future Codex tasks inspect the live Next.js route/build/runtime state through the framework-supported MCP bridge. | Development-only stdio process; optional and not required for app boot. | MIT | Exact package recommended by the official Next.js 16 MCP guide and pinned in the lockfile. | `.codex/config.toml`; no product adapter |
-| `better-auth` + `@better-auth/drizzle-adapter` 1.6.23 | Provide the approved email/password session implementation and direct Drizzle/PostgreSQL adapter instead of maintaining credential storage, cookie rotation, and session expiry in product code. | Two pinned server dependencies; the minimal server entry excludes unused auth plugins and there is no browser SDK. | MIT | Reviewed stable release at initial identity implementation, with official Next.js, Drizzle, security, migration, and rate-limit documentation. | `modules/identity/infrastructure/authentication-gateway.ts` |
-| `fractional-indexing` 4.0.0 | Generate stable sortable keys between neighboring task containers and rows without renumbering every mutation. | Zero transitive dependencies and one small server-side application adapter; bounded rebalance remains OpenTask policy. | CC0-1.0 | Active v4 release with built-in TypeScript declarations and a deliberately small API. | `modules/tasks/application/ranking.ts` |
+| `better-auth` + `@better-auth/drizzle-adapter` 1.6.23 | Provide the internal server session implementation and direct Drizzle/PostgreSQL adapter instead of maintaining session storage, cookie rotation, and expiry in product code. | Two pinned server dependencies; credential routes are not exposed through product UI and there is no browser SDK. | MIT | Reviewed stable release at initial identity implementation, with official Next.js, Drizzle, security, migration, and rate-limit documentation. | `modules/identity/infrastructure/authentication-gateway.ts` |
+| `fractional-indexing` 4.0.0 | Generate stable sortable keys between neighboring task containers and rows without renumbering every mutation. | Zero transitive dependencies and one small server-side application adapter; bounded rebalance remains Omplish policy. | CC0-1.0 | Active v4 release with built-in TypeScript declarations and a deliberately small API. | `modules/tasks/application/ranking.ts` |
 | `@tanstack/react-query` 5.101.2 | Cache authorized task reads and coordinate optimistic mutation rollback/invalidation without creating a second domain store. | One client cache scoped to task presentation; PostgreSQL and application DTOs remain authoritative. | MIT | Current stable v5 release with React 19 support and documented optimistic rollback patterns. | `shared/presentation/AppClientProviders.tsx` and `modules/tasks/presentation/data/` |
 | `@dnd-kit/core` 6.3.1 + `@dnd-kit/sortable` 10.0.0 + `@dnd-kit/utilities` 3.2.2 | Provide the required pointer, touch, and keyboard sortable task/checklist interactions with announcements. | Three small client packages; every drag action retains an explicit menu alternative and server-side rank validation. | MIT | Current mutually compatible releases with maintained keyboard/accessibility primitives. | `modules/tasks/presentation/TaskListSortContext.tsx`, `modules/tasks/presentation/TaskSectionSortContext.tsx`, `modules/tasks/presentation/TaskStepSortContext.tsx`, and `modules/tasks/presentation/navigation/TaskNavigationSortContext.tsx` |
 | `react-markdown` 10.1.0 + `remark-gfm` 4.0.1 | Render portable task Markdown with GFM semantics and raw HTML disabled. | Rendering-only dependency chain; no rich-text document model or HTML execution path. | MIT | Current stable releases with an AST-based default that does not execute raw HTML. | `modules/tasks/presentation/TaskNotesEditor.tsx` |
 | `cmdk` 1.1.1 + Sonner 2.0.7 | Implement the required keyboard command palette plus actionable Undo/error notifications. | Client-only UI primitives; palette results remain API-authorized and persistent errors remain inline. | MIT | Current stable releases with React 19 support and maintained accessible interaction primitives. | `modules/tasks/presentation/TaskCommandPalette.tsx`, `modules/tasks/presentation/data/`, and `shared/presentation/AppClientProviders.tsx` |
-| Radix Dialog 1.1.19 + Alert Dialog 1.1.19 + Dropdown Menu 2.1.20 | Supply focus-contained task/container forms, destructive confirmation, and keyboard-complete action menus. | Commodity interaction primitives styled exclusively through OpenTask tokens; no second design system. | MIT | Current stable Radix releases with React 19 compatibility and maintained ARIA behavior. | `modules/tasks/presentation/`, `modules/tasks/presentation/navigation/`, `modules/planning/presentation/ScheduleEditorDialog.tsx`, and `modules/identity/presentation/MobileMoreMenu.tsx` |
+| Radix Dialog 1.1.19 + Alert Dialog 1.1.19 + Dropdown Menu 2.1.20 | Supply focus-contained task/container forms, destructive confirmation, and keyboard-complete action menus. | Commodity interaction primitives styled exclusively through Omplish tokens; no second design system. | MIT | Current stable Radix releases with React 19 compatibility and maintained ARIA behavior. | `modules/tasks/presentation/`, `modules/tasks/presentation/navigation/`, `modules/planning/presentation/ScheduleEditorDialog.tsx`, and `modules/identity/presentation/MobileMoreMenu.tsx` |
 | `chrono-node` 2.10.0 | Parse English date/time suggestions during quick add without maintaining an error-prone natural-language parser. | Server/application adapter only; recognized source text remains visible and no parser result writes automatically. | MIT | Current stable v2 release with TypeScript declarations and focused locale parsers. | `modules/tasks/application/quick-add-application.ts` |
 | `temporal-polyfill` 1.0.1 | Provide explicit IANA-zone date arithmetic and DST-safe conversions not available through the approved stack. | Loaded only by schedule/planning adapters; avoids implicit server-local `Date` calculations. | MIT | Current stable 1.0 release implementing the standardized Temporal API surface. | `modules/tasks/domain/schedule/` and `modules/planning/domain/` |
 | `openai` 6.48.0 | Implement the optional GPT-5.6 Responses/Structured Outputs provider through the official SDK. | Server-only optional adapter; requests use minimal context, `store:false`, bounded timeout, and no-key capability fallback. | Apache-2.0 | Current stable official JavaScript SDK with maintained Responses and Zod helpers. | `modules/assistant/infrastructure/openai-responses-provider.ts` |
@@ -149,7 +152,7 @@ until the package-specific gate has reviewed the exact resolved version and noti
 
 The current production audit reports one moderate advisory in `esbuild` 0.18.20, reached only
 through Better Auth's Drizzle Kit tooling branch. The affected capability is an opt-in esbuild
-development server; OpenTask's production web, migration, and worker commands do not import or
+development server; Omplish's production web, migration, and worker commands do not import or
 start it. There is no high/critical advisory and this moderate finding is not applicable to the
 deployed runtime path. Re-evaluate it whenever Better Auth or its dependency graph changes.
 
@@ -192,7 +195,7 @@ Local/self-host operation is the release completion path. No hosted deployment i
 
 Railway remains an optional demo target because its official guides support a Next.js service,
 PostgreSQL, a separate worker from the same codebase, private networking, and pre-deploy Drizzle
-migrations. Hosted setup is not a P0-P7 completion gate. If used, configure a hard usage limit and
+migrations. Hosted setup is not a P0-P8 completion gate. If used, configure a hard usage limit and
 do not describe trial or usage-based hosting as permanently free. Sources:
 [Railway Next.js + Postgres](https://docs.railway.com/guides/nextjs),
 [full-stack worker pattern](https://docs.railway.com/guides/fullstack-nextjs),
@@ -205,9 +208,9 @@ do not describe trial or usage-based hosting as permanently free. Sources:
 - Redis/BullMQ is unnecessary; PostgreSQL-backed pg-boss owns the one active reminder-job family
   after P6.
 - A monorepo is unnecessary for one web product and one worker entrypoint sharing the same modules.
-- Native/mobile frameworks and offline synchronization remain outside active scope. P5 adds only an
-  installable static shell and content-free offline fallback; it caches no authenticated user data
-  and accepts no offline mutation.
+- Mobile/native framework expansion and offline synchronization remain outside active scope. The
+  authorized Electron shell packages the existing server/database locally; it provides no sync
+  protocol or remote-data cache.
 - Rich-text editor frameworks are deferred; Markdown keeps task content portable and implementation bounded.
 
 ## Recommended agent tooling

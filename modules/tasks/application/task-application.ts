@@ -1,5 +1,5 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
-import type { Database } from "@/shared/db/client";
+import type { Database, DatabaseTransaction } from "@/shared/db/client";
 import type { Clock } from "@/shared/time/clock";
 
 import {
@@ -47,7 +47,19 @@ import { createTaskListRepository } from "../infrastructure/task-list-repository
 
 export type TaskCreateResult = Readonly<{ created: boolean; value: TaskDto }>;
 
-export function createTaskApplication({ database, clock }: { database: Database; clock: Clock }) {
+export function createTaskApplication({
+  database,
+  clock,
+  onTaskCompleted,
+}: {
+  database: Database;
+  clock: Clock;
+  onTaskCompleted?: (
+    actor: AuthenticatedActor,
+    task: TaskDto,
+    executor: DatabaseTransaction,
+  ) => Promise<void>;
+}) {
   const tasks = createTaskRepository(database);
   const lists = createTaskListRepository(database);
   const sections = createSectionRepository(database);
@@ -220,7 +232,7 @@ export function createTaskApplication({ database, clock }: { database: Database;
         assertMutableTask(current, input.expectedVersion);
         const now = clock.now();
         const transition = decideTaskStatus(current.status, input.status, now, current.version);
-        return mapTask(
+        const updated = mapTask(
           requireAppliedTask(
             await tasks.updateStatus(
               {
@@ -234,6 +246,10 @@ export function createTaskApplication({ database, clock }: { database: Database;
             ),
           ),
         );
+        if (updated.status === "completed") {
+          await onTaskCompleted?.(actor, updated, transaction);
+        }
+        return updated;
       });
     },
 

@@ -33,7 +33,7 @@ describe("identity authentication and request security", () => {
       code: "UNAUTHENTICATED",
     });
     await expect(
-      application.resolveActor(new Headers({ cookie: "opentask.session_token=forged" })),
+      application.resolveActor(new Headers({ cookie: "omplish.session_token=forged" })),
     ).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
 
     const authenticated = await createAuthenticatedAccount(application, "signout@example.test");
@@ -45,6 +45,46 @@ describe("identity authentication and request security", () => {
     await expect(
       application.resolveActor(new Headers({ cookie: authenticated.cookie })),
     ).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+  });
+
+  it("resets only the authenticated profile and cascades its workspace and provider credential", async () => {
+    const application = createApplication();
+    const owner = await createAuthenticatedAccount(application, "reset-owner@example.test");
+    const other = await createAuthenticatedAccount(application, "reset-other@example.test");
+    const ownerIdentity = await application.resolveActor(new Headers({ cookie: owner.cookie }));
+    const otherIdentity = await application.resolveActor(new Headers({ cookie: other.cookie }));
+
+    await database.insert(schema.openaiCredentials).values({
+      userId: ownerIdentity.userId,
+      encryptedApiKey: "encrypted-test-value",
+      initializationVector: "test-iv",
+      authenticationTag: "test-tag",
+      encryptionVersion: 1,
+    });
+
+    await application.resetApp(ownerIdentity);
+
+    await expect(application.resolveActor(new Headers({ cookie: owner.cookie }))).rejects.toMatchObject({
+      code: "UNAUTHENTICATED",
+    });
+    await expect(application.resolveActor(new Headers({ cookie: other.cookie }))).resolves.toEqual(
+      otherIdentity,
+    );
+    expect(
+      await database
+        .select({ id: schema.user.id })
+        .from(schema.user)
+        .where(eq(schema.user.id, ownerIdentity.userId)),
+    ).toEqual([]);
+    expect(
+      await database
+        .select()
+        .from(schema.openaiCredentials)
+        .where(eq(schema.openaiCredentials.userId, ownerIdentity.userId)),
+    ).toEqual([]);
+    expect(
+      await database.select().from(schema.taskLists).where(eq(schema.taskLists.userId, otherIdentity.userId)),
+    ).not.toEqual([]);
   });
 
   it("returns generic cookie-free signup responses for new and existing email addresses", async () => {
@@ -59,7 +99,7 @@ describe("identity authentication and request security", () => {
       expect(signup.cookie).toBe("");
       expect(signup.payload).toMatchObject({
         token: null,
-        user: { email, name: "OpenTask user" },
+        user: { email, name: "Omplish user" },
       });
     }
     expect(await accountRowCounts(first.userId)).toEqual({ inboxes: 1, preferences: 1 });
@@ -67,7 +107,7 @@ describe("identity authentication and request security", () => {
       .select({ name: schema.user.name })
       .from(schema.user)
       .where(eq(schema.user.id, first.userId));
-    expect(storedUser?.name).toBe("OpenTask user");
+    expect(storedUser?.name).toBe("Omplish user");
   });
 
   it("allows only the bounded public auth contract and keeps origin checks enabled", async () => {
@@ -86,7 +126,7 @@ describe("identity authentication and request security", () => {
       .length;
     const reservedDemoIdentity = await application.handleAuthRequest(
       authRequest("/sign-up/email", {
-        email: "visitor@DEMO.OPENTASK.INVALID",
+        email: "visitor@DEMO.OMPLISH.INVALID",
         password: identityTestPassword,
       }),
     );

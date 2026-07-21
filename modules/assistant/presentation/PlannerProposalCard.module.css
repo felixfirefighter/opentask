@@ -49,11 +49,6 @@
   color: var(--text-on-strong);
 }
 
-.selector input:focus-visible + span {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
 .selector input:disabled + span {
   background: var(--surface-subtle);
   cursor: not-allowed;

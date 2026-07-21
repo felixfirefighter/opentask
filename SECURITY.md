@@ -14,11 +14,11 @@ Before the first public release, only the current `main` revision is supported. 
 
 - Keep `.env.local` and provider credentials outside Git and client bundles.
 - Replace the local Compose password for any network-accessible deployment.
-- Set `BETTER_AUTH_URL` to the exact browser-facing origin. OpenTask uses the proxy-supplied
+- Set `BETTER_AUTH_URL` to the exact browser-facing origin. Omplish uses the proxy-supplied
   `X-Real-IP` value only for abuse-control buckets. A network-accessible deployment must put the
   app behind one trusted ingress that overwrites this header and must prevent clients from reaching
   the application origin directly; do not forward an untrusted client-provided value. Railway's
-  public proxy supplies this header. OpenTask intentionally ignores `X-Forwarded-For` for this
+  public proxy supplies this header. Omplish intentionally ignores `X-Forwarded-For` for this
   policy, and requests without a resolved address share a conservative fallback bucket.
 - Run `pnpm check:secrets`, `pnpm check:audit`, and `pnpm check:licenses` before release.
 - Treat health output, logs, exports, screenshots, and AI fixtures as possible disclosure surfaces.

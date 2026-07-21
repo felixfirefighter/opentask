@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { signUpThroughUi } from "./support/wp01-auth";
+import { enterWorkspaceThroughUi } from "./support/wp01-auth";
 import {
   closeTaskDetails,
   createRegularList,
@@ -19,7 +19,7 @@ test("unscheduled quick add can be inspected, enriched, organized, completed, an
   test.setTimeout(90_000);
   test.skip(!goldenPathProjects.has(testInfo.project.name), "The G1 core loop runs at desktop and mobile.");
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   const list = await createRegularList(page, "Launch work");
   const section = await createSection(page, list.id, "Demo prep");
   await page.reload();
@@ -115,7 +115,7 @@ test("task details use a desktop inspector and a mobile full-page route", async 
     "The responsive detail contract is defined by desktop and mobile endpoints.",
   );
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   const task = await quickAddTask(page, "Inspect responsive task details");
   await openTaskFromRow(page, task);
   await expect(page.getByRole("heading", { level: 1, name: task.title })).toBeFocused();
@@ -137,7 +137,7 @@ test("a long title and a bounded large list stay usable with a focused mobile co
   test.setTimeout(120_000);
   test.skip(testInfo.project.name !== "mobile-chromium", "The virtual-keyboard layout risk is mobile-only.");
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   const longTitle = "Long task title ".repeat(24).trim();
   const longTask = await quickAddTask(page, longTitle);
 

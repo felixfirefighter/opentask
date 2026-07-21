@@ -6,15 +6,15 @@ export function createModuleLayerExportProbes(probeModule) {
         'import { drizzle } from "drizzle-orm";\nimport "@/modules/planning/presentation/TodayScreen";\nexport default drizzle;\n',
       expected: {
         "boundaries/dependencies": 1,
-        "opentask/no-data-packages": 1,
+        "omplish/no-data-packages": 1,
       },
     },
     {
       filePath: "modules/boundary-probe/domain/forbidden.ts",
       source: 'import React from "react";\nimport { sql } from "drizzle-orm";\nexport { React, sql };\n',
       expected: {
-        "opentask/no-data-packages": 1,
-        "opentask/no-framework-packages": 1,
+        "omplish/no-data-packages": 1,
+        "omplish/no-framework-packages": 1,
       },
     },
     {
@@ -45,65 +45,65 @@ export function createModuleLayerExportProbes(probeModule) {
     {
       filePath: `modules/${probeModule}/application/direct-database-reexport.ts`,
       source: 'export { getDatabasePool } from "../../../shared/db/client.ts";\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/indirect-database-reexport.ts`,
       source: 'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport { pool };\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/aliased-database-reexport.ts`,
       source:
         'import * as database from "../../../shared/db/client.ts";\nconst pool = database.getDatabasePool;\nexport { pool };\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/declared-database-reexport.ts`,
       source:
         'import * as database from "../../../shared/db/client.ts";\nexport const pool = database.getDatabasePool;\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/object-database-reexport.ts`,
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport const api = { pool };\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/called-database-reexport.ts`,
       source:
         'import { getDatabasePool } from "../../../shared/db/client.ts";\nexport default getDatabasePool();\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/function-database-reexport.ts`,
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport function leaked() { return pool; }\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/arrow-database-reexport.ts`,
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nexport const leaked = () => pool;\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/assigned-database-reexport.ts`,
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nlet leaked: unknown = null;\nleaked = pool;\nexport { leaked };\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/wrapped-database-reexport.ts`,
       source:
         'import { getDatabasePool as pool } from "../../../shared/db/client.ts";\nconst identity = <T>(value: T) => value;\nexport const leaked = identity(pool);\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/application/infrastructure-reexport.ts`,
       source: 'export * from "../infrastructure/repository.ts";\n',
-      expected: { "opentask/no-private-runtime-reexports": 1 },
+      expected: { "omplish/no-private-runtime-reexports": 1 },
     },
     {
       filePath: `modules/${probeModule}/domain/wrong-layer.ts`,
@@ -146,7 +146,7 @@ export function createModuleLayerExportProbes(probeModule) {
       expected: {
         "boundaries/dependencies": 1,
         "no-restricted-imports": 1,
-        "opentask/no-data-packages": 1,
+        "omplish/no-data-packages": 1,
       },
     },
     {
@@ -207,12 +207,12 @@ export function createModuleLayerExportProbes(probeModule) {
     {
       filePath: "app/__dynamic_package_probe__.ts",
       source: 'void import("pg/lib/client");\n',
-      expected: { "opentask/no-data-packages": 1 },
+      expected: { "omplish/no-data-packages": 1 },
     },
     {
       filePath: "app/__computed_import_probe__.ts",
       source: 'const path = "../shared/db/client.ts";\nvoid import(path);\n',
-      expected: { "opentask/literal-dynamic-imports": 1 },
+      expected: { "omplish/literal-dynamic-imports": 1 },
     },
     {
       filePath: "app/__javascript_boundary_probe__.js",

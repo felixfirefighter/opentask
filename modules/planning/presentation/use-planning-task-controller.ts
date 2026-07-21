@@ -69,7 +69,7 @@ export function usePlanningTaskController(tasks: readonly MutablePlanningTask[],
   }
 
   const taskActions: PlanningTaskActions = {
-    onOpenTask: (taskId) => router.push(`/tasks/${taskId}`),
+    onOmplish: (taskId) => router.push(`/tasks/${taskId}`),
     onStatusChange: (taskId, status) => {
       void run(taskId, (task) => transitionPlanningTask(taskId, task.version, status));
     },

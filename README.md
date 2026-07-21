@@ -1,6 +1,6 @@
-# OpenTask (working title)
+# Omplish (working title)
 
-OpenTask is a self-hostable, open-source personal planning app for tasks, calendar planning, and an optional review-before-apply assistant. Core workflows remain useful without an AI key or paid feature tier.
+Omplish is a self-hostable, open-source personal planning app for tasks, calendar planning, and an optional review-before-apply assistant. Core workflows remain useful without an AI key or paid feature tier.
 
 ## Quick start
 
@@ -16,7 +16,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose **Try demo** to create/reset a private sample workspace for that browser. The current green candidate does not require a background worker; `pnpm worker` remains a zero-job architecture smoke until the reminder package activates jobs.
+`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`; Omplish launches directly and asks for a profile username, which is cached locally before it opens a private workspace for that browser. The current green candidate does not require a background worker; `pnpm worker` remains a zero-job architecture smoke until the reminder package activates jobs.
 
 ## Current green candidate
 
@@ -28,7 +28,7 @@ The Deadline-safe Core includes:
 - a private versioned JSON export from **Settings → Your data**;
 - isolated demo entry, health endpoints, and reproducible Docker deployment.
 
-Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
+Set `OPENAI_API_KEY` only on the server, or add a profile-owned key from Settings, to enable `/plan`. When neither is present, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
 
 The current implemented candidate does not yet include recurrence, habits, focus timers,
 reminders/push, or installability. The active Local-first Full Release plan adds those capabilities in
@@ -54,6 +54,52 @@ Install Playwright Chromium once with `pnpm exec playwright install chromium`, t
 
 For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository-owned design tokens and contracts in [DESIGN.md](DESIGN.md) remain authoritative.
 
+## Desktop development
+
+The Electron app uses the same Next.js application and Docker PostgreSQL database as web development:
+
+```sh
+pnpm electron:prepare
+cp .env.example .env.local
+pnpm electron:dev
+```
+
+`pnpm electron:dev` starts PostgreSQL, applies migrations, compiles Electron, and opens Omplish. Restart it after changing `electron/main.ts` or `electron/preload.cts` because those processes do not hot-reload.
+
+## Build desktop installers
+
+Production installers bundle the Next.js server plus pinned Node.js and PostgreSQL runtimes, so users do not need Docker, Node, or PostgreSQL. Stage the target runtime artifacts first; see [desktop/runtime/README.md](desktop/runtime/README.md).
+
+Build macOS on macOS:
+
+```sh
+# Apple Silicon
+ELECTRON_DESKTOP_TARGET=macos-arm64 pnpm electron:dist -- --mac --arm64
+
+# Intel Mac
+ELECTRON_DESKTOP_TARGET=macos-x64 pnpm electron:dist -- --mac --x64
+```
+
+Build Windows x64 on a Windows machine:
+
+```powershell
+$env:ELECTRON_DESKTOP_TARGET = "windows-x64"
+pnpm electron:dist -- --win nsis --x64
+```
+
+Artifacts are written to `release/`. Set a real version in `package.json` before publishing. Use `pnpm electron:dist:release` only when code-signing credentials are configured: unsigned macOS builds trigger Gatekeeper and unsigned Windows builds trigger SmartScreen. Do not cross-build unless you maintain a verified cross-platform packaging toolchain.
+
+Before distributing an installer, build an unpacked app and run the package checks:
+
+```sh
+pnpm electron:dist:dir
+pnpm electron:check-package -- --app-dir release/mac-arm64/Omplish.app --target macos-arm64
+pnpm electron:runtime-smoke -- --app-dir release/mac-arm64/Omplish.app
+pnpm electron:smoke -- --app-dir release/mac-arm64/Omplish.app
+```
+
+For Windows, use `release\\win-unpacked` and `--target windows-x64`. The last command requires an interactive desktop session. Full release, signing, and runtime-staging details are in [docs/SETUP.md](docs/SETUP.md#desktop-production-build).
+
 ## Repository orientation
 
 1. Read [AGENTS.md](AGENTS.md) for engineering and audit gates.
@@ -64,6 +110,6 @@ For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository
 
 ## Independence and license
 
-OpenTask is independent and is not affiliated with TickTick, Airbnb, or GetDesign. Competitor research informs capability coverage only; code, copy, assets, and visual identity must remain original.
+Omplish is independent and is not affiliated with TickTick, Airbnb, or GetDesign. Competitor research informs capability coverage only; code, copy, assets, and visual identity must remain original.
 
 The application is licensed under [AGPL-3.0-or-later](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before contributing or reporting a vulnerability.

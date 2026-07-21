@@ -20,8 +20,8 @@ colors; both files change together when a token contract changes.
 | `text-muted` | `#63635C` | `#B9B6AC` | Readable secondary text |
 | `text-disabled` | `#74746D` | `#8B8D84` | Truly disabled control labels only |
 | `text-selected` | `#255D50` | `#9FDEC9` | Text on selected surface |
-| `brand` | `#2D7565` | `#78C4AD` | OpenTask mark and non-text emphasis |
-| `action` | `#252823` | `#EEE9DC` | Filled primary control |
+| `brand` | `#40527F` | `#E3BAFB` | Omplish mark and non-text emphasis |
+| `action` | `#40527F` | `#E3BAFB` | Filled primary control |
 | `action-hover` | `#3A3E38` | `#D9D2C3` | Filled primary hover/pressed |
 | `text-on-strong` | `#FEFCF7` | `#20211C` | Text/icons on audited action, brand, status, and destructive fills |
 | `focus-ring` | `#2A61B8` | `#79A9F2` | Keyboard focus, distinct from brand |
@@ -63,7 +63,7 @@ a strong accent.
 
 ## Atmospheric decoration
 
-These tokens are decorative only and may appear on landing, first-run, major empty states, or
+These tokens are decorative only and may appear on app launch, first-run, major empty states, or
 restrained planner framing. Use no more than two fields in one composition, at `0.72` light/`0.55`
 dark opacity and `64px` blur. They cannot encode state or appear in task rows, calendar cells,
 Matrix quadrants, controls, alerts, or status fills.
@@ -86,9 +86,9 @@ keep rendering usable if a font asset fails.
 
 | Token | Size / line | Weight | Use |
 |---|---|---:|---|
-| `text-display-mega` | 64 px / `1.05` | 400 | Wide landing hero; `-1.92px` tracking |
-| `text-display-xl` | 48 px / `1.08` | 400 | Tablet/compact landing hero; `-0.96px` tracking |
-| `text-display-lg` | 36 px / `1.17` | 400 | Mobile landing hero or approved major empty moment; `-0.36px` tracking |
+| `text-display-mega` | 64 px / `1.05` | 400 | Wide app-launch heading; `-1.92px` tracking |
+| `text-display-xl` | 48 px / `1.08` | 400 | Tablet/compact app-launch heading; `-0.96px` tracking |
+| `text-display-lg` | 36 px / `1.17` | 400 | Mobile app-launch heading or approved major empty moment; `-0.36px` tracking |
 | `text-display-sm` | 24 px / `1.2` | 400 | Approved small editorial heading; zero tracking |
 | `text-page-title` | 26 / 32 px | 600 | Compact workspace title, sans by default |
 | `text-section-title` | 20 / 26 px | 600 | Major section/card heading |
@@ -166,5 +166,5 @@ The executable design check pins every canonical light token and dark override, 
 required pairs, and verifies this evidence line against the current palette. The approved palette
 provides at least 4.5:1 for normal text and at least 3:1 for meaningful boundaries/focus.
 
-Computed contract ratios (light/dark): primary 12.63/12.70; muted 5.36/7.99; action 10.63/10.77;
+Computed contract ratios (light/dark): primary 12.63/12.70; muted 5.36/7.99; action 7.50/9.79;
 strong border 4.45/3.56; focus 4.90/5.01; category 5.50/7.02.

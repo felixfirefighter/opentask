@@ -64,7 +64,7 @@ export function CalendarRouteScreen({
         model={model}
         condition={controller.condition}
         onAddTask={() => router.push("/inbox")}
-        onOpenTask={(taskId) => router.push(`/tasks/${taskId}`)}
+        onOmplish={(taskId) => router.push(`/tasks/${taskId}`)}
         onEditSchedule={controller.editSchedule}
         onSelectEvent={() => undefined}
         onViewChange={(nextView) => replaceRoute({ view: nextView })}

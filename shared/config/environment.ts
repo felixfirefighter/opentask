@@ -13,6 +13,7 @@ const environmentSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32).optional(),
   BETTER_AUTH_URL: z.url().optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_API_KEY_ENCRYPTION_KEY: z.string().min(32).optional(),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;
@@ -38,6 +39,7 @@ export function parseEnvironment(source: Readonly<Record<string, string | undefi
     BETTER_AUTH_SECRET: emptyToUndefined(source.BETTER_AUTH_SECRET),
     BETTER_AUTH_URL: emptyToUndefined(source.BETTER_AUTH_URL),
     OPENAI_API_KEY: emptyToUndefined(source.OPENAI_API_KEY),
+    OPENAI_API_KEY_ENCRYPTION_KEY: emptyToUndefined(source.OPENAI_API_KEY_ENCRYPTION_KEY),
   });
 
   if (!parsed.success) {

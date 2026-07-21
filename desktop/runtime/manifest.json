@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "macos-arm64": {
+      "node": {
+        "version": "v24.14.1",
+        "sourceUrl": "https://nodejs.org/dist/v24.14.1/node-v24.14.1-darwin-arm64.tar.gz",
+        "archiveSha256": "25495ff85bd89e2d8a24d88566d7e2f827c6b0d3d872b2cebf75371f93fcb1fe",
+        "license": "MIT license"
+      },
+      "postgres": {
+        "version": "17.10-2",
+        "sourceUrl": "https://sbp.enterprisedb.com/getfile.jsp?fileid=1260324",
+        "archiveSha256": "c46e566fd599d5958602334cf717b0a11ef11fae4534edcef8f189e053368b83",
+        "license": "PostgreSQL License"
+      }
+    },
+    "macos-x64": {
+      "node": {
+        "version": "v24.14.1",
+        "sourceUrl": "https://nodejs.org/dist/v24.14.1/node-v24.14.1-darwin-x64.tar.gz",
+        "archiveSha256": "2526230ad7d922be82d4fdb1e7ee1e84303e133e3b4b0ec4c2897ab31de0253d",
+        "license": "MIT license"
+      },
+      "postgres": {
+        "version": "17.10-2",
+        "sourceUrl": "https://sbp.enterprisedb.com/getfile.jsp?fileid=1260324",
+        "archiveSha256": "c46e566fd599d5958602334cf717b0a11ef11fae4534edcef8f189e053368b83",
+        "license": "PostgreSQL License"
+      }
+    },
+    "windows-x64": {
+      "node": {
+        "version": "v24.14.1",
+        "sourceUrl": "https://nodejs.org/dist/v24.14.1/node-v24.14.1-win-x64.zip",
+        "archiveSha256": "6e50ce5498c0cebc20fd39ab3ff5df836ed2f8a31aa093cecad8497cff126d70",
+        "license": "MIT license"
+      },
+      "postgres": {
+        "version": "17.10-2",
+        "sourceUrl": "https://sbp.enterprisedb.com/getfile.jsp?fileid=1260307",
+        "archiveSha256": "ef9b1e5e23d2e8a83914ba13d9dc536a72210fba53fd1808ff1f7e06bb22b106",
+        "license": "PostgreSQL License"
+      }
+    }
+  }
+}

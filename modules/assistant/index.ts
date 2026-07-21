@@ -49,6 +49,21 @@ export type {
   ProposalContextVersions,
 } from "./application/contracts";
 export { getPlannerCapability } from "./application/planner-capability";
+export { getPlannerCapabilityForActor } from "./application/planner-capability";
+export { createCompanionCheckin } from "./application/companion-checkin";
+export type { CompanionCheckinResult } from "./application/companion-checkin";
+export { createAmethChatReply } from "./application/ameth-chat";
+export type { AmethChatResult } from "./application/ameth-chat";
+export { analyzePromptForLibrary } from "./application/prompt-analysis";
+export {
+  getOpenAISettings,
+  openAIKeyFailureSchema,
+  openAISettingsSchema,
+  saveOpenAIKey,
+  updateOpenAIKey,
+  verifyOpenAIKey,
+} from "./application/openai-settings";
+export type { OpenAIKeyFailure, OpenAIKeyVerification, OpenAISettings } from "./application/openai-settings";
 export { createPlannerExtractionProvider } from "./application/planner-extraction-provider";
 export { createPlannerProposalLifecycle } from "./application/proposal-lifecycle";
 export { readPortablePlannerProposals } from "./application/export-reader";

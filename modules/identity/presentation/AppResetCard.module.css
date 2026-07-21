@@ -1,0 +1,122 @@
+.card {
+  margin-top: var(--space-5);
+  padding: var(--space-6);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.cardHeading h2 {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+}
+
+.description {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--text-muted);
+  line-height: var(--type-body-line);
+}
+
+.error {
+  margin: var(--space-3) 0 0;
+  color: var(--danger);
+  font-size: var(--type-compact-size);
+}
+
+.actions,
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.actions {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: var(--border-default) solid var(--border);
+}
+
+.overlay {
+  position: fixed;
+  z-index: var(--z-dialog);
+  background: color-mix(in srgb, var(--canvas) 72%, transparent);
+  inset: 0;
+}
+
+.dialog {
+  position: fixed;
+  z-index: var(--z-dialog);
+  top: 50%;
+  left: 50%;
+  width: min(calc(100vw - var(--space-8)), 460px);
+  padding: var(--space-5);
+  transform: translate(-50%, -50%);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-dialog);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+}
+
+.dialogActions {
+  margin-top: var(--space-5);
+}
+
+.cancelButton,
+.dangerButton {
+  min-height: var(--control-target-desktop);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-weight: var(--type-label-weight);
+}
+
+.cancelButton {
+  border: var(--border-default) solid var(--border-strong);
+  background: var(--surface);
+}
+
+.dangerButton {
+  border: var(--border-default) solid var(--danger);
+  background: var(--danger);
+  color: var(--text-on-strong);
+}
+
+.cancelButton:disabled,
+.dangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 767px) {
+  .card {
+    padding: var(--space-5);
+  }
+
+  .actions,
+  .dialogActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions button,
+  .cancelButton,
+  .dangerButton {
+    width: 100%;
+  }
+}
+
+@media (any-pointer: coarse) {
+  .cancelButton,
+  .dangerButton {
+    min-height: var(--control-target-touch);
+  }
+}

@@ -29,7 +29,6 @@ export function toTodayPlanningModel(
   return {
     localDateLabel: date,
     localWeekdayLabel: formatLocalDate(projection.localDate, { weekday: "long" }),
-    timeZoneLabel: projection.timeZone,
     remainingLabel: countLabel(projection.remainingCount, "task", "remaining"),
     overdue: projection.overdue.map((task) => toTaskRowModel(task, projection.timeZone, options)),
     timed: projection.timed.map((task) => toTaskRowModel(task, projection.timeZone, options)),
@@ -43,7 +42,6 @@ export function toUpcomingPlanningModel(
 ): UpcomingPlanningModel {
   return {
     rangeLabel: formatDateRange(projection.rangeStartDate, projection.rangeEndDate),
-    timeZoneLabel: projection.timeZone,
     totalLabel: countLabel(projection.remainingCount, "scheduled task", "in the next 7 days"),
     groups: projection.days.map((day) => ({
       id: day.localDate,

@@ -22,7 +22,7 @@ export type CalendarScreenProps = Readonly<{
   model: CalendarPlanningModel;
   condition: PlanningScreenCondition;
   onAddTask: () => void;
-  onOpenTask: (taskId: string) => void;
+  onOmplish: (taskId: string) => void;
   onEditSchedule: (taskId: string) => void;
   onSelectEvent: (eventId: string) => void;
   onViewChange: (view: CalendarView) => void;
@@ -96,7 +96,7 @@ export function CalendarScreen(props: CalendarScreenProps) {
             events={props.model.events}
             selectedEventId={selectedEventId}
             onEditSchedule={props.onEditSchedule}
-            onOpenTask={props.onOpenTask}
+            onOmplish={props.onOmplish}
             onSelectEvent={chooseEvent}
           />
           <section
@@ -126,7 +126,7 @@ export function CalendarScreen(props: CalendarScreenProps) {
               view={effectiveView}
               onEventMove={props.onEventMove}
               onEventResize={props.onEventResize}
-              onOpenTask={props.onOpenTask}
+              onOmplish={props.onOmplish}
               onSelectEvent={chooseEvent}
               onVisibleRangeChange={props.onVisibleRangeChange}
             />

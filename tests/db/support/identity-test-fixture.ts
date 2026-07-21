@@ -31,7 +31,7 @@ export function createIdentityDatabaseFixture(suiteName: string) {
   const adminPool = new Pool({
     connectionString: getTestDatabaseUrl(),
     max: 1,
-    application_name: `opentask-${suiteName}-admin`,
+    application_name: `omplish-${suiteName}-admin`,
   });
   let isolatedPool: Pool | undefined;
 
@@ -41,7 +41,7 @@ export function createIdentityDatabaseFixture(suiteName: string) {
       isolatedPool = new Pool({
         connectionString: getTestDatabaseUrl(),
         max: 6,
-        application_name: `opentask-${suiteName}-isolated`,
+        application_name: `omplish-${suiteName}-isolated`,
         options: `-c search_path=${schemaName}`,
       });
       const database = drizzle(isolatedPool, { schema });

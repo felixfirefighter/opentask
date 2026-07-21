@@ -17,7 +17,7 @@ import {
   planningTaskRow,
 } from "./support/golden-path-planning";
 import { createG3Proposal, g3ActionIds, installPlannerRouteFixtures } from "./support/g3-planner-fixtures";
-import { signUpThroughUi } from "./support/wp01-auth";
+import { enterWorkspaceThroughUi, postDemoFromPage } from "./support/wp01-auth";
 import { quickAddTask } from "./support/wp03-tasks";
 
 const APP_ORIGIN = "http://127.0.0.1:3107";
@@ -214,7 +214,7 @@ test("G3 recovers from provider failure and rejects the persisted proposal witho
   test.skip(testInfo.project.name !== "desktop-chromium", "One desktop fault-injection path is sufficient.");
   test.skip(!plannerFixtureMode, "Provider recovery runs only with the intercepted planner fixture server.");
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   await configureTestTimeZone(page);
   const selectedTask = await quickAddTask(page, "G3 recover the proposal decision");
   const proposal = createG3Proposal(selectedTask, localDateIn("Asia/Singapore"));
@@ -265,7 +265,7 @@ test("G3 no-key state keeps manual planning routes available", async ({ page }, 
   );
   test.skip(plannerFixtureMode, "The no-key contract runs only against the canonical no-key server.");
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   await page.goto("/plan");
   const unavailable = page.getByRole("heading", {
     name: "Planning is unavailable because no AI key is configured",
@@ -288,13 +288,8 @@ async function enterIsolatedDemo(page: Page, projectName: string) {
   const seed = randomUUID().replaceAll("-", "");
   const clientAddress = `2001:db8:${seed.slice(0, 4)}:${seed.slice(4, 8)}:${seed.slice(8, 12)}:${seed.slice(12, 16)}::1`;
   await page.setExtraHTTPHeaders({ "x-real-ip": clientAddress });
-  await page.goto("/");
-  const responsePromise = page.waitForResponse(
-    (response) => response.url().endsWith("/api/v1/demo") && response.request().method() === "POST",
-  );
-  await page.getByRole("button", { name: "Try demo" }).click();
-  expect((await responsePromise).status(), `${projectName} demo entry`).toBe(200);
-  await expect(page).toHaveURL("/inbox", { timeout: 30_000 });
+  expect(await postDemoFromPage(page), `${projectName} demo entry`).toBe(200);
+  await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
   const dismissTips = page.getByRole("button", { name: "Dismiss getting started tips" });
   if (await dismissTips.isVisible()) await dismissTips.click();
@@ -307,7 +302,7 @@ async function readPlannerProposal(page: Page, proposalId: string) {
 }
 
 async function captureReviewEvidence(page: Page, projectName: string) {
-  const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "opentask-g3-review-"));
+  const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "omplish-g3-review-"));
   const fileName = `ai-review-${projectName}.png`;
   const screenshotPath = path.join(temporaryDirectory, fileName);
   await page.evaluate(async () => {

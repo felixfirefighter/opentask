@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { signUpThroughUi } from "./support/wp01-auth";
+import { enterWorkspaceThroughUi } from "./support/wp01-auth";
 import {
   closeTaskDetails,
   createRegularList,
@@ -19,7 +19,7 @@ test("conflict recovery preserves a title draft and a rejected completion rolls 
   test.setTimeout(45_000);
   test.skip(testInfo.project.name !== "desktop-chromium", "One desktop fault-injection path is sufficient.");
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   const task = await quickAddTask(page, "Preserve authoritative state");
   await openTaskFromRow(page, task);
   const authoritative = await updateTask(page, task, { title: "Authoritative concurrent title" });
@@ -68,7 +68,7 @@ test("cancel, terminal restore, search, and palette creation work with keyboard 
     "Terminal and palette recovery run at desktop and mobile.",
   );
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   const task = await quickAddTask(page, "Find terminal keyboard task");
 
   const more = taskRow(page, task.id).getByRole("button", { name: `More actions for ${task.title}` });
@@ -158,7 +158,7 @@ test("keyboard and touch-menu reorder remain available while offline writes are 
     "Desktop keyboard and coarse-pointer menu paths cover reorder parity.",
   );
 
-  await signUpThroughUi(page, testInfo);
+  await enterWorkspaceThroughUi(page, testInfo);
   const destination = await createRegularList(page, "Keyboard destination");
   await page.reload();
   const alpha = await quickAddTask(page, "Alpha keyboard task");
