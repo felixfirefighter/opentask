@@ -8,6 +8,7 @@ import type { TaskRecurrenceDto } from "../application/contracts/recurrence-cont
 import { TaskApiError } from "./data/task-api-request";
 import { taskQueryKeys } from "./data/task-query-keys";
 import { clearTaskDrafts } from "./task-draft-guard";
+import type { TaskRecurrenceReminderReview } from "./task-recurrence-reminder-review";
 
 const scheduleApi = vi.hoisted(() => ({
   getSchedulePreferences: vi.fn(),
@@ -89,6 +90,7 @@ describe("TaskRecurrenceEditor", () => {
           preset: { kind: "weekly", interval: 1, weekdays: [1, 3] },
           end: { kind: "count", count: 5 },
         },
+        reminderResolution: null,
       }),
     );
     expect(await screen.findByText("Recurrence added")).toBeInTheDocument();
@@ -120,6 +122,126 @@ describe("TaskRecurrenceEditor", () => {
       ),
     );
     expect(await screen.findByText("Future recurrence restarted")).toBeInTheDocument();
+  });
+
+  it("preserves the recurrence draft when reminder review is cancelled, then converts atomically", async () => {
+    const refresh = vi.fn(async () => undefined);
+    const user = userEvent.setup();
+    renderEditor({ reminderReview: absoluteReminderReview(3, refresh) });
+
+    await user.click(await screen.findByRole("button", { name: "Add recurrence" }));
+    fireEvent.change(screen.getByLabelText("Repeat every"), { target: { value: "2" } });
+    await user.click(screen.getByRole("button", { name: "Add recurrence" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Review the saved reminder" });
+    const keepEditing = within(dialog).getByRole("button", { name: "Keep editing" });
+    expect(keepEditing).toHaveFocus();
+    await user.click(within(dialog).getByRole("button", { name: "Continue with recurrence" }));
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Choose whether to convert or remove the saved reminder",
+    );
+    expect(within(dialog).getByRole("alert")).toHaveFocus();
+
+    await user.click(within(dialog).getByRole("radio", { name: /Convert to before task start/u }));
+    await user.clear(within(dialog).getByLabelText("Minutes before start"));
+    await user.type(within(dialog).getByLabelText("Minutes before start"), "30");
+    await user.click(keepEditing);
+
+    expect(screen.queryByRole("dialog", { name: "Review the saved reminder" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Repeat every")).toHaveValue(2);
+    expect(recurrenceApi.setTaskRecurrence).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Add recurrence" }));
+    await user.click(
+      within(screen.getByRole("dialog", { name: "Review the saved reminder" })).getByRole("button", {
+        name: "Continue with recurrence",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(recurrenceApi.setTaskRecurrence).toHaveBeenCalledWith(TASK_ID, {
+        expectedVersion: 1,
+        definition: {
+          preset: { kind: "daily", interval: 2 },
+          end: { kind: "never" },
+        },
+        reminderResolution: {
+          kind: "convert_relative_start",
+          expectedReminderVersion: 3,
+          offsetMinutes: 30,
+        },
+      }),
+    );
+    expect(await screen.findByText("Recurrence added")).toBeInTheDocument();
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("reviews absolute-reminder removal before restarting future recurrence", async () => {
+    savedRecurrence = recurrence();
+    const user = userEvent.setup();
+    renderEditor({ reminderReview: absoluteReminderReview(7) });
+
+    await user.click(await screen.findByRole("button", { name: "Edit recurrence" }));
+    await user.click(screen.getByRole("button", { name: "Save and restart" }));
+    await user.click(screen.getByRole("button", { name: "Restart future recurrence" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Review the saved reminder" });
+    await user.click(within(dialog).getByRole("radio", { name: /Remove the reminder/u }));
+    await user.click(within(dialog).getByRole("button", { name: "Continue with recurrence" }));
+
+    await waitFor(() =>
+      expect(recurrenceApi.setTaskRecurrence).toHaveBeenCalledWith(
+        TASK_ID,
+        expect.objectContaining({
+          expectedVersion: 1,
+          reminderResolution: { kind: "remove", expectedReminderVersion: 7 },
+        }),
+      ),
+    );
+    expect(await screen.findByText("Future recurrence restarted")).toBeInTheDocument();
+  });
+
+  it("reloads a conflicting reminder version and retries only after an explicit action", async () => {
+    const reminderReview = {
+      status: "ready" as const,
+      absoluteReminderVersion: 3,
+      refresh: vi.fn(async () => {
+        reminderReview.absoluteReminderVersion = 4;
+      }),
+    };
+    recurrenceApi.setTaskRecurrence.mockRejectedValueOnce(
+      new TaskApiError({
+        code: "CONFLICT",
+        status: 409,
+        detail: "This reminder changed elsewhere.",
+        currentVersion: 4,
+      }),
+    );
+    const user = userEvent.setup();
+    renderEditor({ reminderReview });
+
+    await user.click(await screen.findByRole("button", { name: "Add recurrence" }));
+    fireEvent.change(screen.getByLabelText("Repeat every"), { target: { value: "2" } });
+    await user.click(screen.getByRole("button", { name: "Add recurrence" }));
+    const dialog = screen.getByRole("dialog", { name: "Review the saved reminder" });
+    await user.click(within(dialog).getByRole("radio", { name: /Remove the reminder/u }));
+    await user.click(within(dialog).getByRole("button", { name: "Continue with recurrence" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("This recurrence or reminder changed elsewhere");
+    expect(screen.getByLabelText("Repeat every")).toHaveValue(2);
+    expect(recurrenceApi.setTaskRecurrence).toHaveBeenCalledOnce();
+    const retry = within(alert).getByRole("button", { name: "Try again" });
+    await waitFor(() => expect(retry).toBeEnabled());
+    expect(recurrenceApi.setTaskRecurrence).toHaveBeenCalledOnce();
+
+    await user.click(retry);
+
+    await waitFor(() => expect(recurrenceApi.setTaskRecurrence).toHaveBeenCalledTimes(2));
+    expect(recurrenceApi.setTaskRecurrence.mock.calls[1]?.[1]).toMatchObject({
+      expectedVersion: 1,
+      reminderResolution: { kind: "remove", expectedReminderVersion: 4 },
+    });
   });
 
   it("confirms ending future expansion without removing its definition", async () => {
@@ -403,10 +525,12 @@ describe("TaskRecurrenceEditor", () => {
 
 function renderEditor({
   disabled = false,
+  reminderReview,
   schedule = allDaySchedule(),
   task = taskDetail(),
 }: Readonly<{
   disabled?: boolean;
+  reminderReview?: TaskRecurrenceReminderReview;
   schedule?: TaskScheduleDto | null;
   task?: TaskDetailDto;
 }> = {}) {
@@ -420,9 +544,16 @@ function renderEditor({
   client.setQueryData(taskQueryKeys.detail(task.id), task);
   return render(
     <QueryClientProvider client={client}>
-      <TaskRecurrenceEditor disabled={disabled} task={task} />
+      <TaskRecurrenceEditor disabled={disabled} task={task} {...(reminderReview ? { reminderReview } : {})} />
     </QueryClientProvider>,
   );
+}
+
+function absoluteReminderReview(
+  version: number,
+  refresh: () => Promise<void> = async () => undefined,
+): TaskRecurrenceReminderReview {
+  return { status: "ready", absoluteReminderVersion: version, refresh };
 }
 
 function taskDetail(overrides: Partial<TaskDetailDto> = {}): TaskDetailDto {

@@ -79,6 +79,7 @@ export type ReviewedPlanApplyContext = Readonly<{
 }>;
 
 export interface ReviewedPlanTaskWriter {
+  prepareReminderReconciliation(actor: AuthenticatedActor, taskIds: readonly string[]): Promise<void>;
   loadApplyContextForUpdate(
     actor: AuthenticatedActor,
     taskIds: readonly string[],

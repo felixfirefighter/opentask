@@ -1,4 +1,5 @@
-import { getTasksApplication, transitionTaskStatusRequestSchema } from "@/modules/tasks";
+import { transitionTaskStatusRequestSchema } from "@/modules/tasks";
+import { getReleaseApplications } from "@/server/release-applications";
 
 import {
   assertNoTaskApiQuery,
@@ -18,6 +19,8 @@ export function POST(request: Request, context: TaskRouteContext) {
     const { actor, input } = await readTaskApiMutation(request, transitionTaskStatusRequestSchema);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
-    return privateTaskJson(await getTasksApplication().tasks.transitionTaskStatus(actor, taskId, input));
+    return privateTaskJson(
+      await getReleaseApplications().tasks.tasks.transitionTaskStatus(actor, taskId, input),
+    );
   });
 }

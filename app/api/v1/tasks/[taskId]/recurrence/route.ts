@@ -1,4 +1,5 @@
-import { getTasksApplication, setTaskRecurrenceRequestSchema } from "@/modules/tasks";
+import { setTaskRecurrenceRequestSchema } from "@/modules/tasks";
+import { getReleaseApplications } from "@/server/release-applications";
 
 import {
   assertNoTaskApiQuery,
@@ -19,7 +20,7 @@ export function GET(request: Request, context: TaskRecurrenceRouteContext) {
     const actor = await resolveTaskApiActor(request);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
-    return privateTaskJson(await getTasksApplication().recurrences.getRecurrence(actor, taskId));
+    return privateTaskJson(await getReleaseApplications().tasks.recurrences.getRecurrence(actor, taskId));
   });
 }
 
@@ -30,6 +31,8 @@ export function PATCH(request: Request, context: TaskRecurrenceRouteContext) {
     });
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
-    return privateTaskJson(await getTasksApplication().recurrences.setRecurrence(actor, taskId, input));
+    return privateTaskJson(
+      await getReleaseApplications().tasks.recurrences.setRecurrence(actor, taskId, input),
+    );
   });
 }

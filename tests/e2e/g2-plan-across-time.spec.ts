@@ -366,12 +366,18 @@ async function expectCanonicalProjectionRow(page: Page, task: Pick<TaskWireRecor
 }
 
 async function expectTaskLinkReturnsToCurrentView(page: Page, link: Locator, taskId: string) {
-  const href = await link.getAttribute("href");
-  expect(href).not.toBeNull();
-  const target = new URL(href!, "http://opentask.local");
-  expect(target.pathname).toBe(`/tasks/${taskId}`);
-  const current = new URL(page.url());
-  expect(target.searchParams.get("returnTo")).toBe(`${current.pathname}${current.search}`);
+  await expect
+    .poll(async () => {
+      const href = await link.getAttribute("href");
+      if (!href) return { returnsToCurrentView: false, targetPathname: null };
+      const target = new URL(href, "http://opentask.local");
+      const current = new URL(page.url());
+      return {
+        returnsToCurrentView: target.searchParams.get("returnTo") === `${current.pathname}${current.search}`,
+        targetPathname: target.pathname,
+      };
+    })
+    .toEqual({ returnsToCurrentView: true, targetPathname: `/tasks/${taskId}` });
 }
 
 async function editCalendarScheduleWithKeyboard(

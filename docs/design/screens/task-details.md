@@ -19,14 +19,14 @@ Body order:
 1. editable title;
 2. schedule: all-day date or timed start/end and IANA timezone;
 3. optional approved recurrence preset/end behavior for an eligible scheduled root task;
-4. optional one-task reminder after P6, including capability/degraded explanation;
+4. optional one-task reminder, including capability/degraded explanation;
 5. priority, list, section, and tags;
 6. one-level subtasks and lightweight checklist;
 7. Markdown description with safe preview;
-8. status/occurrence metadata limited to values in active scope.
+8. status/occurrence metadata limited to values in current scope.
 
-Do not show recurrence/reminder controls before their package gates. Never show attachments, comments,
-assignees, activity history, templates, estimates, or custom fields.
+Never show attachments, comments, assignees, activity history, templates, estimates, or custom
+fields.
 
 ## Actions and save behavior
 
@@ -96,6 +96,15 @@ reloads the authoritative version, and requires explicit retry. A saved reminder
 terminal/deleted, whose relative schedule is absent, or whose recurrence is exhausted is shown as
 dormant with the exact reason: its definition and enabled choice are retained, missed instants will
 not be caught up, and only an explicit reminder action disables or removes it.
+
+A lost or unreadable create, replace, enable/disable, or remove response is labeled unconfirmed,
+never described as unchanged. The panel retains the pending command state, offers **Check saved
+reminder**, and reloads the actor-scoped reminder before the next action; exact command replay is
+idempotent whether the original write committed or not. A typed version conflict uses the separate
+**Load latest reminder** path.
+
+A browser-local push subscription is reported as unverified after reload until Settings explicitly
+associates it with the current account; task details never infer enrollment from `PushManager` alone.
 
 Recurrence create/edit/end and recurring schedule changes use an explicit submit boundary rather
 than per-field autosave because the rule, cutover, and task version commit atomically. A response-lost

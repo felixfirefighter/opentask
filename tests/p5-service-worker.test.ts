@@ -10,6 +10,8 @@ const previousBuildVersion = "1784614000000-b2c3d4e5";
 const olderBuildVersion = "1784613000000-c3d4e5f6";
 const currentCacheName = `opentask-static-${currentBuildVersion}`;
 const previousCacheName = `opentask-static-${previousBuildVersion}`;
+const taskId = "11111111-1111-4111-8111-111111111111";
+const deliveryId = "22222222-2222-4222-8222-222222222222";
 const precachePaths = [
   "/offline.html",
   "/icons/opentask-192.png",
@@ -27,7 +29,7 @@ beforeEach(async () => {
   ]);
 });
 
-describe("P5 service worker", () => {
+describe("P5/P6 service worker", () => {
   it("installs only the reviewed public shell and removes only obsolete OpenTask caches on activate", async () => {
     const previousHarness = createHarness({ buildVersion: previousBuildVersion });
     await previousHarness.dispatchExtendable("install");
@@ -264,9 +266,48 @@ describe("P5 service worker", () => {
       version: currentBuildVersion,
     });
   });
+
+  it("shows only generic validated push copy and opens only the constructed same-origin task path", async () => {
+    const harness = createHarness();
+    const payload = { schemaVersion: 1, taskId, deliveryId };
+
+    await harness.dispatchPush(payload).settled;
+    expect(harness.registration.showNotification).toHaveBeenCalledWith("Task reminder", {
+      body: "A task is ready for your attention.",
+      data: payload,
+      icon: "/icons/opentask-192.png",
+      tag: `opentask-${deliveryId}`,
+    });
+
+    const click = harness.dispatchNotificationClick(payload);
+    await click.settled;
+    expect(click.close).toHaveBeenCalledOnce();
+    expect(harness.client.navigate).toHaveBeenCalledWith(`${origin}/tasks/${taskId}`);
+    expect(harness.client.focus).toHaveBeenCalledOnce();
+    expect(harness.openWindow).not.toHaveBeenCalled();
+
+    const invalidPush = harness.dispatchPush({ ...payload, title: "Must not be trusted" });
+    await invalidPush.settled;
+    expect(harness.registration.showNotification).toHaveBeenCalledOnce();
+
+    const invalidClick = harness.dispatchNotificationClick({ ...payload, url: "https://attacker.invalid" });
+    await invalidClick.settled;
+    expect(invalidClick.close).toHaveBeenCalledOnce();
+    expect(harness.client.navigate).toHaveBeenCalledOnce();
+    expect(harness.openWindow).not.toHaveBeenCalled();
+  });
+
+  it("opens a same-origin task window when no safe existing window is available", async () => {
+    const harness = createHarness({ clientUrl: "https://another.example/workspace" });
+    const click = harness.dispatchNotificationClick({ schemaVersion: 1, taskId, deliveryId });
+    await click.settled;
+
+    expect(harness.client.navigate).not.toHaveBeenCalled();
+    expect(harness.openWindow).toHaveBeenCalledWith(`${origin}/tasks/${taskId}`);
+  });
 });
 
-type ServiceWorkerEventType = "activate" | "fetch" | "install" | "message";
+type ServiceWorkerEventType = "activate" | "fetch" | "install" | "message" | "notificationclick" | "push";
 type ServiceWorkerListener = (event: Record<string, unknown>) => void;
 type RequestShape = Readonly<{
   url: string;
@@ -280,19 +321,29 @@ function createHarness(
   options: {
     buildVersion?: string;
     caches?: MemoryCacheStorage;
+    clientUrl?: string;
     responseFor?(request: Request): Response | Promise<Response>;
   } = {},
 ) {
   const listeners = new Map<ServiceWorkerEventType, ServiceWorkerListener>();
   const caches = options.caches ?? new MemoryCacheStorage();
-  const client = { postMessage: vi.fn() };
+  const client = {
+    focus: vi.fn(async () => undefined),
+    navigate: vi.fn(async () => client),
+    postMessage: vi.fn(),
+    url: options.clientUrl ?? `${origin}/today`,
+  };
+  const openWindow = vi.fn(async () => client);
+  const registration = { showNotification: vi.fn(async () => undefined) };
   const buildVersion = options.buildVersion ?? currentBuildVersion;
   const self = {
     location: { href: `${origin}/sw.js?build=${buildVersion}`, origin },
     clients: {
       claim: vi.fn(async () => undefined),
       matchAll: vi.fn(async () => [client]),
+      openWindow,
     },
+    registration,
     skipWaiting: vi.fn(async () => undefined),
     addEventListener(type: ServiceWorkerEventType, listener: ServiceWorkerListener) {
       listeners.set(type, listener);
@@ -368,14 +419,41 @@ function createHarness(
     return { port, settled: Promise.all(promises) };
   }
 
+  function dispatchPush(data: unknown) {
+    const promises: Promise<unknown>[] = [];
+    requireListener("push")({
+      data: { json: () => data },
+      waitUntil(value: Promise<unknown>) {
+        promises.push(value);
+      },
+    });
+    return { settled: Promise.all(promises) };
+  }
+
+  function dispatchNotificationClick(data: unknown) {
+    const promises: Promise<unknown>[] = [];
+    const close = vi.fn();
+    requireListener("notificationclick")({
+      notification: { close, data },
+      waitUntil(value: Promise<unknown>) {
+        promises.push(value);
+      },
+    });
+    return { close, settled: Promise.all(promises) };
+  }
+
   return {
     caches,
     client,
     fetchMock,
+    openWindow,
+    registration,
     self,
     dispatchExtendable,
     dispatchFetch,
     dispatchMessage,
+    dispatchNotificationClick,
+    dispatchPush,
     cachedPaths: (name: string) => caches.paths(name),
     get failPublicAssets() {
       return state.failPublicAssets;

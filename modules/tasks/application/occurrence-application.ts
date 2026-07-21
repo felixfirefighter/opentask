@@ -6,6 +6,7 @@ import { createOccurrenceDetailReader } from "./occurrence-detail-reader";
 import { createBoundedOccurrenceReader, createBoundedOccurrenceSnapshotReader } from "./occurrence-reader";
 import type { UserTimezoneResolver } from "./recurrence-application-support";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
+import type { TaskReminderReconciler } from "./contracts/task-reminder-contract";
 import { createPostgresTaskReadSnapshot, type TaskReadSnapshot } from "./task-read-snapshot";
 import type { TaskScheduleTable } from "../infrastructure/schema";
 
@@ -17,6 +18,7 @@ export function createTaskOccurrenceApplication(
     expansion: RecurrenceExpansionPort;
     resolveUserTimezone: UserTimezoneResolver;
     createEventId: OccurrenceEventIdFactory;
+    reminderReconciler?: TaskReminderReconciler;
     snapshot?: TaskReadSnapshot;
   }>,
 ) {

@@ -11,11 +11,13 @@ export function TaskDetailLoader({
   onClose,
   returnHref,
   taskId,
+  timeZone = "UTC",
 }: Readonly<{
   inbox: { id: string; name: string };
   onClose: () => void;
   returnHref: string;
   taskId: string;
+  timeZone?: string;
 }>) {
   const focusRef = useRef<HTMLDivElement>(null);
   const query = useTaskDetailQuery(taskId);
@@ -49,6 +51,7 @@ export function TaskDetailLoader({
             onClose={onClose}
             returnHref={returnHref}
             showRefreshError={false}
+            timeZone={timeZone}
           />
         </>
       )}

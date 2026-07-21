@@ -1,12 +1,13 @@
 # Scope contract
 
 Research breadth and implementation scope are intentionally different. `docs/research/TICKTICK_FEATURES.md`
-catalogs the competitor surface; this document alone authorizes product behavior for the active goal.
+catalogs the competitor surface; this document alone defines current released behavior and any
+explicitly authorized change.
 
-## Active release: Local-first Full Release
+## Current released scope: Local-first Full Release
 
-The Local-first Full Release turns the implemented core into a polished, self-hostable
-personal planning product with recurrence, habits, Focus, installability, and one reliable browser
+The Local-first Full Release is a polished, self-hostable personal planning product with recurrence,
+habits, Focus, installability, and one reliable browser
 reminder. “Full” means every capability committed below is complete; it does not claim full TickTick
 parity. “Local-first” means local/self-host operation is the completion path and no hosted deployment
 is required. It does **not** mean offline mutation sync; that remains Stage D.
@@ -18,7 +19,7 @@ gates in `docs/QUALITY.md`.
 ### 1. Approved Editorial Focus baseline
 
 Editorial Focus is already implemented and user-approved across the current product. It is a
-release invariant, not an unfinished work package.
+release invariant, not pending implementation.
 
 - Preserve the GetDesign-informed, OpenTask-owned application direction in
   `docs/design/editorial-focus.md` without changing behavior or information architecture merely for
@@ -34,8 +35,8 @@ release invariant, not an unfinished work package.
 
 Acceptance:
 
-- Every current and later active route passes the responsive, theme, zoom, keyboard, accessibility,
-  and executable design gates.
+- Every current route, and any future explicitly authorized route, passes the responsive, theme,
+  zoom, keyboard, accessibility, and executable design gates.
 - Visual-only maintenance does not add or change a route, API, schema, authorization rule, or
   product feature.
 - No ElevenLabs/GetDesign branding, copy, asset, proprietary font, exact palette/layout, audio motif,
@@ -55,13 +56,13 @@ Acceptance:
   unscheduled task is not urgent.
 - Optional GPT-5.6 planner remains a proposal/review/apply pipeline with no write before explicit
   Apply and a complete no-key/manual fallback.
-- Close the audited local-core gaps: contextual quick add uses the current Inbox or regular list with
-  no schedule, Today with an all-day schedule for today, and Upcoming with an all-day schedule for
-  the next local day. A visibly recognized, editable date/time may override that default before the
+- Contextual quick add uses the current Inbox or regular list with no schedule, Today with an
+  all-day schedule for today, and Upcoming with an all-day schedule for the next local day. A
+  visibly recognized, editable date/time may override that default before the
   atomic create-with-schedule command. Calendar uses the full task create/schedule form; Matrix uses
-  the global palette and never guesses a quadrant. Also add local-midnight/timezone projection
-  refresh, task inspection from planning surfaces, stable planner navigation/refetch, visible AI
-  capability in Settings, and robust local origin/configuration guidance.
+  the global palette and never guesses a quadrant. The release includes local-midnight/timezone
+  projection refresh, task inspection from planning surfaces, stable planner navigation/refetch,
+  visible AI capability in Settings, and robust local origin/configuration guidance.
 
 Acceptance:
 
@@ -84,7 +85,7 @@ Acceptance:
 - Complete, skip, and undo one occurrence through deterministic occurrence identity and append-only
   effective occurrence state.
 - Edit or end the series at a server-chosen future cutover while preserving prior recorded occurrence
-  events. The active release does not reconstruct unrecorded occurrences before the current rule's
+  events. The current release does not reconstruct unrecorded occurrences before the current rule's
   cutover.
 - All-day/timed and IANA-zone semantics remain stable across DST and month/year boundaries.
 
@@ -191,8 +192,8 @@ Acceptance:
 - Deterministic isolated demo/reset covers the full release without exposing shared credentials.
 - Local web, PostgreSQL, migrations, active reminder worker, production build, and health checks run
   reproducibly through documented commands and Docker Compose.
-- Submission/demo material distinguishes the implemented baseline from later unmerged work and
-  claims only verified behavior.
+- Submission/demo material distinguishes released behavior from roadmap context and claims only
+  verified behavior.
 
 Acceptance:
 
@@ -201,9 +202,9 @@ Acceptance:
 - Export validates one declared version, preserves relationships/time semantics, and contains only
   the authenticated user's portable records.
 - The full local release passes every mandatory audit in `docs/QUALITY.md`; no hosted deployment is
-  required for goal completion.
+  required for release completion.
 
-## Explicitly outside the active release
+## Explicitly outside current scope
 
 - Full offline-first mutation log, sync/change feed, tombstones, background sync, or conflict UI.
 - Advanced recurrence exceptions, completion-relative recurrence, per-occurrence schedule override,
@@ -222,7 +223,7 @@ Acceptance:
 - Billing, subscriptions, quotas, advertisements, premium gates, autonomous agent behavior, or AI
   deletion/completion.
 
-## Later roadmap — not part of the active goal
+## Later roadmap — not part of current scope
 
 Order remains advisory; each stage requires a new user-authorized scope change.
 
@@ -255,9 +256,10 @@ Any addition, cut, or substitution requires all five in one reviewable change:
 
 1. The user explicitly authorizes it.
 2. This file's capabilities and acceptance criteria change.
-3. `docs/GOAL.md` completion changes.
+3. `docs/GOAL.md` stewardship state, objective, and completion definition change.
 4. Owning module, data, design, stack, and quality contracts change where affected.
-5. `docs/IMPLEMENTATION_PLAN.md` effort, dependency order, and delivery risk are re-audited.
+5. `docs/IMPLEMENTATION_PLAN.md` is replaced with the current effort, dependency order, delivery
+   risk, and verification plan.
 
-Without all five, active scope is unchanged. Time pressure, an available agent, or a researched
+Without all five, current scope is unchanged. Time pressure, an available agent, or a researched
 competitor feature is not authorization.

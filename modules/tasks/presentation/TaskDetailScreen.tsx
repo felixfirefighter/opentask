@@ -14,6 +14,7 @@ import { useTaskRecurrenceQuery } from "./data/use-task-recurrence";
 import { useDeleteTaskMutation, useTaskStatusMutation } from "./data/use-task-lifecycle-mutations";
 import { useTaskDetailQuery } from "./data/use-task-queries";
 import { TaskDeleteDialog } from "./TaskDeleteDialog";
+import { TaskRecurrenceReminderSourceExtension, TaskReminderExtension } from "./TaskDetailExtensions";
 import { TaskNotesEditor } from "./TaskNotesEditor";
 import { TaskOccurrencePanel } from "./TaskOccurrencePanel";
 import { TaskOccurrenceUnavailable } from "./TaskOccurrenceUnavailable";
@@ -41,6 +42,7 @@ export type TaskDetailScreenProps = Readonly<{
   onClose?: () => void;
   returnHref?: string;
   showRefreshError?: boolean;
+  timeZone?: string;
 }>;
 
 export function TaskDetailScreen({
@@ -54,6 +56,7 @@ export function TaskDetailScreen({
   returnHref = "/inbox",
   showRefreshError = true,
   task: initialTask,
+  timeZone = "UTC",
 }: TaskDetailScreenProps) {
   const query = useTaskDetailQuery(initialTask.id, initialTask);
   const task = query.data && query.data.version > initialTask.version ? query.data : initialTask;
@@ -179,7 +182,26 @@ export function TaskDetailScreen({
           disabled={!online}
           initiallyEditing={initialEditSchedule}
         />
-        <TaskRecurrenceEditor key={`recurrence-${task.id}`} task={task} disabled={!online} />
+        <TaskRecurrenceReminderSourceExtension taskId={task.id}>
+          {(reminderReview) => (
+            <TaskRecurrenceEditor
+              key={`recurrence-${task.id}`}
+              task={task}
+              disabled={!online}
+              reminderReview={reminderReview}
+            />
+          )}
+        </TaskRecurrenceReminderSourceExtension>
+        <TaskReminderExtension
+          task={{
+            id: task.id,
+            status: task.status,
+            deleted: task.deletedAt !== null,
+            parentTaskId: task.parentTaskId,
+          }}
+          timeZone={timeZone}
+          disabled={!online}
+        />
         <TaskOrganizationEditor
           task={task}
           inbox={inbox ?? { id: task.listId, name: "Current list" }}

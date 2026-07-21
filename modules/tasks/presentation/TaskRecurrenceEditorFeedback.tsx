@@ -9,6 +9,7 @@ export function TaskRecurrenceEditorFeedback({
   alertRef,
   canRetry,
   error,
+  includesReminderResolution,
   latestMatchesAttempt,
   latestSummary,
   latestUnavailable,
@@ -25,6 +26,7 @@ export function TaskRecurrenceEditorFeedback({
   alertRef: Ref<HTMLDivElement>;
   canRetry: boolean;
   error: unknown;
+  includesReminderResolution: boolean;
   latestMatchesAttempt: boolean;
   latestSummary: string | null;
   latestUnavailable: boolean;
@@ -47,7 +49,9 @@ export function TaskRecurrenceEditorFeedback({
         {permissionSafe
           ? "Recurrence is unavailable."
           : conflict
-            ? "This recurrence changed elsewhere."
+            ? includesReminderResolution
+              ? "This recurrence or reminder changed elsewhere."
+              : "This recurrence changed elsewhere."
             : unknown
               ? "The recurrence update is unconfirmed."
               : "The recurrence was not saved."}
@@ -56,7 +60,9 @@ export function TaskRecurrenceEditorFeedback({
         {permissionSafe
           ? "Your task was not changed."
           : conflict
-            ? "Your entries are preserved while the latest task, schedule, and recurrence are checked."
+            ? `Your entries are preserved while the latest task, schedule, recurrence${
+                includesReminderResolution ? ", and reminder" : ""
+              } are checked.`
             : unknown
               ? "The response did not confirm whether the change was saved. Your entries are preserved while authoritative state is checked."
               : isTaskApiError(error) && error.code === "VALIDATION_FAILED"

@@ -73,6 +73,7 @@ function OpenTaskWorkspace({
   return (
     <WorkspaceLayout
       title={destination.list.name}
+      timeZone={destination.timeZone}
       taskCount={query.tasks.length}
       inbox={inbox}
       loading={query.isPending || waitingWithoutTaskRows}
@@ -157,6 +158,7 @@ function TerminalTaskWorkspace({
   return (
     <WorkspaceLayout
       title="Completed / cancelled"
+      timeZone={destination.timeZone}
       taskCount={tasks.length}
       inbox={inbox}
       loading={pending}

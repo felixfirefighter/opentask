@@ -20,6 +20,10 @@ type MutableReviewedUpdate = {
 
 export function createPlannerApplyTaskAdapter(writer: ReviewedPlanTaskWriter): PlannerApplyTaskWriter {
   return {
+    async prepareReminderReconciliation(actor, taskIds) {
+      await writer.prepareReminderReconciliation(actor, taskIds);
+    },
+
     async loadApplyContextForUpdate(actor, taskIds, busyRequest, transaction) {
       const context = await writer.loadApplyContextForUpdate(actor, taskIds, busyRequest, transaction);
       return {

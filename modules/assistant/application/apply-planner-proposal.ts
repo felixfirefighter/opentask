@@ -1,4 +1,5 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
+import { ReminderProducerPreparationRequiredError } from "@/modules/tasks";
 import { ApplicationError } from "@/shared/http/application-error";
 import { systemClock, type Clock } from "@/shared/time/clock";
 
@@ -55,93 +56,104 @@ export function createPlannerProposalApplier(
         );
       }
 
-      const outcome = await dependencies.transaction.execute<ApplyTransactionOutcome>(async (transaction) => {
-        const stored = await dependencies.proposals.loadOwnedForUpdate(actor, proposalId, transaction);
-        if (!stored) {
-          throw new ApplicationError("NOT_FOUND", "The requested planner proposal was not found.");
-        }
-        const parsed = plannerProposalDtoSchema.safeParse(stored);
-        if (!parsed.success || parsed.data.id !== proposalId) {
-          throw new ApplicationError("INTERNAL", "The planner proposal could not be read safely.");
-        }
-        const proposal = parsed.data;
-        if (selection.applyToken !== proposal.applyToken) {
-          throw new ApplicationError("CONFLICT", "The planner apply token does not match this proposal.");
-        }
+      const reminderTaskIds = scheduleTargetIds(selection.actions);
+      if (reminderTaskIds.length > 0) {
+        await dependencies.tasks.prepareReminderReconciliation(actor, reminderTaskIds);
+      }
 
-        if (proposal.status === "applied") {
-          validatePlannerSelection(proposal, selection);
-          return {
-            kind: "result",
-            result: plannerApplyResultSchema.parse({
+      const outcome = await executeWithReminderPreparationRetry(
+        actor,
+        reminderTaskIds,
+        dependencies,
+        async () =>
+          dependencies.transaction.execute<ApplyTransactionOutcome>(async (transaction) => {
+            const stored = await dependencies.proposals.loadOwnedForUpdate(actor, proposalId, transaction);
+            if (!stored) {
+              throw new ApplicationError("NOT_FOUND", "The requested planner proposal was not found.");
+            }
+            const parsed = plannerProposalDtoSchema.safeParse(stored);
+            if (!parsed.success || parsed.data.id !== proposalId) {
+              throw new ApplicationError("INTERNAL", "The planner proposal could not be read safely.");
+            }
+            const proposal = parsed.data;
+            if (selection.applyToken !== proposal.applyToken) {
+              throw new ApplicationError("CONFLICT", "The planner apply token does not match this proposal.");
+            }
+
+            if (proposal.status === "applied") {
+              validatePlannerSelection(proposal, selection);
+              return {
+                kind: "result",
+                result: plannerApplyResultSchema.parse({
+                  proposalId,
+                  outcome: "already_applied",
+                  appliedActionCount: 0,
+                }),
+              };
+            }
+            if (proposal.status !== "pending") {
+              return { kind: "transition_conflict" };
+            }
+
+            const now = clock.now();
+            if (Date.parse(proposal.expiresAt) <= now.getTime()) {
+              const expired = await dependencies.proposals.markExpired(actor, proposalId, transaction);
+              return expired ? { kind: "expired" } : { kind: "transition_conflict" };
+            }
+
+            validatePlannerSelection(proposal, selection);
+            const selectedTaskIds = taskIdsForActions(selection.actions);
+            const writableActions = selection.actions.filter(
+              (action): action is Exclude<PlannerAction, { kind: "defer" }> => action.kind !== "defer",
+            );
+            const scheduleValidation = preparePlannerApplyScheduleValidation(proposal, writableActions);
+            const current = await dependencies.tasks.loadApplyContextForUpdate(
+              actor,
+              selectedTaskIds,
+              scheduleValidation?.busyRequest ?? null,
+              transaction,
+            );
+            validateCurrentPlannerTasks(proposal, selection.actions, current.tasks);
+            validatePlannerApplySchedules({
+              proposal,
+              prepared: scheduleValidation,
+              busyIntervals: current.busyIntervals,
+              schedule,
+            });
+
+            if (writableActions.length > 0) {
+              await dependencies.tasks.applyAllowedActions(
+                actor,
+                writableActions,
+                selectedContextVersions(proposal.contextVersions, writableActions),
+                transaction,
+              );
+            }
+
+            const marked = await dependencies.proposals.markApplied(
+              actor,
               proposalId,
-              outcome: "already_applied",
-              appliedActionCount: 0,
-            }),
-          };
-        }
-        if (proposal.status !== "pending") {
-          return { kind: "transition_conflict" };
-        }
+              proposal.applyToken,
+              now,
+              transaction,
+            );
+            if (!marked) {
+              throw new ApplicationError(
+                "CONFLICT",
+                "The planner proposal changed before the apply transaction completed.",
+              );
+            }
 
-        const now = clock.now();
-        if (Date.parse(proposal.expiresAt) <= now.getTime()) {
-          const expired = await dependencies.proposals.markExpired(actor, proposalId, transaction);
-          return expired ? { kind: "expired" } : { kind: "transition_conflict" };
-        }
-
-        validatePlannerSelection(proposal, selection);
-        const selectedTaskIds = taskIdsForActions(selection.actions);
-        const writableActions = selection.actions.filter(
-          (action): action is Exclude<PlannerAction, { kind: "defer" }> => action.kind !== "defer",
-        );
-        const scheduleValidation = preparePlannerApplyScheduleValidation(proposal, writableActions);
-        const current = await dependencies.tasks.loadApplyContextForUpdate(
-          actor,
-          selectedTaskIds,
-          scheduleValidation?.busyRequest ?? null,
-          transaction,
-        );
-        validateCurrentPlannerTasks(proposal, selection.actions, current.tasks);
-        validatePlannerApplySchedules({
-          proposal,
-          prepared: scheduleValidation,
-          busyIntervals: current.busyIntervals,
-          schedule,
-        });
-
-        if (writableActions.length > 0) {
-          await dependencies.tasks.applyAllowedActions(
-            actor,
-            writableActions,
-            selectedContextVersions(proposal.contextVersions, writableActions),
-            transaction,
-          );
-        }
-
-        const marked = await dependencies.proposals.markApplied(
-          actor,
-          proposalId,
-          proposal.applyToken,
-          now,
-          transaction,
-        );
-        if (!marked) {
-          throw new ApplicationError(
-            "CONFLICT",
-            "The planner proposal changed before the apply transaction completed.",
-          );
-        }
-
-        return {
-          kind: "result",
-          result: plannerApplyResultSchema.parse({
-            proposalId,
-            outcome: "applied",
-            appliedActionCount: writableActions.length,
+            return {
+              kind: "result",
+              result: plannerApplyResultSchema.parse({
+                proposalId,
+                outcome: "applied",
+                appliedActionCount: writableActions.length,
+              }),
+            };
           }),
-        };
-      });
+      );
 
       if (outcome.kind === "expired") {
         throw new ApplicationError("CONFLICT", "The planner proposal expired before it was applied.");
@@ -152,6 +164,31 @@ export function createPlannerProposalApplier(
       return outcome.result;
     },
   } as const;
+}
+
+async function executeWithReminderPreparationRetry<T>(
+  actor: AuthenticatedActor,
+  initiallyPreparedTaskIds: readonly string[],
+  dependencies: PlannerApplyDependencies,
+  execute: () => Promise<T>,
+): Promise<T> {
+  let preparedTaskIds = initiallyPreparedTaskIds;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await execute();
+    } catch (error) {
+      if (!(error instanceof ReminderProducerPreparationRequiredError) || attempt > 0) throw error;
+      preparedTaskIds = [...new Set([...preparedTaskIds, ...error.taskIds])].sort();
+      await dependencies.tasks.prepareReminderReconciliation(actor, preparedTaskIds);
+    }
+  }
+  throw new Error("Planner reminder preparation exhausted its bounded retry.");
+}
+
+function scheduleTargetIds(actions: readonly PlannerAction[]): readonly string[] {
+  return [
+    ...new Set(actions.flatMap((action) => (action.kind === "schedule" ? [action.taskId] : []))),
+  ].sort();
 }
 
 function selectedContextVersions(

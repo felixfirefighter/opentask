@@ -56,6 +56,7 @@ export interface PlannerApplyProposalRepository {
  * actor's immutable Inbox. Defer actions perform no task write.
  */
 export interface PlannerApplyTaskWriter {
+  prepareReminderReconciliation(actor: AuthenticatedActor, taskIds: readonly string[]): Promise<void>;
   loadApplyContextForUpdate(
     actor: AuthenticatedActor,
     taskIds: readonly string[],

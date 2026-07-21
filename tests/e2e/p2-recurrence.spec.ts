@@ -50,8 +50,13 @@ test("a timed task can become, restart, reschedule, and end a series before comp
   const createForm = recurrence.locator("form");
   await createForm.getByRole("combobox", { name: "Ends", exact: true }).selectOption("count");
   await createForm.getByRole("spinbutton", { name: "Occurrences", exact: true }).fill("20");
-  const createResponse = waitForMutation(page, `/tasks/${demo.scheduledTaskId}/recurrence`, "PATCH");
   await recurrence.getByRole("button", { name: "Add recurrence" }).click();
+  const reminderReview = page.getByRole("dialog", { name: "Review the saved reminder", exact: true });
+  await expect(reminderReview.getByRole("button", { name: "Keep editing", exact: true })).toBeFocused();
+  await reminderReview.getByRole("radio", { name: /Convert to before task start/u }).check();
+  await reminderReview.getByLabel("Minutes before start", { exact: true }).fill("30");
+  const createResponse = waitForMutation(page, `/tasks/${demo.scheduledTaskId}/recurrence`, "PATCH");
+  await reminderReview.getByRole("button", { name: "Continue with recurrence", exact: true }).click();
   expect((await createResponse).status()).toBe(200);
   await expect(recurrence.getByRole("button", { name: "Edit recurrence" })).toBeVisible({
     timeout: 30_000,

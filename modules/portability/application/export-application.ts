@@ -2,6 +2,7 @@ import { readPortablePlannerProposals } from "@/modules/assistant";
 import { readPortableFocus } from "@/modules/focus";
 import { readPortableIdentity } from "@/modules/identity";
 import { readPortableHabits } from "@/modules/habits";
+import { readPortableTaskReminders } from "@/modules/notifications";
 import { readPortableTasks } from "@/modules/tasks";
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import { getDatabase, type Database, type DatabaseTransaction } from "@/shared/db/client";
@@ -12,6 +13,7 @@ import {
   PORTABLE_SECTION_SCHEMA_VERSION,
   PORTABLE_FOCUS_SECTION_SCHEMA_VERSION,
   PORTABLE_HABITS_SECTION_SCHEMA_VERSION,
+  PORTABLE_NOTIFICATIONS_SECTION_SCHEMA_VERSION,
   PORTABLE_TASKS_SECTION_SCHEMA_VERSION,
   USER_EXPORT_SCHEMA_VERSION,
 } from "./export-contract-primitives";
@@ -32,6 +34,7 @@ export function createPortabilityApplication(
     readTasks?: ExportSourceReader;
     readHabits?: ExportSourceReader;
     readFocus?: ExportSourceReader;
+    readNotifications?: ExportSourceReader;
     readProposals?: ExportSourceReader;
   }>,
 ) {
@@ -40,6 +43,7 @@ export function createPortabilityApplication(
   const readTasks = dependencies.readTasks ?? readPortableTasks;
   const readHabits = dependencies.readHabits ?? readPortableHabits;
   const readFocus = dependencies.readFocus ?? readPortableFocus;
+  const readNotifications = dependencies.readNotifications ?? readPortableTaskReminders;
   const readProposals = dependencies.readProposals ?? readPortablePlannerProposals;
 
   return {
@@ -49,6 +53,7 @@ export function createPortabilityApplication(
         const tasks = await readTasks(actor, transaction);
         const habits = await readHabits(actor, transaction);
         const focus = await readFocus(actor, transaction);
+        const notifications = await readNotifications(actor, transaction);
         const proposals = await readProposals(actor, transaction);
         const envelope = userExportEnvelopeSchema.parse({
           schemaVersion: USER_EXPORT_SCHEMA_VERSION,
@@ -57,6 +62,10 @@ export function createPortabilityApplication(
           tasks: { schemaVersion: PORTABLE_TASKS_SECTION_SCHEMA_VERSION, ...asObject(tasks) },
           habits: { schemaVersion: PORTABLE_HABITS_SECTION_SCHEMA_VERSION, ...asObject(habits) },
           focus: { schemaVersion: PORTABLE_FOCUS_SECTION_SCHEMA_VERSION, ...asObject(focus) },
+          notifications: {
+            schemaVersion: PORTABLE_NOTIFICATIONS_SECTION_SCHEMA_VERSION,
+            ...asObject(notifications),
+          },
           assistant: {
             schemaVersion: PORTABLE_SECTION_SCHEMA_VERSION,
             proposals,

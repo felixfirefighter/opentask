@@ -1,8 +1,8 @@
 # Notifications module contract
 
-**Status:** Active in the Local-first Full Release. P6 may implement only the one browser-push task
-reminder described here; another channel, multiple reminders, or a notification center remains out
-of scope.
+**Status:** Implemented in the Local-first Full Release. The module provides only the one
+browser-push task reminder described here; another channel, multiple reminders, or a notification
+center remains out of scope.
 
 `modules/notifications` owns reminder specifications, Web Push subscription storage, logical
 delivery records, provider classification, and the two notification worker jobs. Tasks remain the
@@ -17,6 +17,9 @@ only owner of task status, schedules, recurrence, and occurrence state.
   work, repair recurring chains, and delete expired operational records.
 - Report browser-independent provider, encryption, and worker configuration honestly. Browser
   support, permission, and current subscription remain client-derived.
+- Replace one demo actor's notification data through the root-exported demo seeder: remove all
+  subscriptions and delivery internals, then seed one deterministic portable reminder only after
+  its task fixture exists. Demo reset never enrolls a browser or schedules a provider delivery.
 
 ## Owned persistence
 
@@ -38,6 +41,10 @@ Application use cases:
 - `getPushCapability(actor)`.
 - `deliverNotification({schemaVersion: 1, userId, deliveryId})`.
 - `runNotificationMaintenance(job)`, where `job` is the actor-scoped maintenance union below.
+
+`createDemoNotificationSeeder({database})` is the narrow cross-module reset adapter used by
+identity's transactional demo composition. It accepts the identity-owned captured reset instant and
+an existing transaction; it does not expose a notification repository or provider contract.
 
 The strict HTTP surface is:
 
@@ -64,6 +71,23 @@ type TaskReminderDto = {
 };
 ```
 
+Reminder writes are replay-safe across a lost or unreadable success response. An exact create replay
+uses the same client UUID, `expectedVersion: null`, enabled value, and specification and returns the
+existing matching row without another version increment or reconciliation. An exact
+replace/enable/disable replay uses the same reminder ID, prior expected version, enabled value, and
+specification; when the stored row is already that command's version-plus-one result, it is returned
+without another version increment or reconciliation. Removing an already absent reminder returns the
+same successful removed outcome.
+A different create against an existing reminder, an ID change, or another stale/nonmatching write is
+a conflict rather than an idempotent replay.
+
+A transport failure or malformed success body is an **unconfirmed** outcome, not proof that the old
+reminder remained unchanged. Presentation retains the pending command state, offers **Check saved
+reminder**, and reloads the actor-scoped reminder before the user chooses the next action. A typed
+version conflict instead offers **Load latest reminder** while preserving an edit draft. Exact
+create, replace, enable/disable, and remove retries remain safe whether the first response was lost
+before or after commit.
+
 Enrollment accepts `{id, endpoint, keys: {p256dh, auth}, deviceLabel?}`. Revocation accepts the
 current browser's endpoint. Endpoint/key material is valid only as inbound enrollment/revocation
 data: it is encrypted or hashed immediately, is never echoed by a stored server read, and never
@@ -74,7 +98,19 @@ Registration reads and updates only the actor's rows. If the global active-endpo
 conflicts with another account, the server returns the generic reset result without reading,
 revoking, or identifying that account. The UI can then offer an explicit **Reset this browser
 subscription** action: unsubscribe locally, request a fresh browser subscription, and retry
-registration. A later 404/410 safely revokes the inaccessible old row for its owner.
+registration. An account may retain at most 10 active browser subscriptions. Registration takes an
+actor-scoped transaction advisory lock, resolves a same-endpoint refresh before counting, and
+uses a bounded probe of at most 10 actor-owned active IDs in canonical last-used/ID order before it
+rejects a new endpoint when the cap is already full. Revocation or a later 404/410 safely
+revokes the inaccessible old row for its owner and frees a slot.
+
+A browser-local `PushSubscription` proves only that this browser has endpoint material. It does not
+prove that the current authenticated account owns an active server enrollment. Enrollment state is
+therefore `unverified` after reload, browser-status refresh, demo reset, or account transition; only
+a successful registration for the current actor marks it `enrolled`. An existing local subscription
+is verified explicitly in Settings, and task details never infer enrollment from `PushManager`.
+Waiting for `navigator.serviceWorker.ready` is bounded to 5 seconds for inspection and enrollment;
+timeout becomes a retryable browser-status failure and permission is not requested.
 
 Server capability output is exactly:
 
@@ -173,6 +209,7 @@ retried and a duplicate job cannot create an unclassified extra provider call. A
 
 Frozen constants:
 
+- at most 10 active browser subscriptions per account;
 - stale when `now >= scheduledFor + 15 minutes`;
 - provider wall-clock deadline: 10 seconds;
 - four total attempts: initial plus at most three explicit retryable outcomes;
@@ -251,6 +288,10 @@ seconds for graceful completion. Compose allows 20 seconds.
 - Key rotation decrypts retained versions and encrypts only with the active version.
 - Raw `WebPushError` values are never logged or propagated because they can contain endpoints,
   provider headers, and response bodies.
+- Push delivery accepts arbitrary HTTPS push services only when every resolved address is publicly
+  routable. A preflight check rejects localhost, private, link-local, documentation, multicast, and
+  reserved IPv4/IPv6 targets, while a dedicated HTTPS agent repeats the check during connection to
+  prevent DNS rebinding. Redirects are not followed.
 
 Module-owned configuration is:
 
@@ -274,7 +315,7 @@ configuration validation. No secret uses `NEXT_PUBLIC_`.
 
 ## Service-worker contract
 
-The P5 cache/fetch boundary is unchanged. A push contains only
+The static-shell cache/fetch boundary is unchanged. A push contains only
 `{schemaVersion: 1, taskId, deliveryId}` with UUIDs. Valid payloads show title `Task reminder`, body
 `A task is ready for your attention.`, icon `/icons/opentask-192.png`, and deterministic tag
 `opentask-${deliveryId}`. Invalid payloads show nothing. Click handling revalidates the stored data,
@@ -290,7 +331,8 @@ same-origin window when possible, or opens one. It never consumes a supplied URL
 
 ## Required tests
 
-- Reminder discriminant, eligibility, enable/disable/remove, version conflict, recurrence
+- Reminder discriminant, eligibility, enable/disable/remove, exact create/replace/remove replay after
+  response loss, authoritative unconfirmed-outcome recovery, version conflict, recurrence
   conversion/removal, exact-now/past rejection, and DST scheduling.
 - Global active endpoint uniqueness, cross-user denial, generic shared-browser reset flow, encrypted
   storage, key rotation, and redaction of endpoint/key/provider errors.
@@ -300,5 +342,7 @@ same-origin window when possible, or opens one. It never consumes a supplied URL
   worker-outage recovery, and query-plan fixtures.
 - Provider/encryption/worker absent, malformed partial configuration, worker `--check`, exactly two
   enabled handlers, queue-definition drift, graceful signals, and provider-absent startup.
-- Browser unsupported/not-requested/denied/subscribed/revoked states with no implicit permission
-  prompt; generic push/click behavior and unchanged P5 cache/privacy tests.
+- Browser support and permission states, local subscription absent/present, account enrollment
+  unverified/enrolled/reset-required, revocation, a 5-second service-worker readiness bound, and no
+  implicit permission prompt; generic push/click behavior and unchanged service-worker cache/privacy
+  tests.

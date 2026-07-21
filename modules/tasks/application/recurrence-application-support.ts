@@ -108,13 +108,28 @@ export function nextFutureOccurrenceStart(
   projection: RecurrenceProjectionWindow,
   now: Date,
 ): RecurrenceOccurrenceStart | null {
-  let after = futureSearchCursor(anchor, projection, now);
+  const next = nextFutureOccurrence(expansion, definition, anchor, projection, now);
+  return next === null ? null : occurrenceStart(next.schedule);
+}
+
+export function nextFutureOccurrence(
+  expansion: RecurrenceExpansionPort,
+  definition: RecurrenceDefinition,
+  anchor: RecurrenceScheduleAnchor,
+  projection: RecurrenceProjectionWindow,
+  afterInstant: Date,
+): Readonly<{
+  candidate: LocalRecurrenceStart;
+  schedule: RecurrenceOccurrenceSchedule;
+}> | null {
+  let after = futureSearchCursor(anchor, projection, afterInstant);
   for (let attempt = 0; attempt < MAX_RECURRENCE_CANDIDATES_PER_SERIES; attempt += 1) {
     const candidate = expansion.next({ rule: definition, anchor, after });
     if (candidate === null) return null;
-    const start = occurrenceStart(projectRecurrenceCandidate(anchor, candidate));
-    if (isStrictlyFuture(start, now) && occurrenceStartsWithinProjection(projection, start)) {
-      return start;
+    const schedule = projectRecurrenceCandidate(anchor, candidate);
+    const start = occurrenceStart(schedule);
+    if (isStrictlyFuture(start, afterInstant) && occurrenceStartsWithinProjection(projection, start)) {
+      return { candidate, schedule };
     }
     if (isAtOrAfterUpperCutover(projection, start)) return null;
     after = candidate;

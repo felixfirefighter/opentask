@@ -6,7 +6,7 @@ export type TrustedOriginPolicy =
 export function assertTrustedJsonMutation(
   request: Request,
   policy: TrustedOriginPolicy,
-  expectedMethod: "DELETE" | "PATCH" | "POST" = "POST",
+  expectedMethod: "DELETE" | "PATCH" | "POST" | "PUT" = "POST",
 ) {
   if (request.method !== expectedMethod) throw validationFailure();
   assertJsonContentType(request.headers);

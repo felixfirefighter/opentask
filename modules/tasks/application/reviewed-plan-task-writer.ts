@@ -13,6 +13,9 @@ import {
   type ReviewedPlanTaskSnapshot,
   type ReviewedPlanTaskWriter,
   type TaskScheduleValue,
+  noopTaskReminderReconciler,
+  normalizeReminderTaskIds,
+  type TaskReminderReconciler,
 } from "./contracts";
 import { generateRanksBetween } from "./ranking";
 import { createBoundedOccurrenceSnapshotReader } from "./occurrence-reader";
@@ -35,10 +38,12 @@ export function createReviewedPlanTaskWriter({
   clock,
   taskSchedules,
   recurrenceExpansion,
+  reminderReconciler = noopTaskReminderReconciler,
 }: {
   clock: Clock;
   taskSchedules: TaskScheduleTable;
   recurrenceExpansion: RecurrenceExpansionPort;
+  reminderReconciler?: TaskReminderReconciler;
 }): ReviewedPlanTaskWriter {
   const repository = createReviewedPlanRepository(taskSchedules);
   const tasks = createTaskRepository();
@@ -46,6 +51,10 @@ export function createReviewedPlanTaskWriter({
   const schedules = createTaskScheduleRepository(taskSchedules);
 
   return {
+    async prepareReminderReconciliation(actor, taskIds) {
+      await reminderReconciler.prepare(actor, normalizeReminderTaskIds(taskIds));
+    },
+
     async loadApplyContextForUpdate(
       actor: AuthenticatedActor,
       rawTaskIds: readonly string[],
@@ -209,6 +218,18 @@ export function createReviewedPlanTaskWriter({
             );
           }
         }
+      }
+
+      const reminderRelevantTaskIds = batch.updates
+        .filter(({ schedule }) => schedule !== undefined)
+        .map(({ id }) => id)
+        .sort();
+      if (reminderRelevantTaskIds.length > 0) {
+        await reminderReconciler.reconcile(
+          actor,
+          { taskIds: reminderRelevantTaskIds, reason: "schedule_changed" },
+          transaction,
+        );
       }
     },
   };

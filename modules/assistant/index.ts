@@ -56,5 +56,8 @@ export { createPlannerProposalCreator } from "./application/create-planner-propo
 export type { PlannerProposalCreator } from "./application/create-planner-proposal";
 export { createPlannerProposalApplier } from "./application/apply-planner-proposal";
 export type { PlannerProposalApplier } from "./application/apply-planner-proposal";
-export { getAssistantPlannerApplication } from "./application/planner-runtime";
+export {
+  createProductionAssistantPlannerApplication,
+  getAssistantPlannerApplication,
+} from "./application/planner-runtime";
 export { createDemoProposalResetter } from "./application/demo-proposal-resetter";

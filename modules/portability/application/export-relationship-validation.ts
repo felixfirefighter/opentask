@@ -146,6 +146,18 @@ export function findExportRelationshipErrors(envelope: UserExportEnvelope): read
     }
   }
 
+  uniqueIds(envelope.notifications.reminders, "reminder", errors);
+  const reminderTaskIds = new Set<string>();
+  for (const reminder of envelope.notifications.reminders) {
+    if (!tasks.has(reminder.taskId)) {
+      errors.push(`Reminder ${reminder.id} references an unknown task.`);
+    }
+    if (reminderTaskIds.has(reminder.taskId)) {
+      errors.push(`Task ${reminder.taskId} has more than one reminder.`);
+    }
+    reminderTaskIds.add(reminder.taskId);
+  }
+
   const proposalIds = new Set<string>();
   for (const record of envelope.assistant.proposals) {
     if (proposalIds.has(record.id)) errors.push(`Planner proposal ${record.id} is duplicated.`);

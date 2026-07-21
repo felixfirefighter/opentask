@@ -1,4 +1,5 @@
-import { clearTaskScheduleRequestSchema, getTasksApplication } from "@/modules/tasks";
+import { clearTaskScheduleRequestSchema } from "@/modules/tasks";
+import { getReleaseApplications } from "@/server/release-applications";
 
 import {
   assertNoTaskApiQuery,
@@ -18,6 +19,8 @@ export function POST(request: Request, context: ClearTaskScheduleRouteContext) {
     const { actor, input } = await readTaskApiMutation(request, clearTaskScheduleRequestSchema);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
-    return privateTaskJson(await getTasksApplication().schedules.clearSchedule(actor, taskId, input));
+    return privateTaskJson(
+      await getReleaseApplications().tasks.schedules.clearSchedule(actor, taskId, input),
+    );
   });
 }

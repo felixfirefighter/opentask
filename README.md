@@ -16,15 +16,21 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose **Try demo** to create/reset a private sample workspace for that browser. The implemented baseline does not require a background worker; `pnpm worker` remains a zero-job architecture smoke until the reminder package activates jobs.
+`pnpm db:seed` is an idempotent database seed-readiness check: it verifies connectivity and
+intentionally writes zero records. Open `http://127.0.0.1:3000`, then create an account or choose
+**Try demo** to create/reset a private sample workspace for that browser. Manual workflows do not
+require the background worker. `pnpm worker -- --check` validates its two notification queues; set
+`REMINDER_WORKER_MODE=enabled` before `pnpm worker` to run the active reminder handlers. Enabled
+configuration does not prove process liveness: operators confirm the `WORKER_READY` log and process
+supervision.
 
 For local use, you may open either `http://127.0.0.1:3000` or `http://localhost:3000`. When
 `BETTER_AUTH_URL` names either loopback host, OpenTask accepts the other spelling only on the same
 scheme and port; you do not need to change the environment file when switching between them.
 
-## Implemented baseline
+## Implemented release
 
-The implemented baseline includes:
+The Local-first Full Release includes:
 
 - task, list, section, tag, checklist, subtask, search, status, priority, and Markdown workflows;
 - contextual quick add with atomic task-plus-schedule creation, all-day and timed schedules, Today,
@@ -46,16 +52,24 @@ The implemented baseline includes:
 - an optional GPT-5.6 proposal flow whose output is editable and cannot write until explicit Apply;
 - persisted planner Review/Result restoration after refresh or navigation, plus an explicit no-key
   capability state in Settings;
-- a private versioned JSON export from **Settings → Your data**;
+- one optional browser-push reminder per task, with an explicit permission/subscription flow,
+  privacy-safe payloads, recurrence-aware delivery, and an independently runnable two-queue worker;
+- a private versioned JSON export from **Settings → Your data**, including portable task, schedule,
+  recurrence, habit, completed Focus, proposal, and reminder specifications;
 - isolated demo entry, health endpoints, and reproducible Docker deployment.
 
 Set `OPENAI_API_KEY` only on the server to enable `/plan`. When it is absent, the planner explains why it is unavailable while every manual workflow and export remain usable. OpenAI requests use Structured Outputs, send only the selected planning context, set `store: false`, and never write task data directly.
 
-The next unfinished package is P6, one optional browser-push task reminder with an active worker.
-Final release portability and release evidence follow in P7.
-Offline mutation synchronization, collaboration, and premium/billing paths remain excluded. See
-[docs/SCOPE.md](docs/SCOPE.md) for the exact target and
-[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the remaining P6-P7 order.
+Browser reminders remain optional. Without VAPID keys, subscription-encryption keys, browser
+support, permission, or a running worker, Settings reports the specific degraded state while tasks,
+habits, Focus, export, and local startup continue to work. See [docs/SETUP.md](docs/SETUP.md) for the
+provider configuration and [docs/SECURITY.md](docs/SECURITY.md) for its privacy boundary.
+
+Offline mutation synchronization, import/restore, collaboration, multiple reminder channels, and
+premium/billing paths remain deliberately excluded. See [docs/SCOPE.md](docs/SCOPE.md) for the exact
+release boundary. [docs/GOAL.md](docs/GOAL.md) records release stewardship, and
+[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) defines the contract for a future
+user-authorized change; neither authorizes roadmap work by itself.
 
 ## Built with Codex and GPT-5.6
 
@@ -74,7 +88,8 @@ Install Playwright Chromium once with `pnpm exec playwright install chromium`, t
 
 - [Development setup](docs/SETUP.md) for host, PostgreSQL, Docker, health, and migration commands;
 - [Railway deployment](docs/DEPLOYMENT.md) for the hosted web/PostgreSQL path and cost controls;
-- [Friend test](docs/FRIEND_TEST.md) for the seven-minute candidate checklist and feedback format.
+- [Friend test](docs/FRIEND_TEST.md) for the concise candidate checklist and feedback format;
+- [Hackathon contract](docs/HACKATHON.md) for the submission checklist and under-three-minute demo.
 
 For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository-owned design tokens and contracts in [DESIGN.md](DESIGN.md) remain authoritative.
 
@@ -82,9 +97,11 @@ For shared UI changes, run `pnpm verify:design` before `pnpm verify`. Repository
 
 1. Read [AGENTS.md](AGENTS.md) for engineering and audit gates.
 2. Read [docs/MANIFEST.md](docs/MANIFEST.md) for owners and canonical documents.
-3. Use this README's **Implemented baseline** section to distinguish shipped behavior from the
-   remaining plan, then read [docs/SCOPE.md](docs/SCOPE.md) before changing product behavior.
-4. Use [docs/GOAL.md](docs/GOAL.md) and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for execution order.
+3. Use this README's **Implemented release** section to understand shipped behavior, then read
+   [docs/SCOPE.md](docs/SCOPE.md) before changing product behavior.
+4. Use [docs/GOAL.md](docs/GOAL.md) for release stewardship and
+   [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the shape of a future
+   user-authorized plan.
 5. Use [DESIGN.md](DESIGN.md) and its routed screen contracts for UI work.
 
 ## Independence and license

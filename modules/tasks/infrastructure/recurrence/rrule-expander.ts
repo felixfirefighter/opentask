@@ -1,4 +1,5 @@
-import { RRule, type Options, type Weekday } from "rrule";
+import * as rrule from "rrule";
+import type { Options, Weekday } from "rrule";
 import { Temporal } from "temporal-polyfill";
 
 import {
@@ -14,6 +15,9 @@ import {
   type LocalRecurrenceStart,
 } from "../../domain/recurrence/recurrence-time-policy";
 
+const RRule =
+  rrule.RRule ??
+  (rrule as unknown as Readonly<{ default: Readonly<{ RRule: typeof rrule.RRule }> }>).default.RRule;
 const weekdays = [RRule.MO, RRule.TU, RRule.WE, RRule.TH, RRule.FR, RRule.SA, RRule.SU] as const;
 
 export class RruleRecurrenceExpander {
@@ -46,7 +50,7 @@ export class RruleRecurrenceExpander {
   }
 }
 
-function createRrule(rule: RecurrenceRule, anchor: LocalRecurrenceStart): RRule {
+function createRrule(rule: RecurrenceRule, anchor: LocalRecurrenceStart): InstanceType<typeof RRule> {
   const options: Partial<Options> = {
     freq: frequencyFor(rule.preset),
     interval: rule.preset.interval,

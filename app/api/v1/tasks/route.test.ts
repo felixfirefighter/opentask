@@ -35,6 +35,10 @@ vi.mock("@/modules/tasks", async (importOriginal) => ({
   getTasksApplication: mocks.getTasksApplication,
 }));
 
+vi.mock("@/server/release-applications", () => ({
+  getReleaseApplications: () => ({ tasks: { tasks: mocks.tasks } }),
+}));
+
 import { POST as deleteChecklistItem } from "./[taskId]/checklist/[itemId]/delete/route";
 import { POST as positionChecklistItem } from "./[taskId]/checklist/[itemId]/position/route";
 import { PATCH as updateChecklistItem } from "./[taskId]/checklist/[itemId]/route";

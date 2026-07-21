@@ -1,12 +1,13 @@
 "use client";
 
 import { CircleCheck, CircleOff, Download, RefreshCw } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { useOnlineStatus, usePwaCapability } from "@/shared/presentation";
 
 import styles from "./SettingsScreen.module.css";
 
-export function PwaSettingsCard() {
+export function PwaSettingsCard({ reminderControls }: Readonly<{ reminderControls?: ReactNode }>) {
   const online = useOnlineStatus();
   const pwa = usePwaCapability();
   const presentation = describeCapability(pwa);
@@ -20,7 +21,7 @@ export function PwaSettingsCard() {
       <div className={styles.cardHeading}>
         <div>
           <p className="eyebrow">This browser</p>
-          <h2 id="pwa-title">App</h2>
+          <h2 id="pwa-title">{reminderControls ? "App and reminders" : "App"}</h2>
         </div>
         <span className={styles.capabilityStatus} data-state={presentation.tone} role="status">
           <presentation.Icon size={16} aria-hidden="true" />
@@ -68,6 +69,7 @@ export function PwaSettingsCard() {
           </button>
         ) : null}
       </div>
+      {reminderControls}
     </section>
   );
 }

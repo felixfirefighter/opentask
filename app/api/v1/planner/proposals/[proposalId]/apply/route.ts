@@ -1,4 +1,5 @@
-import { getAssistantPlannerApplication, plannerSelectionSchema } from "@/modules/assistant";
+import { plannerSelectionSchema } from "@/modules/assistant";
+import { getReleaseApplications } from "@/server/release-applications";
 import { ApplicationError } from "@/shared/http/application-error";
 
 import {
@@ -30,6 +31,6 @@ export function POST(request: Request, context: PlannerProposalContext) {
         "The planner idempotency key must match the proposal apply token.",
       );
     }
-    return privateTaskJson(await getAssistantPlannerApplication().applyProposal(actor, proposalId, input));
+    return privateTaskJson(await getReleaseApplications().assistant.applyProposal(actor, proposalId, input));
   });
 }

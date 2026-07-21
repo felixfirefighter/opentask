@@ -185,7 +185,7 @@ test("a linked authoritative Focus session survives refresh and remains portable
   await page.getByRole("button", { name: "Export my data" }).click();
   const [exportResponse, download] = await Promise.all([exportResponsePromise, downloadPromise]);
   expect(exportResponse.status()).toBe(200);
-  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("4");
+  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("5");
   const downloadedPath = await download.path();
   expect(downloadedPath).not.toBeNull();
   const exported = JSON.parse(await readFile(downloadedPath!, "utf8")) as PortableExportWire;

@@ -39,7 +39,7 @@ current rule is labeled read-only and suppresses Complete/Skip when its server-d
 `transitionEligible` value is false. Cancel/restore and Edit/End recurrence remain explicit series
 actions in details.
 
-Keyboard: `Enter` opens details; the status control remains separately tabbable; menu actions expose move, schedule, priority, complete/cancel/restore, and soft-delete as allowed. Hover-only controls also appear on `:focus-within`. Mobile swipe actions are not part of active scope.
+Keyboard: `Enter` opens details; the status control remains separately tabbable; menu actions expose move, schedule, priority, complete/cancel/restore, and soft-delete as allowed. Hover-only controls also appear on `:focus-within`. Mobile swipe actions are not part of current scope.
 
 ## Quick add
 
@@ -88,7 +88,7 @@ The row/card includes icon/emoji, title, schedule/goal, current progress, streak
 
 ## Focus timer
 
-This primitive becomes active with P4 and must not render before that package gate.
+This primitive serves the released Focus surface.
 
 The timer uses tabular numerals and exposes its mode/state as text. Start is the only filled action at rest; Pause, Resume, Finish, and Discard follow the current state. A linked task/habit is optional and removable. Screen-reader announcements occur at state changes, not every second.
 

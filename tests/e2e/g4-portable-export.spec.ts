@@ -19,6 +19,24 @@ const forbiddenExportKeys = [
   "rawBrainDump",
   "refreshToken",
   "serverConfiguration",
+  "subscriptionId",
+  "endpoint",
+  "endpointHash",
+  "endpointCiphertext",
+  "p256dh",
+  "p256dhCiphertext",
+  "auth",
+  "authCiphertext",
+  "encryptionKeyVersion",
+  "deviceLabel",
+  "userAgentSummary",
+  "deliveryId",
+  "lastErrorCode",
+  "providerResult",
+  "vapidPublicKey",
+  "vapidPrivateKey",
+  "jobId",
+  "queueName",
   "session",
   "token",
 ] as const;
@@ -49,6 +67,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   const recurrence = await setDailyRecurrence(page, task.id, scheduled.task.version);
   const occurrence = await readRecurringOccurrence(page, task.id);
   await completeOccurrence(page, task.id, occurrence.occurrenceKey, recurrence.task.version);
+  const reminder = await setRelativeReminder(page, task.id);
   const portableHabit = await createPortableHabit(page);
 
   await page.goto("/settings");
@@ -72,7 +91,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   expect(exportResponse.headers()["content-type"]).toContain("application/json");
   expect(exportResponse.headers()["pragma"]).toBe("no-cache");
   expect(exportResponse.headers()["x-content-type-options"]).toBe("nosniff");
-  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("4");
+  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("5");
 
   const downloadedPath = await download.path();
   expect(downloadedPath).not.toBeNull();
@@ -80,9 +99,9 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   const expectedFilename = `opentask-export-${new Date(envelope.exportedAt).toISOString().slice(0, 10)}.json`;
   expect(exportResponse.headers()["content-disposition"]).toBe(`attachment; filename="${expectedFilename}"`);
   expect(download.suggestedFilename()).toBe(expectedFilename);
-  await expect(page.getByText(`Downloaded ${expectedFilename} · schema v4.`)).toBeVisible();
+  await expect(page.getByText(`Downloaded ${expectedFilename} · schema v5.`)).toBeVisible();
   expect(envelope).toMatchObject({
-    schemaVersion: 4,
+    schemaVersion: 5,
     identity: {
       schemaVersion: 1,
       profile: { email: owner.email },
@@ -91,6 +110,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
     tasks: { schemaVersion: 2 },
     habits: { schemaVersion: 1 },
     focus: { schemaVersion: 1, sessions: [] },
+    notifications: { schemaVersion: 1 },
     assistant: { schemaVersion: 1, proposals: expect.any(Array) },
   });
   expect(Number.isNaN(Date.parse(envelope.exportedAt))).toBe(false);
@@ -162,6 +182,15 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
       note: portableHabit.note,
     }),
   );
+  expect(envelope.notifications.reminders).toContainEqual({
+    id: reminder.id,
+    taskId: task.id,
+    enabled: true,
+    version: reminder.version,
+    spec: { kind: "relative_start", remindAt: null, offsetMinutes: 30 },
+    createdAt: reminder.createdAt,
+    updatedAt: reminder.updatedAt,
+  });
 
   const serializedOwnerExport = JSON.stringify(envelope);
   expect(serializedOwnerExport).not.toContain(owner.password);
@@ -193,6 +222,7 @@ test("a private versioned export is downloadable, owner-scoped, and revoked on s
   expect(serializedOtherExport).not.toContain(portableHabit.id);
   expect(serializedOtherExport).not.toContain(portableHabit.title);
   expect(serializedOtherExport).not.toContain(portableHabit.note);
+  expect(serializedOtherExport).not.toContain(reminder.id);
 
   const crossUserTask = await page.context().request.get(`/api/v1/tasks/${task.id}`);
   expect(crossUserTask.status()).toBe(404);
@@ -262,7 +292,23 @@ type PortableExportEnvelope = Readonly<{
     schemaVersion: number;
     sessions: ReadonlyArray<Record<string, unknown>>;
   };
+  notifications: {
+    schemaVersion: number;
+    reminders: ReadonlyArray<PortableReminder>;
+  };
   assistant: { schemaVersion: number; proposals: readonly unknown[] };
+}>;
+
+type PortableReminder = Readonly<{
+  id: string;
+  taskId: string;
+  enabled: boolean;
+  version: number;
+  spec:
+    | { kind: "absolute"; remindAt: string; offsetMinutes: null }
+    | { kind: "relative_start"; remindAt: null; offsetMinutes: number };
+  createdAt: string;
+  updatedAt: string;
 }>;
 
 async function createPortableHabit(page: Page) {
@@ -353,6 +399,20 @@ async function completeOccurrence(
     headers: { origin: appOrigin },
   });
   expect(response.status()).toBe(200);
+}
+
+async function setRelativeReminder(page: Page, taskId: string): Promise<PortableReminder> {
+  const response = await page.context().request.put(`/api/v1/tasks/${taskId}/reminder`, {
+    data: {
+      id: randomUUID(),
+      expectedVersion: null,
+      enabled: true,
+      spec: { kind: "relative_start", remindAt: null, offsetMinutes: 30 },
+    },
+    headers: { origin: appOrigin },
+  });
+  expect(response.status()).toBe(200);
+  return (await response.json()) as PortableReminder;
 }
 
 type MutationResult = Readonly<{ task: Readonly<{ id: string; version: number }> }>;

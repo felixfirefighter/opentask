@@ -503,7 +503,11 @@ test("habit route states pass the accessibility gate", async ({ page }, testInfo
   await page.goto("/inbox");
   const habitsBarrier = await acquireHabitReadBarrier();
   try {
-    await clickRouteWithEvidenceQuery(page.locator('a[href="/habits"]').first(), "a11y-habits-loading");
+    await navigateToRouteWithEvidenceQuery(
+      page,
+      page.locator('a[href="/habits"]').first(),
+      "a11y-habits-loading",
+    );
     const habitWorkspaceLoading = page.getByRole("main").locator('[data-loading-shape="habit-workspace"]');
     await expect(habitWorkspaceLoading).toBeVisible({ timeout: 15_000 });
     await expect(
@@ -521,7 +525,8 @@ test("habit route states pass the accessibility gate", async ({ page }, testInfo
 
   const detailBarrier = await acquireHabitReadBarrier();
   try {
-    await clickRouteWithEvidenceQuery(
+    await navigateToRouteWithEvidenceQuery(
+      page,
       page.getByRole("link", { name: `Open ${stateHabit.habit.title}`, exact: true }),
       "a11y-habit-detail-loading",
     );
@@ -562,14 +567,13 @@ test("habit route states pass the accessibility gate", async ({ page }, testInfo
   }
 });
 
-async function clickRouteWithEvidenceQuery(link: Locator, label: string): Promise<void> {
-  await link.evaluate((element, evidence) => {
-    if (!(element instanceof HTMLAnchorElement)) throw new Error("Route evidence requires a link.");
-    const destination = new URL(element.href);
-    destination.searchParams.set("evidence", evidence);
-    element.setAttribute("href", `${destination.pathname}${destination.search}`);
-    element.click();
-  }, `${label}-${randomUUID()}`);
+async function navigateToRouteWithEvidenceQuery(page: Page, link: Locator, label: string): Promise<void> {
+  const href = await link.getAttribute("href");
+  if (!href) throw new Error("Route evidence requires a link destination.");
+
+  const destination = new URL(href, page.url());
+  destination.searchParams.set("evidence", `${label}-${randomUUID()}`);
+  await page.goto(`${destination.pathname}${destination.search}`, { waitUntil: "commit" });
 }
 
 async function auditRoute(page: Page, route: Readonly<{ path: string; heading: string }>) {
@@ -959,6 +963,10 @@ async function setDocumentTheme(page: Page, theme: "light" | "dark") {
 }
 
 async function expectNoSevereViolations(page: Page, activeOverlay?: string) {
+  // App Router metadata can arrive one stream chunk after the visible loading shell. Audit only
+  // after that chunk commits so Axe observes the complete document, while a missing title still
+  // fails this gate explicitly.
+  await expect(page).toHaveTitle(/\S/u);
   const builder = new AxeBuilder({ page });
   // Radix overlays intentionally aria-hide their inert, focus-trapped background. Axe audits the active
   // accessible subtree here; keyboard tests separately own focus containment, so this is not a rule waiver.

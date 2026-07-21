@@ -9,12 +9,12 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 | Agent behavior and hard gates | `AGENTS.md` |
 | Implemented capabilities and local run path | `README.md` |
 | Product purpose and principles | `docs/PRODUCT.md` |
-| Active/rejected/later feature scope | `docs/SCOPE.md` |
-| Goal-feature contract | `docs/GOAL.md` |
+| Current/excluded/later feature scope | `docs/SCOPE.md` |
+| Release stewardship and authorized objective | `docs/GOAL.md` |
 | Stack and approved dependencies | `docs/STACK.md` |
 | System shape and layer rules | `docs/ARCHITECTURE.md` |
 | Tables, ownership, data semantics | `docs/DATA_MODEL.md` |
-| Ordered work packages | `docs/IMPLEMENTATION_PLAN.md` |
+| Future authorized-change plan contract | `docs/IMPLEMENTATION_PLAN.md` |
 | Tests, audits, completion gates | `docs/QUALITY.md` |
 | Design north star and routing | `DESIGN.md` |
 | Approved visual baseline | `docs/design/editorial-focus.md` |
@@ -26,7 +26,7 @@ This file is the routing index and source-of-truth map. Keep it compact. Detaile
 | Reference-only TickTick feature research | `docs/research/TICKTICK_FEATURES.md` |
 | Research URLs and confidence | `docs/research/SOURCES.md` |
 
-## Planned repository shape
+## Repository shape
 
 ```text
 app/                     Next.js routes and composition only
@@ -41,7 +41,8 @@ modules/                 Product feature modules
   assistant/
   portability/
 shared/                  Approved stable cross-cutting surfaces
-worker/                  pg-boss runtime; zero-job baseline until P6 activates reminder jobs
+server/                  Web-only release application composition through module roots
+worker/                  active two-queue pg-boss notification runtime and check mode
 drizzle/                 Generated, committed SQL migrations
 public/                  Original static assets
 docs/                    Product and engineering contracts
@@ -62,7 +63,7 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 | focus | authoritative timer policy, completed sessions, and derived summaries | `docs/modules/focus.md` |
 | notifications | task reminders, push subscriptions, queue jobs, and Web Push delivery | `docs/modules/notifications.md` |
 | assistant | OpenAI adapter, extraction, planner proposals, review/apply | `docs/modules/assistant.md` |
-| portability | versioned user export and future import adapters | `docs/modules/portability.md` |
+| portability | authenticated versioned user export | `docs/modules/portability.md` |
 
 ## Approved shared surfaces
 
@@ -91,7 +92,7 @@ These commands are the stable repository interface; contributors use them rather
 | Command | Contract |
 |---|---|
 | `pnpm dev` | web app in development |
-| `pnpm worker` | pg-boss worker; architecture smoke before P6 and active reminder jobs after P6 |
+| `pnpm worker` | active two-queue reminder worker; `--check` validates configuration and queues without consumers or push |
 | `pnpm db:up` / `pnpm db:down` | local PostgreSQL lifecycle |
 | `pnpm db:generate` | generate migration from reviewed schema change |
 | `pnpm db:migrate` | apply committed migrations |
@@ -120,6 +121,5 @@ These commands are the stable repository interface; contributors use them rather
 - Do not store progress history in docs. A temporary current-work note, if ever needed, is replaced rather than appended and is deleted at release.
 - New module contracts belong in `docs/modules/`; new screen contracts belong in `docs/design/screens/`.
 - A later-roadmap contract is not permission to create its routes, tables, jobs, dependencies, or UI
-  under the active goal. Active modules still follow the package order and cannot expose dormant
-  later-package code before their gate.
+  without an explicit user-authorized scope change. Do not expose dormant later-scope code.
 - Architecture deviations use one short ADR in `docs/decisions/` and a manifest entry. Do not create ADRs for routine implementation choices.

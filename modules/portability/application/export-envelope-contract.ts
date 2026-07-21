@@ -5,6 +5,7 @@ import { USER_EXPORT_SCHEMA_VERSION, portableInstantSchema } from "./export-cont
 import { portableIdentitySectionSchema } from "./export-identity-contract";
 import { portableHabitsSectionSchema } from "./export-habits-contract";
 import { portableFocusSectionSchema } from "./export-focus-contract";
+import { portableNotificationsSectionSchema } from "./export-notifications-contract";
 import { portableTasksSectionSchema } from "./export-tasks-contract";
 
 export const userExportEnvelopeSchema = z.strictObject({
@@ -14,6 +15,7 @@ export const userExportEnvelopeSchema = z.strictObject({
   tasks: portableTasksSectionSchema,
   habits: portableHabitsSectionSchema,
   focus: portableFocusSectionSchema,
+  notifications: portableNotificationsSectionSchema,
   assistant: portableAssistantSectionSchema,
 });
 

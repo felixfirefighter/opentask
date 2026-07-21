@@ -16,7 +16,13 @@ const schemaComposition = {
 };
 
 export const architectureBoundaries = createConfig({
-  files: ["app/**/*.{ts,tsx}", "modules/**/*.{ts,tsx}", "shared/**/*.{ts,tsx}", "worker/**/*.{ts,tsx}"],
+  files: [
+    "app/**/*.{ts,tsx}",
+    "modules/**/*.{ts,tsx}",
+    "server/**/*.{ts,tsx}",
+    "shared/**/*.{ts,tsx}",
+    "worker/**/*.{ts,tsx}",
+  ],
   settings: {
     "boundaries/root-path": process.cwd(),
     "boundaries/elements-single-type": true,
@@ -47,6 +53,7 @@ export const architectureBoundaries = createConfig({
         partialMatch: false,
       },
       { type: "app", pattern: "app", partialMatch: false },
+      { type: "server-composition", pattern: "server", partialMatch: false },
       { type: "worker", pattern: "worker", partialMatch: false },
     ],
   },
@@ -67,6 +74,7 @@ export const architectureBoundaries = createConfig({
             allow: {
               to: [
                 { element: { types: "app" } },
+                { element: { types: "server-composition" } },
                 moduleIndex,
                 presentationEntry,
                 {
@@ -88,6 +96,10 @@ export const architectureBoundaries = createConfig({
                 },
               ],
             },
+          },
+          {
+            from: { element: { types: "server-composition" } },
+            allow: { to: moduleIndex },
           },
           {
             from: { element: { types: "module" } },

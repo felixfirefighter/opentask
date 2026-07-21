@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PlanningBusyIntervalPage } from "@/modules/planning";
+import { ReminderProducerPreparationRequiredError } from "@/modules/tasks";
 import type { AuthenticatedActor } from "@/shared/auth/actor";
 import type { DatabaseTransaction } from "@/shared/db/client";
 import { ApplicationError } from "@/shared/http/application-error";
@@ -188,6 +189,7 @@ type HarnessOptions = Readonly<{
   busyItems?: PlanningBusyIntervalPage["items"];
   busyTruncationReason?: PlanningBusyIntervalPage["truncation"]["reasons"][number];
   writerError?: Error;
+  writerErrors?: readonly Error[];
   markApplied?: boolean;
   markExpired?: boolean;
 }>;
@@ -195,7 +197,9 @@ type HarnessOptions = Readonly<{
 function createHarness(options: HarnessOptions = {}) {
   const stored = options.proposal === undefined ? existingTaskProposal() : options.proposal;
   const events: string[] = [];
+  const writerErrors = [...(options.writerErrors ?? [])];
   const calls = {
+    preparedTaskIds: [] as string[][],
     loadedTaskIds: [] as string[][],
     busy: [] as Array<{
       timeZone: string;
@@ -247,6 +251,10 @@ function createHarness(options: HarnessOptions = {}) {
       },
     },
     tasks: {
+      async prepareReminderReconciliation(_actor, taskIds) {
+        calls.preparedTaskIds.push([...taskIds]);
+      },
+
       async loadApplyContextForUpdate(_actor, taskIds, busyRequest, passedTransaction) {
         expect(passedTransaction).toBe(transaction);
         calls.loadedTaskIds.push([...taskIds]);
@@ -274,7 +282,8 @@ function createHarness(options: HarnessOptions = {}) {
       async applyAllowedActions(_actor, actions, versions, passedTransaction) {
         calls.writes.push({ actions, versions, transaction: passedTransaction });
         events.push("tasks:write");
-        if (options.writerError) throw options.writerError;
+        const writerError = writerErrors.shift() ?? options.writerError;
+        if (writerError) throw writerError;
       },
     },
   };
@@ -622,6 +631,21 @@ describe("planner proposal apply deterministic schedule validation", () => {
 });
 
 describe("planner proposal apply atomic failure behavior", () => {
+  it("prepares schedule targets and retries one rolled-back transaction after concurrent discovery", async () => {
+    const harness = createHarness({
+      writerErrors: [new ReminderProducerPreparationRequiredError([taskId])],
+    });
+
+    await expect(
+      harness.applier.apply(actor, proposalId, selection(harness.proposal)),
+    ).resolves.toMatchObject({ outcome: "applied" });
+
+    expect(harness.calls.preparedTaskIds).toEqual([[taskId], [taskId]]);
+    expect(harness.calls.writes).toHaveLength(2);
+    expect(harness.events.filter((event) => event === "transaction:rollback")).toHaveLength(1);
+    expect(harness.events.filter((event) => event === "transaction:commit")).toHaveLength(1);
+  });
+
   it("rolls back and leaves the proposal pending when the task writer fails", async () => {
     const harness = createHarness({ writerError: new Error("forced task write failure") });
 

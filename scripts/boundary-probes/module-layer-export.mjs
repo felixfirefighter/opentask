@@ -224,5 +224,33 @@ export function createModuleLayerExportProbes() {
       source: 'import "pg";\n',
       expected: { "no-restricted-syntax": 1 },
     },
+    {
+      filePath: "server/__module_root_control__.ts",
+      source: 'import "../modules/tasks/index.ts";\n',
+      expected: {},
+    },
+    {
+      filePath: "app/__server_composition_control__.ts",
+      source: 'import "../server/release-applications.ts";\n',
+      expected: {},
+    },
+    {
+      filePath: "server/__deep_module_probe__.ts",
+      source: 'import "../modules/tasks/application/public.ts";\n',
+      expected: { "boundaries/dependencies": 1 },
+    },
+    {
+      filePath: "server/__database_probe__.ts",
+      source: 'import "@/shared/db/client";\n',
+      expected: {
+        "boundaries/dependencies": 1,
+        "no-restricted-imports": 1,
+      },
+    },
+    {
+      filePath: "worker/__server_composition_probe__.ts",
+      source: 'import "../server/release-applications.ts";\n',
+      expected: { "boundaries/dependencies": 1 },
+    },
   ];
 }

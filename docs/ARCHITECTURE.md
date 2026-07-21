@@ -5,27 +5,26 @@
 ```mermaid
 flowchart LR
     BROWSER["Browser"] --> PRES["Next.js presentation"]
-    BROWSER --> SW["P5 service worker: static shell only"]
+    BROWSER --> SW["Service worker: static shell only"]
     SW --> STATIC["Versioned public/static assets + offline fallback"]
     PRES --> APP["Module application use cases"]
-    WORKER["P6 reminder worker"] --> APP
+    WORKER["Reminder worker"] --> APP
     APP --> DOM["Pure domain policies"]
     APP --> DBI["Drizzle repositories"]
     DBI --> PG[("PostgreSQL")]
-    APP --> JOBS["P6 pg-boss adapter"]
+    APP --> JOBS["pg-boss notification adapter"]
     JOBS --> PG
     APP --> OAI["Optional OpenAI adapter"]
     APP --> PUSH["Optional Web Push adapter"]
     PUSH --> BROWSER
 ```
 
-This is the target Local-first Full Release topology. The product remains one modular TypeScript
-application with a Next.js web process and PostgreSQL as the self-host baseline. P5 adds only the
-installable static shell boundary. Through P5, the existing worker entry point remains a zero-job
-architecture smoke; P6 alone activates it for notification jobs and Web Push delivery. OpenAI,
-browser push support, VAPID configuration, and a running reminder worker are optional capabilities:
-their absence must not prevent manual tasks, planning, recurrence, habits, Focus, export, or web
-startup.
+This is the implemented Local-first Full Release topology. The product is one modular TypeScript
+application with a Next.js web process, a two-queue reminder worker, and PostgreSQL as the self-host
+baseline. The service worker provides only the installable static-shell boundary; the background
+worker owns notification delivery and maintenance jobs only. OpenAI, browser push support, VAPID
+configuration, and a running reminder worker are optional capabilities: their absence must not
+prevent manual tasks, planning, recurrence, habits, Focus, export, or web startup.
 
 ## Boundary model
 
@@ -54,6 +53,11 @@ Create only the layer directories a module needs. No layer may become a generic 
 - Next route composition may import a module's exact `presentation/index.ts`; individual presentation files remain private to the module.
 
 The small amount of dependency injection needed is explicit function parameters/factories. Do not add a DI container.
+
+Web release wiring lives in the checked `server/` composition root. It may import only public
+`modules/*/index.ts` application factories; it cannot reach module internals or shared database
+surfaces. The separately executed `worker/` composes the same public module contracts directly and
+must not import the web composition root.
 
 ## Request and mutation flow
 
@@ -199,7 +203,7 @@ The release uses Structured Outputs because OpenAI documents schema adherence an
 
 ## Reminder worker and provider boundary
 
-P6 is the only package that activates background product behavior.
+Notifications are the only active-release capability with background product behavior.
 
 1. Reminder set/remove and the exact task seams—schedule set/clear, recurrence create/edit/end and
    recurring-schedule edit, occurrence transition, task status, every root/child delete/restore, and
@@ -238,7 +242,7 @@ process supervision; the UI says liveness is not verified rather than showing a 
 
 ## Browser, PWA, and offline boundary
 
-P5 adds an installable web manifest, original icons, and one small build-versioned service worker.
+The release includes an installable web manifest, original icons, and one small build-versioned service worker.
 Its cache boundary is limited to fingerprinted public/static application assets and a dedicated
 content-free offline fallback. Activation retains at most the immediately previous application
 cache so existing tabs can reload safely, and notifies those tabs when another tab applies an
@@ -251,7 +255,7 @@ update.
   state as synchronized.
 - A cold offline navigation may open only the static fallback shell; it must not imply that protected
   user data was loaded.
-- Push events extend only the event/click side of the P5 worker. They accept the generic validated
+- Push events extend only the event/click side of the service worker. They accept the generic validated
   `{schemaVersion:1,taskId,deliveryId}` payload, show no task content, and navigate only to a
   same-origin task path constructed by the worker. They do not expand the cache boundary.
 - Full offline writes require the Stage D sync protocol, tombstones, idempotency, and conflict UX;
@@ -299,7 +303,7 @@ Before sign-off, confirm:
 - time semantics use the canonical schedule model;
 - recurrence, habit, Focus, reminder, and PWA projections store no duplicate domain facts;
 - authenticated user data is absent from service-worker caches and offline writes are impossible;
-- the worker has no product job before P6 and owns only notification jobs after activation;
+- the worker owns exactly the two notification queues and no task, habit, Focus, or AI jobs;
 - no optional OpenAI or Web Push provider is required for web/manual product startup;
 - schema and module docs match implementation;
 - `docs/MANIFEST.md` reflects any approved boundary change.

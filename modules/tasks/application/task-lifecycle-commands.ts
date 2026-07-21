@@ -13,6 +13,7 @@ import {
 import { createTaskDeletionCommands } from "./task-deletion-commands";
 import { createTaskLifecycleLocks } from "./task-lifecycle-locks";
 import type { TaskRecurrenceLifecycle } from "./task-recurrence-lifecycle";
+import type { TaskReminderReconciler } from "./contracts/task-reminder-contract";
 import {
   applyTaskSiblingRebalance,
   assertAllowedParent,
@@ -35,10 +36,12 @@ export function createTaskLifecycleCommands({
   database,
   clock,
   recurrenceLifecycle,
+  reminderReconciler,
 }: {
   database: Database;
   clock: Clock;
   recurrenceLifecycle: TaskRecurrenceLifecycle;
+  reminderReconciler: TaskReminderReconciler;
 }) {
   const tasks = createTaskRepository(database);
   const lists = createTaskListRepository(database);
@@ -46,7 +49,7 @@ export function createTaskLifecycleCommands({
   const lifecycleLocks = createTaskLifecycleLocks({ tasks, lists, sections });
 
   return {
-    ...createTaskDeletionCommands({ database, clock, recurrenceLifecycle }),
+    ...createTaskDeletionCommands({ database, clock, recurrenceLifecycle, reminderReconciler }),
 
     async moveTask(
       actor: AuthenticatedActor,

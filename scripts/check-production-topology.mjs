@@ -62,11 +62,37 @@ const workerEvents = compose(["logs", "--no-color", "worker"])
   });
 const readyEvent = workerEvents.find((event) => event.code === "WORKER_READY");
 
-if (!readyEvent || readyEvent.registeredJobCount !== 0) {
-  throw new Error("The production worker did not report a zero-job ready event.");
+if (!readyEvent || readyEvent.registeredJobCount !== 2) {
+  throw new Error("The production worker did not report exactly two registered notification jobs.");
 }
 
-compose(["stop", "--timeout", "15", "web", "worker"], "inherit");
+const workerContainerId = compose(["ps", "--quiet", "worker"]).trim();
+const workerCheckOutput = docker([
+  "exec",
+  workerContainerId,
+  "node",
+  "--experimental-strip-types",
+  "--import",
+  "./worker/register-path-aliases.ts",
+  "worker/index.ts",
+  "--check",
+]);
+const checkEvent = workerCheckOutput
+  .split("\n")
+  .filter((line) => line.startsWith("{"))
+  .flatMap((line) => {
+    try {
+      return [JSON.parse(line)];
+    } catch {
+      return [];
+    }
+  })
+  .find((event) => event.code === "WORKER_CHECK_OK");
+if (!checkEvent || checkEvent.declaredJobCount !== 2) {
+  throw new Error("The production worker check did not validate both notification jobs.");
+}
+
+compose(["stop", "--timeout", "20", "web", "worker"], "inherit");
 for (const service of ["web", "worker"]) {
   const containerId = compose(["ps", "--all", "--quiet", service]).trim();
   const state = JSON.parse(docker(["inspect", "--format", "{{json .State}}", containerId]));
@@ -77,7 +103,7 @@ for (const service of ["web", "worker"]) {
 }
 
 process.stdout.write(
-  "Production topology passed health, shared-image process, zero-job worker, and graceful-stop checks.\n",
+  "Production topology passed health, shared-image process, active two-job worker, queue check, and graceful-stop checks.\n",
 );
 
 async function readHealth(path, expectedStatus) {

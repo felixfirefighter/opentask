@@ -77,6 +77,27 @@ self.addEventListener("message", (event) => {
   }
 });
 
+self.addEventListener("push", (event) => {
+  const payload = readPushPayload(event.data);
+  if (!payload) return;
+
+  event.waitUntil(
+    self.registration.showNotification("Task reminder", {
+      body: "A task is ready for your attention.",
+      data: payload,
+      icon: "/icons/opentask-192.png",
+      tag: `opentask-${payload.deliveryId}`,
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const payload = readPushPayload(event.notification.data);
+  if (!payload) return;
+  event.waitUntil(openTaskFromNotification(payload.taskId));
+});
+
 async function installStaticShell() {
   await caches.delete(INSTALL_CACHE);
   const staged = await caches.open(INSTALL_CACHE);
@@ -316,4 +337,46 @@ function emergencyFallbackResponse() {
 
 function reply(event, payload) {
   event.ports?.[0]?.postMessage(payload);
+}
+
+function readPushPayload(value) {
+  let candidate;
+  try {
+    candidate = value && typeof value.json === "function" ? value.json() : value;
+  } catch {
+    return null;
+  }
+
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return null;
+  const keys = Object.keys(candidate).sort();
+  if (keys.join(",") !== "deliveryId,schemaVersion,taskId") return null;
+  if (candidate.schemaVersion !== 1) return null;
+  if (!isUuid(candidate.taskId) || !isUuid(candidate.deliveryId)) return null;
+  return { schemaVersion: 1, taskId: candidate.taskId, deliveryId: candidate.deliveryId };
+}
+
+function isUuid(value) {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value)
+  );
+}
+
+async function openTaskFromNotification(taskId) {
+  const taskUrl = new URL(`/tasks/${encodeURIComponent(taskId)}`, self.location.origin);
+  const windows = await self.clients.matchAll({ includeUncontrolled: true, type: "window" });
+
+  for (const client of windows) {
+    try {
+      if (new URL(client.url).origin !== self.location.origin) continue;
+      const navigated = typeof client.navigate === "function" ? await client.navigate(taskUrl.href) : client;
+      if (navigated && typeof navigated.focus === "function") await navigated.focus();
+      else if (typeof client.focus === "function") await client.focus();
+      return;
+    } catch {
+      // A closed or otherwise unusable window is skipped in favor of another safe target.
+    }
+  }
+
+  await self.clients.openWindow(taskUrl.href);
 }

@@ -25,6 +25,7 @@ import {
   versionedResourceReferenceSchema,
 } from "./contract-primitives";
 import { localDateSchema, taskScheduleValueSchema } from "./schedule-contract";
+import { taskRecurrenceReminderResolutionSchema } from "./task-reminder-contract";
 
 export {
   RECURRENCE_COUNT_MAX,
@@ -147,6 +148,7 @@ export const recurringTaskScheduleValueSchema = taskScheduleValueSchema.superRef
 export const setTaskRecurrenceRequestSchema = z.strictObject({
   expectedVersion: versionSchema,
   definition: recurrenceDefinitionSchema,
+  reminderResolution: taskRecurrenceReminderResolutionSchema.nullable().optional().default(null),
 });
 
 export const editRecurringTaskScheduleRequestSchema = z
@@ -154,6 +156,7 @@ export const editRecurringTaskScheduleRequestSchema = z
     expectedVersion: versionSchema,
     definition: recurrenceDefinitionSchema,
     schedule: recurringTaskScheduleValueSchema,
+    reminderResolution: taskRecurrenceReminderResolutionSchema.nullable().optional().default(null),
   })
   .superRefine(validateDefinitionAgainstSchedule);
 
@@ -193,14 +196,14 @@ export const recurrenceCommandFailureSchema = z.discriminatedUnion("reason", [
   }),
 ]);
 
-export type EditRecurringTaskScheduleRequest = z.infer<typeof editRecurringTaskScheduleRequestSchema>;
+export type EditRecurringTaskScheduleRequest = z.input<typeof editRecurringTaskScheduleRequestSchema>;
 export type EndTaskRecurrenceRequest = z.infer<typeof endTaskRecurrenceRequestSchema>;
 export type RecurrenceCommandFailure = z.infer<typeof recurrenceCommandFailureSchema>;
 export type RecurrenceDefinition = z.infer<typeof recurrenceDefinitionSchema>;
 export type RecurrenceLifecycle = z.infer<typeof recurrenceLifecycleSchema>;
 export type RecurrencePreset = z.infer<typeof recurrencePresetSchema>;
 export type RecurrenceProjectionCutover = z.infer<typeof recurrenceProjectionCutoverSchema>;
-export type SetTaskRecurrenceRequest = z.infer<typeof setTaskRecurrenceRequestSchema>;
+export type SetTaskRecurrenceRequest = z.input<typeof setTaskRecurrenceRequestSchema>;
 export type TaskRecurrenceDto = z.infer<typeof taskRecurrenceDtoSchema>;
 export type TaskRecurrenceMutationResult = z.infer<typeof taskRecurrenceMutationResultSchema>;
 

@@ -27,8 +27,9 @@ Product fields and domain permissions do not belong in Better Auth tables.
   request, then restores canonical preferences and delegates domain seeding through
   `DemoDatasetSeeder` in one transaction. Identity captures one `resetAt` before opening the reset
   transaction and passes it explicitly to both preferences and the seeder; the default adapter uses
-  that immutable instant for planner proposals, tasks, habits, and Focus without opening a nested
-  transaction or consulting a second clock.
+  that immutable instant for planner proposals, tasks, habits, Focus, and the portable reminder
+  definition without opening a nested transaction or consulting a second clock. Notification reset
+  removes subscriptions and delivery internals instead of pre-granting browser permission.
 - `getIdentityRequestSecurity()` exposes the exact trusted browser origins without leaking
   provider configuration or secrets.
 - Public contracts: `AuthenticatedActor`, `UserPreferences`, `UserPreferencesPatch`, `InboxBootstrapPort`, and `DemoDatasetSeeder`.
@@ -47,9 +48,10 @@ types.
   exactly once; it never rewinds or bypasses optimistic version history.
 - An unauthenticated actor cannot read or mutate domain data.
 - Demo data is owned by its isolated demo user and reset cannot touch any other user.
-- Demo preference, planner-proposal, task, habit, and Focus resets share one captured reset instant
-  and commit or roll back together. Focus rows are cleared before task/habit replacement and seeded
-  only after their linked fixtures exist.
+- Demo preference, planner-proposal, task, habit, Focus, and notification resets share one captured
+  reset instant and commit or roll back together. Focus rows are cleared before task/habit
+  replacement and seeded only after their linked fixtures exist. The notification fixture is seeded
+  after its linked task and contains no subscription or delivery record.
 - Auth and demo abuse controls derive the client address from the same `X-Real-IP` policy. Production
   ingress must overwrite that header and prevent direct origin access; an unresolved address uses a
   shared fallback bucket.

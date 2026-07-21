@@ -15,6 +15,7 @@ import {
   type TaskRecurrenceDto,
   type TaskRecurrenceMutationResult,
 } from "./contracts/recurrence-contract";
+import { noopTaskReminderReconciler, type TaskReminderReconciler } from "./contracts/task-reminder-contract";
 import { entityIdSchema, versionedResourceReferenceSchema } from "./contracts/contract-primitives";
 import {
   createRecurrenceWrite,
@@ -26,6 +27,7 @@ import {
   type UserTimezoneResolver,
 } from "./recurrence-application-support";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
+import { runReminderRelevantTaskTransaction } from "./reminder-relevant-transaction";
 import { toScheduleWrite } from "./schedule-application";
 import { assertMutableTask, requireAppliedTask } from "./task-application-support";
 import { taskConflict, taskResourceNotFound, taskValidationFailure } from "./task-errors";
@@ -50,11 +52,13 @@ type RecurrenceApplicationDependencies = Readonly<{
   taskSchedules: TaskScheduleTable;
   expansion: RecurrenceExpansionPort;
   resolveUserTimezone: UserTimezoneResolver;
+  reminderReconciler?: TaskReminderReconciler;
   snapshot?: TaskReadSnapshot;
 }>;
 
 export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicationDependencies) {
   const { database, clock, expansion, resolveUserTimezone } = dependencies;
+  const reminderReconciler = dependencies.reminderReconciler ?? noopTaskReminderReconciler;
   const tasks = createTaskRepository(database);
   const schedules = createTaskScheduleRepository(dependencies.taskSchedules, database);
   const recurrences = createTaskRecurrenceRepository(database);
@@ -86,31 +90,43 @@ export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicat
     // The schedule kind is protected by the aggregate lock, so resolve the actor's saved
     // all-day timezone before acquiring a tasks transaction. Timed schedules ignore it.
     const savedTimeZone = ianaTimeZoneSchema.parse(await resolveUserTimezone(actor));
-    return database.transaction(async (transaction) => {
-      const locked = await lockRecurringAggregate(actor, taskId, input.expectedVersion, transaction);
-      const timezone =
-        locked.schedule.kind === "all_day" ? savedTimeZone : requiredScheduleTimezone(locked.schedule);
-      const anchor = recurrenceDomainCall(() => toRecurrenceAnchor(locked.schedule, timezone));
-      const initial = initialProjection(anchor);
-      const now = clock.now();
-      const nextStart = requireFutureCandidate(input.definition, anchor, initial, now);
-      const projection = locked.recurrence
-        ? restartRecurrenceProjection(
-            parseStoredRecurrence(locked.recurrence, locked.schedule).projection,
-            nextStart,
-          )
-        : initial;
-      return persistRecurrenceMutation(
-        actor,
-        locked.task,
-        locked.recurrence === null ? "insert" : "replace",
-        input.definition,
-        anchor,
-        projection,
-        input.expectedVersion,
-        now,
-        transaction,
-      );
+    return runReminderRelevantTaskTransaction({
+      actor,
+      database,
+      prepareTaskIds: [taskId],
+      reconciler: reminderReconciler,
+      execute: async (transaction) => {
+        const locked = await lockRecurringAggregate(actor, taskId, input.expectedVersion, transaction);
+        const timezone =
+          locked.schedule.kind === "all_day" ? savedTimeZone : requiredScheduleTimezone(locked.schedule);
+        const anchor = recurrenceDomainCall(() => toRecurrenceAnchor(locked.schedule, timezone));
+        const initial = initialProjection(anchor);
+        const now = clock.now();
+        const nextStart = requireFutureCandidate(input.definition, anchor, initial, now);
+        const projection = locked.recurrence
+          ? restartRecurrenceProjection(
+              parseStoredRecurrence(locked.recurrence, locked.schedule).projection,
+              nextStart,
+            )
+          : initial;
+        const value = await persistRecurrenceMutation(
+          actor,
+          locked.task,
+          locked.recurrence === null ? "insert" : "replace",
+          input.definition,
+          anchor,
+          projection,
+          input.expectedVersion,
+          now,
+          transaction,
+        );
+        await reminderReconciler.applyRecurrenceResolution(
+          actor,
+          { taskId, resolution: input.reminderResolution },
+          transaction,
+        );
+        return { value, change: { taskIds: [taskId], reason: "schedule_changed" } };
+      },
     });
   }
 
@@ -123,44 +139,56 @@ export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicat
     const input = editRecurringTaskScheduleRequestSchema.parse(rawInput);
     const allDayTimeZone =
       input.schedule.kind === "all_day" ? ianaTimeZoneSchema.parse(await resolveUserTimezone(actor)) : null;
-    return database.transaction(async (transaction) => {
-      const locked = await lockRecurringAggregate(actor, taskId, input.expectedVersion, transaction);
-      if (!locked.recurrence) {
-        throw taskConflict("This task does not have a recurrence rule.", locked.task.version);
-      }
-      if (input.schedule.kind !== locked.schedule.kind) {
-        throw taskValidationFailure(
-          "A recurring schedule must keep its all-day or specific-time type to preserve occurrence history.",
+    return runReminderRelevantTaskTransaction({
+      actor,
+      database,
+      prepareTaskIds: [taskId],
+      reconciler: reminderReconciler,
+      execute: async (transaction) => {
+        const locked = await lockRecurringAggregate(actor, taskId, input.expectedVersion, transaction);
+        if (!locked.recurrence) {
+          throw taskConflict("This task does not have a recurrence rule.", locked.task.version);
+        }
+        if (input.schedule.kind !== locked.schedule.kind) {
+          throw taskValidationFailure(
+            "A recurring schedule must keep its all-day or specific-time type to preserve occurrence history.",
+          );
+        }
+        const timezone =
+          input.schedule.kind === "all_day" ? requiredTimeZone(allDayTimeZone) : input.schedule.timezone;
+        const anchor = recurrenceDomainCall(() => toRecurrenceAnchor(input.schedule, timezone));
+        const baseProjection = initialProjection(anchor);
+        const now = clock.now();
+        const nextStart = requireFutureCandidate(input.definition, anchor, baseProjection, now);
+        const projection = restartRecurrenceProjection(baseProjection, nextStart);
+        const storedSchedule = await schedules.upsert(
+          {
+            userId: actor.userId,
+            taskId,
+            schedule: toScheduleWrite(input.schedule),
+            now,
+          },
+          transaction,
         );
-      }
-      const timezone =
-        input.schedule.kind === "all_day" ? requiredTimeZone(allDayTimeZone) : input.schedule.timezone;
-      const anchor = recurrenceDomainCall(() => toRecurrenceAnchor(input.schedule, timezone));
-      const baseProjection = initialProjection(anchor);
-      const now = clock.now();
-      const nextStart = requireFutureCandidate(input.definition, anchor, baseProjection, now);
-      const projection = restartRecurrenceProjection(baseProjection, nextStart);
-      const storedSchedule = await schedules.upsert(
-        {
-          userId: actor.userId,
-          taskId,
-          schedule: toScheduleWrite(input.schedule),
+        const value = await persistRecurrenceMutation(
+          actor,
+          locked.task,
+          "replace",
+          input.definition,
+          anchor,
+          projection,
+          input.expectedVersion,
           now,
-        },
-        transaction,
-      );
-      return persistRecurrenceMutation(
-        actor,
-        locked.task,
-        "replace",
-        input.definition,
-        anchor,
-        projection,
-        input.expectedVersion,
-        now,
-        transaction,
-        storedSchedule,
-      );
+          transaction,
+          storedSchedule,
+        );
+        await reminderReconciler.applyRecurrenceResolution(
+          actor,
+          { taskId, resolution: input.reminderResolution },
+          transaction,
+        );
+        return { value, change: { taskIds: [taskId], reason: "schedule_changed" } };
+      },
     });
   }
 
@@ -171,33 +199,40 @@ export function createTaskRecurrenceApplication(dependencies: RecurrenceApplicat
   ): Promise<TaskRecurrenceMutationResult> {
     const taskId = entityIdSchema.parse(rawTaskId);
     const input = endTaskRecurrenceRequestSchema.parse(rawInput);
-    return database.transaction(async (transaction) => {
-      const locked = await lockRecurringAggregate(actor, taskId, input.expectedVersion, transaction);
-      if (!locked.recurrence) {
-        throw taskConflict("This task does not have a recurrence rule.", locked.task.version);
-      }
-      const parsed = recurrenceDomainCall(() => parseStoredRecurrence(locked.recurrence!, locked.schedule));
-      if (hasUpperCutover(parsed.projection)) {
-        throw taskConflict("This recurrence has already ended.", locked.task.version);
-      }
-      const now = clock.now();
-      const upper = recurrenceDomainCall(
-        () =>
-          nextFutureOccurrenceStart(expansion, parsed.definition, parsed.anchor, parsed.projection, now) ??
-          fallbackEndCutover(parsed.projection.kind, now.toISOString(), parsed.anchor.timezone),
-      );
-      const ended = recurrenceDomainCall(() => endRecurrenceProjection(parsed.projection, upper));
-      return persistRecurrenceMutation(
-        actor,
-        locked.task,
-        "replace",
-        parsed.definition,
-        parsed.anchor,
-        ended,
-        input.expectedVersion,
-        now,
-        transaction,
-      );
+    return runReminderRelevantTaskTransaction({
+      actor,
+      database,
+      prepareTaskIds: [taskId],
+      reconciler: reminderReconciler,
+      execute: async (transaction) => {
+        const locked = await lockRecurringAggregate(actor, taskId, input.expectedVersion, transaction);
+        if (!locked.recurrence) {
+          throw taskConflict("This task does not have a recurrence rule.", locked.task.version);
+        }
+        const parsed = recurrenceDomainCall(() => parseStoredRecurrence(locked.recurrence!, locked.schedule));
+        if (hasUpperCutover(parsed.projection)) {
+          throw taskConflict("This recurrence has already ended.", locked.task.version);
+        }
+        const now = clock.now();
+        const upper = recurrenceDomainCall(
+          () =>
+            nextFutureOccurrenceStart(expansion, parsed.definition, parsed.anchor, parsed.projection, now) ??
+            fallbackEndCutover(parsed.projection.kind, now.toISOString(), parsed.anchor.timezone),
+        );
+        const ended = recurrenceDomainCall(() => endRecurrenceProjection(parsed.projection, upper));
+        const value = await persistRecurrenceMutation(
+          actor,
+          locked.task,
+          "replace",
+          parsed.definition,
+          parsed.anchor,
+          ended,
+          input.expectedVersion,
+          now,
+          transaction,
+        );
+        return { value, change: { taskIds: [taskId], reason: "schedule_changed" } };
+      },
     });
   }
 

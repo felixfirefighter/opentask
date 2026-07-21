@@ -2,7 +2,7 @@ export { createInboxBootstrapPort, getInbox } from "./application/inbox";
 export { createDemoDatasetSeeder } from "./application/demo-dataset-seeder";
 export { DEMO_FOCUS_TASK_ID } from "./application/demo-dataset-fixture";
 export { parseTaskApiCreateKey, parseTaskApiResourceId } from "./application/api-identifiers";
-export { getTasksApplication } from "./application/public";
+export { configureTaskReminderReconciler, getTasksApplication } from "./application/public";
 export { readPortableTasks } from "./application/task-portability-reader";
 export {
   canApplyOccurrenceResultOptimistically,
@@ -90,6 +90,15 @@ export type {
   TaskFocusLinkSearchInput,
   TaskSnapshotDto,
   TaskSnapshotReader,
+  TaskReminderSource,
+  TaskReminderSourceRead,
+  TaskReminderSourceReader,
+  TaskReminderRelativeStart,
+  ReminderRelevantTaskChange,
+  ReminderRelevantTaskChangeReason,
+  TaskReminderReconciler,
+  TaskRecurrenceReminderResolution,
+  ApplyTaskRecurrenceReminderResolution,
   TaskPlanningSourcePage,
   TaskPlanningSourceQuery,
   TaskPlanningSourceReader,
@@ -112,6 +121,12 @@ export type {
   TaskOccurrenceRangeQuery,
   TaskRecurrenceDto,
   TaskRecurrenceMutationResult,
+} from "./application/contracts";
+export {
+  noopTaskReminderReconciler,
+  normalizeReminderTaskIds,
+  ReminderProducerPreparationRequiredError,
+  taskRecurrenceReminderResolutionSchema,
 } from "./application/contracts";
 export type { TasksApplication } from "./application/tasks-application";
 export type { InboxSummary } from "./application/inbox";

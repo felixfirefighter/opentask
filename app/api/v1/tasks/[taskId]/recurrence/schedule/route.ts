@@ -1,4 +1,5 @@
-import { editRecurringTaskScheduleRequestSchema, getTasksApplication } from "@/modules/tasks";
+import { editRecurringTaskScheduleRequestSchema } from "@/modules/tasks";
+import { getReleaseApplications } from "@/server/release-applications";
 
 import {
   assertNoTaskApiQuery,
@@ -21,7 +22,7 @@ export function PATCH(request: Request, context: RecurringScheduleRouteContext) 
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
     return privateTaskJson(
-      await getTasksApplication().recurrences.editRecurringSchedule(actor, taskId, input),
+      await getReleaseApplications().tasks.recurrences.editRecurringSchedule(actor, taskId, input),
     );
   });
 }

@@ -295,7 +295,7 @@ test("standalone display state remains clear, accessible, and responsive in Sett
   });
 
   await signUpThroughUi(page, testInfo, { returnTo: "/settings" });
-  await expect(page.getByRole("heading", { name: "App", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "App and reminders", exact: true })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Installed" })).toBeVisible();
   await expect(page.getByText("OpenTask is installed on this device.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Install OpenTask" })).toHaveCount(0);

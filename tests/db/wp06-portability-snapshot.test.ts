@@ -8,6 +8,7 @@ import { readPortablePlannerProposals } from "../../modules/assistant/index.ts";
 import { readPortableFocus } from "../../modules/focus/index.ts";
 import { readPortableHabits } from "../../modules/habits/index.ts";
 import { readPortableIdentity } from "../../modules/identity/index.ts";
+import { readPortableTaskReminders } from "../../modules/notifications/index.ts";
 import {
   createPortabilityApplication,
   createPostgresExportSnapshot,
@@ -17,10 +18,16 @@ import type { AuthenticatedActor } from "../../shared/auth/actor.ts";
 import type { Database } from "../../shared/db/client.ts";
 import { schema } from "../../shared/db/schema.ts";
 
-import { EXPORT_INSTANT, portableEntityIds, seedPortableTenant } from "./support/export-test-data.ts";
+import {
+  EXPORT_INSTANT,
+  RECORD_INSTANT,
+  portableEntityIds,
+  seedPortableTenant,
+} from "./support/export-test-data.ts";
 import { createWp02SchemaFixture } from "./wp02-schema-support.ts";
 
 const fixture = createWp02SchemaFixture("portability_snapshot");
+const reminderId = "0e555555-5555-4555-8555-555555555555";
 let pool: Pool;
 let database: Database;
 let owner: AuthenticatedActor;
@@ -41,6 +48,12 @@ describe("portable export PostgreSQL snapshot", () => {
       timedStartUtc: "2026-07-20T01:00:00.000Z",
       timedEndUtc: "2026-07-20T02:00:00.000Z",
     });
+    await pool.query(
+      `insert into task_reminders
+         (id, user_id, task_id, kind, remind_at, offset_minutes, enabled, version, created_at, updated_at)
+       values ($1, $2, $3, 'absolute', $4, null, true, 2, $5, $5)`,
+      [reminderId, owner.userId, portableEntityIds.rootTask, "2026-08-01T00:00:00.000Z", RECORD_INSTANT],
+    );
   });
 
   afterAll(async () => fixture.teardown());
@@ -60,6 +73,7 @@ describe("portable export PostgreSQL snapshot", () => {
       readTasks: readPortableTasks,
       readHabits: readPortableHabits,
       readFocus: readPortableFocus,
+      readNotifications: readPortableTaskReminders,
       readProposals: readPortablePlannerProposals,
     });
 
@@ -92,6 +106,11 @@ describe("portable export PostgreSQL snapshot", () => {
     const focusDuringMutation = duringMutation.focus.sessions.find(
       ({ id }) => id === portableEntityIds.taskFocusSession,
     );
+    const reminderDuringMutation = duringMutation.notifications.reminders.find(({ id }) => id === reminderId);
+    expect(duringMutation).toMatchObject({
+      schemaVersion: 5,
+      notifications: { schemaVersion: 1 },
+    });
     expect(duringMutation.identity.profile.name).toBe(seed.ownerName);
     expect(rootDuringMutation).toMatchObject({ title: seed.rootTaskTitle, version: 1 });
     expect(allDayDuringMutation?.version).toBe(3);
@@ -105,6 +124,11 @@ describe("portable export PostgreSQL snapshot", () => {
     });
     expect(habitLogDuringMutation).toMatchObject({ quantity: 24.5, version: 1 });
     expect(focusDuringMutation).toMatchObject({ accumulatedActiveSeconds: 1_500, version: 1 });
+    expect(reminderDuringMutation).toMatchObject({
+      taskId: portableEntityIds.rootTask,
+      version: 2,
+      spec: { kind: "absolute", remindAt: "2026-08-01T00:00:00.000Z" },
+    });
     expect(
       duringMutation.tasks.occurrenceEvents.some(
         ({ id }) => id === portableEntityIds.concurrentOccurrenceEvent,
@@ -129,6 +153,7 @@ describe("portable export PostgreSQL snapshot", () => {
     const focusAfterCommit = afterCommit.focus.sessions.find(
       ({ id }) => id === portableEntityIds.taskFocusSession,
     );
+    const reminderAfterCommit = afterCommit.notifications.reminders.find(({ id }) => id === reminderId);
     expect(afterCommit.identity.profile.name).toBe("SNAPSHOT_AFTER owner");
     expect(rootAfterCommit).toMatchObject({
       title: seed.updatedRootTaskTitle,
@@ -154,6 +179,11 @@ describe("portable export PostgreSQL snapshot", () => {
     expect(focusAfterCommit).toMatchObject({
       accumulatedActiveSeconds: 1_800,
       version: 2,
+      updatedAt: "2026-07-19T16:30:45.678Z",
+    });
+    expect(reminderAfterCommit).toMatchObject({
+      version: 3,
+      spec: { kind: "absolute", remindAt: "2026-08-02T00:00:00.000Z" },
       updatedAt: "2026-07-19T16:30:45.678Z",
     });
     expect(
@@ -227,6 +257,12 @@ async function commitConcurrentMutation() {
           set accumulated_active_seconds = 1800, version = version + 1, updated_at = $1
         where user_id = $2 and id = $3`,
       ["2026-07-19T16:30:45.678Z", owner.userId, portableEntityIds.taskFocusSession],
+    );
+    await client.query(
+      `update task_reminders
+          set remind_at = $1, version = version + 1, updated_at = $2
+        where user_id = $3 and id = $4`,
+      ["2026-08-02T00:00:00.000Z", "2026-07-19T16:30:45.678Z", owner.userId, reminderId],
     );
     await client.query("commit");
   } catch (error) {

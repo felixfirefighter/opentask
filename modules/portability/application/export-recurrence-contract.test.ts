@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PORTABLE_SECTION_SCHEMA_VERSION,
   PORTABLE_HABITS_SECTION_SCHEMA_VERSION,
+  PORTABLE_NOTIFICATIONS_SECTION_SCHEMA_VERSION,
   PORTABLE_TASKS_SECTION_SCHEMA_VERSION,
   USER_EXPORT_SCHEMA_VERSION,
 } from "./export-contract-primitives";
@@ -20,19 +21,21 @@ const unknownTaskId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const instant = "2026-07-20T02:00:00.000Z";
 
 describe("portable recurrence export contract", () => {
-  it("preserves tasks version 2 inside the version 4 Focus envelope", () => {
+  it("preserves independently versioned sections inside the version 5 export envelope", () => {
     const envelope = userExportEnvelopeSchema.parse(buildEnvelope());
 
-    expect(USER_EXPORT_SCHEMA_VERSION).toBe(4);
+    expect(USER_EXPORT_SCHEMA_VERSION).toBe(5);
     expect(PORTABLE_TASKS_SECTION_SCHEMA_VERSION).toBe(2);
     expect(PORTABLE_SECTION_SCHEMA_VERSION).toBe(1);
     expect(PORTABLE_HABITS_SECTION_SCHEMA_VERSION).toBe(1);
+    expect(PORTABLE_NOTIFICATIONS_SECTION_SCHEMA_VERSION).toBe(1);
     expect(envelope).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       identity: { schemaVersion: 1 },
       tasks: { schemaVersion: 2 },
       habits: { schemaVersion: 1 },
       focus: { schemaVersion: 1 },
+      notifications: { schemaVersion: 1 },
       assistant: { schemaVersion: 1 },
     });
     expect(findExportRelationshipErrors(envelope)).toEqual([]);
@@ -60,6 +63,7 @@ describe("portable recurrence export contract", () => {
 
   it("rejects legacy versions, non-UTC instants, malformed rules, cutovers, and occurrence keys", () => {
     const envelope = buildEnvelope();
+    expect(userExportEnvelopeSchema.safeParse({ ...envelope, schemaVersion: 4 }).success).toBe(false);
     expect(userExportEnvelopeSchema.safeParse({ ...envelope, schemaVersion: 1 }).success).toBe(false);
     expect(
       userExportEnvelopeSchema.safeParse({
@@ -209,7 +213,7 @@ function envelopeEventId(index: number) {
 
 function buildEnvelope(): UserExportEnvelope {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     exportedAt: instant,
     identity: {
       schemaVersion: 1,
@@ -323,6 +327,7 @@ function buildEnvelope(): UserExportEnvelope {
     },
     habits: { schemaVersion: 1, habits: [], schedules: [], logs: [] },
     focus: { schemaVersion: 1, sessions: [] },
+    notifications: { schemaVersion: 1, reminders: [] },
     assistant: { schemaVersion: 1, proposals: [] },
   };
 }

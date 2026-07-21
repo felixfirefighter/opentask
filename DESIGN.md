@@ -67,7 +67,7 @@ Read only the files relevant to the surface being changed, after this file.
 | Month, week, day, and agenda planning | `docs/design/screens/calendar.md` |
 | Derived Eisenhower projection | `docs/design/screens/matrix.md` |
 | Habit management and history | `docs/design/screens/habits.md` |
-| Pomodoro, stopwatch, and Focus history after P4 | `docs/design/screens/focus.md` |
+| Pomodoro, stopwatch, and Focus history | `docs/design/screens/focus.md` |
 | Reality-aware planner input, review, and apply | `docs/design/screens/assistant.md` |
 
 Feature scope remains owned by `docs/SCOPE.md`; a design document cannot add a feature.

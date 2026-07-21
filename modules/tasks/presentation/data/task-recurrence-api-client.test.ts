@@ -48,7 +48,11 @@ describe("task recurrence API client", () => {
     await endTaskRecurrence(taskId, { expectedVersion: 5 });
 
     expect(fetchMock.mock.calls.map(([path, init]) => [path, init?.method, init?.body])).toEqual([
-      [`/api/v1/tasks/${taskId}/recurrence`, "PATCH", JSON.stringify({ expectedVersion: 3, definition })],
+      [
+        `/api/v1/tasks/${taskId}/recurrence`,
+        "PATCH",
+        JSON.stringify({ expectedVersion: 3, definition, reminderResolution: null }),
+      ],
       [
         `/api/v1/tasks/${taskId}/recurrence/schedule`,
         "PATCH",
@@ -56,6 +60,7 @@ describe("task recurrence API client", () => {
           expectedVersion: 4,
           definition,
           schedule: { kind: "all_day", startDate: "2026-07-21", endDate: "2026-07-22" },
+          reminderResolution: null,
         }),
       ],
       [`/api/v1/tasks/${taskId}/recurrence/end`, "POST", JSON.stringify({ expectedVersion: 5 })],

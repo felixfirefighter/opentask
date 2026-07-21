@@ -15,11 +15,13 @@ export function TaskInspector({
   onClose,
   returnHref,
   taskId,
+  timeZone,
 }: Readonly<{
   inbox: InboxReference;
   onClose: () => void;
   returnHref: string;
   taskId: string;
+  timeZone: string;
 }>) {
   const sheet = useMediaQuery("(max-width: 1279px)");
 
@@ -37,7 +39,13 @@ export function TaskInspector({
             <Dialog.Description className="sr-only" id={`task-sheet-description-${taskId}`}>
               Review and edit this task. Close to return to the task list.
             </Dialog.Description>
-            <TaskDetailLoader inbox={inbox} taskId={taskId} onClose={onClose} returnHref={returnHref} />
+            <TaskDetailLoader
+              inbox={inbox}
+              taskId={taskId}
+              onClose={onClose}
+              returnHref={returnHref}
+              timeZone={timeZone}
+            />
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
@@ -52,7 +60,13 @@ export function TaskInspector({
         if (event.key === "Escape") requestClose();
       }}
     >
-      <TaskDetailLoader inbox={inbox} taskId={taskId} onClose={onClose} returnHref={returnHref} />
+      <TaskDetailLoader
+        inbox={inbox}
+        taskId={taskId}
+        onClose={onClose}
+        returnHref={returnHref}
+        timeZone={timeZone}
+      />
     </aside>
   );
 }

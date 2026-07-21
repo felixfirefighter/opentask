@@ -9,6 +9,7 @@ import { userExportEnvelopeSchema } from "./export-envelope-contract";
 const userId = "11111111-1111-4111-8111-111111111111";
 const listId = "22222222-2222-4222-8222-222222222222";
 const taskId = "33333333-3333-4333-8333-333333333333";
+const reminderId = "55555555-5555-4555-8555-555555555555";
 const instant = "2026-07-19T10:20:30.000Z";
 
 describe("user export application", () => {
@@ -18,6 +19,7 @@ describe("user export application", () => {
     const readTasks = vi.fn(async () => tasksSource());
     const readHabits = vi.fn(async () => habitsSource());
     const readFocus = vi.fn(async () => focusSource());
+    const readNotifications = vi.fn(async () => notificationsSource());
     const readProposals = vi.fn(async () => []);
     const application = createPortabilityApplication({
       snapshot: { run: (work) => work(transaction) },
@@ -26,6 +28,7 @@ describe("user export application", () => {
       readTasks,
       readHabits,
       readFocus,
+      readNotifications,
       readProposals,
     });
 
@@ -33,15 +36,16 @@ describe("user export application", () => {
 
     expect(userExportEnvelopeSchema.parse(envelope)).toEqual(envelope);
     expect(envelope).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       exportedAt: instant,
       identity: { schemaVersion: 1, profile: { id: userId } },
       tasks: { schemaVersion: 2, tasks: [{ id: taskId }] },
       habits: { schemaVersion: 1, habits: [] },
       focus: { schemaVersion: 1, sessions: [{ taskId }] },
+      notifications: { schemaVersion: 1, reminders: [{ id: reminderId, taskId }] },
       assistant: { schemaVersion: 1, proposals: [] },
     });
-    for (const reader of [readIdentity, readTasks, readHabits, readFocus, readProposals]) {
+    for (const reader of [readIdentity, readTasks, readHabits, readFocus, readNotifications, readProposals]) {
       expect(reader).toHaveBeenCalledWith({ userId }, transaction);
     }
     expect(buildUserExportFilename(envelope.exportedAt)).toBe("opentask-export-2026-07-19.json");
@@ -71,12 +75,62 @@ describe("user export application", () => {
     await expect(
       createExport({ identity: { ...identitySource(), password: "never-export-this" } }),
     ).rejects.toBeDefined();
+    await expect(
+      createExport({
+        notifications: {
+          reminders: [{ ...notificationsSource().reminders[0], taskId: listId }],
+        },
+      }),
+    ).rejects.toMatchObject({ code: "INTERNAL" });
   });
 
-  it("keeps device and PWA cache operations outside the unchanged portable document", async () => {
+  it("enforces one reminder per exported task while permitting dormant reminder facts", async () => {
+    await expect(
+      createExport({
+        notifications: {
+          reminders: [
+            notificationsSource().reminders[0],
+            {
+              ...notificationsSource().reminders[0],
+              id: "66666666-6666-4666-8666-666666666666",
+            },
+          ],
+        },
+      }),
+    ).rejects.toMatchObject({ code: "INTERNAL" });
+
+    const dormantTaskSource = tasksSource();
+    const envelope = await createExport({
+      tasks: {
+        ...dormantTaskSource,
+        tasks: [
+          {
+            ...dormantTaskSource.tasks[0],
+            status: "cancelled",
+            deletedAt: "2026-07-19T12:20:30.000Z",
+          },
+        ],
+      },
+      notifications: {
+        reminders: [
+          {
+            ...notificationsSource().reminders[0],
+            spec: { kind: "relative_start", remindAt: null, offsetMinutes: 30 },
+          },
+        ],
+      },
+    });
+
+    expect(envelope.notifications.reminders[0]).toMatchObject({
+      taskId,
+      spec: { kind: "relative_start", offsetMinutes: 30 },
+    });
+  });
+
+  it("keeps device, PWA, and notification operations outside the portable document", async () => {
     const envelope = await createExport({});
 
-    expect(envelope.schemaVersion).toBe(4);
+    expect(envelope.schemaVersion).toBe(5);
     expect(Object.keys(envelope)).toEqual([
       "schemaVersion",
       "exportedAt",
@@ -84,6 +138,7 @@ describe("user export application", () => {
       "tasks",
       "habits",
       "focus",
+      "notifications",
       "assistant",
     ]);
 
@@ -99,6 +154,23 @@ describe("user export application", () => {
       "pwa",
       "registration",
       "serviceWorker",
+      "endpoint",
+      "endpointHash",
+      "endpointCiphertext",
+      "p256dh",
+      "p256dhCiphertext",
+      "auth",
+      "authCiphertext",
+      "encryptionKeyVersion",
+      "subscriptionId",
+      "deliveryId",
+      "idempotencyKey",
+      "lastErrorCode",
+      "vapidPublicKey",
+      "vapidPrivateKey",
+      "providerResult",
+      "jobId",
+      "queueName",
     ]) {
       expect(exportedKeys.has(operationalKey)).toBe(false);
     }
@@ -113,7 +185,13 @@ describe("user export application", () => {
   });
 });
 
-function createExport(overrides: { identity?: unknown; tasks?: unknown; habits?: unknown; focus?: unknown }) {
+function createExport(overrides: {
+  identity?: unknown;
+  tasks?: unknown;
+  habits?: unknown;
+  focus?: unknown;
+  notifications?: unknown;
+}) {
   return createPortabilityApplication({
     snapshot: { run: (work) => work({} as DatabaseTransaction) },
     clock: { now: () => new Date(instant) },
@@ -121,6 +199,7 @@ function createExport(overrides: { identity?: unknown; tasks?: unknown; habits?:
     readTasks: async () => overrides.tasks ?? tasksSource(),
     readHabits: async () => overrides.habits ?? habitsSource(),
     readFocus: async () => overrides.focus ?? focusSource(),
+    readNotifications: async () => overrides.notifications ?? notificationsSource(),
     readProposals: async () => [],
   }).exportUserData({ userId });
 }
@@ -169,6 +248,26 @@ function identitySource() {
       createdAt: instant,
       updatedAt: instant,
     },
+  } as const;
+}
+
+function notificationsSource() {
+  return {
+    reminders: [
+      {
+        id: reminderId,
+        taskId,
+        enabled: true,
+        version: 2,
+        spec: {
+          kind: "absolute",
+          remindAt: "2026-07-20T10:20:30.000Z",
+          offsetMinutes: null,
+        },
+        createdAt: instant,
+        updatedAt: "2026-07-19T11:20:30.000Z",
+      },
+    ],
   } as const;
 }
 

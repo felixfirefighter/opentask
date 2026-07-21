@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   resolveActor: vi.fn(),
+  getReleaseApplications: vi.fn(),
   getTasksApplication: vi.fn(),
   recurrences: {
     getRecurrence: vi.fn(),
@@ -22,6 +23,10 @@ vi.mock("@/modules/identity", () => ({
 vi.mock("@/modules/tasks", async (importOriginal) => ({
   ...(await importOriginal<typeof TasksModule>()),
   getTasksApplication: mocks.getTasksApplication,
+}));
+
+vi.mock("@/server/release-applications", () => ({
+  getReleaseApplications: mocks.getReleaseApplications,
 }));
 
 import { GET as getRecurrence, PATCH as setRecurrence } from "./route";
@@ -81,6 +86,9 @@ describe("recurrence and occurrence API routes", () => {
     mocks.getTasksApplication.mockReturnValue({
       recurrences: mocks.recurrences,
       occurrences: mocks.occurrences,
+    });
+    mocks.getReleaseApplications.mockReturnValue({
+      tasks: { recurrences: mocks.recurrences, occurrences: mocks.occurrences },
     });
     mocks.recurrences.getRecurrence.mockResolvedValue(recurrence);
     mocks.recurrences.setRecurrence.mockResolvedValue({ task: { id: taskId, version: 5 }, recurrence });
@@ -168,8 +176,14 @@ describe("recurrence and occurrence API routes", () => {
 
     expect(responses.map(({ status }) => status)).toEqual([200, 200, 200, 200]);
     for (const response of responses) expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(mocks.recurrences.setRecurrence).toHaveBeenCalledWith(actor, taskId, setInput);
-    expect(mocks.recurrences.editRecurringSchedule).toHaveBeenCalledWith(actor, taskId, scheduleInput);
+    expect(mocks.recurrences.setRecurrence).toHaveBeenCalledWith(actor, taskId, {
+      ...setInput,
+      reminderResolution: null,
+    });
+    expect(mocks.recurrences.editRecurringSchedule).toHaveBeenCalledWith(actor, taskId, {
+      ...scheduleInput,
+      reminderResolution: null,
+    });
     expect(mocks.recurrences.endRecurrence).toHaveBeenCalledWith(actor, taskId, {
       expectedVersion: 4,
     });

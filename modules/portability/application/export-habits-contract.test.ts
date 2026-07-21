@@ -14,7 +14,7 @@ describe("portable habits export contract", () => {
     const envelope = userExportEnvelopeSchema.parse(buildEnvelope());
 
     expect(envelope).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       habits: {
         schemaVersion: 1,
         habits: [{ id: habitId, goalKind: "quantity", targetValue: 20, unit: "minutes" }],
@@ -103,7 +103,7 @@ function expectRelationshipError(mutate: (envelope: UserExportEnvelope) => void,
 
 function buildEnvelope(): UserExportEnvelope {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     exportedAt: instant,
     identity: {
       schemaVersion: 1,
@@ -184,6 +184,7 @@ function buildEnvelope(): UserExportEnvelope {
       ],
     },
     focus: { schemaVersion: 1, sessions: [] },
+    notifications: { schemaVersion: 1, reminders: [] },
     assistant: { schemaVersion: 1, proposals: [] },
   };
 }

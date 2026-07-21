@@ -6,7 +6,7 @@
 
 - Compose one consistent export of the caller's portable release data through authorized public module readers.
 - Validate the complete export against a documented versioned Zod schema.
-- Preserve stable IDs and relationships, local dates, instants, timezones, statuses, and user-authored content needed for future portability.
+- Preserve stable IDs and relationships, local dates, instants, timezones, statuses, and user-authored content needed for portable reuse.
 - Exclude credentials, sessions, provider secrets, queue internals, and server configuration.
 - Return the export with no-store/private response headers and a deterministic filename.
 
@@ -24,9 +24,9 @@
 
 The envelope contains `schemaVersion`, export timestamp, portable user profile/preferences, and
 independently versioned module sections. An envelope bump records a composition change; a module
-section version changes only when that section changes. P6 bumps the envelope from version 4 to
-version 5 and adds `notifications: {schemaVersion: 1, reminders: [...]}`. Tasks uses section version
-2; Focus, habits, identity, assistant, and notifications use section version 1. Internal
+section version changes only when that section changes. The current envelope is version 5 and
+contains `notifications: {schemaVersion: 1, reminders: [...]}`. Tasks uses section version 2;
+Focus, habits, identity, assistant, and notifications use section version 1. Internal
 database/provider row shapes are never reused directly.
 
 ## Invariants

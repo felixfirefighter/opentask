@@ -36,6 +36,9 @@ vi.mock("@/modules/identity/presentation", () => ({
 }));
 
 vi.mock("../../_load-workspace", () => ({ loadWorkspace: mocks.loadWorkspace }));
+vi.mock("../../_components/TaskReminderComposition", () => ({
+  TaskReminderComposition: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
 
 import RegularListPage from "./page";
 

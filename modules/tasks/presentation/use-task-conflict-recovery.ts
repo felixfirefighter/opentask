@@ -13,12 +13,15 @@ export function useTaskConflictRecovery(task: TaskDetailDto | TaskListItemDto, e
   const latestTask = query.data ?? task;
   const expectedVersion = conflictError?.currentVersion;
   const versionReady = expectedVersion === undefined || latestTask.version >= expectedVersion;
+  const latestQueryReady = needsLatest && query.isSuccess && !query.isFetching;
   const latestReady = needsLatest && query.isSuccess && !query.isFetching && versionReady;
 
   return {
     conflict: outcome === "conflict",
     expectedVersion,
     latestReady,
+    latestQueryReady,
+    latestQueryUnavailable: needsLatest && !query.isFetching && !query.isSuccess,
     latestTask,
     loadingLatest: needsLatest && query.isFetching,
     latestUnavailable: needsLatest && !query.isFetching && (!query.isSuccess || !versionReady),

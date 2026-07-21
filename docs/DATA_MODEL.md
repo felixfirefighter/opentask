@@ -40,7 +40,7 @@ Classify new data before implementing it.
 Examples:
 
 - A later second reminder would be another `task_reminders` row after an authorized scope change,
-  not `reminder_2_at`; the active release permits zero or one reminder per task.
+  not `reminder_2_at`; the current release permits zero or one reminder per task.
 - A task's start/end belongs to `task_schedules`, not another `deadline` column.
 - A recurring-occurrence transition belongs to `task_occurrence_events`, not a cloned task.
 - Google Calendar event metadata belongs to a future integration mapping table, not `tasks.google_event_id`.
@@ -113,10 +113,11 @@ deployment.
 
 ## Table catalog and ownership
 
-Every unqualified heading below belongs to the Local-first Full Release target schema. A table is
-implemented only in its ordered work package and reviewed migration; this catalog authorizes the
-target shape but does not make a not-yet-migrated table current database state. Stage A–D concepts
-remain migration prohibitions until a later user-authorized scope change.
+Every unqualified heading below describes the implemented Local-first Full Release schema and must
+match committed migrations, Drizzle composition, and `pnpm check:schema`. A future table or shape
+change requires explicit scope authorization and a reviewed migration; documenting a proposed shape
+does not make it current database state. Stage A–D concepts remain migration prohibitions until a
+later user-authorized scope change.
 
 The client-ID aggregates `list_folders`, `task_lists`, `list_sections`, `tasks`,
 `checklist_items`, and `tags` use tenant-leading composite primary keys `(user_id, id)`. Their owning
@@ -176,7 +177,7 @@ Constraints/policies:
 - parent task belongs to the same user and list, enforced by a composite foreign key that is
   deferred until transaction commit so an atomic root-tree list move can update the root before its
   direct children;
-- active release permits one exposed subtask level; domain policy rejects deeper creation even though the self-FK can support later depth;
+- current release permits one exposed subtask level; domain policy rejects deeper creation even though the self-FK can support later depth;
 - section belongs to the same list;
 - status is the only current-state representation;
 - soft-deleted tasks are excluded from all normal projections/search.
@@ -207,7 +208,7 @@ One optional row per recurring task; its owning foreign key is tenant-leading:
 - `rrule` text, `timezone`, `generation_mode`
 - nullable `projection_start_date`, nullable `projection_start_at`
 - nullable `projection_end_date`, nullable `projection_end_at`; an optional exclusive upper cutover
-- `generation_mode` is `schedule`; completion-relative generation remains outside the active release
+- `generation_mode` is `schedule`; completion-relative generation remains outside the current release
 - `created_at`, `updated_at`
 
 `rrule` is a normalized internal serialization generated and validated by the tasks domain wrapper;
@@ -273,7 +274,7 @@ projection is no longer reconstructable.
 - `id`, `user_id`, `task_id`, `title`, `is_completed`, `rank`
 - `version`, `created_at`, `updated_at`
 
-Checklist items are not tasks and do not receive task schedules/tags in active scope. Completing all items does not silently complete the parent unless the module contract explicitly changes.
+Checklist items are not tasks and do not receive task schedules/tags in current scope. Completing all items does not silently complete the parent unless the module contract explicitly changes.
 
 ### `tags` and `task_tags` — tasks
 
@@ -286,7 +287,7 @@ display spelling in the canonical `name` field.
 
 ### `task_reminders` — notifications
 
-The active release permits zero or one row per task through a unique `(user_id, task_id)` constraint.
+The current release permits zero or one row per task through a unique `(user_id, task_id)` constraint.
 Exact columns, in canonical order, are:
 
 - `id uuid`, `user_id uuid` composite PK, `task_id uuid`;
@@ -513,8 +514,8 @@ Do not add speculative indexes. Use `EXPLAIN (ANALYZE, BUFFERS)` against seeded 
 ## Schema audit checklist
 
 - Does the concept already exist under a canonical name?
-- Is the table listed in this active target catalog and assigned to the current work package rather
-  than only later scope?
+- Is the concept already in this current catalog, or covered by an explicit user-authorized scope
+  change and reviewed migration plan rather than only later scope?
 - Is the owning module clear?
 - Is this scalar, repeating, relational, historical, provider-specific, or versioned document data?
 - Can a projection derive it instead of persisting it?

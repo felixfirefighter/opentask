@@ -5,6 +5,7 @@ import { getInbox, getTasksApplication } from "@/modules/tasks";
 import { TaskCommandPalette, TaskNavigation, TaskWorkspaceScreen } from "@/modules/tasks/presentation";
 
 import { loadWorkspace } from "../_load-workspace";
+import { TaskReminderComposition } from "../_components/TaskReminderComposition";
 
 export const metadata: Metadata = { title: "Completed / cancelled" };
 export const dynamic = "force-dynamic";
@@ -29,15 +30,17 @@ export default async function CompletedPage() {
       contextNavigation={<TaskNavigation current="completed" inboxId={inbox.id} />}
       compactNavigation={<TaskNavigation current="completed" inboxId={inbox.id} variant="compact" />}
     >
-      <TaskWorkspaceScreen
-        destination={{
-          kind: "terminal",
-          inbox,
-          initialCompleted,
-          initialCancelled,
-          timeZone: workspace.preferences.timezone,
-        }}
-      />
+      <TaskReminderComposition>
+        <TaskWorkspaceScreen
+          destination={{
+            kind: "terminal",
+            inbox,
+            initialCompleted,
+            initialCancelled,
+            timeZone: workspace.preferences.timezone,
+          }}
+        />
+      </TaskReminderComposition>
     </AuthenticatedShell>
   );
 }

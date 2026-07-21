@@ -21,6 +21,8 @@ import {
   type TaskWithScheduleDto,
   type TransitionTaskStatusRequest,
   type UpdateTaskRequest,
+  type TaskReminderReconciler,
+  noopTaskReminderReconciler,
 } from "./contracts";
 import { decodeRankCursor, pageFromRows } from "./page-cursor";
 import type { RecurrenceExpansionPort } from "./recurrence-expansion-port";
@@ -40,6 +42,7 @@ import {
   taskRankScope,
 } from "./task-application-support";
 import { createTaskLifecycleCommands } from "./task-lifecycle-commands";
+import { runReminderRelevantTaskTransaction } from "./reminder-relevant-transaction";
 import { mapSchedule, toScheduleWrite } from "./schedule-application";
 import { createTerminalTaskQuery } from "./terminal-task-query";
 import { taskConflict, taskResourceNotFound } from "./task-errors";
@@ -70,11 +73,13 @@ export function createTaskApplication({
   clock,
   taskSchedules,
   recurrenceExpansion = new RruleRecurrenceExpander(),
+  reminderReconciler = noopTaskReminderReconciler,
 }: {
   database: Database;
   clock: Clock;
   taskSchedules: TaskScheduleTable;
   recurrenceExpansion?: RecurrenceExpansionPort;
+  reminderReconciler?: TaskReminderReconciler;
 }) {
   const tasks = createTaskRepository(database);
   const lists = createTaskListRepository(database);
@@ -89,7 +94,12 @@ export function createTaskApplication({
     taskSchedules,
   });
   const placementRepositories = { tasks, lists, sections };
-  const lifecycleCommands = createTaskLifecycleCommands({ database, clock, recurrenceLifecycle });
+  const lifecycleCommands = createTaskLifecycleCommands({
+    database,
+    clock,
+    recurrenceLifecycle,
+    reminderReconciler,
+  });
   const terminalQuery = createTerminalTaskQuery({ database });
 
   async function createTaskInTransaction(
@@ -289,36 +299,43 @@ export function createTaskApplication({
     ): Promise<TaskDto> {
       const taskId = entityIdSchema.parse(rawTaskId);
       const input = transitionTaskStatusRequestSchema.parse(rawInput);
-      return database.transaction(async (transaction) => {
-        const current = await tasks.lockById(actor.userId, taskId, "any", transaction);
-        assertMutableTask(current, input.expectedVersion);
-        const now = clock.now();
-        const transition = decideTaskStatus(current.status, input.status, now, current.version);
-        const recurrenceResources = await recurrenceLifecycle.lockResources(
-          actor.userId,
-          taskId,
-          transaction,
-        );
-        if (input.status === "completed") {
-          recurrenceLifecycle.assertCompletionAllowed(recurrenceResources.recurrence, current.version);
-        }
-        if (current.status === "cancelled" && input.status === "open") {
-          await recurrenceLifecycle.advanceForResume(actor.userId, recurrenceResources, now, transaction);
-        }
-        return mapTask(
-          requireAppliedTask(
-            await tasks.updateStatus(
-              {
-                userId: actor.userId,
-                id: taskId,
-                expectedVersion: input.expectedVersion,
-                ...transition,
-                now,
-              },
-              transaction,
+      return runReminderRelevantTaskTransaction({
+        actor,
+        database,
+        prepareTaskIds: [taskId],
+        reconciler: reminderReconciler,
+        execute: async (transaction) => {
+          const current = await tasks.lockById(actor.userId, taskId, "any", transaction);
+          assertMutableTask(current, input.expectedVersion);
+          const now = clock.now();
+          const transition = decideTaskStatus(current.status, input.status, now, current.version);
+          const recurrenceResources = await recurrenceLifecycle.lockResources(
+            actor.userId,
+            taskId,
+            transaction,
+          );
+          if (input.status === "completed") {
+            recurrenceLifecycle.assertCompletionAllowed(recurrenceResources.recurrence, current.version);
+          }
+          if (current.status === "cancelled" && input.status === "open") {
+            await recurrenceLifecycle.advanceForResume(actor.userId, recurrenceResources, now, transaction);
+          }
+          const value = mapTask(
+            requireAppliedTask(
+              await tasks.updateStatus(
+                {
+                  userId: actor.userId,
+                  id: taskId,
+                  expectedVersion: input.expectedVersion,
+                  ...transition,
+                  now,
+                },
+                transaction,
+              ),
             ),
-          ),
-        );
+          );
+          return { value, change: { taskIds: [taskId], reason: "task_terminal" } };
+        },
       });
     },
 

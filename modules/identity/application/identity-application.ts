@@ -170,14 +170,17 @@ function createDefaultDemoSeeder(database: Database): DemoDatasetSeeder {
         { createDemoProposalResetter },
         { createDemoHabitSeeder, DEMO_FOCUS_HABIT_ID },
         { createDemoFocusSeeder },
+        { createDemoNotificationSeeder },
       ] = await Promise.all([
         import("@/modules/assistant"),
         import("@/modules/habits"),
         import("@/modules/focus"),
+        import("@/modules/notifications"),
       ]);
       const proposals = createDemoProposalResetter({ database });
       const tasks = createDemoDatasetSeeder({ database, clock: resetClock });
       const habits = createDemoHabitSeeder({ database, clock: resetClock });
+      const notifications = createDemoNotificationSeeder({ database });
       const focus = createDemoFocusSeeder({
         links: { taskId: DEMO_FOCUS_TASK_ID, habitId: DEMO_FOCUS_HABIT_ID },
       });
@@ -186,6 +189,7 @@ function createDefaultDemoSeeder(database: Database): DemoDatasetSeeder {
         await focus.clear(userId, transaction);
         await tasks.reset(userId, transaction);
         await habits.reset(userId, transaction);
+        await notifications.reset(userId, resetAt, transaction);
         await focus.seed(userId, resetAt, transaction);
       };
 

@@ -33,12 +33,17 @@ import { createWp02SchemaFixture } from "./wp02-schema-support.ts";
 const fixture = createWp02SchemaFixture("portability_export");
 const exportClock: Clock = { now: () => new Date(EXPORT_INSTANT) };
 const serverSecretCanary = "server-openai-key-must-not-leak";
+const absoluteReminderId = "0a111111-1111-4111-8111-111111111111";
+const relativeReminderId = "0b222222-2222-4222-8222-222222222222";
+const subscriptionId = "0c333333-3333-4333-8333-333333333333";
+const deliveryId = "0d444444-4444-4444-8444-444444444444";
 let pool: Pool;
 let database: Database;
 let ownerA: AuthenticatedActor;
 let ownerB: AuthenticatedActor;
 let ownerASeed: Awaited<ReturnType<typeof seedPortableTenant>>;
 let ownerBSeed: Awaited<ReturnType<typeof seedPortableTenant>>;
+let notificationSecretCanaries: readonly string[];
 
 describe("portable PostgreSQL export", () => {
   beforeAll(async () => {
@@ -72,6 +77,8 @@ describe("portable PostgreSQL export", () => {
         where user_id = $1 and id = $2`,
       [ownerB.userId, portableEntityIds.activeFocusSession],
     );
+    notificationSecretCanaries = await seedNotificationExportState(ownerA, 30, true);
+    await seedNotificationExportState(ownerB, 90, false);
   });
 
   afterAll(async () => fixture.teardown());
@@ -85,11 +92,12 @@ describe("portable PostgreSQL export", () => {
     expect(userExportEnvelopeSchema.parse(firstA)).toEqual(firstA);
     expect(firstA).toEqual(secondA);
     expect(firstA).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       identity: { schemaVersion: 1 },
       tasks: { schemaVersion: 2 },
       habits: { schemaVersion: 1 },
       focus: { schemaVersion: 1 },
+      notifications: { schemaVersion: 1 },
       assistant: { schemaVersion: 1 },
     });
     expect(firstA.identity.profile).toMatchObject({
@@ -214,6 +222,31 @@ describe("portable PostgreSQL export", () => {
     expect(exportB.focus.sessions).not.toContainEqual(
       expect.objectContaining({ id: portableEntityIds.activeFocusSession }),
     );
+    expect(firstA.notifications.reminders).toEqual([
+      expect.objectContaining({
+        id: absoluteReminderId,
+        taskId: portableEntityIds.rootTask,
+        enabled: true,
+        version: 2,
+        spec: {
+          kind: "absolute",
+          remindAt: "2026-08-01T00:00:00.000Z",
+          offsetMinutes: null,
+        },
+      }),
+      expect.objectContaining({
+        id: relativeReminderId,
+        taskId: portableEntityIds.allDayTask,
+        enabled: false,
+        version: 3,
+        spec: { kind: "relative_start", remindAt: null, offsetMinutes: 30 },
+      }),
+    ]);
+    expect(exportB.notifications.reminders[1]).toMatchObject({
+      id: relativeReminderId,
+      taskId: portableEntityIds.allDayTask,
+      spec: { kind: "relative_start", offsetMinutes: 90 },
+    });
     expect(firstA.assistant.proposals.map(({ id }) => id)).toEqual([
       portableEntityIds.firstProposal,
       portableEntityIds.secondProposal,
@@ -253,6 +286,7 @@ describe("portable PostgreSQL export", () => {
         portableEntityIds.firstApplyToken,
         portableEntityIds.secondApplyToken,
         serverSecretCanary,
+        ...notificationSecretCanaries,
       ]) {
         expect(serialized).not.toContain(secret);
       }
@@ -268,6 +302,24 @@ describe("portable PostgreSQL export", () => {
         "refreshToken",
         "serverConfiguration",
         "session",
+        "subscriptionId",
+        "endpoint",
+        "endpointHash",
+        "endpointCiphertext",
+        "p256dh",
+        "p256dhCiphertext",
+        "auth",
+        "authCiphertext",
+        "encryptionKeyVersion",
+        "deviceLabel",
+        "userAgentSummary",
+        "deliveryId",
+        "lastErrorCode",
+        "providerResult",
+        "vapidPublicKey",
+        "vapidPrivateKey",
+        "jobId",
+        "queueName",
         "token",
       ]) {
         expect(exportedKeys.has(forbiddenKey)).toBe(false);
@@ -369,6 +421,7 @@ describe("portable PostgreSQL export", () => {
     const portabilityModule = await import("../../modules/portability/index.ts");
     expect(Object.keys(portabilityModule).sort()).toEqual([
       "PORTABLE_FOCUS_SECTION_SCHEMA_VERSION",
+      "PORTABLE_NOTIFICATIONS_SECTION_SCHEMA_VERSION",
       "PORTABLE_SECTION_SCHEMA_VERSION",
       "USER_EXPORT_SCHEMA_VERSION",
       "buildUserExportFilename",
@@ -398,6 +451,9 @@ async function readMutationSentinels(userId: string) {
     focusSessions,
     proposals,
     preferences,
+    reminders,
+    subscriptions,
+    deliveries,
   ] = await Promise.all([
     pool.query(`select id, title, version from tasks where user_id = $1 order by id`, [userId]),
     pool.query(
@@ -436,6 +492,23 @@ async function readMutationSentinels(userId: string) {
       userId,
     ]),
     pool.query(`select version, preferences from user_preferences where user_id = $1`, [userId]),
+    pool.query(
+      `select id, task_id, kind, remind_at, offset_minutes, enabled, version
+         from task_reminders where user_id = $1 order by id`,
+      [userId],
+    ),
+    pool.query(
+      `select id, endpoint_hash, endpoint_ciphertext, p256dh_ciphertext, auth_ciphertext,
+              encryption_key_version, device_label, user_agent_summary, revoked_at
+         from push_subscriptions where user_id = $1 order by id`,
+      [userId],
+    ),
+    pool.query(
+      `select id, reminder_id, subscription_id, occurrence_key, state, attempt_count,
+              last_error_code, idempotency_key
+         from notification_deliveries where user_id = $1 order by id`,
+      [userId],
+    ),
   ]);
   return {
     tasks: tasks.rows,
@@ -447,6 +520,9 @@ async function readMutationSentinels(userId: string) {
     focusSessions: focusSessions.rows,
     proposals: proposals.rows,
     preferences: preferences.rows,
+    reminders: reminders.rows,
+    subscriptions: subscriptions.rows,
+    deliveries: deliveries.rows,
   };
 }
 
@@ -514,6 +590,12 @@ function expectRelationshipIntegrity(envelope: UserExportEnvelope) {
     expect(session.taskId === null || tasks.has(session.taskId)).toBe(true);
     expect(session.habitId === null || habits.has(session.habitId)).toBe(true);
   }
+  const remindedTasks = new Set<string>();
+  for (const reminder of envelope.notifications.reminders) {
+    expect(tasks.has(reminder.taskId)).toBe(true);
+    expect(remindedTasks.has(reminder.taskId)).toBe(false);
+    remindedTasks.add(reminder.taskId);
+  }
 }
 
 function allKeys(value: unknown): string[] {
@@ -569,6 +651,10 @@ function allInstantValues(envelope: UserExportEnvelope): string[] {
   for (const session of envelope.focus.sessions) {
     values.push(session.startedAt, session.endedAt, session.createdAt, session.updatedAt);
   }
+  for (const reminder of envelope.notifications.reminders) {
+    values.push(reminder.createdAt, reminder.updatedAt);
+    if (reminder.spec.kind === "absolute") values.push(reminder.spec.remindAt);
+  }
   for (const record of envelope.assistant.proposals) {
     values.push(record.createdAt, record.expiresAt);
     if (record.appliedAt !== null) values.push(record.appliedAt);
@@ -582,4 +668,82 @@ function allInstantValues(envelope: UserExportEnvelope): string[] {
     }
   }
   return values;
+}
+
+async function seedNotificationExportState(
+  actor: AuthenticatedActor,
+  offsetMinutes: number,
+  withOperationalState: boolean,
+): Promise<readonly string[]> {
+  await pool.query(
+    `insert into task_reminders
+       (id, user_id, task_id, kind, remind_at, offset_minutes, enabled, version, created_at, updated_at)
+     values
+       ($1, $2, $3, 'absolute', $4, null, true, 2, $5, $5),
+       ($6, $2, $7, 'relative_start', null, $8, false, 3, $5, $5)`,
+    [
+      absoluteReminderId,
+      actor.userId,
+      portableEntityIds.rootTask,
+      "2026-08-01T00:00:00.000Z",
+      RECORD_INSTANT,
+      relativeReminderId,
+      portableEntityIds.allDayTask,
+      offsetMinutes,
+    ],
+  );
+  if (!withOperationalState) return [];
+
+  const endpointCiphertext = encryptedCanary("ALPHA_PRIVATE_endpoint_ciphertext");
+  const p256dhCiphertext = encryptedCanary("ALPHA_PRIVATE_p256dh_ciphertext");
+  const authCiphertext = encryptedCanary("ALPHA_PRIVATE_auth_ciphertext");
+  const deviceLabel = "ALPHA_PRIVATE reminder device";
+  const userAgentSummary = "ALPHA_PRIVATE reminder user agent";
+  const idempotencyKey = "a".repeat(64);
+  await pool.query(
+    `insert into push_subscriptions
+       (id, user_id, endpoint_hash, endpoint_ciphertext, p256dh_ciphertext, auth_ciphertext,
+        encryption_key_version, device_label, user_agent_summary, created_at, last_used_at)
+     values ($1, $2, $3, $4, $5, $6, 7, $7, $8, $9, $9)`,
+    [
+      subscriptionId,
+      actor.userId,
+      Buffer.alloc(32, 0xab),
+      endpointCiphertext,
+      p256dhCiphertext,
+      authCiphertext,
+      deviceLabel,
+      userAgentSummary,
+      RECORD_INSTANT,
+    ],
+  );
+  await pool.query(
+    `insert into notification_deliveries
+       (id, user_id, reminder_id, subscription_id, occurrence_key, scheduled_for, state,
+        attempt_count, last_error_code, delivered_at, idempotency_key, created_at, updated_at)
+     values ($1, $2, $3, $4, $5, $6, 'scheduled', 0, null, null, $7, $8, $8)`,
+    [
+      deliveryId,
+      actor.userId,
+      relativeReminderId,
+      subscriptionId,
+      "ALPHA_PRIVATE_occurrence_key",
+      "2026-08-01T00:00:00.000Z",
+      idempotencyKey,
+      RECORD_INSTANT,
+    ],
+  );
+  return [
+    endpointCiphertext,
+    p256dhCiphertext,
+    authCiphertext,
+    deviceLabel,
+    userAgentSummary,
+    idempotencyKey,
+    deliveryId,
+  ];
+}
+
+function encryptedCanary(ciphertext: string) {
+  return `v1.${"N".repeat(16)}.${ciphertext}.${"T".repeat(22)}`;
 }

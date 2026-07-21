@@ -29,14 +29,14 @@ Next.js documents App Router as the current route model. Drizzle supports code-f
 | `@fullcalendar/react` v7 standard entrypoints | month/day/week/agenda and drag/resize | Use only bundled `/daygrid`, `/timegrid`, `/list`, and `/interaction` entrypoints; no premium Scheduler dependency. |
 | `@dnd-kit/core` + sortable | accessible list/section reorder | Must configure keyboard sensor, instructions, and menu fallback. |
 | `chrono-node` | English quick-add date/time recognition | Always show parsed tokens for confirmation. |
-| `rrule` 2.8.1 | P2 range-bounded Gregorian recurrence candidate expansion | Imported only by the tasks infrastructure adapter. No raw RRULE UI, timezone authority, unbounded `all()`, or presentation import. |
+| `rrule` 2.8.1 | Range-bounded Gregorian recurrence candidate expansion | Imported only by the tasks infrastructure adapter. No raw RRULE UI, timezone authority, unbounded `all()`, or presentation import. |
 | `temporal-polyfill` | explicit date/time arithmetic used by FullCalendar/domain adapters | Do not use implicit server-local timezone arithmetic. |
 | `react-markdown` + `remark-gfm` | safe Markdown task-description rendering | Raw HTML disabled; sanitize any future HTML path. |
 | `fractional-indexing` | stable task/list sort keys | Rebalance through one application use case, not ad hoc updates. |
 | `cmdk` and Sonner (through shadcn) | command palette and undo/error toast | No parallel custom implementations. |
 
 FullCalendar's React standard package is MIT and supports React 17–19; its interaction API supports
-event drag/resize. OpenTask's P2 recurrence policy and safety cap remain in task-owned
+event drag/resize. OpenTask's recurrence policy and safety cap remain in task-owned
 domain/application code behind a narrow infrastructure adapter rather than a FullCalendar plugin or
 presentation component. dnd-kit provides sortable
 primitives and keyboard/accessibility hooks. Sources:
@@ -72,26 +72,23 @@ rebuild, and rerun visual/font-load evidence.
 |---|---|---|
 | Better Auth with Drizzle adapter | email/password sessions and auth tables | Domain authorization still belongs to application use cases. |
 | `pg` | pooled PostgreSQL driver | One shared pool per process. |
-| pg-boss | Existing worker scaffold; P6 reminder queue | Keep the queue boot/shutdown smoke through P5. P6 alone may activate notification jobs; do not move task, habit, Focus, or AI workflows into jobs. |
-| `web-push` 3.6.7 + `@types/web-push` 3.6.4 | P6 browser notification delivery behind the notifications provider port | Server/worker-only; pin per-call VAPID, TTL, and timeout, sanitize raw errors immediately, and preserve provider-absent degradation. Do not use the mistyped `AES_128_GCM` declaration. |
+| pg-boss | Two active notification queues and transactional job insertion | Notification delivery and maintenance only; do not move task, habit, Focus, or AI workflows into jobs. |
+| `web-push` 3.6.7 + `@types/web-push` 3.6.4 | Browser notification delivery behind the notifications provider port | Server/worker-only; pin per-call VAPID, TTL, timeout, and guarded public-network egress; sanitize raw errors immediately and preserve provider-absent degradation. Do not use the mistyped `AES_128_GCM` declaration. |
 | Official `openai` JavaScript SDK | Responses API for the optional planner | Server-only, `store:false`, structured outputs, minimal context. |
 | Pino | structured application/worker logs | Mandatory redaction; no user content. |
 
 Better Auth documents current Next.js integration and PostgreSQL/Drizzle support. pg-boss is PostgreSQL-backed and supports retries, cron, transactions, and a Drizzle adapter. OpenAI recommends Structured Outputs with native Zod support for schema adherence. Sources: [Better Auth + Next.js](https://better-auth.com/docs/integrations/next), [Better Auth installation](https://better-auth.com/docs/installation), [pg-boss](https://github.com/timgit/pg-boss), [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [OpenAI data controls](https://developers.openai.com/api/docs/guides/your-data#v1responses).
 
-### Release-gated dependency decisions
+### Activated release dependency decisions
 
-The active release approves the capabilities below, not an unchecked package installation. The
-named work package must rerun
-the dependency-change gate, choose and pin an exact version, review its resolved production tree,
-update the license allowlist/notices, and add the resulting decision to the table of installed
-dependencies in the same change. Until that gate passes, production code must not import the
-package.
+The release activated the following reviewed dependencies. Any replacement or version change must
+rerun the dependency-change gate, review the resolved production tree, update license
+allowlists/notices, and update the installed-dependency decision in the same change.
 
-| Package gate | Purpose | Declared upstream license | Activation requirements |
+| Dependency | Purpose | Declared upstream license | Activation requirements |
 |---|---|---|---|
-| P2 — `rrule` (activated) | Standards-based candidate expansion behind the tasks module's bounded recurrence port; OpenTask still owns presets, IANA-time semantics, occurrence identity, and safety caps. | BSD-3-Clause | Pinned at 2.8.1 after package metadata, one-dependency tree, upstream notice, API/timezone caveats, and maintenance review. The exact notice is committed and copied into the runtime image. Finite range/cap and DST fixtures remain part of the P2 code gate. |
-| P6 — `web-push` (activated) | Serialize and send standards-based Web Push messages behind the notifications provider port. | MPL-2.0 | Pinned at 3.6.7 with `@types/web-push` 3.6.4 after Node 24, package-tree, license/notice, type, maintenance, API/TTL/timeout, and raw-error review. Exact notice is committed/copied to the runtime image; provider-absent, retry, revocation, timeout-unknown, and redaction paths remain mandatory. |
+| `rrule` 2.8.1 | Standards-based candidate expansion behind the tasks module's bounded recurrence port; OpenTask still owns presets, IANA-time semantics, occurrence identity, and safety caps. | BSD-3-Clause | Package metadata, one-dependency tree, upstream notice, API/timezone caveats, and maintenance reviewed. The exact notice is committed and copied into the runtime image. Finite range/cap and DST fixtures remain mandatory. |
+| `web-push` 3.6.7 + `@types/web-push` 3.6.4 | Serialize and send standards-based Web Push messages behind the notifications provider port. | MPL-2.0 runtime; MIT types | Node 24, package tree, license/notice, types, maintenance, API/TTL/timeout, guarded egress, and raw-error behavior reviewed. The exact runtime notice is committed/copied to the image; provider-absent, retry, revocation, timeout-unknown, and redaction paths remain mandatory. |
 
 License sources:
 [`rrule`](https://github.com/jakubroztocil/rrule/blob/master/LICENCE),
@@ -183,11 +180,10 @@ deployed runtime path. Re-evaluate it whenever Better Auth or its dependency gra
 One multi-stage Docker image retains two commands:
 
 - web: production Next.js server
-- worker: pg-boss entry point; boot/shutdown smoke through P5, active reminder delivery after P6
+- worker: active two-queue pg-boss reminder delivery and maintenance entry point
 
-Docker Compose runs `web`, `worker`, and `postgres` for reproducibility. Web and PostgreSQL support
-the manual product throughout implementation. P6 activates the worker for reminders; the final
-self-host release rehearses all three processes. If the worker or VAPID configuration is absent,
+Docker Compose runs `web`, `worker`, and `postgres` for reproducibility. The self-host release
+rehearses all three processes. If the worker or VAPID configuration is absent,
 reminders report a degraded state while tasks, planning, recurrence, habits, Focus, export, and
 startup remain usable.
 
@@ -197,7 +193,7 @@ Local/self-host operation is the release completion path. No hosted deployment i
 
 Railway remains an optional demo target because its official guides support a Next.js service,
 PostgreSQL, a separate worker from the same codebase, private networking, and pre-deploy Drizzle
-migrations. Hosted setup is not a P1-P7 completion gate. If used, configure a hard usage limit and
+migrations. Hosted setup is not a local-release completion gate. If used, configure a hard usage limit and
 do not describe trial or usage-based hosting as permanently free. Sources:
 [Railway Next.js + Postgres](https://docs.railway.com/guides/nextjs),
 [full-stack worker pattern](https://docs.railway.com/guides/fullstack-nextjs),
@@ -207,10 +203,9 @@ do not describe trial or usage-based hosting as permanently free. Sources:
 ## Deliberate omissions
 
 - Supabase is not the application platform: it would duplicate Better Auth/provider choices and blur the self-host contract. PostgreSQL itself remains portable.
-- Redis/BullMQ is unnecessary; PostgreSQL-backed pg-boss owns the one active reminder-job family
-  after P6.
+- Redis/BullMQ is unnecessary; PostgreSQL-backed pg-boss owns the two notification queues.
 - A monorepo is unnecessary for one web product and one worker entrypoint sharing the same modules.
-- Native/mobile frameworks and offline synchronization remain outside active scope. P5 adds only an
+- Native/mobile frameworks and offline synchronization remain outside active scope. The release includes only an
   installable static shell and content-free offline fallback; it caches no authenticated user data
   and accepts no offline mutation.
 - Rich-text editor frameworks are deferred; Markdown keeps task content portable and implementation bounded.

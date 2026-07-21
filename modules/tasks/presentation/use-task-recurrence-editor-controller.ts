@@ -4,6 +4,8 @@ import { useCallback, useState } from "react";
 
 import type { TaskDetailDto, TaskScheduleValue } from "../application/contracts";
 import type { RecurrenceDefinition, TaskRecurrenceDto } from "../application/contracts/recurrence-contract";
+import type { TaskRecurrenceReminderResolution } from "../application/contracts/task-reminder-contract";
+import { isTaskApiError } from "./data/task-api-request";
 import { useTaskConflictRecovery } from "./use-task-conflict-recovery";
 import {
   createTaskRecurrenceDraft,
@@ -16,10 +18,17 @@ import { useTaskDraftGuard } from "./task-draft-guard";
 import { useSchedulePreferencesQuery, useTaskScheduleQuery } from "./data/use-task-schedule";
 import { useTaskRecurrenceMutation, useTaskRecurrenceQuery } from "./data/use-task-recurrence";
 import { useTaskRecurrenceVersionFence } from "./use-task-recurrence-version-fence";
+import { createTaskRecurrenceRecoveryActions } from "./task-recurrence-editor-recovery-actions";
+import type { TaskRecurrenceReminderReview } from "./task-recurrence-reminder-review";
+import { useTaskRecurrenceReminderResolution } from "./use-task-recurrence-reminder-resolution";
 
 type RecurrenceAttempt = "save" | "end";
 
-export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled: boolean) {
+export function useTaskRecurrenceEditorController(
+  task: TaskDetailDto,
+  disabled: boolean,
+  reminderReview: TaskRecurrenceReminderReview,
+) {
   const recurrenceQuery = useTaskRecurrenceQuery(task.id, task.parentTaskId === null);
   const scheduleQuery = useTaskScheduleQuery(task.id);
   const preferencesQuery = useSchedulePreferencesQuery();
@@ -28,9 +37,10 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
   const refetchLatestTask = recovery.refetchLatest;
   const refetchRecurrence = recurrenceQuery.refetch;
   const refetchSchedule = scheduleQuery.refetch;
+  const refreshReminderReview = reminderReview.refresh;
   const refetchAuthoritativeState = useCallback(
-    () => Promise.all([refetchLatestTask(), refetchRecurrence(), refetchSchedule()]),
-    [refetchLatestTask, refetchRecurrence, refetchSchedule],
+    () => Promise.all([refetchLatestTask(), refetchRecurrence(), refetchSchedule(), refreshReminderReview()]),
+    [refetchLatestTask, refetchRecurrence, refetchSchedule, refreshReminderReview],
   );
   const [draft, setDraft] = useState<TaskRecurrenceDraft | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -40,9 +50,12 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
   const [attemptedDefinition, setAttemptedDefinition] = useState<RecurrenceDefinition | null>(null);
   const [attemptedSchedule, setAttemptedSchedule] = useState<TaskScheduleValue | null>(null);
   const [attemptedExpectedVersion, setAttemptedExpectedVersion] = useState<number | null>(null);
+  const [attemptedReminderResolution, setAttemptedReminderResolution] =
+    useState<TaskRecurrenceReminderResolution | null>(null);
   const [editingBaseVersion, setEditingBaseVersion] = useState<number | null>(null);
   const [restartConfirmationOpen, setRestartConfirmationOpen] = useState(false);
   const [endConfirmationOpen, setEndConfirmationOpen] = useState(false);
+  const reminderResolution = useTaskRecurrenceReminderResolution(reminderReview);
   const draftGuard = useTaskDraftGuard(
     task.id,
     "recurrence",
@@ -73,14 +86,20 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     recurrence && schedule && preferences
       ? formatRecurrenceSummary(recurrence.definition, schedule, recurrence.timezone, preferences.hourCycle)
       : null;
+  const reminderResolutionConflict =
+    attemptedReminderResolution !== null &&
+    isTaskApiError(mutation.error) &&
+    mutation.error.code === "CONFLICT";
+  const taskRecoveryReady = reminderResolutionConflict ? recovery.latestQueryReady : recovery.latestReady;
   const recoveryReady =
-    recovery.latestReady &&
+    taskRecoveryReady &&
     !recurrenceQuery.isFetching &&
     recurrenceQuery.isSuccess &&
     recurrenceQuery.data !== undefined &&
     !scheduleQuery.isFetching &&
     scheduleQuery.isSuccess &&
-    scheduleQuery.data !== undefined;
+    scheduleQuery.data !== undefined &&
+    (attemptedReminderResolution === null || reminderReview.status === "ready");
   const latestMatchesAttempt = recurrenceAttemptMatches({
     attempt: lastAttempt,
     attemptedDefinition,
@@ -96,17 +115,41 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     recovery.latestTask.version === attemptedExpectedVersion &&
     !latestMatchesAttempt;
   const recovering = recovery.needsLatest;
-  const controlsDisabled = disabled || mutation.isPending || recovering || recurrenceFence.versionMismatch;
+  const controlsDisabled =
+    disabled ||
+    mutation.isPending ||
+    recovering ||
+    recurrenceFence.versionMismatch ||
+    reminderReview.status !== "ready";
   const canRetry =
     mutation.isError &&
     (recovery.outcome === "rejected" ||
       (recovery.conflict && recoveryReady) ||
-      (recovery.unconfirmed && recoveryReady && (latestMatchesAttempt || serverDidNotApply)));
+      (recovery.unconfirmed && recoveryReady && (latestMatchesAttempt || serverDidNotApply))) &&
+    (attemptedReminderResolution === null || reminderReview.status === "ready");
+  const { retry, useLatest } = createTaskRecurrenceRecoveryActions({
+    acceptLatest,
+    attempt: {
+      definition: attemptedDefinition,
+      expectedVersion: attemptedExpectedVersion,
+      kind: lastAttempt,
+      schedule: attemptedSchedule,
+    },
+    canRetry,
+    confirmEnd,
+    currentSchedule: schedule,
+    parseDraft,
+    recovery,
+    refetchAuthoritativeState,
+    reminderResolutionForRetry: () => reminderResolution.forRetry(attemptedReminderResolution),
+    saveDefinition,
+  });
 
   function beginEditing() {
     if (controlsDisabled || !schedule || !timezone) return;
     setDraft(createTaskRecurrenceDraft(recurrence, schedule, timezone));
     setDirty(false);
+    reminderResolution.resetDraft();
     resetFeedback();
   }
 
@@ -122,7 +165,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     const parsed = parseDraft();
     if (!parsed) return;
     if (recurrence === null) {
-      void saveDefinition(parsed.definition);
+      reviewReminderBeforeSave(parsed.definition);
       return;
     }
     setRestartConfirmationOpen(true);
@@ -132,7 +175,22 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     const parsed = parseDraft();
     if (!parsed) return;
     setRestartConfirmationOpen(false);
-    await saveDefinition(parsed.definition);
+    reviewReminderBeforeSave(parsed.definition);
+  }
+
+  function reviewReminderBeforeSave(definition: RecurrenceDefinition) {
+    if (reminderResolution.prepareForSave() === "ready") {
+      void saveDefinition(definition, undefined, false, schedule, null);
+    }
+  }
+
+  async function confirmReminderResolution() {
+    const parsed = parseDraft();
+    if (!parsed || reminderReview.status !== "ready") return;
+    const resolution = reminderResolution.parseChoice();
+    if (!resolution) return;
+    reminderResolution.close();
+    await saveDefinition(parsed.definition, undefined, false, schedule, resolution);
   }
 
   async function saveDefinition(
@@ -140,6 +198,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     expectedVersion?: number,
     recoveryRetry = false,
     authoritativeSchedule: TaskScheduleValue | null = schedule,
+    reminderResolution: TaskRecurrenceReminderResolution | null = null,
   ) {
     if ((controlsDisabled && !recoveryRetry) || authoritativeSchedule === null || !draftGuard.beginWrite()) {
       return;
@@ -150,6 +209,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     setAttemptedDefinition(definition);
     setAttemptedSchedule(snapshotTaskSchedule(authoritativeSchedule));
     setAttemptedExpectedVersion(version);
+    setAttemptedReminderResolution(reminderResolution);
     setSaveMessage("");
     try {
       await mutation.mutateAsync({
@@ -157,10 +217,13 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
         task: authoritativeTask,
         expectedVersion: version,
         definition,
+        reminderResolution,
       });
+      if (reminderResolution !== null) void refreshReminderReview();
       finishSuccessfulWrite(recurrence === null ? "Recurrence added" : "Future recurrence restarted");
     } catch {
       // Recoverable inline feedback owns validation, conflict, and unknown outcomes.
+      if (reminderResolution !== null) void refreshReminderReview();
     } finally {
       draftGuard.finishWrite();
     }
@@ -175,6 +238,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     setAttemptedDefinition(null);
     setAttemptedSchedule(null);
     setAttemptedExpectedVersion(version);
+    setAttemptedReminderResolution(null);
     setSaveMessage("");
     try {
       await mutation.mutateAsync({ kind: "end", task: authoritativeTask, expectedVersion: version });
@@ -184,75 +248,6 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     } finally {
       draftGuard.finishWrite();
     }
-  }
-
-  async function retry() {
-    if (!canRetry || !lastAttempt || attemptedExpectedVersion === null) return;
-    if (!recovery.needsLatest) {
-      if (lastAttempt === "end") {
-        await confirmEnd(attemptedExpectedVersion, true);
-        return;
-      }
-      const parsed = parseDraft(true);
-      if (parsed) await saveDefinition(parsed.definition, attemptedExpectedVersion, true);
-      return;
-    }
-
-    const [latestTask, latestRecurrence, latestSchedule] = await refetchAuthoritativeState();
-    if (
-      !latestTask.isSuccess ||
-      !latestTask.data ||
-      !latestRecurrence.isSuccess ||
-      !latestSchedule.isSuccess ||
-      latestSchedule.data === undefined
-    ) {
-      return;
-    }
-    const recurrenceAfterRefresh = latestRecurrence.data ?? null;
-    const scheduleAfterRefresh = latestSchedule.data ?? null;
-    const attemptApplied = recurrenceAttemptMatches({
-      attempt: lastAttempt,
-      attemptedDefinition,
-      attemptedSchedule,
-      expectedVersion: attemptedExpectedVersion,
-      recurrence: recurrenceAfterRefresh,
-      schedule: scheduleAfterRefresh,
-    });
-    if (attemptApplied) {
-      acceptLatest(true);
-      return;
-    }
-    if (recovery.unconfirmed && latestTask.data.version !== attemptedExpectedVersion) return;
-    if (lastAttempt === "end") {
-      await confirmEnd(latestTask.data.version, true);
-      return;
-    }
-    const parsed = parseDraft(true, scheduleAfterRefresh, recurrenceAfterRefresh);
-    if (parsed) {
-      await saveDefinition(parsed.definition, latestTask.data.version, true, scheduleAfterRefresh);
-    }
-  }
-
-  async function useLatest() {
-    const [latestTask, latestRecurrence, latestSchedule] = await refetchAuthoritativeState();
-    if (
-      !latestTask.isSuccess ||
-      !latestRecurrence.isSuccess ||
-      !latestSchedule.isSuccess ||
-      latestSchedule.data === undefined
-    ) {
-      return;
-    }
-    acceptLatest(
-      recurrenceAttemptMatches({
-        attempt: lastAttempt,
-        attemptedDefinition,
-        attemptedSchedule,
-        expectedVersion: attemptedExpectedVersion,
-        recurrence: latestRecurrence.data ?? null,
-        schedule: latestSchedule.data ?? null,
-      }),
-    );
   }
 
   function keepEditing() {
@@ -265,6 +260,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     setDraft(null);
     setDirty(false);
     setRestartConfirmationOpen(false);
+    reminderResolution.close();
     resetFeedback();
   }
 
@@ -315,6 +311,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     setAttemptedDefinition(null);
     setAttemptedSchedule(null);
     setAttemptedExpectedVersion(null);
+    setAttemptedReminderResolution(null);
   }
 
   function resetAttempt() {
@@ -322,6 +319,7 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     setAttemptedDefinition(null);
     setAttemptedSchedule(null);
     setAttemptedExpectedVersion(null);
+    setAttemptedReminderResolution(null);
     mutation.reset();
   }
 
@@ -336,8 +334,12 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     beginEditing,
     cancelEditing,
     canRetry,
+    changeReminderChoice: reminderResolution.changeChoice,
+    changeReminderOffsetMinutes: reminderResolution.changeOffsetMinutes,
+    changeReminderResolutionOpen: reminderResolution.changeOpen,
     changeDraft,
     confirmEnd,
+    confirmReminderResolution,
     confirmRestart,
     controlsDisabled,
     draft,
@@ -353,6 +355,12 @@ export function useTaskRecurrenceEditorController(task: TaskDetailDto, disabled:
     recovery,
     recoveryReady,
     recurrenceVersionMismatch: recurrenceFence.versionMismatch,
+    reminderResolutionInAttempt: attemptedReminderResolution !== null,
+    reminderChoice: reminderResolution.choice,
+    reminderOffsetMinutes: reminderResolution.offsetMinutes,
+    reminderResolutionError: reminderResolution.error,
+    reminderResolutionOpen: reminderResolution.open,
+    reminderReview,
     refreshLatest: recurrenceFence.refreshLatest,
     requestSave,
     retry,

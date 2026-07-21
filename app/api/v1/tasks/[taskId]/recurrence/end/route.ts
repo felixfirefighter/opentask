@@ -1,4 +1,5 @@
-import { endTaskRecurrenceRequestSchema, getTasksApplication } from "@/modules/tasks";
+import { endTaskRecurrenceRequestSchema } from "@/modules/tasks";
+import { getReleaseApplications } from "@/server/release-applications";
 
 import {
   assertNoTaskApiQuery,
@@ -18,6 +19,8 @@ export function POST(request: Request, context: EndTaskRecurrenceRouteContext) {
     const { actor, input } = await readTaskApiMutation(request, endTaskRecurrenceRequestSchema);
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
-    return privateTaskJson(await getTasksApplication().recurrences.endRecurrence(actor, taskId, input));
+    return privateTaskJson(
+      await getReleaseApplications().tasks.recurrences.endRecurrence(actor, taskId, input),
+    );
   });
 }

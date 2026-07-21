@@ -18,7 +18,10 @@ import {
   type TaskScheduleRangePage,
   type TaskScheduleRangeQuery,
   type TaskScheduleValue,
+  type TaskReminderReconciler,
+  noopTaskReminderReconciler,
 } from "./contracts";
+import { runReminderRelevantTaskTransaction } from "./reminder-relevant-transaction";
 import { assertMutableTask, mapTask, requireAppliedTask } from "./task-application-support";
 import { taskConflict, taskResourceNotFound } from "./task-errors";
 import {
@@ -34,10 +37,12 @@ export function createTaskScheduleApplication({
   database,
   clock,
   taskSchedules,
+  reminderReconciler = noopTaskReminderReconciler,
 }: {
   database: Database;
   clock: Clock;
   taskSchedules: TaskScheduleTable;
+  reminderReconciler?: TaskReminderReconciler;
 }) {
   const tasks = createTaskRepository(database);
   const schedules = createTaskScheduleRepository(taskSchedules, database);
@@ -59,37 +64,44 @@ export function createTaskScheduleApplication({
     ): Promise<TaskScheduleMutationResult> {
       const taskId = entityIdSchema.parse(rawTaskId);
       const input = setTaskScheduleRequestSchema.parse(rawInput);
-      return database.transaction(async (transaction) => {
-        const current = await tasks.lockById(actor.userId, taskId, "any", transaction);
-        assertMutableTask(current, input.expectedVersion);
-        const recurrence = await recurrences.lockByTaskId(actor.userId, taskId, transaction);
-        await schedules.lockByTaskId(actor.userId, taskId, transaction);
-        if (recurrence) {
-          throw taskConflict(
-            "Use the recurrence editor to change a recurring task's future schedule.",
-            current.version,
-          );
-        }
-        const now = clock.now();
-        const schedule = await schedules.upsert(
-          {
-            userId: actor.userId,
-            taskId,
-            schedule: toScheduleWrite(input.schedule),
-            now,
-          },
-          transaction,
-        );
-        const updated = requireAppliedTask(
-          await schedules.incrementTaskVersion(
-            { userId: actor.userId, taskId, expectedVersion: input.expectedVersion, now },
+      return runReminderRelevantTaskTransaction({
+        actor,
+        database,
+        prepareTaskIds: [taskId],
+        reconciler: reminderReconciler,
+        execute: async (transaction) => {
+          const current = await tasks.lockById(actor.userId, taskId, "any", transaction);
+          assertMutableTask(current, input.expectedVersion);
+          const recurrence = await recurrences.lockByTaskId(actor.userId, taskId, transaction);
+          await schedules.lockByTaskId(actor.userId, taskId, transaction);
+          if (recurrence) {
+            throw taskConflict(
+              "Use the recurrence editor to change a recurring task's future schedule.",
+              current.version,
+            );
+          }
+          const now = clock.now();
+          const schedule = await schedules.upsert(
+            {
+              userId: actor.userId,
+              taskId,
+              schedule: toScheduleWrite(input.schedule),
+              now,
+            },
             transaction,
-          ),
-        );
-        return taskScheduleMutationResultSchema.parse({
-          task: versionedResourceReferenceSchema.parse({ id: updated.id, version: updated.version }),
-          schedule: mapSchedule(schedule),
-        });
+          );
+          const updated = requireAppliedTask(
+            await schedules.incrementTaskVersion(
+              { userId: actor.userId, taskId, expectedVersion: input.expectedVersion, now },
+              transaction,
+            ),
+          );
+          const value = taskScheduleMutationResultSchema.parse({
+            task: versionedResourceReferenceSchema.parse({ id: updated.id, version: updated.version }),
+            schedule: mapSchedule(schedule),
+          });
+          return { value, change: { taskIds: [taskId], reason: "schedule_changed" } };
+        },
       });
     },
 
@@ -100,32 +112,39 @@ export function createTaskScheduleApplication({
     ): Promise<TaskScheduleMutationResult> {
       const taskId = entityIdSchema.parse(rawTaskId);
       const input = clearTaskScheduleRequestSchema.parse(rawInput);
-      return database.transaction(async (transaction) => {
-        const current = await tasks.lockById(actor.userId, taskId, "any", transaction);
-        assertMutableTask(current, input.expectedVersion);
-        const recurrence = await recurrences.lockByTaskId(actor.userId, taskId, transaction);
-        await schedules.lockByTaskId(actor.userId, taskId, transaction);
-        if (recurrence && !hasEndedRecurrence(recurrence)) {
-          throw taskConflict("End recurrence before clearing this schedule.", current.version);
-        }
-        if (recurrence) await recurrences.remove(actor.userId, taskId, transaction);
-        const removed = await schedules.clear(actor.userId, taskId, transaction);
-        if (!removed) throw taskConflict("This task is already unscheduled.", current.version);
-        const updated = requireAppliedTask(
-          await schedules.incrementTaskVersion(
-            {
-              userId: actor.userId,
-              taskId,
-              expectedVersion: input.expectedVersion,
-              now: clock.now(),
-            },
-            transaction,
-          ),
-        );
-        return taskScheduleMutationResultSchema.parse({
-          task: versionedResourceReferenceSchema.parse({ id: updated.id, version: updated.version }),
-          schedule: null,
-        });
+      return runReminderRelevantTaskTransaction({
+        actor,
+        database,
+        prepareTaskIds: [taskId],
+        reconciler: reminderReconciler,
+        execute: async (transaction) => {
+          const current = await tasks.lockById(actor.userId, taskId, "any", transaction);
+          assertMutableTask(current, input.expectedVersion);
+          const recurrence = await recurrences.lockByTaskId(actor.userId, taskId, transaction);
+          await schedules.lockByTaskId(actor.userId, taskId, transaction);
+          if (recurrence && !hasEndedRecurrence(recurrence)) {
+            throw taskConflict("End recurrence before clearing this schedule.", current.version);
+          }
+          if (recurrence) await recurrences.remove(actor.userId, taskId, transaction);
+          const removed = await schedules.clear(actor.userId, taskId, transaction);
+          if (!removed) throw taskConflict("This task is already unscheduled.", current.version);
+          const updated = requireAppliedTask(
+            await schedules.incrementTaskVersion(
+              {
+                userId: actor.userId,
+                taskId,
+                expectedVersion: input.expectedVersion,
+                now: clock.now(),
+              },
+              transaction,
+            ),
+          );
+          const value = taskScheduleMutationResultSchema.parse({
+            task: versionedResourceReferenceSchema.parse({ id: updated.id, version: updated.version }),
+            schedule: null,
+          });
+          return { value, change: { taskIds: [taskId], reason: "schedule_changed" } };
+        },
       });
     },
 

@@ -15,6 +15,8 @@ import { createTaskScheduleApplication } from "./schedule-application";
 import { createSectionApplication } from "./section-application";
 import { createTagApplication } from "./tag-application";
 import { createTaskApplication } from "./task-application";
+import { noopTaskReminderReconciler, type TaskReminderReconciler } from "./contracts/task-reminder-contract";
+import { createTaskReminderSourceReader } from "./task-reminder-source-reader";
 import { createTaskFocusLinkReader } from "./task-focus-link-reader";
 import { createTaskSnapshotReader } from "./task-snapshot-reader";
 import {
@@ -32,11 +34,13 @@ export function createTasksApplication({
   clock,
   taskSchedules,
   resolveUserTimezone = async () => "UTC",
+  reminderReconciler = noopTaskReminderReconciler,
 }: {
   database: Database;
   clock: Clock;
   taskSchedules: TaskScheduleTable;
   resolveUserTimezone?: UserTimezoneResolver;
+  reminderReconciler?: TaskReminderReconciler;
 }) {
   const expansion = new RruleRecurrenceExpander();
   const readSnapshot = createPostgresTaskReadSnapshot(database);
@@ -48,6 +52,7 @@ export function createTasksApplication({
     resolveUserTimezone,
     createEventId: randomUUID,
     snapshot: readSnapshot,
+    reminderReconciler,
   });
   const { readBoundedOccurrencesInSnapshot, ...occurrences } = occurrenceApplication;
   const readOpenTasksInSnapshot = createTaskPlanningSourceSnapshotReader({ taskSchedules });
@@ -64,12 +69,18 @@ export function createTasksApplication({
     folders: createFolderApplication({ database, clock }),
     lists: createListApplication({ database, clock }),
     sections: createSectionApplication({ database, clock }),
-    tasks: createTaskApplication({ database, clock, taskSchedules, recurrenceExpansion: expansion }),
+    tasks: createTaskApplication({
+      database,
+      clock,
+      taskSchedules,
+      recurrenceExpansion: expansion,
+      reminderReconciler,
+    }),
     checklist: createChecklistApplication({ database, clock }),
     tags: createTagApplication({ database, clock }),
     search: createSearchApplication({ database }),
     quickAdd: createQuickAddApplication({ clock }),
-    schedules: createTaskScheduleApplication({ database, clock, taskSchedules }),
+    schedules: createTaskScheduleApplication({ database, clock, taskSchedules, reminderReconciler }),
     recurrences: createTaskRecurrenceApplication({
       database,
       clock,
@@ -77,6 +88,7 @@ export function createTasksApplication({
       expansion,
       resolveUserTimezone,
       snapshot: readSnapshot,
+      reminderReconciler,
     }),
     occurrences,
     planningSource,
@@ -85,9 +97,11 @@ export function createTasksApplication({
       clock,
       taskSchedules,
       recurrenceExpansion: expansion,
+      reminderReconciler,
     }),
     focusLinks: createTaskFocusLinkReader(database),
     taskSnapshots: createTaskSnapshotReader({ database, taskSchedules }),
+    reminderSources: createTaskReminderSourceReader({ database, taskSchedules, expansion }),
   } as const;
 }
 

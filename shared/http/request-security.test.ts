@@ -23,6 +23,9 @@ describe("trusted JSON mutation boundary", () => {
 
     const remove = mutationRequest("{}", { origin }, "DELETE");
     expect(() => assertTrustedJsonMutation(remove, policy, "DELETE")).not.toThrow();
+
+    const replace = mutationRequest("{}", { origin }, "PUT");
+    expect(() => assertTrustedJsonMutation(replace, policy, "PUT")).not.toThrow();
   });
 
   it("rejects missing, untrusted, and cross-site origins", () => {
@@ -129,7 +132,7 @@ describe("trusted JSON mutation boundary", () => {
 function mutationRequest(
   body: string,
   headers: Record<string, string> = {},
-  method: "DELETE" | "PATCH" | "POST" = "POST",
+  method: "DELETE" | "PATCH" | "POST" | "PUT" = "POST",
 ) {
   return new Request(`${origin}/api/v1/demo`, {
     method,

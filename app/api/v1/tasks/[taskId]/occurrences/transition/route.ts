@@ -1,4 +1,5 @@
-import { getTasksApplication, occurrenceCommandRequestSchema } from "@/modules/tasks";
+import { occurrenceCommandRequestSchema } from "@/modules/tasks";
+import { getReleaseApplications } from "@/server/release-applications";
 
 import {
   assertNoTaskApiQuery,
@@ -19,7 +20,7 @@ export function POST(request: Request, context: OccurrenceTransitionRouteContext
     assertNoTaskApiQuery(request);
     const taskId = parseTaskApiId((await context.params).taskId);
     return privateTaskJson(
-      await getTasksApplication().occurrences.transitionOccurrence(actor, taskId, input),
+      await getReleaseApplications().tasks.occurrences.transitionOccurrence(actor, taskId, input),
     );
   });
 }

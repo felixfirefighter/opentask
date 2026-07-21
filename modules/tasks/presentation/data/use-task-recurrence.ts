@@ -6,6 +6,7 @@ import { markWorkspaceRoutesStale } from "@/shared/presentation";
 
 import type { TaskDetailDto, TaskScheduleValue } from "../../application/contracts";
 import type { RecurrenceDefinition } from "../../application/contracts/recurrence-contract";
+import type { TaskRecurrenceReminderResolution } from "../../application/contracts/task-reminder-contract";
 import { classifyTaskWriteOutcome } from "../task-write-outcome";
 import { patchTask, type TaskPageCache } from "./task-cache";
 import {
@@ -24,6 +25,7 @@ export type TaskRecurrenceMutationInput =
       task: TaskDetailDto;
       expectedVersion: number;
       definition: RecurrenceDefinition;
+      reminderResolution: TaskRecurrenceReminderResolution | null;
     }>
   | Readonly<{
       kind: "schedule";
@@ -63,6 +65,7 @@ export function useTaskRecurrenceMutation() {
       return setTaskRecurrence(input.task.id, {
         expectedVersion: input.expectedVersion,
         definition: input.definition,
+        reminderResolution: input.reminderResolution,
       });
     },
     onError: (error) => {

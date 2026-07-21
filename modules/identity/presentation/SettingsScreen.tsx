@@ -1,6 +1,7 @@
 "use client";
 
 import { markWorkspaceRoutesStale, useUnsavedNavigationGuard } from "@/shared/presentation";
+import type { ReactNode } from "react";
 
 import { AppearancePreferencesCard } from "./AppearancePreferencesCard";
 import { DateTimePreferencesCard } from "./DateTimePreferencesCard";
@@ -15,9 +16,11 @@ import type { UserPreferences, UserPreferencesPatch } from "../application/prefe
 export function SettingsScreen({
   aiCapability,
   initialPreferences,
+  reminderControls,
 }: {
   aiCapability: OptionalAiCapability;
   initialPreferences: UserPreferences;
+  reminderControls?: ReactNode;
 }) {
   const editor = usePreferencesEditor(initialPreferences);
   useUnsavedNavigationGuard(
@@ -83,7 +86,7 @@ export function SettingsScreen({
 
       <OptionalAiSettingsCard capability={aiCapability} />
 
-      <PwaSettingsCard />
+      <PwaSettingsCard reminderControls={reminderControls} />
 
       <DataExportCard online={editor.online} />
     </div>

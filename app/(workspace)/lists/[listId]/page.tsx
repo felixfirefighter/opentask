@@ -7,6 +7,7 @@ import { TaskCommandPalette, TaskNavigation, TaskWorkspaceScreen } from "@/modul
 import { ApplicationError } from "@/shared/http/application-error";
 
 import { loadWorkspace } from "../../_load-workspace";
+import { TaskReminderComposition } from "../../_components/TaskReminderComposition";
 
 export const metadata: Metadata = { title: "List" };
 export const dynamic = "force-dynamic";
@@ -46,16 +47,18 @@ export default async function RegularListPage({ params }: RegularListPageProps) 
       }
     >
       {list ? (
-        <TaskWorkspaceScreen
-          destination={{
-            kind: "list",
-            list,
-            inbox,
-            ...(initialTasks ? { initialTasks } : {}),
-            timeZone: workspace.preferences.timezone,
-            hourCycle: workspace.preferences.hourCycle,
-          }}
-        />
+        <TaskReminderComposition>
+          <TaskWorkspaceScreen
+            destination={{
+              kind: "list",
+              list,
+              inbox,
+              ...(initialTasks ? { initialTasks } : {}),
+              timeZone: workspace.preferences.timezone,
+              hourCycle: workspace.preferences.hourCycle,
+            }}
+          />
+        </TaskReminderComposition>
       ) : (
         <UnavailableList />
       )}

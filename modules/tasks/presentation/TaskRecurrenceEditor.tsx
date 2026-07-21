@@ -9,13 +9,23 @@ import styles from "./TaskRecurrenceEditor.module.css";
 import { TaskRecurrenceEditorConfirmation } from "./TaskRecurrenceEditorConfirmation";
 import { TaskRecurrenceEditorFeedback } from "./TaskRecurrenceEditorFeedback";
 import { TaskRecurrenceEditorForm } from "./TaskRecurrenceEditorForm";
+import { TaskRecurrenceReminderDialog } from "./TaskRecurrenceReminderDialog";
+import {
+  noTaskRecurrenceReminderReview,
+  type TaskRecurrenceReminderReview,
+} from "./task-recurrence-reminder-review";
 import { useTaskRecurrenceEditorController } from "./use-task-recurrence-editor-controller";
 
 export function TaskRecurrenceEditor({
   disabled,
+  reminderReview = noTaskRecurrenceReminderReview,
   task,
-}: Readonly<{ disabled: boolean; task: TaskDetailDto }>) {
-  const editor = useTaskRecurrenceEditorController(task, disabled);
+}: Readonly<{
+  disabled: boolean;
+  reminderReview?: TaskRecurrenceReminderReview;
+  task: TaskDetailDto;
+}>) {
+  const editor = useTaskRecurrenceEditorController(task, disabled, reminderReview);
   const feedbackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,6 +96,23 @@ export function TaskRecurrenceEditor({
         </div>
       ) : null}
 
+      {editor.reminderReview.status === "unavailable" ? (
+        <div className={styles.loadError} role="alert">
+          <span>
+            Saved reminder status could not be loaded. Reload it before changing recurrence so no reminder is
+            changed silently.
+          </span>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={disabled}
+            onClick={() => void editor.reminderReview.refresh()}
+          >
+            Reload reminder status
+          </button>
+        </div>
+      ) : null}
+
       {editor.draft ? (
         <TaskRecurrenceEditorForm editor={editor} />
       ) : (
@@ -97,17 +124,21 @@ export function TaskRecurrenceEditor({
           alertRef={feedbackRef}
           canRetry={editor.canRetry}
           error={editor.mutation.error}
+          includesReminderResolution={editor.reminderResolutionInAttempt}
           latestMatchesAttempt={editor.latestMatchesAttempt}
           latestSummary={latestSummary}
           latestUnavailable={
-            editor.recovery.latestUnavailable ||
+            (editor.reminderResolutionInAttempt
+              ? editor.recovery.latestQueryUnavailable || editor.reminderReview.status === "unavailable"
+              : editor.recovery.latestUnavailable) ||
             editor.recurrenceQuery.isError ||
             editor.scheduleQuery.isError
           }
           loadingLatest={
             editor.recovery.loadingLatest ||
             editor.recurrenceQuery.isFetching ||
-            editor.scheduleQuery.isFetching
+            editor.scheduleQuery.isFetching ||
+            (editor.reminderResolutionInAttempt && editor.reminderReview.status === "loading")
           }
           pending={editor.mutation.isPending}
           proposedSummary={editor.interpretation?.valid ? editor.interpretation.summary : null}
@@ -130,12 +161,29 @@ export function TaskRecurrenceEditor({
           </>
         ) : editor.recurrenceVersionMismatch ? (
           "Refreshing latest recurrence…"
+        ) : editor.reminderReview.status === "loading" ? (
+          "Checking saved reminder status…"
+        ) : editor.reminderReview.status === "unavailable" ? (
+          "Reload reminder status to edit recurrence."
         ) : disabled ? (
           "Reconnect to edit recurrence."
         ) : (
           ""
         )}
       </p>
+
+      <TaskRecurrenceReminderDialog
+        busy={editor.mutation.isPending}
+        choice={editor.reminderChoice}
+        error={editor.reminderResolutionError}
+        offsetMinutes={editor.reminderOffsetMinutes}
+        open={editor.reminderResolutionOpen}
+        taskId={editor.task.id}
+        onChoiceChange={editor.changeReminderChoice}
+        onConfirm={() => void editor.confirmReminderResolution()}
+        onOffsetMinutesChange={editor.changeReminderOffsetMinutes}
+        onOpenChange={editor.changeReminderResolutionOpen}
+      />
 
       <TaskRecurrenceEditorConfirmation
         busy={editor.mutation.isPending}

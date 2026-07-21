@@ -1,6 +1,7 @@
 import { createAssistantSchema } from "../../modules/assistant/infrastructure/schema.ts";
 import { createFocusSchema } from "../../modules/focus/infrastructure/schema.ts";
 import { createIdentitySchema } from "../../modules/identity/infrastructure/schema.ts";
+import { createNotificationSchema } from "../../modules/notifications/infrastructure/schema.ts";
 import { createHabitSchema } from "../../modules/habits/infrastructure/schema.ts";
 import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 
@@ -9,6 +10,11 @@ import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 const identitySchema = createIdentitySchema();
 const habitSchema = createHabitSchema(() => identitySchema.user.id);
 const taskSchema = createTaskSchema(() => identitySchema.user.id);
+const notificationSchema = createNotificationSchema({
+  authUserId: () => identitySchema.user.id,
+  taskUserId: () => taskSchema.tasks.userId,
+  taskId: () => taskSchema.tasks.id,
+});
 const focusSchema = createFocusSchema({
   authUserId: () => identitySchema.user.id,
   taskUserId: () => taskSchema.tasks.userId,
@@ -38,6 +44,9 @@ export const taskOccurrenceEvents = taskSchema.taskOccurrenceEvents;
 export const checklistItems = taskSchema.checklistItems;
 export const tags = taskSchema.tags;
 export const taskTags = taskSchema.taskTags;
+export const taskReminders = notificationSchema.taskReminders;
+export const pushSubscriptions = notificationSchema.pushSubscriptions;
+export const notificationDeliveries = notificationSchema.notificationDeliveries;
 export const plannerProposals = assistantSchema.plannerProposals;
 
 export const schema = {
@@ -61,5 +70,8 @@ export const schema = {
   checklistItems,
   tags,
   taskTags,
+  taskReminders,
+  pushSubscriptions,
+  notificationDeliveries,
   plannerProposals,
 };

@@ -1,160 +1,72 @@
-# Local-first Full Release forward plan
+# Authorized change plan contract
 
-This is the canonical dependency and delivery plan for the unfinished P6-P7 work in
-`docs/SCOPE.md`. The implemented and approved baseline is summarized in `README.md`; completed
-sequencing exists only in Git. Verification lives in `docs/QUALITY.md`.
+There is no active feature implementation plan. The Local-first Full Release capabilities in
+`docs/SCOPE.md` are implemented, and Git contains their execution history. This file defines the
+shape of a future user-authorized plan; it does not authorize roadmap work by itself.
 
-## Execution baseline
+Maintenance may preserve, secure, verify, or clarify released behavior within the current scope. A
+feature addition, cut, or substitution must first complete the five-part scope-change protocol in
+`docs/SCOPE.md`.
 
-- `main` stays a green, locally runnable baseline while a later package is incomplete.
-- Editorial Focus is frozen across current routes. Later UI extends it through `DESIGN.md`; broad
-  restyling or shared-foundation changes require explicit user approval and new visual evidence.
-- P6 is the next active package in numbered execution order. No package may expose a table, route,
-  dependency, worker job, service worker, or control before its own gate.
-- A package integrates only as a coherent unit after its acceptance and audit gates pass. A partial
-  implementation, screenshot, elapsed time, or available agent is not a merge criterion.
-- The remaining work is estimated at **40-60 serial engineering hours** before external-provider
-  and user-approval latency. Estimates guide coordination; they never weaken a gate or authorize a
-  scope cut.
-- Hackathon timing and submission operations live in `docs/HACKATHON.md`, not in this product plan.
+## Activating a plan
 
-## Remaining dependency graph
+Before implementation begins, one reviewable contract change must:
 
-```mermaid
-flowchart LR
-    BASELINE["Implemented core + recurrence + habits + Focus + installable PWA"] --> P6["P6: browser reminder + worker"]
-    P6 --> P7
-```
+1. record explicit user authorization;
+2. update `docs/SCOPE.md` capabilities, exclusions, and acceptance criteria;
+3. replace the stewardship state in `docs/GOAL.md` with the authorized objective and completion
+   definition;
+4. update affected module, architecture, data, stack, design, security, and quality contracts; and
+5. replace this file with the current dependency, effort, risk, and verification plan.
 
-P6 builds on the implemented PWA service-worker boundary and satisfied recurrence dependency. P6
-supplies and integrates its portable representation, and the integration owner serializes that
-export-schema version bump. P7 owns the final cross-version audit, demo, documentation, and
-cross-module evidence, not the first export integration.
+Research, roadmap placement, deadline pressure, or available parallel capacity is not
+authorization.
 
-## Parallel execution contract
+## Required plan structure
 
-Parallel work is split by capability and layer ownership, never merely by route.
+Every activated plan must state:
 
-### Integration-owner files
+- **Boundary and non-goals:** exact approved behavior, exclusions, acceptance criteria, and the
+  safe fallback if the change is not green.
+- **Dependencies and order:** prerequisite contracts, migration sequence, integration order,
+  meaningful effort estimates, and external/user-approval latency.
+- **Ownership and interfaces:** owning module and layer, public entry points, cross-module ports,
+  transaction boundaries, authorization rules, and externally retried idempotency behavior.
+- **Data impact:** canonical concept reuse, placement-test result, tables/columns/indexes, migration
+  and upgrade strategy, export/demo impact, and denial evidence. State explicitly when there is no
+  schema change.
+- **UI and design impact:** routed screen contracts, every required state, responsive widths,
+  keyboard/touch alternatives, accessibility evidence, and any explicit visual approval gate.
+- **Libraries and providers:** approved library reuse or reviewed additions, licenses, secrets,
+  self-hostable path, and honest provider-absent degradation.
+- **Verification and audit:** focused unit/component/database/browser checks, golden-path mapping,
+  production/worker/service-worker checks where relevant, final full gate, and audit owners.
+- **Delivery risks and cuts:** known failure modes, reversible checkpoints, external blockers, and
+  the rule that any scope cut returns to the five-part authorization protocol.
 
-Only the integration owner edits or serializes:
+Keep the plan modular and current. Replace changed decisions in place; do not append status diaries,
+session logs, completed-step narratives, or speculative later-stage implementation details.
 
-- canonical scope, goal, plan, architecture, data, stack, design, and quality contracts;
-- `package.json`, `pnpm-lock.yaml`, shared environment configuration, and license allowlists;
-- shared design tokens, root shell/navigation, and root route maps;
-- global Drizzle schema aggregation and generated `drizzle/*` migrations;
-- worker composition, export schema version, demo reset composition, Docker/CI/release configuration;
-- full database, browser, service-worker, worker, Docker, and `pnpm verify` gates.
+## Parallel execution and integration ownership
 
-### Worker rules
+Parallel work is divided by capability and contract ownership, not merely by route. Each lane owns
+an explicit non-overlapping file set and returns a coherent change with focused evidence.
 
-- Each lane starts from the same green checkpoint in an isolated worktree/task and owns an explicit
-  non-overlapping file list.
-- Pure domain/application/test work may run before a serialized migration only when the public
-  contract is frozen and no dormant production export is exposed.
-- A lane returns a coherent commit plus exact focused checks. The integration owner audits scope,
-  boundaries, schema, ownership, security, and dead code before integration.
-- No worker silently edits shared tokens, dependency files, global schemas, migrations, route maps,
-  or canonical contracts.
-- Browser, Docker, database, and full gates run centrally and sequentially to avoid shared-state and
-  machine-resource conflicts. Static lanes may run concurrently because repository checks must not
-  create lint-visible temporary source files.
+One integration owner serializes canonical scope/goal/plan contracts, shared tokens and navigation,
+dependency and lockfile changes, schema aggregation and SQL migrations, worker composition, export
+versioning, demo reset composition, root routes, Docker/CI/release configuration, and final
+cross-module audits. Consumers do not invent competing adapters while a shared contract is moving.
 
-## P6 — One browser-push task reminder and active worker (24–36 serial hours; 14–20 elapsed)
+Database, browser, accessibility, service-worker, worker, Docker, and full verification gates run
+centrally and sequentially when they share ports, databases, browsers, or generated state. Static or
+isolated module lanes may run concurrently only when they cannot overwrite shared state.
 
-### Boundary
+## Completion and close-out
 
-`modules/notifications` owns one task reminder, subscriptions, deliveries, provider adapter, and
-worker use cases. Tasks own schedules/recurrence/status; P6 consumes their frozen public events and
-snapshots. Core startup stays useful without browser support, VAPID, or a running worker.
+An activated plan is complete only when every mapped acceptance criterion and applicable audit in
+`docs/QUALITY.md` passes, required visual approval is explicit, and the final diff contains no
+unauthorized surface or dormant later-scope code. A partial implementation never replaces the last
+green release merely because a deadline is close.
 
-### Deliverables
-
-- Use the reviewed pinned `web-push` adapter dependency; add `task_reminders`,
-  `push_subscriptions`, and `notification_deliveries` through one reviewed migration.
-- Explicit-user-action subscription/permission enrollment and revocation; encrypted endpoint/key
-  material with key-version metadata and safe capability/degraded states.
-- Zero/one task reminder: absolute instant only for a non-recurring task, or relative to an eligible
-  task start. Recurring tasks require relative-start and enqueue only the next eligible occurrence.
-- Transactional reconciliation when schedule, recurrence, status, deletion, or reminder changes;
-  deterministic logical delivery idempotency.
-- Active pg-boss worker delivery, bounded retry/backoff, permanent subscription revocation, stale/
-  completed/deleted/rescheduled/disabled no-op, cleanup retention, and notification click-through.
-- Generic privacy-safe notification copy; queue/log/export/client payloads contain no task content,
-  endpoints, or key material.
-- Integrate and version-bump the portable reminder-specification export before the P6 gate; exclude
-  subscriptions, deliveries, queue state, and provider/encryption material.
-- Report configured, unconfigured, and known-disabled worker states without inventing a heartbeat.
-  When configuration expects a worker, UI says runtime liveness is not verified; operator evidence is
-  the worker check plus readiness log.
-- Implement the frozen relative-offset semantics/range, delivery states, at-most-once unknown-outcome
-  policy, retry/backoff, stale cutoff, encryption, two-queue runtime, and retention constants in the
-  routed module/data/architecture contracts. Each delivery targets one subscription so partial
-  multi-device provider results never share one mutable state.
-
-### Gate
-
-- Reminder discriminant/eligibility, ownership/version, encryption/redaction, and migration tests.
-- Transactional enqueue, duplicate execution, recurrence/DST next-occurrence, stale no-op,
-  transient/permanent provider, cleanup, and worker-disabled degradation fixtures.
-- Service-worker push/click E2E and one configured local browser-push smoke when the user supplies
-  VAPID keys and grants permission; exact external blocker reported otherwise.
-- Worker/process/signal/health, responsive/a11y/design, `pnpm verify`.
-
-## P7 — Portability, deterministic demo, and release audit (16–24 serial hours)
-
-### Deliverables
-
-- Audit the export-schema versions already integrated for recurrence, habits, Focus, and reminders,
-  then validate the final combined document containing recurrence rules/events,
-  habits/schedules/logs, completed focus history, and portable reminder definitions.
-- Exclude push subscriptions, endpoint keys, delivery/queue internals, credentials, provider secrets,
-  raw planner input, and server configuration.
-- Extend isolated deterministic demo reset across every released package without pre-granting push
-  permission or requiring OpenAI/VAPID.
-- Update README/setup/worker/PWA/VAPID/export/security/friend-test/submission guidance; hosted
-  deployment remains optional.
-- Rehearse fresh clone, empty and upgrade migrations, local production web/PostgreSQL/active worker,
-  demo reset, all golden paths, export, provider-degraded paths, and clean shutdown.
-- Produce approved screenshots, under-three-minute demo script, architecture/provider explanation,
-  known limitations, and final acceptance evidence.
-
-### Gate
-
-- Version/relationship/two-user/consistent-snapshot/secret-redaction export tests.
-- All core and extension golden paths at required desktop/mobile widths.
-- All mandatory scope, architecture, schema, auth, security/privacy/logging, time, AI, recurrence,
-  habits, Focus, PWA, push/worker, accessibility, responsive, dependency/license, secret, production,
-  and dead-code audits in `docs/QUALITY.md`.
-- `pnpm verify:design`, `pnpm verify`, production Compose smoke, and exact final diff review.
-
-## Traceability
-
-| Active capability | Package | Primary evidence |
-|---|---|---|
-| Existing identity/tasks/planning/AI/recurrence/habits/Focus/installable shell | Implemented baseline | G1–G7 + install/cache/fallback/privacy/offline-write suites |
-| Browser reminder/worker | P6 | reminder/push golden path + idempotency/provider suites |
-| Export/demo/local release | P7 | expanded export + fresh-clone/Compose/full audit |
-
-## Risk and cut rules
-
-| Trigger | Required response |
-|---|---|
-| A package proposes a broad visual-system change | stop dependent styling and obtain explicit approval with fresh visual evidence |
-| A lane misses two 90-minute checkpoints | preserve its last green commit, stop the lane, and reassign or reassess; do not hide partial code |
-| Shared contract/schema changes after consumers start | integration owner freezes consumers, updates the contract once, then rebases; consumers do not invent adapters |
-| Browser/Docker resource pressure | keep coding lanes active but run heavy environment gates centrally and one at a time |
-| New package is not fully green before submission work | retain the implemented baseline; do not merge a partial feature |
-| External OpenAI/VAPID/browser permission is absent | keep fixture/provider-degraded paths green and report the exact manual smoke blocker |
-| Time pressure suggests a feature cut | request user approval for whole packages in reverse dependency order; update all five scope-change surfaces |
-| Later-scope code/control/table/dependency appears | remove it before integration regardless of time already spent |
-
-Never cut authorization isolation, manual core behavior, review-before-apply AI, migration integrity,
-export privacy, or required audits to make room for an extension. Each package is coherent or it
-does not replace the implemented baseline.
-
-## Plan completion
-
-This plan is complete only when `docs/GOAL.md`, every active acceptance criterion, and the final P7
-gate are satisfied. A timebox, overnight run, deadline, screenshot, agent count, or unavailable
-external provider cannot convert skipped or failing evidence into completion.
+After completion, fold durable decisions into their canonical contracts and restore this file to
+the concise no-active-plan state. Git remains the record of execution order and completed work.

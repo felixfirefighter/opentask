@@ -7,6 +7,7 @@ import { TaskCommandPalette, TaskDetailScreen, TaskNavigation } from "@/modules/
 import { ApplicationError } from "@/shared/http/application-error";
 
 import { loadWorkspace } from "../../_load-workspace";
+import { TaskReminderComposition } from "../../_components/TaskReminderComposition";
 import { readTaskDetailReturnHref } from "./task-detail-return";
 
 export const metadata: Metadata = { title: "Task details" };
@@ -66,16 +67,19 @@ export default async function TaskDetailPage({ params, searchParams }: TaskDetai
       mobileNavigation={null}
     >
       {task ? (
-        <TaskDetailScreen
-          task={task}
-          mode="page"
-          inbox={inbox}
-          hourCycle={workspace.preferences.hourCycle}
-          initialEditSchedule={initialEditSchedule}
-          occurrence={occurrence}
-          occurrenceRequested={requestedOccurrence !== null}
-          returnHref={requestedReturnTo ?? (task.listId === inbox.id ? "/inbox" : `/lists/${task.listId}`)}
-        />
+        <TaskReminderComposition>
+          <TaskDetailScreen
+            task={task}
+            mode="page"
+            inbox={inbox}
+            hourCycle={workspace.preferences.hourCycle}
+            initialEditSchedule={initialEditSchedule}
+            occurrence={occurrence}
+            occurrenceRequested={requestedOccurrence !== null}
+            returnHref={requestedReturnTo ?? (task.listId === inbox.id ? "/inbox" : `/lists/${task.listId}`)}
+            timeZone={workspace.preferences.timezone}
+          />
+        </TaskReminderComposition>
       ) : (
         <UnavailableTask returnHref={requestedReturnTo ?? "/inbox"} />
       )}
