@@ -4,7 +4,7 @@ import { parseEnvironment } from "@/shared/config/environment";
 
 import { resolveAuthRuntimeConfig } from "./auth-runtime-config";
 
-const databaseUrl = "postgresql://user:pass@localhost:5432/opentask";
+const databaseUrl = "postgresql://user:pass@localhost:5432/omplish";
 
 describe("auth runtime configuration", () => {
   it("forces secure cookies for a fully configured production origin", () => {

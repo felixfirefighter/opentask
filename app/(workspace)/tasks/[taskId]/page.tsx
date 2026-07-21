@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ZodError } from "zod";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
+import { AmethCompanion } from "@/modules/companion/presentation";
 import { getInbox, getTasksApplication } from "@/modules/tasks";
 import { TaskCommandPalette, TaskDetailScreen, TaskNavigation } from "@/modules/tasks/presentation";
 import { ApplicationError } from "@/shared/http/application-error";
@@ -29,6 +30,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="tasks"
+      companion={<AmethCompanion />}
       destinationTitle="Task details"
       topBarActions={<TaskCommandPalette inbox={inbox} />}
       contextNavigation={

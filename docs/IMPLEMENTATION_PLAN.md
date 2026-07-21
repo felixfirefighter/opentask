@@ -45,6 +45,17 @@ flowchart LR
     P7 --> P8["P8: Electron desktop local runtime"]
 ```
 
+## A0 — Ameth Companion (user-authorized priority package)
+
+Before resuming P0–P8, add `modules/companion` with its reviewed profile/XP/summary migration,
+authenticated API contracts, private export integration, and global responsive presentation surface.
+The package awards deterministic XP from source-module transactions; it never gates a manual workflow,
+persists raw chat, or bypasses the planner review/apply boundary. Avatar assets are supplied at
+`public/ameth/level-{1,2,3}.webp`; a token-backed fallback is required until those assets exist.
+
+Gate: migration/ownership/idempotency tests; provider-absent/no-mutation chat tests; shell keyboard,
+touch, reduced-motion, and responsive evidence; export/privacy checks; `pnpm verify`.
+
 P2, P3, and P5 may run in parallel only after P1 freezes their public contracts. P4 may begin pure
 domain work after the Habits ownership-validator contract freezes. P6 waits for recurrence and the
 service-worker contract. Each P2-P6 package supplies and integrates its portable representation;

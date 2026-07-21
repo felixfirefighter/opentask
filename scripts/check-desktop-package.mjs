@@ -25,6 +25,20 @@ const requiredFiles = [
 
 for (const relativePath of requiredFiles) await requirePath(join(resourcesDirectory, relativePath));
 
+const packagedElectronFiles = [
+  "dist-electron/main.js",
+  "dist-electron/runtime.js",
+  "dist-electron/runtime-process.js",
+  "dist-electron/target.js",
+  "dist-electron/preload.cjs",
+];
+const asarHeader = readAsarHeader(await readFile(join(resourcesDirectory, "app.asar")));
+for (const relativePath of packagedElectronFiles) {
+  if (!asarContainsFile(asarHeader, relativePath)) {
+    fail(`Packaged Electron module is missing from app.asar: ${relativePath}`);
+  }
+}
+
 const manifest = JSON.parse(await readFile(join(runtimeRoot, "manifest.json"), "utf8"));
 if (!manifest.targets?.[target]) fail(`Runtime manifest is missing target ${target}.`);
 if (
@@ -49,7 +63,7 @@ if (forbiddenEntries.length > 0) {
 }
 
 console.log(
-  `Desktop package check passed (${basename(appDirectory)}; ${target}; ${requiredFiles.length} required paths).`,
+  `Desktop package check passed (${basename(appDirectory)}; ${target}; ${requiredFiles.length} required paths, ${packagedElectronFiles.length} Electron modules).`,
 );
 
 function parseArguments(argumentsList) {
@@ -103,6 +117,22 @@ async function pathIsDirectory(path) {
   } catch {
     return false;
   }
+}
+
+function readAsarHeader(archive) {
+  const headerLength = archive.readUInt32LE(4);
+  const header = archive.subarray(8, 8 + headerLength);
+  const jsonLength = header.readUInt32LE(4);
+  return JSON.parse(header.subarray(8, 8 + jsonLength).toString("utf8"));
+}
+
+function asarContainsFile(header, relativePath) {
+  let node = header;
+  for (const segment of relativePath.split("/")) {
+    node = node.files?.[segment];
+    if (!node) return false;
+  }
+  return typeof node.size === "number";
 }
 
 function printHelp(error) {

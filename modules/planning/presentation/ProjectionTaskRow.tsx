@@ -24,9 +24,9 @@ export function ProjectionTaskRow({
   const statusLabel = restore ? `Restore ${task.title}` : `Complete ${task.title}`;
 
   function openTask(event: MouseEvent<HTMLAnchorElement>) {
-    if (!actions.onOpenTask) return;
+    if (!actions.onOmplish) return;
     event.preventDefault();
-    actions.onOpenTask(task.id);
+    actions.onOmplish(task.id);
   }
 
   return (

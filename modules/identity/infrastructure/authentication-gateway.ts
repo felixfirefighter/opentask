@@ -58,7 +58,7 @@ export function createAuthenticationGateway({
   }
 
   const auth = betterAuth({
-    appName: "OpenTask",
+    appName: "Omplish",
     baseURL: runtime.baseUrl,
     secret: runtime.secret,
     trustedOrigins,
@@ -98,7 +98,7 @@ export function createAuthenticationGateway({
     },
     advanced: {
       useSecureCookies: runtime.secureCookies,
-      cookiePrefix: "opentask",
+      cookiePrefix: "omplish",
       database: { generateId: "uuid" },
       disableCSRFCheck: false,
       disableOriginCheck: false,

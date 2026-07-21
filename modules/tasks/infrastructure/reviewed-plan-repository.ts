@@ -7,7 +7,7 @@ import type { TaskScheduleTable } from "./schema";
 
 export function createReviewedPlanRepository(taskSchedules: TaskScheduleTable) {
   return {
-    loadOpenTasksForUpdate(userId: string, taskIds: readonly string[], transaction: DatabaseTransaction) {
+    loadOmplishsForUpdate(userId: string, taskIds: readonly string[], transaction: DatabaseTransaction) {
       if (taskIds.length === 0) return Promise.resolve([]);
       return transaction
         .select()

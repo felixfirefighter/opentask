@@ -132,6 +132,7 @@ export function createPlannerProposalApplier(
             "The planner proposal changed before the apply transaction completed.",
           );
         }
+        await dependencies.onProposalApplied?.(actor, proposalId, transaction);
 
         return {
           kind: "result",

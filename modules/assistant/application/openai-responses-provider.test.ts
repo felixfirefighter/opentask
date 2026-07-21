@@ -97,7 +97,7 @@ describe("OpenAI Responses planner provider", () => {
     expect(body).not.toHaveProperty("previous_response_id");
     expect(requestOptions).toEqual({ timeout: 30_000, maxRetries: 0 });
     expect(body.text).toMatchObject({
-      format: { type: "json_schema", name: "opentask_planner_extraction_v1", strict: true },
+      format: { type: "json_schema", name: "omplish_planner_extraction_v1", strict: true },
     });
 
     const serialized = body.input;

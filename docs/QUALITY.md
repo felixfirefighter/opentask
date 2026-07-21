@@ -35,6 +35,9 @@ Own pure behavior close to its module:
 - Focus transition, accumulated-duration, reconstruction, and summary-window policies;
 - reminder eligibility, next-occurrence, idempotency, retry, and stale-job policies;
 - deterministic planner scheduling and strict versioned export/proposal contracts.
+- deterministic Ameth XP thresholds, source idempotency, user isolation, and companion-data deletion.
+- Level-3 Prompt Library unlock denial, same-user tag ownership, analysis no-save behavior, memory-cap eviction,
+  local-day daily-mode reset, and provider-disabled companion fallback.
 
 Freeze clocks, timezones, ranges, and ordering. No test may depend on the machine timezone, current
 date, random order, live model output, wall-clock timer ticks, or real push delivery.

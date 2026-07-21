@@ -39,7 +39,7 @@ describe("task API request boundary", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json(
         {
-          type: "https://opentask.test/problems/conflict",
+          type: "https://omplish.test/problems/conflict",
           title: "Conflict",
           status: 409,
           code: "CONFLICT",

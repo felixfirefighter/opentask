@@ -219,7 +219,7 @@ describe("tag API routes", () => {
     expect(conflict.status).toBe(409);
     expect(conflict.headers.get("cache-control")).toBe("no-store");
     await expect(conflict.json()).resolves.toMatchObject({
-      type: "urn:opentask:problem:conflict",
+      type: "urn:omplish:problem:conflict",
       code: "CONFLICT",
       currentVersion: 4,
     });

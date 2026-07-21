@@ -23,11 +23,13 @@ export type AuthenticatedShellProps = Readonly<{
   compactNavigation?: ReactNode;
   topBarActions?: ReactNode;
   mobileNavigation?: ReactNode;
+  companion?: ReactNode;
   children: ReactNode;
 }>;
 
 export function AuthenticatedShell({
   children,
+  companion,
   compactNavigation,
   contextNavigation,
   currentDestination,
@@ -68,6 +70,7 @@ export function AuthenticatedShell({
         ) : (
           mobileNavigation
         ))}
+      {companion}
     </div>
   );
 }

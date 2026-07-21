@@ -24,7 +24,7 @@ describe("readiness route", () => {
   });
 
   it("returns a safe correlated problem when the database is unavailable", async () => {
-    const secret = "postgresql://user:sentinel-password@database.invalid/opentask";
+    const secret = "postgresql://user:sentinel-password@database.invalid/omplish";
     assertDatabaseReady.mockRejectedValueOnce(new Error(secret));
 
     const response = await GET(new Request("http://localhost/api/health/ready"));
@@ -34,7 +34,7 @@ describe("readiness route", () => {
     expect(response.status).toBe(503);
     expect(response.headers.get("content-type")).toBe("application/problem+json");
     expect(body).toMatchObject({
-      type: "urn:opentask:problem:provider-unavailable",
+      type: "urn:omplish:problem:provider-unavailable",
       status: 503,
       code: "PROVIDER_UNAVAILABLE",
       detail: "Database readiness check failed.",

@@ -77,7 +77,7 @@ describe("planner API client", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       jsonResponse(
         {
-          type: "urn:opentask:problem:conflict",
+          type: "urn:omplish:problem:conflict",
           title: "Conflict",
           status: 409,
           code: "CONFLICT",

@@ -54,7 +54,7 @@ export function createProblem(
   const definition = definitions[code];
 
   return {
-    type: `urn:opentask:problem:${code.toLowerCase().replaceAll("_", "-")}`,
+    type: `urn:omplish:problem:${code.toLowerCase().replaceAll("_", "-")}`,
     title: definition.title,
     status: definition.status,
     code,

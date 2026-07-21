@@ -8,12 +8,12 @@ import { ProjectionTaskRow } from "./ProjectionTaskRow";
 describe("ProjectionTaskRow", () => {
   it("keeps opening and completion as separate accessible actions", async () => {
     const user = userEvent.setup();
-    const onOpenTask = vi.fn();
+    const onOmplish = vi.fn();
     const onStatusChange = vi.fn();
-    render(<ProjectionTaskRow task={planningTaskFixture()} actions={{ onOpenTask, onStatusChange }} />);
+    render(<ProjectionTaskRow task={planningTaskFixture()} actions={{ onOmplish, onStatusChange }} />);
 
     await user.click(screen.getByRole("link", { name: /record the two-minute demo/i }));
-    expect(onOpenTask).toHaveBeenCalledWith("task-demo");
+    expect(onOmplish).toHaveBeenCalledWith("task-demo");
     await user.click(screen.getByRole("button", { name: "Complete Record the two-minute demo" }));
     expect(onStatusChange).toHaveBeenCalledWith("task-demo", "completed");
   });

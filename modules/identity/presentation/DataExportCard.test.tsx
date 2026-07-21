@@ -15,9 +15,9 @@ describe("DataExportCard", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response('{"schemaVersion":1}', {
         headers: {
-          "content-disposition": 'attachment; filename="opentask-export-2026-07-19.json"',
+          "content-disposition": 'attachment; filename="omplish-export-2026-07-19.json"',
           "content-type": "application/json",
-          "x-opentask-export-schema-version": "1",
+          "x-omplish-export-schema-version": "1",
         },
       }),
     );
@@ -30,7 +30,7 @@ describe("DataExportCard", () => {
 
     await user.click(screen.getByRole("button", { name: "Export my data" }));
 
-    expect(await screen.findByText(/Downloaded opentask-export-2026-07-19\.json · schema v1/u)).toBeVisible();
+    expect(await screen.findByText(/Downloaded omplish-export-2026-07-19\.json · schema v1/u)).toBeVisible();
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/export", { method: "GET", cache: "no-store" });
     expect(createObjectUrl).toHaveBeenCalledOnce();
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:private-export");

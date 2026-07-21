@@ -100,7 +100,7 @@ async function startDatabase(options: RuntimeOptions): Promise<DatabaseRuntime> 
     ...getChildEnvironment(),
     PGHOST: "127.0.0.1",
     PGPORT: String(port),
-    PGUSER: "opentask",
+    PGUSER: "omplish",
     PATH: [binaryDirectory, libraryDirectory, process.env.PATH].filter(Boolean).join(delimiter),
     ...((await fileExists(localeDirectory)) ? { PGLOCALEDIR: localeDirectory } : {}),
   };
@@ -113,7 +113,7 @@ async function startDatabase(options: RuntimeOptions): Promise<DatabaseRuntime> 
   if (!(await fileExists(join(dataDirectory, "PG_VERSION")))) {
     await runCommand(
       initdb,
-      ["-D", dataDirectory, "--username=opentask", "--auth=trust", "--no-locale", "--encoding=UTF8"],
+      ["-D", dataDirectory, "--username=omplish", "--auth=trust", "--no-locale", "--encoding=UTF8"],
       {
         env: processEnvironment,
       },
@@ -130,13 +130,13 @@ async function startDatabase(options: RuntimeOptions): Promise<DatabaseRuntime> 
     await waitForTcp(port, 30_000, server);
     const databaseExists = await runCommand(
       psql,
-      ["--dbname=postgres", "-Atqc", "select 1 from pg_database where datname = 'opentask'"],
+      ["--dbname=postgres", "-Atqc", "select 1 from pg_database where datname = 'omplish'"],
       {
         env: processEnvironment,
       },
     );
     if (databaseExists.trim() !== "1") {
-      await runCommand(createdb, ["opentask"], { env: processEnvironment });
+      await runCommand(createdb, ["omplish"], { env: processEnvironment });
     }
   } catch (error) {
     await stopPostgres(pgctl, dataDirectory, processEnvironment, server);
@@ -144,7 +144,7 @@ async function startDatabase(options: RuntimeOptions): Promise<DatabaseRuntime> 
   }
 
   return {
-    connectionString: `postgresql://opentask@127.0.0.1:${port}/opentask`,
+    connectionString: `postgresql://omplish@127.0.0.1:${port}/omplish`,
     stop: async () => {
       await stopPostgres(pgctl, dataDirectory, processEnvironment, server);
     },

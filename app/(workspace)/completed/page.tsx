@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
+import { AmethCompanion } from "@/modules/companion/presentation";
 import { getInbox, getTasksApplication } from "@/modules/tasks";
 import { TaskCommandPalette, TaskNavigation, TaskWorkspaceScreen } from "@/modules/tasks/presentation";
 
@@ -24,6 +25,7 @@ export default async function CompletedPage() {
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="tasks"
+      companion={<AmethCompanion />}
       destinationTitle="Completed / cancelled"
       topBarActions={<TaskCommandPalette inbox={inbox} />}
       contextNavigation={<TaskNavigation current="completed" inboxId={inbox.id} />}

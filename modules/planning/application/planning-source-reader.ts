@@ -32,7 +32,7 @@ export type PlanningTaskSourceQuery =
     }>;
 
 export type PlanningTaskSourceReader = Readonly<{
-  readOpenTasks(actor: AuthenticatedActor, query: PlanningTaskSourceQuery): Promise<PlanningTaskSourcePage>;
+  readOmplishs(actor: AuthenticatedActor, query: PlanningTaskSourceQuery): Promise<PlanningTaskSourcePage>;
 }>;
 
 export type PlanningTimeZoneReader = Readonly<{

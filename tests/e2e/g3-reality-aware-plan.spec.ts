@@ -302,7 +302,7 @@ async function readPlannerProposal(page: Page, proposalId: string) {
 }
 
 async function captureReviewEvidence(page: Page, projectName: string) {
-  const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "opentask-g3-review-"));
+  const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "omplish-g3-review-"));
   const fileName = `ai-review-${projectName}.png`;
   const screenshotPath = path.join(temporaryDirectory, fileName);
   await page.evaluate(async () => {

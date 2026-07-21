@@ -1,4 +1,4 @@
-# OpenTask desktop runtime artifacts
+# Omplish desktop runtime artifacts
 
 The production desktop package deliberately vendors its own Node and PostgreSQL runtimes. End users
 must not need Node, Docker, PostgreSQL, pnpm, or an internet connection after installation.
@@ -69,7 +69,7 @@ directory and binds PostgreSQL to loopback on a dynamically reserved port.
 The currently staged baseline is Node.js `v24.14.1` and PostgreSQL `17.10-2`; the exact archive URLs
 and SHA-256 values are recorded in `manifest.json`. The EDB macOS archive is a universal binary and
 is used for both macOS targets. Its layout does not include `share/locale`; this is valid because
-OpenTask initializes clusters with `--no-locale`. PostgreSQL's required extension/timezone data is
+Omplish initializes clusters with `--no-locale`. PostgreSQL's required extension/timezone data is
 still present under `share/postgresql` on macOS and the platform-equivalent `share/extension` layout
 on Windows.
 

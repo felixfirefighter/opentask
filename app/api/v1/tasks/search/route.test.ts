@@ -60,7 +60,7 @@ describe("task search API route", () => {
     expect(response.status).toBe(401);
     expect(response.headers.get("cache-control")).toBe("no-store");
     await expect(response.json()).resolves.toMatchObject({
-      type: "urn:opentask:problem:unauthenticated",
+      type: "urn:omplish:problem:unauthenticated",
       code: "UNAUTHENTICATED",
       detail: "Sign in to continue.",
     });

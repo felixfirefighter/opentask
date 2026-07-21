@@ -44,7 +44,7 @@ export function WorkspaceTaskList({
       timeZone={timeZone}
       reorderable={reorderable}
       selectedTaskId={selectedTaskId}
-      onOpenTask={openTask}
+      onOmplish={openTask}
     />
   );
 }

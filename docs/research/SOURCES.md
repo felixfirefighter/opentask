@@ -151,7 +151,7 @@ Current official sources do not agree:
 - S102 describes 199 uploads per day, 39 attachments per task, and a 20 MB Premium file size.
 - Free material consistently describes one upload per day and a 10 MB file size.
 
-The ledger therefore treats the exact Premium daily and per-task cap as unresolved. It must not be copied into OpenTask policy.
+The ledger therefore treats the exact Premium daily and per-task cap as unresolved. It must not be copied into Omplish policy.
 
 ### Free-plan capacity
 
@@ -171,4 +171,4 @@ S003 establishes platform availability but not parity. Linux, Wear OS, VisionOS,
 
 ## Research-use boundary
 
-The official TickTick MCP endpoint documented by S609 may be useful for migration experiments or behavior checks against a sacrificial reference account. It is not a required OpenTask dependency. Never connect personal production data merely to resolve a competitor research gap.
+The official TickTick MCP endpoint documented by S609 may be useful for migration experiments or behavior checks against a sacrificial reference account. It is not a required Omplish dependency. Never connect personal production data merely to resolve a competitor research gap.

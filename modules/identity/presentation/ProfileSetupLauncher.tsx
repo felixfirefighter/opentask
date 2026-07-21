@@ -58,7 +58,7 @@ export function ProfileSetupLauncher({
           throw new Error("Setup has been tried too many times. Please wait and retry.");
         if (response.status === 403)
           throw new Error(
-            "Workspace setup was blocked. OpenTask must be opened from its configured local URL.",
+            "Workspace setup was blocked. Omplish must be opened from its configured local URL.",
           );
         throw new Error("Your workspace could not be opened. Check your connection and try again.");
       }
@@ -95,7 +95,7 @@ export function ProfileSetupLauncher({
 
       {launchError && !workspace ? (
         <main className={styles.launchError} id="onboarding-content">
-          <p className="eyebrow">OpenTask</p>
+          <p className="eyebrow">Omplish</p>
           <h1>We couldn’t open your workspace.</h1>
           <p>{launchError}</p>
           <button

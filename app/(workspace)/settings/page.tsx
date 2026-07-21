@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { getOpenAISettings } from "@/modules/assistant";
 import { AuthenticatedShell, SettingsScreen } from "@/modules/identity/presentation";
+import { AmethCompanion } from "@/modules/companion/presentation";
 import { getInbox } from "@/modules/tasks";
 import { TaskCommandPalette } from "@/modules/tasks/presentation";
 
@@ -23,6 +24,7 @@ export default async function SettingsPage() {
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="settings"
+      companion={<AmethCompanion />}
       topBarActions={<TaskCommandPalette inbox={inbox} />}
     >
       <SettingsScreen initialPreferences={workspace.preferences} initialOpenAISettings={openAISettings} />

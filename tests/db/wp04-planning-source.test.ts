@@ -67,7 +67,7 @@ describe("planning source PostgreSQL integration", () => {
       endDate: "2026-07-20",
     });
 
-    const through = await application.planningSource.readOpenTasks(ownerA, {
+    const through = await application.planningSource.readOmplishs(ownerA, {
       kind: "scheduled_through",
       exclusiveEndDate: "2026-07-20",
       exclusiveEndAt: "2026-07-20T00:00:00Z",
@@ -76,7 +76,7 @@ describe("planning source PostgreSQL integration", () => {
     expect(new Set(through.items.map(({ task }) => task.id))).toEqual(new Set([overdue.id, today.id]));
     expect(through.truncated).toBe(false);
 
-    const range = await application.planningSource.readOpenTasks(ownerA, {
+    const range = await application.planningSource.readOmplishs(ownerA, {
       kind: "scheduled_range",
       rangeStartDate: "2026-07-19",
       rangeEndDate: "2026-07-20",
@@ -86,7 +86,7 @@ describe("planning source PostgreSQL integration", () => {
     });
     expect(range.items.map(({ task }) => task.id)).toEqual([today.id]);
 
-    const allOpen = await application.planningSource.readOpenTasks(ownerA, {
+    const allOpen = await application.planningSource.readOmplishs(ownerA, {
       kind: "all_open",
       limit: 100,
     });
@@ -95,14 +95,14 @@ describe("planning source PostgreSQL integration", () => {
     );
     expect(allOpen.items.find(({ task }) => task.id === unscheduled.id)?.schedule).toBeNull();
 
-    const truncated = await application.planningSource.readOpenTasks(ownerA, {
+    const truncated = await application.planningSource.readOmplishs(ownerA, {
       kind: "all_open",
       limit: 1,
     });
     expect(truncated.items).toHaveLength(1);
     expect(truncated.truncated).toBe(true);
     await expect(
-      application.planningSource.readOpenTasks(ownerB, {
+      application.planningSource.readOmplishs(ownerB, {
         kind: "scheduled_through",
         exclusiveEndDate: "2026-07-20",
         exclusiveEndAt: "2026-07-20T00:00:00Z",

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ZodError } from "zod";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
+import { AmethCompanion } from "@/modules/companion/presentation";
 import { getInbox, getTasksApplication } from "@/modules/tasks";
 import { TaskCommandPalette, TaskNavigation, TaskWorkspaceScreen } from "@/modules/tasks/presentation";
 import { ApplicationError } from "@/shared/http/application-error";
@@ -38,6 +39,7 @@ export default async function RegularListPage({ params }: RegularListPageProps) 
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="tasks"
+      companion={<AmethCompanion />}
       destinationTitle={list?.name ?? "List unavailable"}
       topBarActions={<TaskCommandPalette inbox={inbox} {...(list ? { currentListId: list.id } : {})} />}
       contextNavigation={<TaskNavigation current={list ? { listId: list.id } : "inbox"} inboxId={inbox.id} />}

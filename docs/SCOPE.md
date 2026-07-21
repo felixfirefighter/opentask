@@ -15,6 +15,23 @@ Manual tasks, planning, habits, Focus, export, and already loaded UI must remain
 or push configuration is absent. Every capability below must meet its acceptance criteria and the
 gates in `docs/QUALITY.md`.
 
+### 0. Ameth Companion post-release priority
+
+The user has explicitly authorized Ameth Companion to be implemented ahead of the remaining P0–P8
+packages. It is an optional, local-first companion: deterministic XP, a three-level avatar/progression
+surface, non-persistent chat, and transparent first-party behavior summaries. It must not gate manual
+task workflows or permit AI to mutate data. Current checkout integration covers task completion and
+provides extension hooks for Habits, Focus, and planner application as those packages land.
+
+Acceptance:
+
+- The avatar, XP preview, responsive chat drawer, and provider-absent scripted state are available on every authenticated workspace route.
+- XP is server-awarded, idempotent by opaque action source, user-scoped, and transactionally rolls back with the originating mutation.
+- Raw chat and task-content histories are never persisted; summaries are user-readable, rebuildable, deletable, and exported only through the private export contract.
+- Three levels are 0, 300, and 1,000 XP. Level 3 unlocks the standalone Prompt Library; it never hides task, planning, or Focus workflows. Habits are excluded from Ameth XP and analytics.
+- Ameth is English-only. It retains only explicit, user-approved memory cards, capped at 30 MiB per user by UTF-8 bytes; saving above the cap removes the oldest cards with visible disclosure.
+- A daily Ameth mode is restored across same-day reopen and resets only when the user next opens the app on a later local date.
+
 ### 1. Editorial Focus design migration
 
 - Migrate the existing product to the GetDesign-informed Editorial Focus application direction in
@@ -233,7 +250,7 @@ Acceptance:
   multi-user updates.
 - Kanban, Gantt/timeline, split task/calendar view, arbitrary saved filters, advanced group/sort,
   batch edit, task merge, custom fields, or advanced analytics.
-- Attachments, recordings/transcription, separate notes, templates, countdowns, achievements,
+- Attachments, recordings/transcription, separate notes, templates, countdowns,
   background/theme galleries, white noise, app blocking, or health integrations.
 - External calendars, CalDAV, Notion, Telegram, email capture, Siri, Zapier/IFTTT, competitor import,
   public API, CLI, or MCP server.

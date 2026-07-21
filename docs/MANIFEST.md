@@ -37,6 +37,8 @@ modules/                 Product feature modules
   focus/                  authoritative timer sessions and summaries
   notifications/          task reminders, push subscriptions, and delivery worker
   assistant/
+  companion/               Ameth progression, private summaries, and non-persistent chat
+  prompts/                 Level-3 reusable prompt library
   portability/
 shared/                  Approved stable cross-cutting surfaces
 worker/                  pg-boss runtime; zero-job baseline until P6 activates reminder jobs
@@ -59,6 +61,8 @@ Each module may contain `presentation`, `application`, `domain`, and `infrastruc
 | focus | authoritative timer policy, completed sessions, and derived summaries | `docs/modules/focus.md` |
 | notifications | task reminders, push subscriptions, queue jobs, and Web Push delivery | `docs/modules/notifications.md` |
 | assistant | OpenAI adapter, extraction, planner proposals, review/apply | `docs/modules/assistant.md` |
+| companion | Ameth profile, XP ledger, behavior summaries, and companion interaction | `docs/modules/companion.md` |
+| prompts | user-owned standalone reusable prompts and prompt-local tags | `docs/modules/prompts.md` |
 | portability | versioned user export and future import adapters | `docs/modules/portability.md` |
 
 ## Approved shared surfaces

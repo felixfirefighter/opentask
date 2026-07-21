@@ -37,12 +37,18 @@ export function createIdentityApplication({
   authRuntime,
   inboxPort = createInboxBootstrapPort(database, clock),
   demoSeeder = createDefaultDemoSeeder(database, clock),
+  onDailyCheckin,
 }: {
   database: Database;
   clock: Clock;
   authRuntime: AuthRuntimeConfig;
   inboxPort?: InboxBootstrapPort;
   demoSeeder?: DemoDatasetSeeder;
+  onDailyCheckin?: (
+    actor: AuthenticatedActor,
+    localDate: string,
+    transaction: DatabaseTransaction,
+  ) => Promise<void>;
 }) {
   const preferencesRepository = createPreferencesRepository(clock);
   const accountRepository = createAccountRepository(database);
@@ -146,6 +152,7 @@ export function createIdentityApplication({
         preferenceSchemaVersion,
       );
       if (!updated) throw preferenceConflict();
+      await onDailyCheckin?.(actor, today, transaction);
       const preferences = mapPreferences(updated);
       return mapOnboardingState(preferences, today);
     });

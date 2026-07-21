@@ -12,14 +12,17 @@ if (!Number.isFinite(timeoutMs) || timeoutMs < 5_000) fail("--timeout-ms must be
 
 const executable = getExecutable(appDirectory);
 const userDataPath = resolve(
-  options.get("user-data") ?? (await mkdtemp(join(tmpdir(), "opentask-electron-smoke-"))),
+  options.get("user-data") ?? (await mkdtemp(join(tmpdir(), "omplish-electron-smoke-"))),
 );
+const environment = {
+  ...process.env,
+  OMPLISH_SMOKE_MODE: "1",
+  OMPLISH_USER_DATA_PATH: userDataPath,
+};
+delete environment.ELECTRON_RUN_AS_NODE;
+delete environment.NODE_OPTIONS;
 const child = spawn(executable, [], {
-  env: {
-    ...process.env,
-    OPENTASK_SMOKE_MODE: "1",
-    OPENTASK_USER_DATA_PATH: userDataPath,
-  },
+  env: environment,
   stdio: ["ignore", "pipe", "pipe"],
   windowsHide: true,
 });
@@ -57,8 +60,8 @@ try {
 }
 
 function getExecutable(directory) {
-  if (process.platform === "darwin") return join(directory, "Contents", "MacOS", "OpenTask");
-  if (process.platform === "win32") return join(directory, "OpenTask.exe");
+  if (process.platform === "darwin") return join(directory, "Contents", "MacOS", "Omplish");
+  if (process.platform === "win32") return join(directory, "Omplish.exe");
   fail(`Unsupported smoke platform ${process.platform}.`);
 }
 

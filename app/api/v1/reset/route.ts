@@ -23,5 +23,5 @@ export function POST(request: Request) {
 
 function expiredSessionCookie(request: Request): string {
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `opentask.session_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${secure}`;
+  return `omplish.session_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${secure}`;
 }

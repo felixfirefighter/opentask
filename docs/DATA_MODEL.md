@@ -52,6 +52,7 @@ No other JSONB column may be added without changing this document and the stack/
 | `user_preferences.preferences` | bounded per-user configuration not queried across users | `schema_version` plus canonical Zod schema and migrations between versions |
 | `planner_proposals.proposal` | short-lived structured diff whose schema evolves with prompt/application contract | `schema_version`, Zod validation at read/write, expiry |
 | `planner_proposals.context_versions` | bounded map used only to detect stale proposal application | Zod record of opaque ID -> integer version |
+| `companion_behavior_summaries.summary` | bounded, replaceable derived profile not queried by individual field | schema version plus canonical Zod validation |
 
 Future saved-filter AST, integration raw payload, or idempotency response documents require an explicit new whitelist entry. Generic `metadata`, EAV, and arbitrary custom fields are forbidden.
 
@@ -144,6 +145,29 @@ JSON field:
 
 The plaintext key is never persisted, exported, logged, or returned to the browser. A personal key
 overrides the server `OPENAI_API_KEY`; removing the row restores that fallback.
+
+### `companion_profiles`, `companion_xp_events`, and `companion_behavior_summaries` — companion
+
+`companion_profiles` is one user-owned optional progression extension with total XP, derived level,
+proactive-message preference, communication style, schema/version, and timestamps. `companion_xp_events`
+is an append-only user-scoped award ledger with opaque source key, action type, positive bounded XP,
+local date, and unique `(user_id, action_type, source_key)` idempotency. `companion_behavior_summaries`
+holds one replaceable versioned JSONB aggregate summary and its bounded observation window. Raw chat,
+task text snapshots, model traces, and psychological inferences are never stored.
+
+`companion_memories` contains only explicit, user-approved bounded memory cards. It is not a chat log;
+the application enforces a 30 MiB UTF-8 user quota and evicts oldest cards before accepting a new one.
+
+### `saved_prompts` and `saved_prompt_tags` — prompts
+
+Level 3 unlocks an independent reusable-prompt library. `saved_prompts` owns explicit user content,
+reviewable Ameth-generated title/description, optimistic version, archive state, and timestamps.
+`saved_prompt_tags` is a repeating prompt-local tag relation with a composite same-owner foreign key to
+`saved_prompts`. Prompt tags never reuse task tags, and
+analysis never saves automatically: the user edits/reviews metadata before creation.
+
+The private export envelope is schema version 2. It includes companion profile, XP ledger, summary,
+approved memory cards, and saved prompts/tags, but never raw chat transcripts or OpenAI credentials.
 
 ### `list_folders` — tasks
 

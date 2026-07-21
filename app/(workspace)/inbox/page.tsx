@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AuthenticatedShell } from "@/modules/identity/presentation";
+import { AmethCompanion } from "@/modules/companion/presentation";
 import { getInbox, getTasksApplication } from "@/modules/tasks";
 import { TaskCommandPalette, TaskNavigation, TaskWorkspaceScreen } from "@/modules/tasks/presentation";
 
@@ -25,6 +26,7 @@ export default async function InboxPage() {
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="tasks"
+      companion={<AmethCompanion />}
       destinationTitle="Inbox"
       topBarActions={<TaskCommandPalette inbox={inbox} currentListId={inbox.id} />}
       contextNavigation={<TaskNavigation current="inbox" inboxId={inbox.id} />}

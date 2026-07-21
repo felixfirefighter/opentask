@@ -136,6 +136,24 @@ Domain tests must cover spring-forward/fall-back behavior for at least one repre
 These boundaries authorize only the capabilities listed in `docs/SCOPE.md`. Stage A-D remain later
 roadmap context and contribute no dormant route, table, provider, or framework to this release.
 
+## Ameth Companion architecture
+
+`modules/companion` owns the user-scoped profile, append-only XP ledger, versioned derived behavior
+summary, explicit memory cards, and the presentation/API contracts for Ameth. It has no raw conversation store. Source
+modules award XP through its narrow application contract inside their transaction; a unique
+`(user_id, action_type, source_key)` ledger constraint makes retries harmless. The module may only
+read feature facts through public application readers. Chat is advisory: it can hand users to Plan,
+but it cannot issue task mutations or bypass proposal review/apply.
+
+No third-party behavioral analytics are permitted. Derived summaries are readable, rebuildable,
+deletable, and included only in the authenticated private export. Provider absence gives a scripted,
+honest companion response while XP and local summaries remain available.
+
+`modules/prompts` owns only the Level-3 reusable prompt library. It depends on the companion public
+unlock contract, while companion never depends on prompts. Prompt analysis is an explicit assistant
+request, uses `store: false`, returns reviewable metadata only, and cannot save or modify a prompt.
+Prompt tags carry the owning user ID and a composite foreign key to the same-user prompt.
+
 ## AI planner architecture
 
 The assistant is a proposal pipeline, not an autonomous agent.

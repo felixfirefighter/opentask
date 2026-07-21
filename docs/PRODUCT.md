@@ -2,7 +2,7 @@
 
 ## Working definition
 
-OpenTask is a calm, open-source productivity workspace that unifies capture, task organization, and active calendar planning. An optional AI assistant turns unstructured intent into a reviewable plan; it is not required to use the product.
+Omplish is a calm, open-source productivity workspace that unifies capture, task organization, and active calendar planning. An optional AI assistant turns unstructured intent into a reviewable plan; it is not required to use the product.
 
 The working name is not a release name. Choose and check an original final name before public submission.
 

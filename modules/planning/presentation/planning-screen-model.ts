@@ -15,7 +15,7 @@ export type PlanningTaskRowModel = Readonly<{
 }>;
 
 export type PlanningTaskActions = Readonly<{
-  onOpenTask?: ((taskId: string) => void) | undefined;
+  onOmplish?: ((taskId: string) => void) | undefined;
   onStatusChange?: ((taskId: string, status: PlanningTaskStatus) => void) | undefined;
   onPriorityChange?: ((taskId: string, priority: PlanningPriority) => void) | undefined;
   onEditSchedule?: ((taskId: string) => void) | undefined;

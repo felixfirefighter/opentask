@@ -202,11 +202,11 @@ export function OnboardingFlow({
   return (
     <section
       className={`${styles.flow} ${phase === "name" || phase === "goals" ? styles.inputPhase : ""}`}
-      aria-label="OpenTask onboarding"
+      aria-label="Omplish onboarding"
     >
       {phase === "greeting" && (
         <MessageSequence
-          lines={["hey. welcome to *OpenTask*", "before anything else — what should i call you?"]}
+          lines={["hey. welcome to *Omplish*", "before anything else — what should i call you?"]}
           reducedMotion={reducedMotion}
           onFinished={() => setPhase("name")}
         />
@@ -214,7 +214,7 @@ export function OnboardingFlow({
       {phase === "name" && (
         <div className={styles.nameStep}>
           <div className={styles.namePrompt} aria-live="polite">
-            <RichText value="hey. welcome to *OpenTask*" />
+            <RichText value="hey. welcome to *Omplish*" />
             <RichText value="before anything else — what should i call you?" />
           </div>
           <div className={styles.controls}>
@@ -320,10 +320,10 @@ export function OnboardingFlow({
       {phase === "intro" && (
         <MessageSequence
           lines={[
-            "i'm *Ameth*, your companion inside OpenTask.",
+            "i'm *Ameth*, your companion inside Omplish.",
             "i'll help you plan small, start sooner, and keep moving — for the wins and the off days both.",
             "quick question so i can help well —",
-            "*what do you want OpenTask to help you with?* pick as many as fit.",
+            "*what do you want Omplish to help you with?* pick as many as fit.",
           ]}
           reducedMotion={reducedMotion}
           onFinished={() => setPhase("goals")}
@@ -332,7 +332,7 @@ export function OnboardingFlow({
       {phase === "goals" && (
         <div className={styles.goalStep}>
           <div className={styles.goalPrompt}>
-            <RichText value="*what do you want OpenTask to help you with?* pick as many as fit." />
+            <RichText value="*what do you want Omplish to help you with?* pick as many as fit." />
           </div>
           <div className={styles.controls}>
             <div className={styles.chips} role="group" aria-label="Your goals">

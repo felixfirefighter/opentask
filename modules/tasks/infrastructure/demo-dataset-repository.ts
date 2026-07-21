@@ -53,7 +53,7 @@ export function createDemoDatasetRepository() {
   return {
     async lockAndFindActiveInbox(userId: string, transaction: DatabaseTransaction): Promise<string | null> {
       await transaction.execute(
-        sql`select pg_advisory_xact_lock(hashtextextended(${`opentask:demo-reset:${userId}`}, 0))`,
+        sql`select pg_advisory_xact_lock(hashtextextended(${`omplish:demo-reset:${userId}`}, 0))`,
       );
       const [inbox] = await transaction
         .select({ id: schema.taskLists.id })

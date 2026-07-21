@@ -18,11 +18,11 @@ export function ThemeToggle() {
       document.documentElement.dataset.themePreference = nextTheme;
     });
     try {
-      localStorage.setItem("opentask-theme-preference", nextTheme);
+      localStorage.setItem("omplish-theme-preference", nextTheme);
     } catch {
       // The in-memory theme still works when browser storage is unavailable.
     }
-    window.dispatchEvent(new Event("opentask-theme-change"));
+    window.dispatchEvent(new Event("omplish-theme-change"));
   }
 
   return (
@@ -53,10 +53,10 @@ function subscribeToTheme(onChange: () => void) {
     onChange();
   };
 
-  window.addEventListener("opentask-theme-change", onChange);
+  window.addEventListener("omplish-theme-change", onChange);
   colorScheme.addEventListener("change", synchronizeSystemTheme);
   return () => {
-    window.removeEventListener("opentask-theme-change", onChange);
+    window.removeEventListener("omplish-theme-change", onChange);
     colorScheme.removeEventListener("change", synchronizeSystemTheme);
   };
 }

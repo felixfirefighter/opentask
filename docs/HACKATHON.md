@@ -20,7 +20,7 @@ The rules, not this summary, control if wording differs.
 
 ## Original-work boundary
 
-- Use an original final product name after a basic trademark/domain check; “OpenTask” is a working name only.
+- Use an original final product name after a basic trademark/domain check; “Omplish” is a working name only.
 - Describe the product as inspired by the category, never as an official TickTick client or endorsed replacement.
 - Do not use TickTick, Airbnb, ElevenLabs, or GetDesign logos, screenshots, icons, copy, proprietary
   data, fonts, sounds, exact palettes/layouts, or trade dress.

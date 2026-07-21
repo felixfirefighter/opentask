@@ -142,7 +142,7 @@ test("direct app launch keeps profile setup usable inside every boundary viewpor
 }, testInfo) => {
   await page.goto("/");
   await page.evaluate(() => document.fonts.ready);
-  const flow = page.getByRole("region", { name: "OpenTask onboarding" });
+  const flow = page.getByRole("region", { name: "Omplish onboarding" });
   await expect(flow).toBeVisible();
   const message = page.getByRole("status").first();
   await expect(message).toBeVisible();
@@ -183,7 +183,7 @@ test("direct app launch keeps profile setup usable inside every boundary viewpor
     fullPage: true,
   });
   await page.evaluate(() => {
-    localStorage.setItem("opentask-theme-preference", "dark");
+    localStorage.setItem("omplish-theme-preference", "dark");
     document.documentElement.dataset.themePreference = "dark";
     document.documentElement.dataset.theme = "dark";
   });
@@ -224,7 +224,7 @@ test("every released route reflows at the tablet and minimum-width boundaries", 
 
   for (const route of [{ path: "/", slug: "app-launch" }] as const) {
     await page.goto(route.path);
-    await expect(page.getByRole("region", { name: "OpenTask onboarding" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
     await captureBoundaryRoute(page, testInfo.project.name, evidenceDirectory, route.slug);
   }
 

@@ -26,6 +26,24 @@ planning views, and export. The OpenAI planner remains an optional provider and 
 or unavailable state when no key or network is available. If native reminders are later added, use an
 OS notification provider for offline desktop reminders; Web Push is not an offline mechanism.
 
+## Public desktop prereleases
+
+`.github/workflows/publish-desktop.yml` runs after every push to `main` or `master`. It builds the
+macOS ARM64 DMG and Windows x64 NSIS installer on their native GitHub-hosted runners, downloads the
+pinned Node/PostgreSQL runtime archives recorded in `desktop/runtime/manifest.json`, validates their
+SHA-256 values, and runs the package audit plus the headless runtime smoke before publishing assets.
+
+Each successful commit receives a public prerelease tag in the form
+`v<package-version>-build.<GitHub-run-number>`, including `SHA256SUMS.txt`. This preserves a direct
+public download path without misrepresenting every main-branch commit as a stable semantic release.
+The workflow requires `contents: write` permission for its `GITHUB_TOKEN`; repository Actions settings
+must permit workflows to create releases.
+
+The generated installers are unsigned. Public users will receive Gatekeeper and SmartScreen warnings
+until a signed release workflow is configured with the Developer ID/notarization and Authenticode
+credentials described in [SETUP.md](SETUP.md#desktop-production-build). Do not designate an unsigned
+prerelease as the stable public release.
+
 The checked-in `railway.json` selects the production `Dockerfile`, runs committed Drizzle migrations as a pre-deploy command, probes `/api/health/ready`, and bounds crash retries. Railway supports these settings through [Config as Code](https://docs.railway.com/config-as-code/reference), and its pre-deploy container has private-network variables available before the new deployment starts.
 
 The current green fallback does not deploy its zero-job worker. After P6 is integrated, browser
@@ -50,7 +68,7 @@ Use Railway's `DATABASE_URL` reference rather than the public database URL so we
 
 Generate a public domain for the web service before the final deploy. If a custom domain replaces it, update `BETTER_AUTH_URL` to the exact HTTPS origin and redeploy. Do not prefix any secret with `NEXT_PUBLIC_`.
 
-Railway's edge overwrites `X-Real-IP`, which is the only client-address header OpenTask trusts for authentication and demo abuse-control buckets. Do not expose a second untrusted ingress directly to the container. Railway documents the header in its [public-networking specifications](https://docs.railway.com/networking/public-networking/specs-and-limits).
+Railway's edge overwrites `X-Real-IP`, which is the only client-address header Omplish trusts for authentication and demo abuse-control buckets. Do not expose a second untrusted ingress directly to the container. Railway documents the header in its [public-networking specifications](https://docs.railway.com/networking/public-networking/specs-and-limits).
 
 ## Cost controls
 

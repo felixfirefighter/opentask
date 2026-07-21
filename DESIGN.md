@@ -2,25 +2,26 @@
 
 ## Active migration target — Editorial Focus
 
-The first Local-first Full Release work package migrates OpenTask to **Editorial Focus**, using the
+The first Local-first Full Release work package migrates Omplish to **Editorial Focus**, using the
 visual system documented in the pinned
 [GetDesign ElevenLabs source snapshot](https://github.com/VoltAgent/awesome-design-md/blob/e06a96660396d741d0c106c8972172254dafbdc2/design-md/elevenlabs/DESIGN.md).
 The local application contract is `docs/design/editorial-focus.md`. It follows the reference's
 documented display/sans hierarchy and uses its recommended open-source EB Garamond substitute for
-the licensed Waldenburg face; dense product behavior, accessibility states, and OpenTask identity
+the licensed Waldenburg face; dense product behavior, accessibility states, and Omplish identity
 remain repository-owned.
 
 The Editorial Focus foundation and every current product route form the approved visual baseline.
 Later feature UI extends this system through the routed contracts below; broad restyling or shared
 foundation changes require explicit scope, executable design checks, and new visual approval.
 
-OpenTask uses **Editorial Focus**: an original paper/ink/pine planning system with an editorial voice
+Omplish uses **Editorial Focus**: an original warm-paper planning system with a restrained brand
+accent and an editorial voice
 at major orientation moments, readable Inter typography for working UI, comfortable task density,
 and unusually clear interaction states.
 
 This is not an ElevenLabs, GetDesign, Airbnb, or TickTick clone. Do not copy their assets,
 proprietary fonts, wording, icon treatment, screen composition, exact palette, or trade dress.
-OpenTask uses original layouts, Lucide icons, open fonts, semantic tokens, and its own product voice.
+Omplish uses original layouts, Lucide icons, open fonts, semantic tokens, and its own product voice.
 
 ## North star
 

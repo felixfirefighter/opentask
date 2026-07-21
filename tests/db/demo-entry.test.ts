@@ -26,7 +26,7 @@ const schemaName = `demo_${process.pid}_${randomUUID().replaceAll("-", "").slice
 const adminPool = new Pool({
   connectionString: getTestDatabaseUrl(),
   max: 1,
-  application_name: "opentask-demo-test-admin",
+  application_name: "omplish-demo-test-admin",
 });
 let isolatedPool: Pool;
 let database: ReturnType<typeof drizzle<typeof schema>>;
@@ -43,7 +43,7 @@ describe("isolated demo entry", () => {
     isolatedPool = new Pool({
       connectionString: getTestDatabaseUrl(),
       max: 8,
-      application_name: "opentask-demo-test-isolated",
+      application_name: "omplish-demo-test-isolated",
       options: `-c search_path=${schemaName}`,
     });
     database = drizzle(isolatedPool, { schema });
@@ -111,7 +111,7 @@ describe("isolated demo entry", () => {
       authRuntime,
     });
     const identity = await application.getOptionalSessionIdentity(new Headers({ cookie }));
-    expect(identity?.email).toMatch(/^demo-.*@demo\.opentask\.invalid$/);
+    expect(identity?.email).toMatch(/^demo-.*@demo\.omplish\.invalid$/);
     const taskRows = await database
       .select({ title: schema.tasks.title })
       .from(schema.tasks)

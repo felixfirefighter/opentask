@@ -1,6 +1,6 @@
 # Desktop runtime notices
 
-OpenTask ships target-specific Node.js and PostgreSQL runtime artifacts in the desktop installer.
+Omplish ships target-specific Node.js and PostgreSQL runtime artifacts in the desktop installer.
 The exact archive URLs, versions, and SHA-256 values are recorded in `manifest.json`.
 
 ## Node.js

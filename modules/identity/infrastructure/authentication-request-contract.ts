@@ -42,7 +42,7 @@ export async function preparePublicAuthRequest(request: Request): Promise<Reques
   const input = await readBoundedJson(request, maximumAuthRequestBytes);
   if (url.pathname === `${authApiPath}/sign-up/email`) {
     const credentials = signUpCredentialsSchema.parse(input);
-    return replaceJsonBody(request, { ...credentials, name: "OpenTask user" });
+    return replaceJsonBody(request, { ...credentials, name: "Omplish user" });
   }
   if (url.pathname === `${authApiPath}/sign-in/email`) {
     return replaceJsonBody(request, credentialsSchema.parse(input));

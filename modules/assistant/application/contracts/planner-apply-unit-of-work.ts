@@ -72,4 +72,9 @@ export type PlannerApplyDependencies = Readonly<{
   transaction: PlannerApplyTransactionRunner;
   proposals: PlannerApplyProposalRepository;
   tasks: PlannerApplyTaskWriter;
+  onProposalApplied?: (
+    actor: AuthenticatedActor,
+    proposalId: string,
+    transaction: DatabaseTransaction,
+  ) => Promise<void>;
 }>;

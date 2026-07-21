@@ -42,13 +42,13 @@ export type TaskWorkspaceDestination =
 
 export function TaskWorkspaceScreen({ destination }: Readonly<{ destination: TaskWorkspaceDestination }>) {
   return destination.kind === "list" ? (
-    <OpenTaskWorkspace destination={destination} />
+    <OmplishWorkspace destination={destination} />
   ) : (
     <TerminalTaskWorkspace destination={destination} />
   );
 }
 
-function OpenTaskWorkspace({
+function OmplishWorkspace({
   destination,
 }: Readonly<{ destination: Extract<TaskWorkspaceDestination, { kind: "list" }> }>) {
   const online = useOnlineStatus();

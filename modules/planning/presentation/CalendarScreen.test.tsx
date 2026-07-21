@@ -182,7 +182,7 @@ function renderCalendar(overrides: Partial<CalendarScreenProps> = {}) {
     model: calendarFixture,
     condition: { kind: "ready" },
     onAddTask: vi.fn(),
-    onOpenTask: vi.fn(),
+    onOmplish: vi.fn(),
     onEditSchedule: vi.fn(),
     onSelectEvent: vi.fn(),
     onViewChange: vi.fn(),

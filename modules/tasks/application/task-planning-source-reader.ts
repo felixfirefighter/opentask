@@ -23,7 +23,7 @@ export function createTaskPlanningSourceReader({
   const repository = createTaskPlanningSourceRepository(taskSchedules, database);
 
   return {
-    async readOpenTasks(
+    async readOmplishs(
       actor: AuthenticatedActor,
       rawQuery: TaskPlanningSourceQuery,
     ): Promise<TaskPlanningSourcePage> {

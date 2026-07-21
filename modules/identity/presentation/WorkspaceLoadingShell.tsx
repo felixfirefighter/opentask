@@ -15,7 +15,7 @@ export function WorkspaceLoadingShell({
         Skip to main content
       </a>
       <nav className={styles.rail} aria-label="Primary navigation">
-        <Link href="/inbox" aria-label="OpenTask inbox">
+        <Link href="/inbox" aria-label="Omplish inbox">
           <BrandMark compact />
         </Link>
       </nav>
@@ -27,7 +27,7 @@ export function WorkspaceLoadingShell({
         <LoadingLines count={5} />
       </aside>
       <header className={styles.topBar}>
-        <Link href="/inbox" aria-label="OpenTask inbox">
+        <Link href="/inbox" aria-label="Omplish inbox">
           <BrandMark compact />
           <strong>Workspace</strong>
         </Link>

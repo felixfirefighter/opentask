@@ -46,7 +46,7 @@ const dockerfileLines = readFileSync("Dockerfile", "utf8")
   .split(/\r?\n/u)
   .map((line) => line.trim());
 const runnerLine = dockerfileLines.indexOf("FROM base AS runner");
-const runtimeUserLine = dockerfileLines.indexOf("USER opentask", runnerLine + 1);
+const runtimeUserLine = dockerfileLines.indexOf("USER omplish", runnerLine + 1);
 
 if (runnerLine === -1 || runtimeUserLine === -1) {
   assetFailures.push("Dockerfile: missing the reviewed runner stage or runtime user boundary");
@@ -64,11 +64,11 @@ for (const font of reviewedFontAssets) {
     assetFailures.push(`${font.license}: missing the reviewed copyright/OFL 1.1 notice`);
   }
 
-  const expectedCopy = `COPY --from=builder --chown=opentask:nodejs /app/${font.license} ./${font.runtimeLicense}`;
+  const expectedCopy = `COPY --from=builder --chown=omplish:nodejs /app/${font.license} ./${font.runtimeLicense}`;
   const copyLine = dockerfileLines.indexOf(expectedCopy, runnerLine + 1);
   if (copyLine === -1 || copyLine >= runtimeUserLine) {
     assetFailures.push(
-      `Dockerfile: must copy ${font.license} to /app/${font.runtimeLicense} in the runner stage before USER opentask`,
+      `Dockerfile: must copy ${font.license} to /app/${font.runtimeLicense} in the runner stage before USER omplish`,
     );
   }
 }

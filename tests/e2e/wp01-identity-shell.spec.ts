@@ -6,7 +6,7 @@ test("direct launch runs the guided local onboarding flow", async ({ page }) => 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
 
-  await expect(page.getByRole("region", { name: "OpenTask onboarding" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
   const nameInput = page.getByLabel("Your name", { exact: true });
   await expect(nameInput).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText(/Create account|Sign in|Sign out/u)).toHaveCount(0);
@@ -19,13 +19,13 @@ test("direct launch runs the guided local onboarding flow", async ({ page }) => 
   await page.getByRole("button", { name: "Let's start" }).click();
   await expect(page).toHaveURL("/today", { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
-  await expect(page.evaluate(() => localStorage.getItem("opentask.profile.username"))).resolves.toBe("Ekko");
+  await expect(page.evaluate(() => localStorage.getItem("omplish.profile.username"))).resolves.toBe("Ekko");
 });
 
 test("protected routes resume through direct launch without credential routes", async ({ page }) => {
   await page.goto("/settings");
 
-  await expect(page.getByRole("region", { name: "OpenTask onboarding" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
   expect(new URL(page.url()).pathname).toBe("/");
   expect(new URL(page.url()).searchParams.get("resume")).toBe("/settings");
 

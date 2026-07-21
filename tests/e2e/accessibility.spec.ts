@@ -11,7 +11,7 @@ const demo = {
   scheduledTaskTitle: "Record the two-minute demo",
 } as const;
 
-const publicRoutes = [{ path: "/", heading: "OpenTask onboarding" }] as const;
+const publicRoutes = [{ path: "/", heading: "Omplish onboarding" }] as const;
 
 const additionalTaskRoutes = [
   { path: `/lists/${demo.listId}`, heading: "Hackathon launch" },
@@ -36,10 +36,10 @@ test("direct app launch passes the serious accessibility gate", async ({ page })
 test("a theme switch never exposes transitional primary-action contrast", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "One browser samples the transient theme frames.");
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
-  await page.addInitScript(() => localStorage.setItem("opentask-theme-preference", "light"));
+  await page.addInitScript(() => localStorage.setItem("omplish-theme-preference", "light"));
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.getByRole("region", { name: "OpenTask onboarding" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
 
   const result = await page.evaluate(async () => {
     const toggle = document.querySelector('[aria-label="Use dark theme"]');
@@ -57,7 +57,7 @@ test("a theme switch never exposes transitional primary-action contrast", async 
 test("the public system theme follows live OS color-scheme changes", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "One browser proves the system preference bridge.");
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
-  await page.addInitScript(() => localStorage.setItem("opentask-theme-preference", "system"));
+  await page.addInitScript(() => localStorage.setItem("omplish-theme-preference", "system"));
   await page.goto("/");
 
   const root = page.locator("html");
@@ -187,7 +187,7 @@ async function auditRoute(page: Page, route: Readonly<{ path: string; heading: s
 async function openRoute(page: Page, route: Readonly<{ path: string; heading: string }>) {
   await page.goto(route.path);
   if (route.path === "/") {
-    await expect(page.getByRole("region", { name: "OpenTask onboarding" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
     return;
   }
   await expect(

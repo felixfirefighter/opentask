@@ -34,7 +34,7 @@ Source IDs link to docs/research/SOURCES.md.
 
 ## 1. Identity, account, and preferences
 
-| Capability | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Capability | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Account access | Email registration, verification, password reset, linked-email management, and signed-in device management are documented. | Verified: [S801](SOURCES.md#s801) | Hackathon Release includes email/password sign-up, sign-in, sign-out, protected routes, and isolated account data. Verification, reset email, linked-account changes, and device management are not scheduled. |
 | Two-step verification | Email-code or authenticator-app verification with backup codes; desktop setup routes through web. | Verified: [S803](SOURCES.md#s803) | Not scheduled. |
@@ -44,7 +44,7 @@ Source IDs link to docs/research/SOURCES.md.
 
 ## 2. Task model and capture
 
-| Capability | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Capability | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Organization hierarchy | Folder to List to Section to Task to Subtask. TickTick supports up to five nested task levels. | Verified: [S103](SOURCES.md#s103), [S107](SOURCES.md#s107) | Hackathon Release commits folders, lists, sections, and one level of full-feature subtasks. Deeper nesting is not scheduled. |
 | Inbox | Inbox is a built-in personal list and cannot be hidden or deleted. | Verified: [S107](SOURCES.md#s107) | Hackathon Release atomically creates an immutable personal Inbox. |
@@ -65,7 +65,7 @@ Source IDs link to docs/research/SOURCES.md.
 
 ## 3. Lists, retrieval, and task views
 
-| Capability | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Capability | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Regular and smart lists | Documented smart lists include Inbox, All, Today, Tomorrow, Next 7 Days, Assigned to Me, Completed, Won't Do, and Trash. Visibility can be configured. | Verified: [S107](SOURCES.md#s107) | Hackathon Release commits Inbox, Today, Upcoming next seven days, and Completed/Cancelled. Other smart destinations are not committed. |
 | Sections and manual order | Lists support custom sections, manual drag order, and list-level customization. | Verified: [S108](SOURCES.md#s108) | Hackathon Release commits section CRUD and manual reorder. |
@@ -82,7 +82,7 @@ Source IDs link to docs/research/SOURCES.md.
 
 ## 4. Calendar and active planning
 
-| Capability | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Capability | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Calendar views | List/agenda, day, three-day, week, month, year, multi-day, and multi-week views are documented across clients. | Verified, platform-specific: [S201](SOURCES.md#s201), [S202](SOURCES.md#s202), [S203](SOURCES.md#s203), [S204](SOURCES.md#s204) | Hackathon Release commits month, week/day, and agenda using FullCalendar standard/MIT packages. Three-day, year, multi-day, and multi-week are not scheduled. |
 | Calendar task editing | All-day and timed task placement, drag to schedule, drag/resize duration, and an unscheduled task tray are documented. | Verified: [S201](SOURCES.md#s201), [S205](SOURCES.md#s205) | Hackathon Release commits drag/resize plus visible keyboard and touch alternatives. |
@@ -97,7 +97,7 @@ Source IDs link to docs/research/SOURCES.md.
 
 ## 5. Habits, focus, countdowns, and personal analytics
 
-| Capability | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Capability | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Habit definitions | Gallery of more than 60 habits plus custom icon, name, motivation, schedule, frequency, and amount goals. | Verified: [S401](SOURCES.md#s401) | Hackathon Release commits custom title, emoji/icon, color token, boolean or numeric goal, unit, and supported schedules. Gallery and motivation content are not committed. |
 | Habit tracking | Boolean or quantity recording, reminders, logs, backfill, archive/restore, time-of-day grouping, Today/Next 7 integration, mood, and notes are documented. | Verified: [S402](SOURCES.md#s402) | Hackathon Release commits check-in, quantity/note edit, undo, skip, mark unachieved, archive/restore, and Today integration. Mood and time-of-day grouping are not scheduled. |
@@ -112,19 +112,19 @@ Source IDs link to docs/research/SOURCES.md.
 
 ## 6. Collaboration and shared work
 
-| Capability | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Capability | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Shared-list boundary | Self-created regular lists can be shared; Inbox and smart lists cannot. Other private lists remain invisible to collaborators. | Verified: [S501](SOURCES.md#s501) | Stage B. Hackathon Release is owner-only and must not preimplement dormant membership UI. |
 | Invitations | Invite by email/contact or share link; recipients accept through notifications. | Verified: [S501](SOURCES.md#s501) | Stage B. |
-| Roles | Edit, comment, and read-only permission levels are documented. | Verified: [S501](SOURCES.md#s501) | Stage B roles. Exact OpenTask permission matrix requires its own module contract. |
+| Roles | Edit, comment, and read-only permission levels are documented. | Verified: [S501](SOURCES.md#s501) | Stage B roles. Exact Omplish permission matrix requires its own module contract. |
 | Assignment | A task can be assigned to one member; bulk assignment is documented. | Verified: [S502](SOURCES.md#s502) | Stage B. |
 | Comments and mentions | Task comments and member mentions generate collaboration notifications. | Verified: [S502](SOURCES.md#s502) | Stage B. |
 | Activity and notification controls | Task activity appears across clients; list activity is documented as web-only. Per-list completion/add/delete/move and reminder scopes are configurable. | Verified, platform-specific: [S502](SOURCES.md#s502) | Stage B activity history and notification center. Exact event taxonomy is not yet scoped. |
-| Collaboration capacity | Current sources say a Free owner can share with one other member and Premium with up to 29 others. Invitees need not be Premium. | Verified for current commercial entitlement: [S002](SOURCES.md#s002), [S902](SOURCES.md#s902), [S903](SOURCES.md#s903) | OpenTask has no billing, quota, or premium gate. Infrastructure safety limits may exist but may not mimic commercial paywalls. |
+| Collaboration capacity | Current sources say a Free owner can share with one other member and Premium with up to 29 others. Invitees need not be Premium. | Verified for current commercial entitlement: [S002](SOURCES.md#s002), [S902](SOURCES.md#s902), [S903](SOURCES.md#s903) | Omplish has no billing, quota, or premium gate. Infrastructure safety limits may exist but may not mimic commercial paywalls. |
 
 ## 7. Notes, templates, reports, and history
 
-| Capability | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Capability | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Notes | Note lists support rich content, dates/reminders, tags, templates, sections, ordering, and Kanban. Task-to-note and note-to-task conversion is documented with constraints. | Verified: [S702](SOURCES.md#s702) | Stage A owns a separate note type. Stage B owns Kanban presentation. |
 | Summary reports | Filtered summaries can combine task, focus, habit, and calendar information by range/list/tag/assignee/status/priority, with grouping, saved templates, and text/image output. | Verified: [S702](SOURCES.md#s702) | Not scheduled beyond the general Stage A richer-statistics allowance; a report builder needs explicit scope. |
@@ -134,7 +134,7 @@ Source IDs link to docs/research/SOURCES.md.
 
 ## 8. Portability, integrations, API, and AI
 
-| Capability | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Capability | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Backup and restore | Web client can generate a backup and re-import it. Public help does not clearly specify every current export field or file-format guarantee. | Verified with format gap: [S601](SOURCES.md#s601) | Hackathon Release commits a documented, versioned JSON export only. Stage A owns documented restore. |
 | Competitor import | Client-dependent import sources include Todoist, Microsoft To Do, Apple Reminders, Any.do, Wunderlist, OmniFocus, Toodledo, and iCal. | Verified, platform-specific: [S602](SOURCES.md#s602) | Stage A owns TickTick, Todoist, and CSV import. Other adapters are not committed. |
@@ -142,14 +142,14 @@ Source IDs link to docs/research/SOURCES.md.
 | Siri and Shortcuts | Siri capture, Apple Reminders import, URL scheme, and Apple Shortcuts are documented. | Verified, Apple-specific: [S604](SOURCES.md#s604), [S606](SOURCES.md#s606) | Stage D platform shortcuts. |
 | Apple Health | Habit or focus-related Apple Health integration is documented. | Verified, Apple-specific: [S605](SOURCES.md#s605) | Stage D health capability, subject to a separate privacy and platform contract. |
 | Spark | Emails can be turned into TickTick tasks through Spark integration. | Verified: [S607](SOURCES.md#s607) | Stage C email capture may use an adapter; Spark-specific parity is not committed. |
-| Public automation surface | Official MCP and CLI provide authenticated operations across core TickTick objects. | Verified: [S609](SOURCES.md#s609), [S610](SOURCES.md#s610) | Stage C owns REST API, CLI, and authenticated Streamable HTTP MCP server. OpenTask must define its own stable contracts rather than imitate undocumented internals. |
+| Public automation surface | Official MCP and CLI provide authenticated operations across core TickTick objects. | Verified: [S609](SOURCES.md#s609), [S610](SOURCES.md#s610) | Stage C owns REST API, CLI, and authenticated Streamable HTTP MCP server. Omplish must define its own stable contracts rather than imitate undocumented internals. |
 | AI Voice | Mobile speech can produce structured task attributes and multiple tasks. | Verified, mobile-specific: [S701](SOURCES.md#s701) | Not part of the Hackathon AI planner. Voice reach is Stage D; AI extraction needs explicit later scope. |
 | AI recording | Audio transcription, timestamps, summaries, more than 30 languages, and a monthly quota are documented. | Verified, quota details may change: [S704](SOURCES.md#s704), [S705](SOURCES.md#s705) | Not scheduled. |
 | General AI assistance | Current help describes AI task extraction and productivity use cases. | Verified at product level: [S705](SOURCES.md#s705), [S706](SOURCES.md#s706) | Hackathon Release instead commits a narrowly bounded reality-aware planner: minimal context, Structured Outputs, deterministic scheduling, review, and explicit apply. No autonomous writes. |
 
 ## 9. Platform surface
 
-| Platform | Verified TickTick surface | Evidence | OpenTask disposition and gap |
+| Platform | Verified TickTick surface | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Web | Broad task/planning client; manual backup/import, API-token management, list activity, split calendar, and calendar batch behavior appear in web documentation. White noise is absent. | Verified, web-specific: [S003](SOURCES.md#s003), [S601](SOURCES.md#s601), [S206](SOURCES.md#s206) | Hackathon Release is web-first and installable as a PWA. |
 | Windows | Native client with global add, sticky notes, desktop widgets, shortcuts, mini-calendar, and Focus behaviors. | Verified, Windows-specific: [S003](SOURCES.md#s003), [S804](SOURCES.md#s804), [S805](SOURCES.md#s805) | Stage D native-wrapper evaluation; no Windows commitment. |
@@ -164,20 +164,20 @@ Source IDs link to docs/research/SOURCES.md.
 
 ## 10. Sync, offline, accessibility, security, and privacy
 
-| Concern | Verified TickTick behavior | Evidence | OpenTask disposition and gap |
+| Concern | Verified TickTick behavior | Evidence | Omplish disposition and gap |
 |---|---|---|---|
 | Cross-device sync | Core data synchronizes across documented clients. Focus state can synchronize across devices. | Verified at product level: [S808](SOURCES.md#s808), [S303](SOURCES.md#s303) | Hackathon Release uses PostgreSQL as authority and row versions for optimistic conflict recovery. |
 | Offline semantics | Current official sources do not specify complete offline CRUD, mutation queue order, conflict resolution, merge policy, or local encryption across clients. | Unresolved: [S808](SOURCES.md#s808) only establishes cross-platform use | Hackathon Release caches a safe shell and disables domain writes offline. Stage D owns mutation log, sync protocol, tombstones, and conflict UI. Do not claim offline-first behavior earlier. |
 | Keyboard and appearance accessibility | Keyboard shortcuts/navigation, font sizing, zoom, system font, dark/automatic appearance, and configurable colors are documented. | Verified, client-specific: [S805](SOURCES.md#s805), [S806](SOURCES.md#s806), [S809](SOURCES.md#s809) | Hackathon Release quality gates require keyboard parity, semantic HTML, visible focus, reduced motion, responsive checks, and automated accessibility scans. |
-| Formal accessibility conformance | No current official WCAG report, VPAT, screen-reader guarantee, focus-order specification, or reduced-motion conformance statement was located. | Unresolved | OpenTask targets its own documented accessible behavior and must not claim TickTick parity or certification without evidence. |
+| Formal accessibility conformance | No current official WCAG report, VPAT, screen-reader guarantee, focus-order specification, or reduced-motion conformance statement was located. | Unresolved | Omplish targets its own documented accessible behavior and must not claim TickTick parity or certification without evidence. |
 | Security controls | TickTick describes TLS, encryption at rest, AWS US hosting, monitoring, backups, and breach handling. | Verified at policy level: [S800](SOURCES.md#s800) | Hackathon Release follows its own security contract: owner-scoped queries, Zod boundaries, redacted logs, server-only secrets, transactional writes, and audit gates. |
-| Privacy and AI data | Current policy describes data handling, deletion, backup retention, subprocessors, and AI processing. It states requested AI content is not used for model training. | Verified at policy level: [S811](SOURCES.md#s811) | OpenTask sends minimum selected context, uses store: false, keeps manual workflows usable without an AI key, and never lets model output mutate data directly. |
+| Privacy and AI data | Current policy describes data handling, deletion, backup retention, subprocessors, and AI processing. It states requested AI content is not used for model training. | Verified at policy level: [S811](SOURCES.md#s811) | Omplish sends minimum selected context, uses store: false, keeps manual workflows usable without an AI key, and never lets model output mutate data directly. |
 
 ## 11. Commercial entitlement ledger
 
-OpenTask has no plans, billing, quotas, advertisements, or premium gates in active scope. This section exists only to explain which TickTick capabilities are marketed as paid and where current public evidence is incomplete.
+Omplish has no plans, billing, quotas, advertisements, or premium gates in active scope. This section exists only to explain which TickTick capabilities are marketed as paid and where current public evidence is incomplete.
 
-| TickTick entitlement | Current evidence | OpenTask treatment |
+| TickTick entitlement | Current evidence | Omplish treatment |
 |---|---|---|
 | Calendar | Full calendar functionality, additional views, task duration, and external calendar subscriptions/integrations are marketed as Premium. | Implement only the scoped calendar surface, available to every user. |
 | Custom filters | Custom smart filters are marketed as Premium. | Stage A, no paywall. |

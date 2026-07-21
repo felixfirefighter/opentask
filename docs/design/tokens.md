@@ -20,8 +20,8 @@ colors; both files change together when a token contract changes.
 | `text-muted` | `#63635C` | `#B9B6AC` | Readable secondary text |
 | `text-disabled` | `#74746D` | `#8B8D84` | Truly disabled control labels only |
 | `text-selected` | `#255D50` | `#9FDEC9` | Text on selected surface |
-| `brand` | `#2D7565` | `#78C4AD` | OpenTask mark and non-text emphasis |
-| `action` | `#252823` | `#EEE9DC` | Filled primary control |
+| `brand` | `#40527F` | `#E3BAFB` | Omplish mark and non-text emphasis |
+| `action` | `#40527F` | `#E3BAFB` | Filled primary control |
 | `action-hover` | `#3A3E38` | `#D9D2C3` | Filled primary hover/pressed |
 | `text-on-strong` | `#FEFCF7` | `#20211C` | Text/icons on audited action, brand, status, and destructive fills |
 | `focus-ring` | `#2A61B8` | `#79A9F2` | Keyboard focus, distinct from brand |
@@ -166,5 +166,5 @@ The executable design check pins every canonical light token and dark override, 
 required pairs, and verifies this evidence line against the current palette. The approved palette
 provides at least 4.5:1 for normal text and at least 3:1 for meaningful boundaries/focus.
 
-Computed contract ratios (light/dark): primary 12.63/12.70; muted 5.36/7.99; action 10.63/10.77;
+Computed contract ratios (light/dark): primary 12.63/12.70; muted 5.36/7.99; action 7.50/9.79;
 strong border 4.45/3.56; focus 4.90/5.01; category 5.50/7.02.

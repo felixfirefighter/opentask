@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "companion_xp_events_planner_daily_idx" ON "companion_xp_events" USING btree ("user_id","local_date") WHERE "companion_xp_events"."action_type" = 'planner_applied';

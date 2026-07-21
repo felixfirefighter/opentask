@@ -1,4 +1,4 @@
-const profileUsernameKey = "opentask.profile.username";
+const profileUsernameKey = "omplish.profile.username";
 const profileUsernameMaximum = 64;
 
 export function readProfileUsername(): string | null {
@@ -19,7 +19,7 @@ export function saveProfileUsername(value: string): string {
 export function clearAppLocalState(): void {
   try {
     for (const key of Object.keys(window.localStorage)) {
-      if (key.startsWith("opentask")) window.localStorage.removeItem(key);
+      if (key.startsWith("omplish")) window.localStorage.removeItem(key);
     }
   } catch {
     // Browser storage can be unavailable without making the server reset fail.

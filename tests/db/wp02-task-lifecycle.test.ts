@@ -251,7 +251,7 @@ describe("WP02 task lifecycle application integration", () => {
     const racePool = new Pool({
       connectionString: getTestDatabaseUrl(),
       max: 1,
-      application_name: "opentask-wp02-lifecycle-race",
+      application_name: "omplish-wp02-lifecycle-race",
       options: `-c search_path=${fixture.schemaName}`,
     });
     const raceDatabase = drizzle(racePool, { schema });

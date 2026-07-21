@@ -44,7 +44,7 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
     const context = await loadTimeContext(actor, dependencies);
     const endDate = addLocalDays(context.localDate, 1);
     const range = buildLocalRange(context.localDate, endDate, context.timeZone);
-    const page = await dependencies.tasks.readOpenTasks(actor, {
+    const page = await dependencies.tasks.readOmplishs(actor, {
       kind: "scheduled_through",
       exclusiveEndDate: endDate,
       exclusiveEndAt: range.endAt,
@@ -70,7 +70,7 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
     const query = projectionLimitQuerySchema.parse(rawQuery);
     const context = await loadTimeContext(actor, dependencies);
     const range = buildLocalRange(context.localDate, addLocalDays(context.localDate, 7), context.timeZone);
-    const page = await dependencies.tasks.readOpenTasks(actor, toRangeReadQuery(range, query.limit));
+    const page = await dependencies.tasks.readOmplishs(actor, toRangeReadQuery(range, query.limit));
     const rows = mapCanonicalSourcePage(page, { limit: query.limit, schedulesRequired: true });
     const days = projectUpcoming(rows, { range, ...context }).map((day) => ({
       localDate: day.localDate,
@@ -126,7 +126,7 @@ export function createPlanningProjectionApplication(dependencies: PlanningProjec
   ): Promise<EisenhowerProjection> {
     const query = projectionLimitQuerySchema.parse(rawQuery);
     const context = await loadTimeContext(actor, dependencies);
-    const page = await dependencies.tasks.readOpenTasks(actor, {
+    const page = await dependencies.tasks.readOmplishs(actor, {
       kind: "all_open",
       limit: query.limit,
     });
@@ -165,7 +165,7 @@ async function loadRange(
   const query = planningRangeQuerySchema.parse(rawQuery);
   const context = await loadTimeContext(actor, dependencies);
   const range = buildLocalRange(query.rangeStartDate, query.rangeEndDate, context.timeZone);
-  const page = await dependencies.tasks.readOpenTasks(actor, toRangeReadQuery(range, query.limit));
+  const page = await dependencies.tasks.readOmplishs(actor, toRangeReadQuery(range, query.limit));
   return {
     context,
     range,
@@ -187,7 +187,7 @@ async function loadTimeContext(actor: AuthenticatedActor, dependencies: Planning
 function toRangeReadQuery(
   range: ReturnType<typeof buildLocalRange>,
   limit: number,
-): Parameters<PlanningTaskSourceReader["readOpenTasks"]>[1] {
+): Parameters<PlanningTaskSourceReader["readOmplishs"]>[1] {
   return {
     kind: "scheduled_range",
     rangeStartDate: range.startDate,

@@ -43,7 +43,7 @@ describe("ProfileSetupLauncher", () => {
     await user.click(await screen.findByRole("button", { name: "Let's start" }));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/today"));
-    expect(window.localStorage.getItem("opentask.profile.username")).toBe("Ekko");
+    expect(window.localStorage.getItem("omplish.profile.username")).toBe("Ekko");
     expect(fetch).toHaveBeenCalledWith("/api/v1/onboarding", expect.objectContaining({ method: "POST" }));
   }, 30_000);
 
@@ -59,11 +59,11 @@ describe("ProfileSetupLauncher", () => {
     expect(
       await screen.findByRole("heading", { name: "We couldn’t open your workspace." }),
     ).toBeInTheDocument();
-    expect(window.localStorage.getItem("opentask.profile.username")).toBeNull();
+    expect(window.localStorage.getItem("omplish.profile.username")).toBeNull();
   });
 
   it("gates a returning profile behind the scripted no-key check-in", async () => {
-    window.localStorage.setItem("opentask.profile.username", "Ekko");
+    window.localStorage.setItem("omplish.profile.username", "Ekko");
     vi.mocked(fetch)
       .mockResolvedValueOnce(Response.json({ ...baseOnboarding, complete: true }))
       .mockResolvedValueOnce(Response.json({ configured: false, source: "none" }));

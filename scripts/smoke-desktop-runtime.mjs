@@ -11,7 +11,7 @@ const options = parseArguments(process.argv.slice(2));
 const appDirectory = resolve(requiredOption(options, "app-dir"));
 const resourcesPath = await getResourcesPath(appDirectory);
 const userDataPath = resolve(
-  options.get("user-data") ?? (await mkdtemp(join(tmpdir(), "opentask-runtime-smoke-"))),
+  options.get("user-data") ?? (await mkdtemp(join(tmpdir(), "omplish-runtime-smoke-"))),
 );
 
 let runtime;

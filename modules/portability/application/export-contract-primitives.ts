@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const PORTABLE_SECTION_SCHEMA_VERSION = 1 as const;
-export const USER_EXPORT_SCHEMA_VERSION = 1 as const;
+export const USER_EXPORT_SCHEMA_VERSION = 2 as const;
 
 export const portableIdSchema = z.uuidv4();
 export const portableInstantSchema = z.iso.datetime({ offset: true });

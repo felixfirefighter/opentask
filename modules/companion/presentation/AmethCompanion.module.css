@@ -1,0 +1,348 @@
+.root {
+  position: fixed;
+  z-index: var(--z-popover);
+  right: max(var(--space-5), env(safe-area-inset-right));
+  bottom: max(var(--space-5), env(safe-area-inset-bottom));
+}
+.trigger {
+  position: relative;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+  cursor: pointer;
+}
+.trigger img,
+.fallback {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+}
+.fallback {
+  display: grid;
+  place-items: center;
+  background: var(--surface-selected);
+  color: var(--brand);
+}
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 56px;
+  height: 56px;
+  transform: rotate(-90deg);
+}
+.ringTrack,
+.ringValue {
+  fill: none;
+  stroke-width: 3;
+}
+.ringTrack {
+  stroke: var(--border);
+}
+.ringValue {
+  stroke: var(--brand);
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--motion-slow) var(--ease-standard);
+}
+.trigger[data-celebrating="true"] .ringValue {
+  animation: ameth-ring-complete var(--motion-slow) var(--ease-standard) both;
+}
+.trigger[data-celebrating="true"] img,
+.trigger[data-celebrating="true"] .fallback {
+  animation: ameth-avatar-arrive var(--motion-slow) var(--ease-standard) both;
+}
+.levelUp {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-3));
+  display: grid;
+  width: min(320px, calc(100vw - var(--space-8)));
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-4);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+}
+.levelUp::before {
+  position: absolute;
+  inset: calc(var(--space-2) * -1);
+  z-index: -1;
+  border: var(--border-default) solid var(--brand);
+  border-radius: var(--radius-dialog);
+  content: "";
+  opacity: 0;
+  animation: ameth-burst var(--motion-slow) var(--ease-standard) both;
+}
+.levelUp svg {
+  color: var(--brand);
+}
+.levelUp div {
+  display: grid;
+  gap: var(--space-1);
+}
+.levelUp span {
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+}
+.preview {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-3));
+  display: none;
+  width: 250px;
+  padding: var(--space-4);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-overlay);
+  color: var(--text);
+}
+.preview[data-open="true"] {
+  display: grid;
+  gap: var(--space-2);
+}
+.preview span,
+.preview li {
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+}
+.preview ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+.drawer {
+  position: fixed;
+  z-index: calc(var(--z-popover) + 1);
+  top: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: flex;
+  width: min(400px, calc(100vw - var(--space-8)));
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border: var(--border-default) solid var(--border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+}
+.drawer header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.drawer h2 {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-section-title-size);
+}
+.xpLine {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+}
+.message {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface-subtle);
+}
+.message svg {
+  flex: 0 0 auto;
+  color: var(--brand);
+}
+.message p {
+  margin: 0;
+}
+.progression {
+  display: grid;
+  gap: var(--space-2);
+}
+.progression div {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+}
+.progression div[data-unlocked="true"] {
+  color: var(--text);
+}
+.dataControls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.dataControls button {
+  min-height: var(--control-target-desktop);
+  justify-content: center;
+  padding: 0 var(--space-2);
+  font-size: var(--type-label-size);
+}
+.settings,
+.memory {
+  display: grid;
+  gap: var(--space-2);
+}
+.settings label,
+.memory label {
+  font-weight: var(--type-label-weight);
+}
+.settings select,
+.memory input {
+  width: 100%;
+  min-height: var(--control-target-desktop);
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 var(--space-3);
+}
+.settings small,
+.memory small {
+  color: var(--text-muted);
+}
+.toggle {
+  display: flex;
+  min-height: var(--control-target-desktop);
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+  font-size: var(--type-label-size);
+}
+.toggle input {
+  width: 1rem;
+  height: 1rem;
+}
+.memory > div {
+  display: flex;
+  gap: var(--space-2);
+}
+.memory button {
+  min-height: var(--control-target-desktop);
+}
+.memoryList {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 160px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+.memoryList li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: var(--type-label-size);
+}
+.memoryList span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat {
+  margin-top: auto;
+  display: grid;
+  gap: var(--space-2);
+}
+.chat label {
+  font-weight: var(--type-label-weight);
+}
+.chat > div {
+  display: flex;
+  gap: var(--space-2);
+}
+.chat input {
+  width: 100%;
+  min-width: 0;
+  border: var(--border-default) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  padding: 0 var(--space-3);
+}
+.chat button {
+  min-width: var(--control-target-desktop);
+  padding: 0;
+}
+.chat small {
+  color: var(--text-muted);
+}
+@keyframes ameth-ring-complete {
+  from {
+    stroke-dasharray: 0 100;
+  }
+  to {
+    stroke-dasharray: 100 0;
+  }
+}
+@keyframes ameth-avatar-arrive {
+  from {
+    opacity: 0.2;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes ameth-burst {
+  from {
+    opacity: 0.8;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trigger[data-celebrating="true"] .ringValue,
+  .trigger[data-celebrating="true"] img,
+  .trigger[data-celebrating="true"] .fallback,
+  .levelUp::before {
+    animation: none;
+  }
+  .levelUp::before {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 767px) {
+  .root {
+    bottom: max(calc(64px + var(--space-3)), calc(64px + env(safe-area-inset-bottom) + var(--space-3)));
+  }
+  .drawer {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: 0;
+  }
+  .preview {
+    display: none !important;
+  }
+  .levelUp {
+    bottom: calc(100% + var(--space-3));
+  }
+  .dataControls {
+    grid-template-columns: 1fr;
+  }
+}

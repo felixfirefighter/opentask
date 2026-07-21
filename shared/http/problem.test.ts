@@ -16,7 +16,7 @@ describe("problem details", () => {
 
   it("maps internal failures to an HTTP 500 problem", () => {
     expect(createProblem("INTERNAL", "Try again", "correlation-2")).toEqual({
-      type: "urn:opentask:problem:internal",
+      type: "urn:omplish:problem:internal",
       title: "Unexpected error",
       status: 500,
       code: "INTERNAL",

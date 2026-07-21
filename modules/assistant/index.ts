@@ -52,6 +52,9 @@ export { getPlannerCapability } from "./application/planner-capability";
 export { getPlannerCapabilityForActor } from "./application/planner-capability";
 export { createCompanionCheckin } from "./application/companion-checkin";
 export type { CompanionCheckinResult } from "./application/companion-checkin";
+export { createAmethChatReply } from "./application/ameth-chat";
+export type { AmethChatResult } from "./application/ameth-chat";
+export { analyzePromptForLibrary } from "./application/prompt-analysis";
 export {
   getOpenAISettings,
   openAIKeyFailureSchema,

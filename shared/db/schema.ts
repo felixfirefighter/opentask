@@ -1,4 +1,6 @@
 import { createAssistantSchema } from "../../modules/assistant/infrastructure/schema.ts";
+import { createCompanionSchema } from "../../modules/companion/infrastructure/schema.ts";
+import { createPromptsSchema } from "../../modules/prompts/infrastructure/schema.ts";
 import { createIdentitySchema } from "../../modules/identity/infrastructure/schema.ts";
 import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 
@@ -7,6 +9,8 @@ import { createTaskSchema } from "../../modules/tasks/infrastructure/schema.ts";
 const identitySchema = createIdentitySchema();
 const taskSchema = createTaskSchema(() => identitySchema.user.id);
 const assistantSchema = createAssistantSchema(() => identitySchema.user.id);
+const companionSchema = createCompanionSchema(() => identitySchema.user.id);
+const promptsSchema = createPromptsSchema(() => identitySchema.user.id);
 
 export const user = identitySchema.user;
 export const session = identitySchema.session;
@@ -24,6 +28,12 @@ export const checklistItems = taskSchema.checklistItems;
 export const tags = taskSchema.tags;
 export const taskTags = taskSchema.taskTags;
 export const plannerProposals = assistantSchema.plannerProposals;
+export const companionProfiles = companionSchema.companionProfiles;
+export const companionXpEvents = companionSchema.companionXpEvents;
+export const companionBehaviorSummaries = companionSchema.companionBehaviorSummaries;
+export const companionMemories = companionSchema.companionMemories;
+export const savedPrompts = promptsSchema.savedPrompts;
+export const savedPromptTags = promptsSchema.savedPromptTags;
 
 export const schema = {
   user,
@@ -42,4 +52,10 @@ export const schema = {
   tags,
   taskTags,
   plannerProposals,
+  companionProfiles,
+  companionXpEvents,
+  companionBehaviorSummaries,
+  companionMemories,
+  savedPrompts,
+  savedPromptTags,
 };

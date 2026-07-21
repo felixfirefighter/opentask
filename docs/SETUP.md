@@ -88,9 +88,9 @@ Build the current host's installer with:
 pnpm electron:dist
 ```
 
-Set a real release version in `package.json` before publishing (the current repository development
-version is `0.0.0`); Electron Builder uses it in the installer metadata and artifact filename. Keep
-the version change in the release commit and record the resulting artifact checksums.
+The current release version is `0.1.0`; Electron Builder uses it in the installer metadata and
+artifact filename. Keep every version change in the release commit and record the resulting artifact
+checksums.
 
 Use the release configuration only after signing credentials are available. It enables macOS
 notarization and hardened runtime; an unsigned local build should continue to use `pnpm
@@ -142,7 +142,7 @@ Run the packaged-content audit before signing:
 
 ```sh
 pnpm electron:check-package -- \
-  --app-dir release/mac-arm64/OpenTask.app \
+  --app-dir release/mac-arm64/Omplish.app \
   --target macos-arm64
 ```
 
@@ -156,16 +156,16 @@ Build an unpacked production directory for smoke testing with:
 pnpm electron:dist:dir
 ```
 
-For an isolated lifecycle smoke, set `OPENTASK_USER_DATA_PATH` to a disposable absolute directory
+For an isolated lifecycle smoke, set `OMPLISH_USER_DATA_PATH` to a disposable absolute directory
 before launching the unpacked executable. This test-only override keeps the smoke database and auth
-secret outside the developer's normal OpenTask profile; it is not required for normal users.
+secret outside the developer's normal Omplish profile; it is not required for normal users.
 
 The automated packaged smoke uses the same isolated path, waits for the instance secret and PostgreSQL
 cluster, then exercises the real graceful shutdown path:
 
 ```sh
-pnpm electron:runtime-smoke -- --app-dir release/mac-arm64/OpenTask.app
-pnpm electron:smoke -- --app-dir release/mac-arm64/OpenTask.app
+pnpm electron:runtime-smoke -- --app-dir release/mac-arm64/Omplish.app
+pnpm electron:smoke -- --app-dir release/mac-arm64/Omplish.app
 ```
 
 `electron:runtime-smoke` is headless-safe and verifies the packaged runtime, database initialization,
@@ -192,10 +192,10 @@ and PostgreSQL versions, source archives, checksums, and license notices.
 The installed application keeps its database and generated instance secret outside the installation
 directory:
 
-- Windows: `%APPDATA%\\OpenTask`
-- macOS: `~/Library/Application Support/OpenTask`
+- Windows: `%APPDATA%\\Omplish`
+- macOS: `~/Library/Application Support/Omplish`
 
-Before upgrading, exit OpenTask completely and copy that entire directory to a protected backup
+Before upgrading, exit Omplish completely and copy that entire directory to a protected backup
 location. Do not copy individual PostgreSQL files and do not copy the directory while the app is
 running. The backup contains the local database and the secret required to keep the local instance
 stable; protect it like application data.
@@ -216,7 +216,7 @@ target-specific Node/PostgreSQL trees. It must not contain `.env` files, Docker 
 the development package manager. A desktop installer is not release-ready until the same check is
 performed on Windows and macOS from a clean target machine.
 
-`BETTER_AUTH_URL` is the exact browser-facing origin, not an internal service URL. OpenTask uses
+`BETTER_AUTH_URL` is the exact browser-facing origin, not an internal service URL. Omplish uses
 only a trusted proxy's overwritten `X-Real-IP` header for authentication and demo abuse-control
 buckets. Before exposing the service to a network, route all traffic through one ingress that
 overwrites that header and block direct access to the application origin. See `SECURITY.md` for the
@@ -241,10 +241,10 @@ Compose starts PostgreSQL 17, applies committed migrations before the web proces
 To reproduce the CI production topology audit with an isolated fresh database volume, first stop anything using ports 3000 or 54329, then run:
 
 ```sh
-docker build --target runner --tag opentask:local .
-COMPOSE_PROJECT_NAME=opentask-production-audit docker compose up --detach --no-build --wait
-COMPOSE_PROJECT_NAME=opentask-production-audit pnpm test:production
-COMPOSE_PROJECT_NAME=opentask-production-audit docker compose down --volumes --remove-orphans
+docker build --target runner --tag omplish:local .
+COMPOSE_PROJECT_NAME=omplish-production-audit docker compose up --detach --no-build --wait
+COMPOSE_PROJECT_NAME=omplish-production-audit pnpm test:production
+COMPOSE_PROJECT_NAME=omplish-production-audit docker compose down --volumes --remove-orphans
 ```
 
 `pnpm test:production` deliberately stops the web and worker with SIGTERM after checking health, a shared image, Node as PID 1, and the current zero-job worker event. P6 must extend this smoke for active reminder jobs before that package can integrate. Run the final project-scoped cleanup even when the audit fails; it removes only the isolated audit containers, network, and fresh audit volume. The ordinary `docker compose down` path above still preserves the normal development database volume.

@@ -72,7 +72,7 @@ export function AppResetCard({
         <AlertDialog.Portal>
           <AlertDialog.Overlay className={styles.overlay} />
           <AlertDialog.Content className={styles.dialog} aria-describedby="reset-app-description">
-            <AlertDialog.Title className={styles.title}>Reset OpenTask?</AlertDialog.Title>
+            <AlertDialog.Title className={styles.title}>Reset Omplish?</AlertDialog.Title>
             <AlertDialog.Description className={styles.description} id="reset-app-description">
               This permanently removes the current profile and all workspace data. You cannot undo this
               action.

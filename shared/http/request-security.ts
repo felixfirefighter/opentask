@@ -72,7 +72,7 @@ async function readBoundedBody(request: Request, maxBytes: number): Promise<Uint
       if (done) break;
       totalBytes += value.byteLength;
       if (totalBytes > maxBytes) {
-        void reader.cancel("OpenTask request body limit exceeded").catch(() => undefined);
+        void reader.cancel("Omplish request body limit exceeded").catch(() => undefined);
         throw validationFailure();
       }
       chunks.push(value);

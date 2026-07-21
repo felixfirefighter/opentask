@@ -11,7 +11,7 @@ const schemaName = `ot_${process.pid}_${randomUUID().replaceAll("-", "").slice(0
 const adminPool = new Pool({
   connectionString: getTestDatabaseUrl(),
   max: 1,
-  application_name: "opentask-db-test-admin",
+  application_name: "omplish-db-test-admin",
 });
 let isolatedPool: Pool | undefined;
 
@@ -21,7 +21,7 @@ describe("database bootstrap", () => {
     isolatedPool = new Pool({
       connectionString: getTestDatabaseUrl(),
       max: 2,
-      application_name: "opentask-db-test-isolated",
+      application_name: "omplish-db-test-isolated",
       options: `-c search_path=${schemaName}`,
     });
 

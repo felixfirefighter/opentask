@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/modules/identity", () => ({ resolveActor: mocks.resolveActor }));
 vi.mock("@/modules/portability", () => ({
-  buildUserExportFilename: () => "opentask-export-2026-07-19.json",
+  buildUserExportFilename: () => "omplish-export-2026-07-19.json",
   getPortabilityApplication: () => ({ exportUserData: mocks.exportUserData }),
 }));
 
@@ -30,11 +30,11 @@ describe("user export route", () => {
     expect(mocks.exportUserData).toHaveBeenCalledWith(actor);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(response.headers.get("content-disposition")).toBe(
-      'attachment; filename="opentask-export-2026-07-19.json"',
+      'attachment; filename="omplish-export-2026-07-19.json"',
     );
     expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(response.headers.get("x-opentask-export-schema-version")).toBe("1");
+    expect(response.headers.get("x-omplish-export-schema-version")).toBe("1");
     await expect(response.json()).resolves.toEqual(envelope);
   });
 

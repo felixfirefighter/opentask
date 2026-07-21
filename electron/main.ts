@@ -6,9 +6,9 @@ import { fileURLToPath } from "node:url";
 import { startDesktopRuntime, type DesktopRuntime } from "./runtime.js";
 
 const development = process.argv.includes("--dev");
-const smoke = process.env.OPENTASK_SMOKE_MODE === "1";
+const smoke = process.env.OMPLISH_SMOKE_MODE === "1";
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
-const configuredUserDataPath = process.env.OPENTASK_USER_DATA_PATH;
+const configuredUserDataPath = process.env.OMPLISH_USER_DATA_PATH;
 if (configuredUserDataPath) {
   const userDataPath = resolve(configuredUserDataPath);
   mkdirSync(userDataPath, { recursive: true });
@@ -24,7 +24,7 @@ const windowThemeColors = {
   dark: { background: "#181914", symbol: "#f3f0e7" },
 } as const;
 
-ipcMain.on("opentask-window-theme", (event, theme: unknown) => {
+ipcMain.on("omplish-window-theme", (event, theme: unknown) => {
   if (event.sender !== window?.webContents || (theme !== "light" && theme !== "dark")) return;
   applyWindowTheme(window, theme);
 });
@@ -51,8 +51,8 @@ if (!hasSingleInstance) {
 }
 
 async function launch(): Promise<void> {
-  app.setName("OpenTask");
-  if (process.platform === "win32") app.setAppUserModelId("com.rarticle.opentask");
+  app.setName("Omplish");
+  if (process.platform === "win32") app.setAppUserModelId("com.rarticle.omplish");
 
   runtime = await startDesktopRuntime({
     mode: development ? "development" : "production",
@@ -117,6 +117,6 @@ function applyWindowTheme(target: BrowserWindow, theme: "light" | "dark") {
 
 function handleLaunchFailure(error: unknown): void {
   const detail = error instanceof Error ? error.message : "Unknown desktop startup failure.";
-  dialog.showErrorBox("OpenTask could not start", detail);
+  dialog.showErrorBox("Omplish could not start", detail);
   app.quit();
 }

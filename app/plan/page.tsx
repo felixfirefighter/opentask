@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getPlannerCapabilityForActor } from "@/modules/assistant";
 import { AssistantPlannerRouteScreen, type PlannerTaskOption } from "@/modules/assistant/presentation";
 import { AuthenticatedShell } from "@/modules/identity/presentation";
+import { AmethCompanion } from "@/modules/companion/presentation";
 import { getPlanningProjectionApplication, type EisenhowerProjection } from "@/modules/planning";
 import { getInbox } from "@/modules/tasks";
 import { TaskCommandPalette } from "@/modules/tasks/presentation";
@@ -27,6 +28,7 @@ export default async function PlanPage() {
       theme={workspace.preferences.theme}
       reducedMotion={workspace.preferences.reducedMotion}
       currentDestination="plan"
+      companion={<AmethCompanion />}
       topBarActions={<TaskCommandPalette inbox={inbox} />}
     >
       <AssistantPlannerRouteScreen

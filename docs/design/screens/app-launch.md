@@ -23,7 +23,7 @@ authorization, and is written only after the internal isolated workspace bootstr
 
 ## Layout and accessibility
 
-- Use a restrained app launch surface with the OpenTask mark and no promotional preview composition.
+- Use a restrained app launch surface with the Omplish mark and no promotional preview composition.
 - First-run steps collect a name, optional OpenAI key, companion goals, and a final confirmation.
 - Returning users see one daily mood check-in; a configured companion may provide a short response.
 - Escape and outside clicks cannot dismiss required first-run setup.

@@ -35,23 +35,23 @@ export default defineConfig([
   architectureBoundaries,
   {
     files: localCode,
-    plugins: { opentask: { rules: { ...importSafety.rules, ...runtimeSafety.rules } } },
+    plugins: { omplish: { rules: { ...importSafety.rules, ...runtimeSafety.rules } } },
     rules: {
-      "opentask/direct-node-modules": "error",
-      "opentask/explicit-type-imports": "error",
-      "opentask/literal-dynamic-imports": "error",
+      "omplish/direct-node-modules": "error",
+      "omplish/explicit-type-imports": "error",
+      "omplish/literal-dynamic-imports": "error",
       "no-implied-eval": "error",
-      "opentask/no-alternate-loaders": [
+      "omplish/no-alternate-loaders": [
         "error",
         { packages: ["module", "node:module", "node:process", "node:vm", "process", "vm"] },
       ],
-      "opentask/no-runtime-loader-escapes": "error",
+      "omplish/no-runtime-loader-escapes": "error",
     },
   },
   {
     files: ["modules/*/application/**/*.{ts,tsx}"],
     rules: {
-      "opentask/no-private-runtime-reexports": "error",
+      "omplish/no-private-runtime-reexports": "error",
     },
   },
   {
@@ -65,7 +65,7 @@ export default defineConfig([
     ],
     ignores: ["electron/check-runtime.ts"],
     rules: {
-      "opentask/no-unreviewed-output": "error",
+      "omplish/no-unreviewed-output": "error",
     },
   },
   {
@@ -73,15 +73,15 @@ export default defineConfig([
     rules: {
       // Sandboxed Electron preloads require CommonJS; the exception is limited to this boundary file.
       "@typescript-eslint/no-require-imports": "off",
-      "opentask/explicit-type-imports": "off",
-      "opentask/no-runtime-loader-escapes": "off",
+      "omplish/explicit-type-imports": "off",
+      "omplish/no-runtime-loader-escapes": "off",
     },
   },
   {
     files: localCode,
     ignores: ["shared/logging/logger.ts"],
     rules: {
-      "opentask/no-raw-pino": ["error", { packages: ["pino"] }],
+      "omplish/no-raw-pino": ["error", { packages: ["pino"] }],
     },
   },
   {
@@ -93,13 +93,13 @@ export default defineConfig([
     ],
     ignores: ["shared/db/**/*.{ts,tsx}"],
     rules: {
-      "opentask/no-data-packages": ["error", { packages: ["drizzle-orm", "pg", "pg-boss"] }],
+      "omplish/no-data-packages": ["error", { packages: ["drizzle-orm", "pg", "pg-boss"] }],
     },
   },
   {
     files: ["worker/**/*.{ts,tsx}"],
     rules: {
-      "opentask/no-data-packages": ["error", { packages: ["drizzle-orm", "pg"] }],
+      "omplish/no-data-packages": ["error", { packages: ["drizzle-orm", "pg"] }],
     },
   },
   {
@@ -110,7 +110,7 @@ export default defineConfig([
       "worker/**/*.{ts,tsx}",
     ],
     rules: {
-      "opentask/no-framework-packages": ["error", { packages: ["next", "react", "react-dom"] }],
+      "omplish/no-framework-packages": ["error", { packages: ["next", "react", "react-dom"] }],
     },
   },
   {

@@ -26,13 +26,13 @@ test("the friend-candidate journey renders at every approved viewport", async ({
   const evidenceDirectory = path.resolve(process.env.PLAYWRIGHT_VISUAL_PROOF_DIR ?? "artifacts/visual-proof");
   const captureDirectory = path.join(
     tmpdir(),
-    `opentask-visual-proof-${testInfo.project.name}-${randomUUID()}`,
+    `omplish-visual-proof-${testInfo.project.name}-${randomUUID()}`,
   );
   await mkdir(captureDirectory, { recursive: true });
   await page.setExtraHTTPHeaders({ "x-real-ip": isolatedClientAddress() });
 
   await page.goto("/");
-  await expect(page.getByRole("region", { name: "OpenTask onboarding" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Omplish onboarding" })).toBeVisible();
   await captureRoute(page, testInfo, captureDirectory, "app-launch");
   await page.getByRole("button", { name: "Use dark theme" }).click();
   await captureRoute(page, testInfo, captureDirectory, "app-launch-dark");
@@ -151,7 +151,7 @@ async function expectCalendarInstructionUntruncated(page: Page) {
 
 async function setDocumentTheme(page: Page, theme: "light" | "dark") {
   await page.evaluate((nextTheme) => {
-    localStorage.setItem("opentask-theme-preference", nextTheme);
+    localStorage.setItem("omplish-theme-preference", nextTheme);
     document.documentElement.dataset.themePreference = nextTheme;
     document.documentElement.dataset.theme = nextTheme;
   }, theme);

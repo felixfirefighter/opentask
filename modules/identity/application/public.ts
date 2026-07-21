@@ -1,4 +1,5 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
+import { awardCompanionXp } from "@/modules/companion";
 
 import { createIdentityApplication } from "./identity-application";
 import type { OnboardingGoal } from "./contracts";
@@ -9,7 +10,16 @@ import { getProductionIdentityDependencies } from "../infrastructure/production-
 let application: ReturnType<typeof createIdentityApplication> | undefined;
 
 function getApplication() {
-  application ??= createIdentityApplication(getProductionIdentityDependencies());
+  application ??= createIdentityApplication({
+    ...getProductionIdentityDependencies(),
+    onDailyCheckin: async (actor, localDate, transaction) => {
+      await awardCompanionXp(
+        actor,
+        { actionType: "daily_checkin", sourceKey: `checkin:${localDate}`, xp: 10 },
+        transaction,
+      );
+    },
+  });
   return application;
 }
 

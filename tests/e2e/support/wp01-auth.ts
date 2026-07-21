@@ -11,7 +11,7 @@ export function createUniqueTestAccount(testInfo: TestInfo): TestAccount {
 
   return {
     email: `wp01-${project}-${randomUUID()}@example.test`,
-    password: `OpenTask-${randomUUID()}`,
+    password: `Omplish-${randomUUID()}`,
   };
 }
 

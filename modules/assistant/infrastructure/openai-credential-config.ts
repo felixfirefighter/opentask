@@ -4,7 +4,7 @@ import type { Database } from "@/shared/db/client";
 import { decryptOpenAIKey } from "./openai-credential-crypto";
 import { createOpenAICredentialRepository } from "./openai-credential-repository";
 
-const encryptionSecretFallback = "opentask-local-development-only-auth-secret";
+const encryptionSecretFallback = "omplish-local-development-only-auth-secret";
 
 export function getServerOpenAIKey(): string | null {
   const apiKey = getEnvironment().OPENAI_API_KEY?.trim();

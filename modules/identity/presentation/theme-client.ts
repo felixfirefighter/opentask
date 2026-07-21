@@ -30,12 +30,12 @@ export function applyThemePreference(theme: ThemePreference, reducedMotion: bool
   if (themeColor) themeColor.content = getComputedStyle(root).getPropertyValue("--canvas").trim();
   const desktopWindow = (
     window as typeof window & {
-      opentaskDesktop?: { setWindowTheme?: (theme: ResolvedTheme) => void };
+      omplishDesktop?: { setWindowTheme?: (theme: ResolvedTheme) => void };
     }
-  ).opentaskDesktop;
+  ).omplishDesktop;
   desktopWindow?.setWindowTheme?.(resolvedTheme);
   try {
-    localStorage.setItem("opentask-theme-preference", theme);
+    localStorage.setItem("omplish-theme-preference", theme);
   } catch {
     // Theme application remains functional when storage is unavailable.
   }

@@ -70,7 +70,7 @@ export function createPolicyControlProbes(probeModule) {
     {
       filePath: "app/__direct_node_modules_probe__.ts",
       source: 'import "../node_modules/pg/esm/index.mjs";\n',
-      expected: { "opentask/direct-node-modules": 1 },
+      expected: { "omplish/direct-node-modules": 1 },
     },
     {
       filePath: "worker/__module_boundary_probe__.ts",
@@ -90,12 +90,12 @@ export function createPolicyControlProbes(probeModule) {
     {
       filePath: "worker/__dynamic_package_probe__.ts",
       source: 'void import("pg/lib/client");\n',
-      expected: { "opentask/no-data-packages": 1 },
+      expected: { "omplish/no-data-packages": 1 },
     },
     {
       filePath: "shared/presentation/__database_package_probe__.tsx",
       source: 'import "drizzle-orm";\nimport "pg";\n',
-      expected: { "opentask/no-data-packages": 2 },
+      expected: { "omplish/no-data-packages": 2 },
     },
     {
       filePath: "shared/presentation/__feature_boundary_probe__.tsx",
@@ -110,13 +110,13 @@ export function createPolicyControlProbes(probeModule) {
     {
       filePath: "shared/time/__database_package_probe__.ts",
       source: 'import "pg/lib/client";\n',
-      expected: { "opentask/no-data-packages": 1 },
+      expected: { "omplish/no-data-packages": 1 },
     },
     {
       filePath: `modules/${probeModule}/domain/import-type.ts`,
       source:
         'type Screen = typeof import("../../planning/presentation/TodayScreen.tsx").TodayScreen;\nexport type { Screen };\n',
-      expected: { "opentask/explicit-type-imports": 1 },
+      expected: { "omplish/explicit-type-imports": 1 },
     },
     {
       filePath: `modules/${probeModule}/infrastructure/component.tsx`,
@@ -126,7 +126,7 @@ export function createPolicyControlProbes(probeModule) {
     {
       filePath: `modules/${probeModule}/presentation/raw-logger.ts`,
       source: 'void import("pino/pino.js");\n',
-      expected: { "opentask/no-raw-pino": 1 },
+      expected: { "omplish/no-raw-pino": 1 },
     },
     {
       filePath: `modules/${probeModule}/ui/unknown-layer.ts`,
@@ -141,7 +141,7 @@ export function createPolicyControlProbes(probeModule) {
     {
       filePath: "scripts/__logger_boundary_probe__.ts",
       source: 'import pino from "pino";\nexport default pino;\n',
-      expected: { "opentask/no-raw-pino": 1 },
+      expected: { "omplish/no-raw-pino": 1 },
     },
   ];
 }

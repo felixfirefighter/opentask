@@ -1,12 +1,13 @@
-appId: com.rarticle.opentask
-productName: OpenTask
-icon: desktop/branding/icon.svg
+appId: com.rarticle.omplish
+productName: Omplish
+icon: desktop/branding/icon.png
 asar: true
 directories:
   output: release
 files:
   - dist-electron/main.js
   - dist-electron/runtime.js
+  - dist-electron/runtime-process.js
   - dist-electron/target.js
   - dist-electron/preload.cjs
   - "!node_modules/**"
@@ -33,10 +34,10 @@ extraResources:
 win:
   target:
     - nsis
-  artifactName: OpenTask-${version}-Windows-${arch}.${ext}
+  artifactName: Omplish-${version}-Windows-${arch}.${ext}
 mac:
   target:
     - dmg
   category: public.app-category.productivity
-  artifactName: OpenTask-${version}-macOS-${arch}.${ext}
+  artifactName: Omplish-${version}-macOS-${arch}.${ext}
 publish: null

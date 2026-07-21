@@ -14,13 +14,13 @@ This file cannot add product behavior. Feature scope remains owned by `docs/SCOP
 The active external reference is the immutable
 [GetDesign ElevenLabs source snapshot](https://github.com/VoltAgent/awesome-design-md/blob/e06a96660396d741d0c106c8972172254dafbdc2/design-md/elevenlabs/DESIGN.md).
 That analysis primarily describes a public marketing system and only partially captures in-product
-surfaces. OpenTask follows its documented typography hierarchy, spacing rhythm, restrained action
+surfaces. Omplish follows its documented typography hierarchy, spacing rhythm, restrained action
 hierarchy, and atmospheric boundaries where they apply, while this repository remains the
 executable source of truth for dense planning UI, semantic states, accessibility, and dark mode.
 
 The reference uses licensed Waldenburg Light for display and explicitly names EB Garamond at weight
 300 as an open-source substitute. The official EB Garamond variable asset has a real 400–800 weight
-axis, so OpenTask uses its genuine 400 endpoint rather than misdeclaring or synthesizing a 300
+axis, so Omplish uses its genuine 400 endpoint rather than misdeclaring or synthesizing a 300
 master. Inter remains the reference's working face for body, navigation, captions, and controls.
 
 The catalog summary and the source snapshot describe different moods. For reproducibility, this
@@ -36,11 +36,11 @@ Editorial Focus should feel:
 - editorial in major moments, but highly legible and sans-serif in operational controls;
 - atmospheric on public, first-run, empty, and planner-framing surfaces, never decorative inside
   dense task or calendar work;
-- original to OpenTask, with no borrowed product identity or audio-product metaphor.
+- original to Omplish, with no borrowed product identity or audio-product metaphor.
 
 ## Adopt, adapt, reject
 
-| Research principle | OpenTask adaptation | Boundary |
+| Research principle | Omplish adaptation | Boundary |
 |---|---|---|
 | Warm off-white canvas and near-black ink | Original warm paper/ink semantic tokens with separately tested light and dark themes | Do not copy exact external palette values |
 | Editorial display typography | An OFL-licensed variable serif for app launch, first-run, empty-state, and selected high-level headings | Task rows, forms, menus, calendar labels, metadata, and working prose remain UI sans |
@@ -72,7 +72,7 @@ Editorial Focus should feel:
 
 - Light theme uses an original warm paper canvas, white or near-paper working surfaces, dark ink,
   and quiet warm-neutral borders.
-- Dark theme is an OpenTask-owned inversion: warm-black canvas, lifted neutral panes, visible
+- Dark theme is an Omplish-owned inversion: warm-black canvas, lifted neutral panes, visible
   hairlines, paper-white text, readable muted text, and independently tested semantic colors. Do not
   mechanically invert the light palette.
 - Primary actions may use ink-filled pill geometry in major decision surfaces. Compact buttons,
@@ -101,7 +101,7 @@ sections, cards, pricing/testimonial composition, audio players, voice rows, wav
 trade dress. The pinned external analysis informs this contract but never overrides product scope,
 accessibility, or executable repository checks.
 
-OpenTask retains its own brand mark, Lucide icon system, product voice, application shell, task
+Omplish retains its own brand mark, Lucide icon system, product voice, application shell, task
 anatomy, screen contracts, and planning-specific interaction model.
 
 ## Visual-proof approval gate

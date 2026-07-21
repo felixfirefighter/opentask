@@ -63,12 +63,12 @@ test("a private versioned export is downloadable and excludes credentials", asyn
   expect(exportResponse.headers()["content-type"]).toContain("application/json");
   expect(exportResponse.headers()["pragma"]).toBe("no-cache");
   expect(exportResponse.headers()["x-content-type-options"]).toBe("nosniff");
-  expect(exportResponse.headers()["x-opentask-export-schema-version"]).toBe("1");
+  expect(exportResponse.headers()["x-omplish-export-schema-version"]).toBe("1");
 
   const downloadedPath = await download.path();
   expect(downloadedPath).not.toBeNull();
   const envelope = JSON.parse(await readFile(downloadedPath!, "utf8")) as PortableExportEnvelope;
-  const expectedFilename = `opentask-export-${new Date(envelope.exportedAt).toISOString().slice(0, 10)}.json`;
+  const expectedFilename = `omplish-export-${new Date(envelope.exportedAt).toISOString().slice(0, 10)}.json`;
   expect(exportResponse.headers()["content-disposition"]).toBe(`attachment; filename="${expectedFilename}"`);
   expect(download.suggestedFilename()).toBe(expectedFilename);
   await expect(page.getByText(`Downloaded ${expectedFilename} · schema v1.`)).toBeVisible();
@@ -127,7 +127,7 @@ test("export failure and offline state remain explicit without producing a file"
       status: 503,
       contentType: "application/problem+json",
       body: JSON.stringify({
-        type: "urn:opentask:problem:internal",
+        type: "urn:omplish:problem:internal",
         title: "Export unavailable",
         status: 503,
         code: "INTERNAL",

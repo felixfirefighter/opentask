@@ -44,7 +44,7 @@ export function createReviewedPlanTaskWriter({
     ): Promise<readonly ReviewedPlanTaskSnapshot[]> {
       if (rawTaskIds.length === 0) return [];
       const taskIds = taskSnapshotIdSelectionSchema.parse(rawTaskIds);
-      const locked = await repository.loadOpenTasksForUpdate(actor.userId, [...taskIds].sort(), transaction);
+      const locked = await repository.loadOmplishsForUpdate(actor.userId, [...taskIds].sort(), transaction);
       const storedSchedules = await repository.loadSchedulesForTasks(
         actor.userId,
         [...taskIds].sort(),

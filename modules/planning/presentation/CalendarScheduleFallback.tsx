@@ -12,14 +12,14 @@ export function CalendarScheduleFallback({
   events,
   selectedEventId,
   onEditSchedule,
-  onOpenTask,
+  onOmplish,
   onSelectEvent,
 }: Readonly<{
   disabled: boolean;
   events: readonly PlanningCalendarEventModel[];
   selectedEventId: string;
   onEditSchedule: (taskId: string) => void;
-  onOpenTask: (taskId: string) => void;
+  onOmplish: (taskId: string) => void;
   onSelectEvent: (eventId: string) => void;
 }>) {
   const selected = events.find((event) => event.id === selectedEventId);
@@ -51,7 +51,7 @@ export function CalendarScheduleFallback({
         type="button"
         variant="secondary"
         disabled={!selected}
-        onClick={() => selected && onOpenTask(selected.taskId)}
+        onClick={() => selected && onOmplish(selected.taskId)}
       >
         <ExternalLink size={16} aria-hidden="true" /> Open task
       </Button>

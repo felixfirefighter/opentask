@@ -32,7 +32,7 @@ export type OpenProjectionTask = Omit<ProjectionSourceTask, "status" | "deletedA
 export type ScheduledOpenProjectionTask = Omit<OpenProjectionTask, "schedule"> &
   Readonly<{ schedule: ProjectionSchedule }>;
 
-export function activeOpenTasks(rows: readonly ProjectionSourceTask[]): OpenProjectionTask[] {
+export function activeOmplishs(rows: readonly ProjectionSourceTask[]): OpenProjectionTask[] {
   return rows.flatMap((row) => {
     if (row.status !== "open" || row.deletedAt !== null) {
       return [];
@@ -45,7 +45,7 @@ export function activeOpenTasks(rows: readonly ProjectionSourceTask[]): OpenProj
 export function activeOpenScheduledTasks(
   rows: readonly ProjectionSourceTask[],
 ): ScheduledOpenProjectionTask[] {
-  return activeOpenTasks(rows).flatMap((row) =>
+  return activeOmplishs(rows).flatMap((row) =>
     row.schedule === null ? [] : [{ ...row, schedule: row.schedule }],
   );
 }

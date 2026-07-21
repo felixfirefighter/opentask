@@ -13,7 +13,7 @@ export function getDatabasePool(): Pool {
     pool = new Pool({
       connectionString: getEnvironment().DATABASE_URL,
       max: 10,
-      application_name: "opentask-web",
+      application_name: "omplish-web",
     });
     pool.on("error", (error) => {
       logger.event("DATABASE_POOL_ERROR", { errorName: error.name });

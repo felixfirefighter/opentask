@@ -204,7 +204,7 @@ async function fulfillProblem(route: Route, code: "PROVIDER_UNAVAILABLE", status
     status,
     contentType: "application/problem+json",
     body: JSON.stringify({
-      type: `urn:opentask:problem:${code.toLowerCase().replaceAll("_", "-")}`,
+      type: `urn:omplish:problem:${code.toLowerCase().replaceAll("_", "-")}`,
       title: "Service unavailable",
       status,
       code,

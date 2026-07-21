@@ -176,7 +176,7 @@ function jsonResponse(body: unknown, status = 200) {
 function problemResponse(code: "CONFLICT" | "FORBIDDEN", status: number) {
   return jsonResponse(
     {
-      type: `urn:opentask:problem:${code.toLowerCase()}`,
+      type: `urn:omplish:problem:${code.toLowerCase()}`,
       title: code === "CONFLICT" ? "Conflict" : "Access denied",
       status,
       code,

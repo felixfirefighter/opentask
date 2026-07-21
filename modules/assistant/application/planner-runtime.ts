@@ -1,4 +1,5 @@
 import type { AuthenticatedActor } from "@/shared/auth/actor";
+import { awardCompanionXp } from "@/modules/companion";
 import { getTasksApplication } from "@/modules/tasks";
 import { getDatabase } from "@/shared/db/client";
 import { plannerProposals } from "@/shared/db/schema";
@@ -49,6 +50,13 @@ function createAssistantPlannerApplication() {
     transaction: { execute: (work) => database.transaction(work) },
     proposals: createPlannerApplyProposalAdapter(repository),
     tasks: createPlannerApplyTaskAdapter(tasks.reviewedPlanWrites),
+    onProposalApplied: async (actor, proposalId, transaction) => {
+      await awardCompanionXp(
+        actor,
+        { actionType: "planner_applied", sourceKey: `planner:${proposalId}`, xp: 20 },
+        transaction,
+      );
+    },
   });
 
   return {
