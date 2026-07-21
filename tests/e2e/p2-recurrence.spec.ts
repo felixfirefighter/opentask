@@ -557,17 +557,19 @@ async function postOccurrence(page: Page, command: OccurrenceCommand): Promise<O
 }
 
 async function expectHistoricalOccurrenceStates(page: Page, localDate: string) {
-  const rangeStart = addLocalDays(localDate, -2);
-  const rangeEnd = addLocalDays(localDate, 1);
-  await page.goto(
-    `/calendar?view=agenda&date=${rangeStart}&rangeStartDate=${rangeStart}&rangeEndDate=${rangeEnd}`,
-  );
+  await expectHistoricalOccurrenceState(page, addLocalDays(localDate, -2), "Completed");
+  await expectHistoricalOccurrenceState(page, addLocalDays(localDate, -1), "Skipped");
+}
+
+async function expectHistoricalOccurrenceState(
+  page: Page,
+  localDate: string,
+  state: "Completed" | "Skipped",
+) {
+  await page.goto(`/calendar?view=agenda&date=${localDate}`);
   await page.waitForLoadState("networkidle");
   await expect(
-    page.locator(`[aria-label^="${demo.recurringTaskTitle},"][aria-label*="Completed occurrence"]`),
-  ).toBeVisible();
-  await expect(
-    page.locator(`[aria-label^="${demo.recurringTaskTitle},"][aria-label*="Skipped occurrence"]`),
+    page.locator(`[aria-label^="${demo.recurringTaskTitle},"][aria-label*="${state} occurrence"]`),
   ).toBeVisible();
 }
 
