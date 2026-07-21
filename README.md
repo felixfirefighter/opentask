@@ -36,13 +36,13 @@ audited packages on the approved Editorial Focus baseline. Offline mutation sync
 collaboration, and premium/billing paths remain excluded. See [docs/SCOPE.md](docs/SCOPE.md) for the
 exact target and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for package order.
 
-## Built with Codex and GPT-5.6
+## How Codex and GPT-5.6 were used
 
-This project was developed through an iterative collaboration between its owner and Codex. The owner set the open-source product goal, required a scope-locked implementation plan before coding, approved the visual proof before deeper implementation, chose an original warm and precise design direction, and later prioritized the Deadline-safe Core so testing, deployment, and submission time stayed protected.
+Omplish was developed through an iterative collaboration between the project owner and Codex. The owner defined the product direction and approved the key product and design decisions; Codex supported research synthesis, scope-locked specifications, architecture, modular implementation, and audits for authorization, timezones, accessibility, responsive behavior, dependencies, and release readiness.
 
-Codex accelerated competitor research synthesis, specification and architecture drafting, modular implementation, and the scope, authorization, timezone, accessibility, responsive-design, dependency, and release audits. The resulting code keeps product capabilities in explicit feature modules and preserves the owner's key decisions: manual workflows work without AI, task and schedule facts have one canonical representation, and AI output is always reviewed before it can write. The GetDesign-informed Editorial Focus system is the approved baseline across the current product and for later feature UI.
+Codex also helped preserve the product's non-negotiable engineering boundaries: manual workflows remain usable without AI, task and schedule facts have one canonical representation, and AI cannot change data without user review.
 
-GPT-5.6 powers the optional server-side planning proposal step. It converts a brain dump and selected task context into a schema-validated proposal; deterministic application code owns scheduling, ownership, conflicts, and atomic apply. Codex helped implement that boundary and its refusal, stale-data, no-write-before-apply, and idempotency tests. Git commits and the repository contracts preserve the concrete engineering and design decisions without maintaining a separate progress diary.
+GPT-5.6 is used only for the optional, server-side planning proposal. It turns a brain dump and selected task context into a schema-validated suggestion; deterministic application code retains control of scheduling, ownership, conflicts, and atomic apply. The model receives minimal context with `store: false`, never receives browser-side credentials, and cannot write task data directly. Refusal, stale-data, no-write-before-apply, and idempotency paths are covered by tests.
 
 ## Verification and deployment
 
