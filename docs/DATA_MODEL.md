@@ -12,7 +12,10 @@ Read this document before any schema change. It defines semantic ownership and p
    `id` alone; another user's use of the same UUID cannot conflict with or reveal the first row.
 5. Mutable user-facing aggregates carry `version`, `created_at`, and `updated_at`. A one-to-one
    extension shares its owning aggregate's version; an immutable event has no update/version
-   columns. An accepted mutation increments exactly one owning aggregate version once.
+   columns. Operational provider/attempt state such as `push_subscriptions` and
+   `notification_deliveries` follows its checked state machine and timestamps instead of optimistic
+   user-edit versions. An accepted user-facing mutation increments exactly one owning aggregate
+   version once.
 6. Soft deletion exists only where Trash/undo is part of behavior; it is not added reflexively to joins or immutable events.
 7. All instants are `timestamptz`; all-day calendar values are PostgreSQL `date`; timezones are IANA names.
 8. Foreign keys, unique constraints, checks, and indexes encode invariants that can be expressed in PostgreSQL.
@@ -85,6 +88,11 @@ These limits are shared by PostgreSQL checks and strict application schemas:
 - task Markdown descriptions: at most 20,000 characters;
 - fractional ranks: 1–128 characters, generated only by the tasks application service;
 - optimistic versions: positive PostgreSQL integers up to 2,147,483,647;
+- notification relative offsets: integer minutes from 0 through 10,080;
+- notification occurrence keys: 1–80 characters when present; sanitized error codes: 1–80 lowercase
+  snake-case ASCII characters; delivery attempts: 0–4;
+- subscription endpoint hashes: exactly 32 bytes; delivery idempotency keys: exactly 64 lowercase
+  hexadecimal characters;
 - task/list/tag color tokens: `coral`, `amber`, `mint`, `sky`, `violet`, or `slate`.
 
 Required names, titles, and ranks cannot retain an ECMAScript `String.trim` character at either
@@ -278,12 +286,22 @@ display spelling in the canonical `name` field.
 
 ### `task_reminders` — notifications
 
-The active release permits zero or one row per task through a unique `(user_id, task_id)` constraint
-and a tenant-leading owning foreign key:
+The active release permits zero or one row per task through a unique `(user_id, task_id)` constraint.
+Exact columns, in canonical order, are:
 
-- `id`, `user_id` composite PK, `task_id`, `kind`: `absolute` or `relative_start`
-- `remind_at` for absolute, or `offset_minutes` for relative
-- `enabled`, `version`, timestamps
+- `id uuid`, `user_id uuid` composite PK, `task_id uuid`;
+- `kind text`: `absolute|relative_start`;
+- nullable `remind_at timestamptz`, nullable `offset_minutes integer`;
+- `enabled boolean default true`, `version integer default 1`;
+- `created_at timestamptz default now()`, `updated_at timestamptz default now()`.
+
+The discriminant check requires only `absolute/remind_at` or only
+`relative_start/offset_minutes`; the latter is 0–10,080. Version is positive and
+`updated_at >= created_at`. `user_id` cascades from the account, and `(user_id, task_id)` references
+the owning task with `ON DELETE CASCADE`. Cross-table eligibility remains an application invariant.
+A reminder may remain persisted and keep its `enabled` value while terminal/deleted task state, a
+missing relative schedule, or exhausted recurrence makes it dormant; dormancy creates no delivery
+and does not duplicate task lifecycle state in this table.
 
 A later move to multiple reminders removes the unique constraint; it does not add task columns.
 
@@ -294,24 +312,77 @@ flow; it cannot silently reinterpret the instant.
 
 ### `push_subscriptions` — notifications
 
-- `id`, `user_id` composite PK, `endpoint_hash`
-- encrypted endpoint, `p256dh`, and auth material plus encryption-key-version metadata
-- device label/user-agent summary, `created_at`, `last_used_at`, `revoked_at`
-- unique active endpoint hash per user
+- `id uuid`, `user_id uuid` composite PK, `endpoint_hash bytea`;
+- `endpoint_ciphertext text`, `p256dh_ciphertext text`, `auth_ciphertext text`, and
+  `encryption_key_version integer`;
+- nullable `device_label text`, nullable `user_agent_summary text`;
+- `created_at timestamptz default now()`, `last_used_at timestamptz default now()`, nullable
+  `revoked_at timestamptz`.
 
-Encryption uses a server-only data-encryption key with key-version metadata. Never return stored secret material except as required to send from the worker.
+The endpoint hash is exactly the raw 32-byte SHA-256 of the opaque endpoint. Ciphertexts are checked
+unpadded base64url AES-256-GCM envelopes in exact
+`v1.<16-character-nonce>.<nonempty-ciphertext>.<22-character-tag>` form; endpoint ciphertext is
+45–8,192 characters and key ciphertexts are 45–1,024. Device label is 1–120 Unicode characters and
+user-agent summary 1–500 when present. Key version is nonnegative; `last_used_at >= created_at` and a
+revocation is not earlier than `last_used_at`. `user_id` cascades from the account. A **global**
+partial unique index on
+`endpoint_hash WHERE revoked_at IS NULL` prevents one browser endpoint remaining active for two
+accounts. Registration reads and updates only actor-owned rows; a conflicting global insert returns
+a generic browser-reset requirement without reading or revoking the other account's row. This table
+is operational provider state and intentionally has no user-facing optimistic `version`.
+
+Encryption uses a server-only versioned keyring and field-bound AAD. Stored secret material is
+decrypted only inside the worker provider adapter and is never returned from a stored server read.
 
 ### `notification_deliveries` — notifications
 
-- `id`, `user_id` composite PK, `reminder_id`, `subscription_id`, nullable `occurrence_key`
-- `scheduled_for`, `state`, `attempt_count`, nullable `last_error_code`, `delivered_at`
-- deterministic `idempotency_key` unique
-- timestamps
+- `id uuid`, `user_id uuid` composite PK, `reminder_id uuid`, `subscription_id uuid`;
+- nullable `occurrence_key text`, `scheduled_for timestamptz`;
+- `state text default scheduled`, `attempt_count integer default 0`, nullable
+  `last_error_code text`, nullable `delivered_at timestamptz`;
+- `idempotency_key text`, `created_at timestamptz default now()`,
+  `updated_at timestamptz default now()`.
 
-The reminder and subscription foreign keys are tenant-leading. One logical delivery is scoped to one
-subscription and one task occurrence/one-shot reminder; its deterministic idempotency key includes
-those opaque identities. Jobs contain the delivery ID/reminder ID, not content. Retention cleanup is
-a worker job.
+The only states are `scheduled`, `delivering`, `retry_scheduled`, `delivered`, `suppressed`, and
+`failed`. Checks enforce the owning module's exact state shapes: scheduled has zero attempts/no
+error/delivery time; delivering has 1–4 attempts/no error/delivery time; retry-scheduled has 1–3
+attempts/an error/no delivery time; delivered has 1–4 attempts/no error/a delivery time; suppressed
+has 0–4 attempts/an error/no delivery time; failed has 1–4 attempts/an error/no delivery time.
+`updated_at >= created_at`; a delivery time is between `scheduled_for` and `updated_at`.
+
+The account and tenant-leading reminder foreign keys cascade. The tenant-leading subscription
+foreign key uses `NO ACTION`: subscription rows are revoked first and are removed only after
+dependent deliveries expire. The globally unique idempotency key is SHA-256 over a NUL-delimited
+version marker, user ID, reminder ID, reminder version, subscription ID, occurrence key-or-none, and
+scheduled ISO instant. One row targets one subscription. Jobs contain only schema version, user ID,
+and delivery ID. `delivered_at` means provider acceptance, not browser display. Terminal delivery
+records become cleanup-eligible at 30 days; worker downtime may delay physical removal until the
+next actor-scoped recovery pass. Account/task/reminder deletion may cascade earlier for privacy.
+
+Migration `0015` uses these stable notification names so schema audits do not rely on implicit SQL:
+
+- reminders: `task_reminders_pkey`, `task_reminders_user_task_unique`,
+  `task_reminders_kind_check`, `task_reminders_shape_check`, `task_reminders_version_check`,
+  `task_reminders_timestamps_check`, `task_reminders_user_id_user_id_fk`,
+  `task_reminders_task_owner_fk`, and
+  `task_reminders_user_enabled_idx`;
+- subscriptions: `push_subscriptions_pkey`, `push_subscriptions_endpoint_hash_check`, three
+  field-specific `push_subscriptions_endpoint_ciphertext_check`,
+  `push_subscriptions_p256dh_ciphertext_check`, and `push_subscriptions_auth_ciphertext_check`,
+  `push_subscriptions_encryption_key_version_check`, `push_subscriptions_device_label_check`,
+  `push_subscriptions_user_agent_summary_check`, `push_subscriptions_timestamps_check`,
+  `push_subscriptions_user_id_user_id_fk`,
+  `push_subscriptions_active_endpoint_hash_idx`, and `push_subscriptions_user_active_idx`;
+- deliveries: `notification_deliveries_pkey`, `notification_deliveries_reminder_owner_fk`,
+  `notification_deliveries_subscription_owner_fk`, `notification_deliveries_user_id_user_id_fk`,
+  `notification_deliveries_state_check`, `notification_deliveries_occurrence_key_check`,
+  `notification_deliveries_attempt_count_check`, `notification_deliveries_error_code_check`,
+  `notification_deliveries_idempotency_key_check`, `notification_deliveries_state_shape_check`,
+  `notification_deliveries_timestamps_check`, the unique
+  `notification_deliveries_idempotency_key_idx`,
+  `notification_deliveries_user_state_scheduled_idx`,
+  `notification_deliveries_reminder_state_scheduled_idx`,
+  `notification_deliveries_subscription_state_scheduled_idx`.
 
 ### `habits` — habits
 
@@ -417,8 +488,10 @@ At minimum, migration review checks:
 - active and archived habit keyset pages by `(user_id, updated_at DESC, id)` under lifecycle-partial
   indexes, habit schedules by user, and habit logs by user/habit/local date and user/local date;
 - the partial one-unfinished-Focus-session index plus completed Focus history by user/end time;
-- reminders by user/task, active subscriptions by user/endpoint hash, and deliveries by unique
-  idempotency key plus user/state/scheduled time;
+- reminders by `(user_id, task_id)` with an enabled partial index; a global active-subscription
+  endpoint-hash unique index and active subscriptions by `(user_id, last_used_at DESC, id)`;
+  deliveries by globally unique idempotency key, `(user_id, state, scheduled_for, id)`,
+  reminder/state/time, and subscription/state/time;
 - GIN/trigram indexes for scoped task search after measuring query form;
 - planner proposals by user/status/expiry;
 - every foreign-key column used in deletion/authorization joins.

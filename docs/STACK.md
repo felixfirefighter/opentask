@@ -73,7 +73,7 @@ rebuild, and rerun visual/font-load evidence.
 | Better Auth with Drizzle adapter | email/password sessions and auth tables | Domain authorization still belongs to application use cases. |
 | `pg` | pooled PostgreSQL driver | One shared pool per process. |
 | pg-boss | Existing worker scaffold; P6 reminder queue | Keep the queue boot/shutdown smoke through P5. P6 alone may activate notification jobs; do not move task, habit, Focus, or AI workflows into jobs. |
-| `web-push` (not installed) | P6-gated browser notification delivery | Installation is authorized only after the P6 dependency gate below passes; VAPID/provider absence must remain a supported degraded state. |
+| `web-push` 3.6.7 + `@types/web-push` 3.6.4 | P6 browser notification delivery behind the notifications provider port | Server/worker-only; pin per-call VAPID, TTL, and timeout, sanitize raw errors immediately, and preserve provider-absent degradation. Do not use the mistyped `AES_128_GCM` declaration. |
 | Official `openai` JavaScript SDK | Responses API for the optional planner | Server-only, `store:false`, structured outputs, minimal context. |
 | Pino | structured application/worker logs | Mandatory redaction; no user content. |
 
@@ -91,7 +91,7 @@ package.
 | Package gate | Purpose | Declared upstream license | Activation requirements |
 |---|---|---|---|
 | P2 — `rrule` (activated) | Standards-based candidate expansion behind the tasks module's bounded recurrence port; OpenTask still owns presets, IANA-time semantics, occurrence identity, and safety caps. | BSD-3-Clause | Pinned at 2.8.1 after package metadata, one-dependency tree, upstream notice, API/timezone caveats, and maintenance review. The exact notice is committed and copied into the runtime image. Finite range/cap and DST fixtures remain part of the P2 code gate. |
-| P6 — `web-push` | Serialize and send standards-based Web Push messages behind the notifications provider port. | MPL-2.0 | Verify the selected version, license compatibility/notice obligations, type support, and maintenance signal; pin it; keep endpoint/key material server-only and encrypted; prove provider-absent, retry, revocation, and redaction paths. |
+| P6 — `web-push` (activated) | Serialize and send standards-based Web Push messages behind the notifications provider port. | MPL-2.0 | Pinned at 3.6.7 with `@types/web-push` 3.6.4 after Node 24, package-tree, license/notice, type, maintenance, API/TTL/timeout, and raw-error review. Exact notice is committed/copied to the runtime image; provider-absent, retry, revocation, timeout-unknown, and redaction paths remain mandatory. |
 
 License sources:
 [`rrule`](https://github.com/jakubroztocil/rrule/blob/master/LICENCE),
@@ -129,6 +129,7 @@ Do not add Jest, Cypress, Prisma, tRPC, GraphQL, Redux, Redis, a second date lib
 | `openai` 6.48.0 | Implement the optional GPT-5.6 Responses/Structured Outputs provider through the official SDK. | Server-only optional adapter; requests use minimal context, `store:false`, bounded timeout, and no-key capability fallback. | Apache-2.0 | Current stable official JavaScript SDK with maintained Responses and Zod helpers. | `modules/assistant/infrastructure/openai-responses-provider.ts` |
 | `@fullcalendar/react` 7.0.1 | Provide the committed month, week, day, and agenda views plus pointer drag/resize through the v7 React package's standard subpath plugins. | Client-only calendar surface; keyboard/touch schedule forms remain canonical and no premium/resource package is installed. The exact package and its two official transitive v7 packages are lockfile-pinned with an explicitly reviewed `minimumReleaseAgeExclude` exception. | MIT | Current stable v7 React release, React 19 compatible, with view and interaction plugins consolidated into the connector package. | `modules/planning/presentation/FullCalendarView.tsx` |
 | `rrule` 2.8.1 | Enumerate approved Gregorian preset candidates without maintaining a second calendar-rule parser. | One 687 KB unpacked server dependency with only `tslib`; the replaceable adapter never enters presentation and OpenTask still applies every range, timezone, duration, identity, and output limit. | BSD-3-Clause; exact upstream notice committed at `licenses/third-party/rrule-LICENCE.txt` and distributed in the production image. | Stable but slow-moving upstream: latest npm release is 2.8.1, published in 2023, with built-in TypeScript declarations and roughly 2.2M weekly downloads at review time. | `modules/tasks/infrastructure/recurrence/rrule-expander.ts` |
+| `web-push` 3.6.7 + `@types/web-push` 3.6.4 | Serialize standards-based Web Push requests without implementing VAPID/content encoding. | Small CommonJS server/worker adapter with five direct runtime dependencies; no native build or install script. Types remain development-only. OpenTask owns wall-clock timeout, TTL, retry classification, encryption-at-rest, and redaction. | MPL-2.0 runtime with exact upstream notice at `licenses/third-party/web-push-LICENSE.txt`; MIT type declarations. MPL 2.0 permits AGPL v3 as a Secondary License and upstream does not apply Exhibit B. | Latest npm runtime/types releases at review. Runtime supports Node >=16 and passes the repository's Node 24 smoke. Upstream remains active but recent CI is red, so local adapter/type/build/provider tests are mandatory. | `modules/notifications/infrastructure/web-push-provider.ts` |
 
 ### Direct runtime license baseline
 
@@ -140,16 +141,16 @@ for packages currently installed is:
 - ISC: Lucide React.
 - CC0-1.0: `fractional-indexing`.
 - BSD-3-Clause: `rrule`; its full upstream notice is committed and copied into the runtime image.
+- MPL-2.0: `web-push`; its exact upstream notice is committed and copied into the runtime image.
 
 The production-tree license gate also permits reviewed permissive transitive families: MIT-0
 (`@csstools` helpers), BlueOak-1.0.0 (`lru-cache` 11; its notice must remain with distributed
 copies), and CC0-1.0 (`mdn-data`). These are compatible with the repository's AGPL distribution;
 new license identifiers still fail the allowlist until reviewed.
 
-`rrule` is now part of the reviewed P2 baseline. Because BSD-3-Clause and MPL-2.0 already occur in
-unrelated transitive packages, the executable gate cannot treat a license identifier alone as
-package approval; it pins the direct `rrule` version, exact notice, and runtime-image copy. The P6
-`web-push` candidate remains absent and still requires its own package-specific review before use.
+`rrule` and `web-push` are reviewed direct runtime dependencies. Because BSD-3-Clause and MPL-2.0
+also occur in unrelated transitive packages, the executable gate cannot treat a license identifier
+alone as approval; it pins each direct version, exact notice, and runtime-image copy.
 
 The current production audit reports one moderate advisory in `esbuild` 0.18.20, reached only
 through Better Auth's Drizzle Kit tooling branch. The affected capability is an opt-in esbuild

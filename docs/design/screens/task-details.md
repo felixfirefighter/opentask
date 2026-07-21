@@ -55,9 +55,15 @@ assignees, activity history, templates, estimates, or custom fields.
   End recurrence confirms that future expansion stops at a server-chosen exclusive boundary while
   the ended definition and recorded occurrence history remain. Completing is then available; clearing
   its schedule removes the ended definition and schedule atomically without deleting event history.
-- Set/remove one absolute reminder for a non-recurring task or one relative-start reminder for any
-  eligible scheduled task. A recurring task requires relative-start; the form rejects an absolute
-  recurring combination with explicit copy. Permission enrollment remains a separate user action.
+- Set, replace, enable/disable, or remove one absolute reminder for an eligible non-recurring task or
+  one relative-start reminder for an eligible start. A recurring task requires relative-start; a
+  non-recurring all-day task offers absolute only because it has no persisted reminder-intent
+  timezone. The form explains the derived instant before submit and rejects a past/equal-now result.
+  Permission enrollment remains a separate Settings action.
+- Adding recurrence while an absolute reminder exists opens one explicit reviewed choice: convert it
+  to a valid relative-start offset or remove it in the same transaction. Cancel preserves both the
+  recurrence draft and existing reminder. Nothing silently reinterprets the instant. An ended
+  retained recurrence remains relative-only until its definition and schedule clear.
 - Field commits show Saving/Saved/Error close to the changed group. A changed row version triggers the conflict state before any overwrite.
 - Soft-delete exits the inspector/route only after confirmation and server success.
 
@@ -81,6 +87,15 @@ Subtasks reuse the full task editor at one level and display a clear “Subtasks
 | Offline | Details already loaded in the open page are read-only under the global banner. All mutations, including status and checklist changes, are disabled with one explanatory message; no unsynced draft is described as saved. |
 | Permission | Missing, deleted, or foreign IDs use the same generic unavailable treatment. No title, list, or existence metadata leaks. |
 | Conflict | Freeze further autosaves for the affected field, preserve the user's value, show before/latest values, and offer Keep editing, Use latest, or retry through a validated conflict flow. Never last-write-wins silently. |
+
+The reminder group independently represents no reminder, enabled, disabled, saving, provider/
+enrollment unavailable, offline, validation error, permission-safe unavailable task, and
+version-conflict states. Provider or subscription absence explains that delivery cannot occur but
+does not hide or corrupt a saved reminder specification. A reminder conflict preserves the draft,
+reloads the authoritative version, and requires explicit retry. A saved reminder whose task is
+terminal/deleted, whose relative schedule is absent, or whose recurrence is exhausted is shown as
+dormant with the exact reason: its definition and enabled choice are retained, missed instants will
+not be caught up, and only an explicit reminder action disables or removes it.
 
 Recurrence create/edit/end and recurring schedule changes use an explicit submit boundary rather
 than per-field autosave because the rule, cutover, and task version commit atomically. A response-lost

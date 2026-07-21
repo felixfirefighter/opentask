@@ -41,8 +41,16 @@ Distinguish AI planner available from disabled because the server has no configu
 Distinguish unsupported browser, permission not requested, denied, subscribed, provider unconfigured,
 and known-disabled worker states. Request notification permission only after the user activates an
 explicit control. If configuration expects a worker, say that runtime liveness is not verified; do
-not invent a heartbeat or report a configured process as live. P5/P6 controls do not render before
-their package gates and never expose VAPID or encryption keys.
+not invent a heartbeat or report a configured process as live. Enrollment/revocation manages only
+the current browser and is separate from per-task reminder definitions. The browser supplies its
+endpoint/keys inbound over an authorized exact-origin write, but the UI never renders stored
+subscription material. The server's public VAPID key may be used internally by
+`PushManager.subscribe()` and is not displayed; private VAPID and subscription-encryption keys never
+reach the client. If registration returns the generic `subscription_reset_required` state, explain
+that this browser subscription is already associated elsewhere without naming an account. Only an
+explicit **Reset this browser subscription** control may call `unsubscribe()`, obtain a fresh
+subscription, and retry; the server never revokes another user's row. P5/P6 controls do not render
+before their package gates.
 
 ## Export behavior
 

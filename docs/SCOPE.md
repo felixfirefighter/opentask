@@ -159,7 +159,9 @@ Acceptance:
 - Zero or one reminder per owned task: an absolute instant for a non-recurring task, or relative to an
   eligible task/occurrence start. A recurring task accepts only the relative-start form.
 - Web Push subscription registration/revocation, encrypted endpoint/key material, capability and
-  permission states, and optional VAPID/provider configuration.
+  permission states, and optional VAPID/provider configuration. Enrollment/revocation accepts the
+  current browser's subscription material inbound; stored server reads never echo it. The public
+  VAPID key is intentionally browser-visible, while private VAPID and encryption keys remain secret.
 - pg-boss enqueue/delivery/retry/no-op/cleanup behavior in an active worker process.
 - Schedule, recurrence, status, and deletion changes reconcile the next eligible delivery.
 
@@ -169,12 +171,16 @@ Acceptance:
   explicit degraded state and never prevents task/manual startup. The web UI does not claim to detect
   unexpected worker-process death; operators verify runtime liveness through the worker check and
   readiness log.
-- Reminder changes and logical job creation are transactionally consistent and idempotent; duplicate
-  execution cannot double-deliver a logical occurrence.
+- Reminder changes and logical job creation are transactionally consistent and idempotent. A job
+  records `delivering` before the remote call; duplicate execution cannot claim it twice. Explicit
+  retryable provider responses may retry within bounds, while timeout/statusless/crash ambiguity is
+  terminal and is never resent. Duplicate jobs cannot create an unclassified extra provider call;
+  explicit negative retryable responses may still produce bounded additional calls.
 - The worker reloads current state and no-ops stale, completed, deleted, disabled, rescheduled, or
   already-delivered work.
-- Push endpoints/auth material and task content never appear in job payloads, exports, client reads,
-  or logs; permanent subscription failures revoke safely and transient failures retry with bounds.
+- Push endpoints/auth material and task content never appear in job payloads, exports, stored server
+  responses, push payloads, or logs; permanent subscription failures revoke safely and only explicit
+  retryable responses retry with bounds.
 
 ### 8. Portability, demo, and local release trust
 

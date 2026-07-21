@@ -31,20 +31,27 @@ projections through its public application contracts.
   `completed`, and `cancelled`; `createTaskWithSchedule` atomically creates one task and its validated
   initial schedule under the same actor-scoped UUID idempotency contract.
 - Detail commands: manage tags and checklist items; set/clear schedule; set/edit/end a supported
-  recurrence rule.
+  recurrence rule. A create/edit that adds or restarts recurrence accepts the optional task-owned
+  `TaskRecurrenceReminderResolution` union:
+  `{kind:"remove",expectedReminderVersion}` or
+  `{kind:"convert_relative_start",expectedReminderVersion,offsetMinutes}`.
 - Occurrence commands: complete, skip, and undo/reopen one authorized occurrence using its opaque
   deterministic identity and the owning task's expected version.
 - Queries: get task detail, resolve one actor-scoped opaque occurrence identity for canonical task
   details, list Inbox/regular/terminal tasks, search tasks, load selected open unscheduled tasks, and
   range-bounded schedule/occurrence reads. `TaskFocusLinkReader` is the narrow actor-scoped contract
   Focus uses to validate one selectable task, search bounded candidates, and hydrate a saved
-  historical link without exposing task persistence.
+  historical link without exposing task persistence. `TaskReminderSourceReader` is the narrow
+  transaction-aware, actor-scoped contract notifications uses to read authoritative task, schedule,
+  recurrence, and next-occurrence reminder inputs without receiving a task repository.
 - Parsing: `parseQuickAdd(text, timezone)` returns the unchanged source text plus explicit editable suggestions; it performs no write.
 - Public contracts: the existing folder/list/section/tag/task DTO and tag-enriched task-list item/page types,
   `ReplaceTaskTagsOutput`, `TaskQuery`, `TerminalTaskQuery`, `TaskVersionRef`, `TaskScheduleDto`,
-  `TaskSnapshotReader`, `TaskFocusLinkReader`, `TaskRecurrenceDto`, `TaskOccurrenceDto`, bounded occurrence query/result
-  contracts, and narrow mutation/snapshot services used by assistant/planning/notifications/
-  portability. `TaskOccurrenceDto.transitionEligible` is the server-derived answer to whether a
+  `TaskSnapshotReader`, `TaskFocusLinkReader`, `TaskReminderSourceReader`,
+  `ReminderRelevantTaskChange`, `TaskReminderReconciler`,
+  `TaskRecurrenceReminderResolution`, `TaskRecurrenceDto`, `TaskOccurrenceDto`,
+  bounded occurrence query/result contracts, and narrow mutation/snapshot services used by
+  assistant/planning/notifications/portability. `TaskOccurrenceDto.transitionEligible` is the server-derived answer to whether a
   complete/skip transition would pass the current rule and cutover; consumers do not infer it from
   occurrence state or schedule.
 - The module root explicitly exports only those cross-module DTOs plus the strict request/query schemas
@@ -131,6 +138,13 @@ No public contract exposes a Drizzle row or an unscoped repository method.
   and schedule while preserving events.
   Every accepted rule, recurring-schedule, end, resume, or ended-rule schedule-clear mutation
   increments the task version exactly once.
+- Reminder-relevant task writes invoke the injected reconciler inside the task transaction after the
+  canonical task write and before commit. A terminal/deleted owner, cleared relative schedule, or
+  exhausted recurrence leaves the reminder definition and `enabled` value dormant while suppressing
+  current delivery. Reopen/restore/reschedule/restart reconciles only a strictly future delivery.
+  Adding or restarting recurrence while an absolute reminder exists rejects unless the recurrence
+  command supplies one explicit version-checked `TaskRecurrenceReminderResolution`; the injected
+  reconciler applies that conversion/removal in the same task transaction or aborts the whole write.
 - Ordinary calendar drag/resize is disabled for recurring events because an individual occurrence
   override is outside scope; the canonical form edits the future series schedule instead.
 - An occurrence is a projection of the task schedule and rule, identified by a client-opaque stable
@@ -159,8 +173,17 @@ No public contract exposes a Drizzle row or an unscoped repository method.
   while terminal. Therefore an undone historical key can remain visible as `open` with
   `transitionEligible=false` and must be presented read-only for complete/skip.
 - Aggregate commands use one lock order: owning task row, recurrence row when present, schedule row
-  when present, then occurrence-event reads/appends. Schedule edits, occurrence transitions,
-  cancel/reopen, and delete/restore never acquire those resources in another order.
+  when present, occurrence-event reads/appends, reminder row, active subscriptions sorted by ID,
+  deliveries sorted by ID, then transactional job insertion. Schedule edits, occurrence transitions,
+  cancel/reopen, reminder set/remove, and delete/restore never acquire those resources in another
+  order.
+- The production task application factory receives one real `TaskReminderReconciler`; individual
+  route handlers never add notification hooks. Reconciliation runs after successful canonical
+  writes/version increments and before commit for schedule set/clear, recurrence create/edit/end,
+  recurring-schedule edit, occurrence transition, task status, every directly affected root/child
+  delete/restore, and planner-applied schedule changes. Multi-task paths sort and deduplicate IDs.
+  Create, title/description, priority, move/rank, tags, checklist, and subtask-content changes do not
+  reconcile. The reminder snapshot—not an unrelated task version bump—decides staleness.
 - Public occurrence reads resolve or receive, then validate, one projection timezone before opening
   actor-scoped, repeatable-read, read-only snapshots; internal snapshot readers receive that
   explicit value.

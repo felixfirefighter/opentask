@@ -117,7 +117,11 @@ Time is a product invariant, not a formatting detail.
   explicitly started break duration are reconstructed from server timestamps and accumulated active
   seconds, not client ticks. Break rows never contribute to focus totals.
 - Absolute reminders persist an instant. Relative reminders derive their next instant from an
-  eligible task or occurrence start; they do not add a second schedule field.
+  eligible task or occurrence start; they do not add a second schedule field. Timed one-offs use
+  `start_at`; timed recurring tasks use the projected occurrence start; all-day recurrence uses
+  midnight on the occurrence date in the rule's stored IANA timezone. Non-recurring all-day tasks
+  have no persisted intent timezone and therefore offer absolute reminders only. An ended retained
+  recurrence definition remains recurrence for reminder eligibility until it and its schedule clear.
 
 Domain tests must cover spring-forward/fall-back behavior for at least one representative IANA zone.
 
@@ -142,7 +146,11 @@ Domain tests must cover spring-forward/fall-back behavior for at least one repre
   persists client countdown ticks or derived totals.
 - `modules/notifications` owns the one-task-reminder policy, push subscriptions, delivery records,
   provider adapter, and reminder worker use cases. Task changes call its injected public reconciler;
-  notifications never write task schedule, recurrence, or status tables.
+  notifications never write task schedule, recurrence, or status tables. Tasks exposes one
+  transaction-aware authorized reminder-source reader and owns the injected change/reconciler
+  contracts; notifications implements the reconciler without creating a tasks-to-notifications
+  dependency. Task Details and Settings receive notification UI through app-composed React slots,
+  so feature presentation modules do not import each other.
 - PWA manifest, registration/update lifecycle adapter, and content-free offline fallback are
   cross-cutting presentation/static infrastructure, not a domain module or a synchronization
   layer. Product-facing PWA cards and banners belong to the composing identity shell.
@@ -193,19 +201,35 @@ The release uses Structured Outputs because OpenAI documents schema adherence an
 
 P6 is the only package that activates background product behavior.
 
-1. An authorized task/reminder mutation reconciles the next eligible logical delivery through the
-   notifications module in the owning database transaction.
-2. The transaction records an idempotent pg-boss job containing opaque identifiers and occurrence
-   identity only; it contains no task content, endpoint, or key material.
-3. The worker reloads current authorized reminder, task/occurrence, and subscription state before
-   sending. Already delivered, stale, completed, deleted, disabled, or rescheduled work is a no-op.
-4. The provider adapter decrypts subscription material only for delivery, applies bounded retry or
-   permanent revocation policy, and never exposes provider payloads to presentation code.
+1. Reminder set/remove and the exact task seams—schedule set/clear, recurrence create/edit/end and
+   recurring-schedule edit, occurrence transition, task status, every root/child delete/restore, and
+   planner schedule apply—call one injected reconciler after canonical writes/version increments and
+   before commit. Multi-task paths sort/deduplicate IDs. Other task edits do not reconcile.
+2. Lock order is task, recurrence, schedule, occurrence event, reminder, active subscriptions sorted
+   by ID, deliveries sorted by ID, then pg-boss insertion. Reminder commands acquire the task first.
+3. A path that may need a job ensures the Web producer and exact queue definitions before its domain
+   transaction. The same Drizzle transaction writes delivery rows and calls pg-boss `send` through
+   `fromDrizzle(transaction, sql)`, using delivery ID as job ID and `scheduledFor` as `startAfter`.
+   A no-reminder path does not initialize pg-boss; a concurrent reminder discovery aborts cleanly,
+   primes the producer, and retries instead of committing an unreconciled task change.
+4. Jobs contain only `{schemaVersion:1,userId,deliveryId}`. The worker reloads actor-scoped reminder,
+   task/occurrence, and subscription state and records stale work as suppressed.
+5. A delivery is committed as `delivering` with its attempt incremented before the provider call.
+   Only explicit 408/429/5xx results retry. Timeout, statusless transport failure, or a crash while
+   delivering is terminal `outcome_unknown` and is never sent again. Duplicate jobs cannot create an
+   unclassified extra provider call, while explicit negative retryable responses may produce bounded
+   additional calls; `delivered` means provider acceptance, not browser display.
+6. The provider decrypts subscription material only for the call. HTTP 404/410 revokes; raw provider
+   errors, headers, endpoints, and bodies never reach presentation or logs.
 
-Before P6 lands, `pnpm worker` remains the existing queue boot/shutdown smoke and no product contract
-may depend on it. After P6, the final self-host topology runs the worker for reminders, while a
-missing worker or VAPID/provider configuration is reported as an honest degraded capability rather
-than a failure of the rest of the product.
+Exactly two queues exist: `notification_delivery_v1` and `notification_maintenance_v1`. Maintenance
+jobs are event-created, actor-scoped exact-target lease/cleanup/recurring-repair jobs; there is no
+cron or global user scan. Authenticated notification access also deduplicates a bounded actor-only
+recovery job, so work can be reconstructed after queue retention expiry without inspecting another
+user. `worker --check` validates schema/configuration/queues without consumers or push. Enabled
+startup registers exactly two handlers, and SIGINT/SIGTERM allows 15 seconds for graceful
+application work within Compose's 20-second stop window. Missing worker, encryption, or VAPID/provider
+configuration remains an honest degradation rather than a failure of manual work.
 
 The web capability endpoint reports configured, unconfigured, and known-disabled worker
 configuration. It does not use a heartbeat table or claim that a configured process is currently
@@ -227,13 +251,17 @@ update.
   state as synchronized.
 - A cold offline navigation may open only the static fallback shell; it must not imply that protected
   user data was loaded.
+- Push events extend only the event/click side of the P5 worker. They accept the generic validated
+  `{schemaVersion:1,taskId,deliveryId}` payload, show no task content, and navigate only to a
+  same-origin task path constructed by the worker. They do not expand the cache boundary.
 - Full offline writes require the Stage D sync protocol, tombstones, idempotency, and conflict UX;
   Stage D is outside this goal and must not be simulated with local-only state.
 
 ## Observability
 
 - Pino JSON logs include request ID, route/use-case name, duration, status class, and opaque entity IDs only where useful.
-- Redaction covers cookies, auth headers, OpenAI keys, request bodies, task content, and planner input/output.
+- Redaction covers cookies, auth headers, OpenAI/VAPID/encryption keys, request bodies, task content,
+  planner input/output, push endpoints/key material, and raw Web Push errors/headers/bodies.
 - `/api/health/live` checks process liveness; `/api/health/ready` checks database connectivity and migration compatibility.
 - No third-party behavioral analytics in active scope.
 

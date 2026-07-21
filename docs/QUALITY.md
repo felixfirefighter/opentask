@@ -33,7 +33,8 @@ Own pure behavior close to its module:
 - recurrence preset validation, bounded expansion, and occurrence identity/effective state;
 - habit schedule, quantity, local-day, streak, and heat-map projections;
 - Focus transition, accumulated-duration, reconstruction, and summary-window policies;
-- reminder eligibility, next-occurrence, idempotency, retry, and stale-job policies;
+- reminder eligibility, next-occurrence, deterministic idempotency, state shapes, exact retry/
+  outcome-unknown, stale boundary, crash-lease, and retention policies;
 - deterministic planner scheduling and strict versioned export/proposal contracts.
 
 Freeze clocks, timezones, ranges, and ordering. No test may depend on the machine timezone, current
@@ -52,8 +53,9 @@ large DOM snapshots.
 Use real PostgreSQL. Cover empty/upgrade migrations, constraints, indexes, transactions, concurrent
 writes, and positive-owner/negative-cross-user cases for every user-owned aggregate. Specifically
 prove occurrence uniqueness, one habit log per local day, one active Focus session, reminder/job
-idempotency, encrypted subscription storage, atomic task/create-schedule/planner apply, and one
-consistent authorized export snapshot.
+idempotency, global active endpoint ownership, encrypted subscription storage/key rotation,
+transactional pg-boss insertion, atomic task/create-schedule/planner apply, and one consistent
+authorized export snapshot.
 
 ### End-to-end and visual tests
 
@@ -162,8 +164,11 @@ offline/reconnect, history-only error, and cross-user session access.
 
 Forced: cache update/removal, no authenticated content in Cache Storage, unsupported/denied
   permission, no VAPID, known-disabled worker, configured-but-unverified worker liveness, duplicate
-  job, invalid absolute recurring reminder, transient retry, permanent subscription failure,
-  recurring next occurrence/DST, and cross-user reminder/subscription access.
+  job, invalid absolute recurring reminder, enable/disable, recurrence conversion/removal, explicit
+  transient retry, timeout/statusless unknown without resend, permanent subscription failure,
+  generic same-browser reset without cross-user revocation, recurring next occurrence/DST,
+  crash-lease repair, retention,
+  and cross-user reminder/subscription access.
 
 ### G9 — Full local release
 
@@ -234,6 +239,9 @@ Failure: bypassed layer, ambiguous ownership, duplicate rule, shared feature wid
   metadata/EAV, or unapproved JSONB.
 - Review recurrence range, habit local-day, Focus active-session, reminder/delivery, and export query
   plans/ownership.
+- For notifications, inspect exact state-shape checks, global active endpoint uniqueness,
+  tenant-leading foreign keys, encryption-envelope/hash bounds, actor-targeted maintenance, and the
+  additive `0015` fresh/upgrade path.
 
 Failure: synonymous fact, missing constraint/index/tenant key, unreviewed migration, or projection
 persisted as truth.
@@ -253,7 +261,7 @@ existence disclosure.
 - Strict Zod/DB bounds; Markdown/XSS; CSP/headers; safe redirects; parameterized SQL; client-bundle
   secret scan.
 - Logs/job/export/cache contain no user content, emails, sessions, OpenAI/VAPID keys, push endpoints,
-  subscription auth, or provider payloads.
+  subscription auth/ciphertext/hash, raw Web Push errors/headers/bodies, or provider payloads.
 - Run secret, production dependency, font/asset, and license inventory gates.
 
 Failure: exploitable input/output, content/secret exposure, unsafe private cache, or applicable
@@ -281,7 +289,11 @@ Failure: autonomous/hidden write, illegal schedule/action, stale overwrite, or c
 
 - Inspect manifest/service-worker scope, cache inventory/update/cleanup/offline fallback, push event/
   click handling, permission gesture, encryption, transactional enqueue, idempotency, retry/revoke,
-  stale no-op, recurring next occurrence, cleanup, and worker signal handling.
+  outcome-unknown no-resend, stale no-op, recurring next occurrence, reversible attempt-zero
+  suppressed-row reactivation,
+  two-minute crash lease, 30-day cleanup eligibility, exact two-queue options, greater-than-31-day
+  worker-outage actor recovery without a global scan, check-mode non-consumption, and worker signal
+  handling.
 
 Failure: private cached data, accepted offline write, stale build trap, double delivery, secret/content
 job, reminder corruption, or provider/worker required for core boot.
@@ -301,7 +313,8 @@ serious/critical axe issue, or design-contract mismatch.
 ### 10. Reliability, reproducibility, and release evidence
 
 - Rehearse DB/OpenAI/VAPID/worker/network unavailable, slow/duplicate/stale mutations, cache upgrade,
-  retries, and clean shutdown.
+  explicit retries, ambiguous provider outcomes, and clean shutdown. Validate export envelope v5 /
+  notifications v1 while proving all subscription/delivery/job/provider configuration is absent.
 - Follow README from a fresh clone through PostgreSQL, migrations, seed readiness, web, active worker,
   demo, golden paths, export, production build/Compose, and provider-degraded use.
 - Verify video/screenshots/README describe the same release commit and expose no secrets/personal data.

@@ -49,6 +49,14 @@ const reviewedRuntimeDependencies = [
     repositoryLicense: "licenses/third-party/rrule-LICENCE.txt",
     runtimeLicense: "licenses/third-party/rrule-LICENCE.txt",
   },
+  {
+    name: "web-push",
+    version: "3.6.7",
+    licenseId: "MPL-2.0",
+    sourceLicense: "node_modules/web-push/LICENSE",
+    repositoryLicense: "licenses/third-party/web-push-LICENSE.txt",
+    runtimeLicense: "licenses/third-party/web-push-LICENSE.txt",
+  },
 ];
 
 const assetFailures = [];

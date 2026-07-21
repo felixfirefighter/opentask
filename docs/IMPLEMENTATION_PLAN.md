@@ -70,8 +70,8 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 
 ### Deliverables
 
-- Review/install `web-push`; add `task_reminders`, `push_subscriptions`, and
-  `notification_deliveries` through one reviewed migration.
+- Use the reviewed pinned `web-push` adapter dependency; add `task_reminders`,
+  `push_subscriptions`, and `notification_deliveries` through one reviewed migration.
 - Explicit-user-action subscription/permission enrollment and revocation; encrypted endpoint/key
   material with key-version metadata and safe capability/degraded states.
 - Zero/one task reminder: absolute instant only for a non-recurring task, or relative to an eligible
@@ -87,9 +87,10 @@ snapshots. Core startup stays useful without browser support, VAPID, or a runnin
 - Report configured, unconfigured, and known-disabled worker states without inventing a heartbeat.
   When configuration expects a worker, UI says runtime liveness is not verified; operator evidence is
   the worker check plus readiness log.
-- Before migration generation, freeze relative-offset semantics/range, delivery states, retry/backoff,
-  stale-delivery cutoff, and retention constants in the module/data/worker contracts. Each delivery
-  targets one subscription so partial multi-device provider results never share one mutable state.
+- Implement the frozen relative-offset semantics/range, delivery states, at-most-once unknown-outcome
+  policy, retry/backoff, stale cutoff, encryption, two-queue runtime, and retention constants in the
+  routed module/data/architecture contracts. Each delivery targets one subscription so partial
+  multi-device provider results never share one mutable state.
 
 ### Gate
 
